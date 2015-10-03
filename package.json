@@ -1,0 +1,38 @@
+{
+  "name": "multimedia",
+  "version": "1.0.0",
+  "description": "Multimedia streaming framework for browser and node  ",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --optimize-dedupe",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Multimedia",
+    "streaming",
+    "data",
+    "flow",
+    "transcoder",
+    "transmuxer",
+    "pipeline",
+    "playback",
+    "MediaSource",
+    "WebAudio"
+  ],
+  "author": "Stephan Hesse <tchakabam@gmail.com>",
+  "license": "Apache",
+  "devDependencies": {
+    "typescript": "^1.6.2"
+  },
+  "dependencies": {
+    "av": "^0.4.4",
+    "create": "0.0.2",
+    "is-mime": "^0.3.0",
+    "lodash.create": "^3.1.1",
+    "mp3": "^0.1.0",
+    "ogg.js": "^0.1.0",
+    "opus.js": "^0.1.1",
+    "stream-browserify": "^2.0.1",
+    "webpack": "^1.12.2"
+  }
+}
