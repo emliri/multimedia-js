@@ -47,6 +47,9 @@
             else {
                 length = data.length;
             }
+
+            console.log('push ' + length);
+
             var offset = 0;
             var parsed;
             while (offset < length &&
@@ -65,6 +68,9 @@
             this.bufferSize = tail;
         };
         MP3Parser.prototype._parse = function (data, start, end) {
+
+            console.log('_parse');
+
             if (start + 2 > end) {
                 return -1; // we need at least 2 bytes to detect sync pattern
             }
@@ -91,7 +97,8 @@
                         return -1;
                     }
                     if (this.onFrame) {
-                        this.onFrame(data.subarray(start, start + frameLength));
+                        console.log('onFrame');
+                        this.onFrame(data.subarray(start, start + frameLength), bitRate, sampleRate);
                     }
                     return frameLength;
                 }

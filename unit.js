@@ -9,8 +9,13 @@ var Unit,
 module.exports = Unit = function Unit() {
   EventEmitter.call(this);
 
-  this.inputs = [];
-  this.outputs = [];
+  if (!this.inputs) {
+    this.inputs = [];
+  }
+
+  if (!this.outputs) {
+    this.outputs = [];
+  }
 
 };
 
@@ -319,7 +324,7 @@ BaseSink.prototype = create(Unit.prototype, {
 
   _onChain: function(transfer) {
 
-    console.log('onChain: ' + transfer.encoding);
+    console.log('BaseSink._onChain: ' + transfer.encoding);
 
     this._bufferIn.push(transfer);
     this._onData();
@@ -340,16 +345,26 @@ BaseSink.prototype = create(Unit.prototype, {
 Unit.BaseParser = BaseParser = function BaseParser() {
   BasePushSrc.prototype.constructor.apply(this, arguments);
   BaseSink.prototype.constructor.apply(this, arguments);
+
+  this.in(0).on('finish', this._onFinish.bind(this));
 };
 
-BaseParser.prototype = create(BasePushSrc.prototype, BaseSink.prototype, {
+assign(BaseParser.prototype, Unit.prototype, EventEmitter.prototype, BaseSrc.prototype, BasePushSrc.prototype, BaseSink.prototype, {
   constructor: BaseParser,
 
   _onData: function() {
-    this.parse(this.dequeue());
+    this._parse(this.dequeue());
+  },
+
+  _onFinish: function() {
+    this.out(0).push(null, 'null');
   },
 
   // Implement _parse and call enqueue whenever you want to push data out
   _parse: function(transfer) {},
 
 });
+
+console.log(BaseParser.prototype);
+
+

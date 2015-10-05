@@ -2,6 +2,7 @@ var create = require('lodash.create'),
 	Unit = require('../unit.js'),
 	UnitFile = require('../unit-file.js'),
 	UnitMP4Mux = require('../unit-mp4-mux.js'),
+	UnitMP3Parser = require('../unit-mp3-parser.js'),
 	Transfer = Unit.Transfer,
 	BaseSink = Unit.BaseSink,
 	BasePushSrc = Unit.BasePushSrc;
@@ -113,19 +114,29 @@ describe("UnitFile", function() {
 	var foobar = FIXTURES_DIR + 'foobar.txt';
 	var copy = FIXTURES_DIR + 'foobar_copy.txt';
 
-	describe("constructor", function() {
-		it('should open', function () {
+	describe("basic tests", function() {
+		it('should open', function (done) {
 			var src = new UnitFile.Src(foobar);
 			var sink = new UnitFile.Sink(copy);
 
-			//src.out(0).on('open', done);
+			src.on('open', function() {done();});
 		});
 
 		it('should pipe', function (done) {
 			var src = new UnitFile.Src(foobar);
 			var sink = new UnitFile.Sink(copy);
 
-			src.out(0).on('open', function() {
+			sink.on('finish', function() {done();});
+
+			Unit.link(src, sink);
+
+		});
+
+		it('should pipe on opening', function (done) {
+			var src = new UnitFile.Src(foobar);
+			var sink = new UnitFile.Sink(copy);
+
+			src.on('open', function() {
 				Unit.link(src, sink);
 			});
 
@@ -133,10 +144,33 @@ describe("UnitFile", function() {
 
 		});
 
-		after(function() {
+		afterEach(function() {
 		    fs.unlinkSync(copy);
   		});
 
+	});
+});
+
+describe("UnitMP3Parser", function() {
+
+	describe("basic tests", function() {
+		it('should initialize', function () {
+			var unitMp3Parser = new UnitMP3Parser();
+		});
+
+		it('should parse a file', function (done) {
+			var src = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3');
+			var parser = new UnitMP3Parser();
+			var sink = new BaseSink();
+
+			sink.on('finish', function() {done();});
+
+			src.on('open', function() {
+				console.log('file open');
+				Unit.link(src, parser, sink);
+			});
+
+		});
 	});
 });
 

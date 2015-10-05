@@ -22,9 +22,10 @@ module.exports = UnitMP4Mux = function UnitMP4Mux() {
 	this.muxer.ondata = this._onMp4Data.bind(this);
 	this.muxer.oncodecinfo = this._onCodecInfo.bind(this);
 
-	this._buffer = [];
 	this._codecInfo = null;
 	this._timestamp = 0;
+
+	this.on('finish', this._onFinish.bind(this));
 }
 
 UnitMP4Mux.prototype = Unit.createBaseParser({
@@ -38,6 +39,10 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 	_onCodecInfo: function(codecInfo) {
 		console.log(codecInfo);
 		this._codecInfo = codecInfo;
+	},
+
+	_onFinish: function(input) {
+		this.muxer.flush();
 	},
 
 	_parse: function(transfer) {
