@@ -1,14 +1,37 @@
 var Unit,
     Input, Output, Transfer,
-    BaseTransform, BaseSrc, BasePushSrc, BaseSink,
+    BaseTransform, BaseSrc, BasePushSrc, BaseSink, BaseParser,
     create = require('lodash.create'),
+    assign = require('lodash.assign'),
+    EventEmitter = require('events'),
     stream = require('stream');
 
 module.exports = Unit = function Unit() {
+  EventEmitter.call(this);
 
   this.inputs = [];
   this.outputs = [];
 
+};
+
+Unit.create = function UnitCreate(proto) {
+  return create(Unit.prototype, proto);
+}
+
+Unit.createBaseSrc = function UnitCreateBaseSrc(proto) {
+  return create(BaseSrc.prototype, proto);
+};
+
+Unit.createBaseSink = function UnitCreateBaseSink(proto) {
+  return create(BaseSink.prototype, proto);
+};
+
+Unit.createBaseTransform = function UnitCreateBaseTransform(proto) {
+  return create(BaseTransform.prototype, proto);
+};
+
+Unit.createBaseParser = function UnitCreateBaseParser(proto) {
+  return create(BaseParser.prototype, proto);
 };
 
 Unit.link = function(u1, u2) {
@@ -38,7 +61,7 @@ Unit.IOEvent = {
   NEED_DATA: 'need-data',
 }
 
-Unit.prototype = {
+Unit.prototype = create(EventEmitter.prototype, {
   constructor: Unit,
 
   in: function(i) {
@@ -82,10 +105,19 @@ Unit.prototype = {
   },
 
   addInput: function(input) {
+    this._installEventForwarder(input, 'finish');
+    this._installEventForwarder(input, 'open');
+    this._installEventForwarder(input, 'pipe');
+    this._installEventForwarder(input, 'unpipe');
+    this._installEventForwarder(input, 'error');
     this.inputs.push(input);
   },
 
   addOutput: function(output) {
+    this._installEventForwarder(output, 'end');
+    this._installEventForwarder(output, 'open');
+    this._installEventForwarder(output, 'close');
+    this._installEventForwarder(output, 'error');
     this.outputs.push(output);
   },
 
@@ -105,10 +137,26 @@ Unit.prototype = {
     });
   },
 
-};
+  _installEventForwarder: function(source, event) {
+    source.on(event, function() { this.emit(event, source) }.bind(this));
+  },
+
+});
 
 // Data ownership transfer unit between unit interfaces (inputs/outputs)
 Unit.Transfer = Transfer = function Transfer(data, encoding, doneCallback) {
+
+  if (!encoding) {
+    if (data instanceof Buffer) {
+      encoding = 'buffer';
+    }
+    else if (data instanceof String) {
+      encoding = 'utf8';
+    } else {
+      encoding = 'object';
+    }
+  }
+
   this.data = data;
   this.encoding = encoding;
   this.doneCallback = doneCallback;
@@ -119,11 +167,14 @@ Transfer.prototype = create(Object.prototype, {
   constructor: Transfer,
 
   resolve: function() {
+    if (!this.doneCallback) {
+      return;
+    }
     this.doneCallback();
   },
 });
 
-Unit.Input = Input = function Input() {
+Unit.Input = Input = function Input(writable, arguments) {
   stream.Writable.prototype.constructor.call(this, {
     objectMode: true,
     decodeStrings: false,
@@ -140,7 +191,7 @@ Input.prototype = create(stream.Writable.prototype, {
   },
 });
 
-Unit.Output = Output = function Output() {
+Unit.Output = Output = function Output(readable) {
   stream.Readable.prototype.constructor.apply(this, {
     objectMode: true,
   });
@@ -196,7 +247,6 @@ BaseTransform.prototype = create(Unit.prototype, {
 });
 
 Unit.BaseSrc = BaseSrc = function BaseSrc() {
-
   Unit.prototype.constructor.apply(this, arguments);
 
   this.add(new Output());
@@ -218,6 +268,7 @@ BaseSrc.prototype = create(Unit.prototype, {
     }
 
     this.out(0).push(transfer.data, transfer.encoding);
+    transfer.resolve();
   },
 
   // returns: Transfer
@@ -226,10 +277,9 @@ BaseSrc.prototype = create(Unit.prototype, {
 });
 
 Unit.BasePushSrc = BasePushSrc = function BasePushSrc() {
-
   BaseSrc.prototype.constructor.apply(this, arguments);
 
-  this._buffer = [];
+  this._bufferOut = [];
 };
 
 BasePushSrc.prototype = create(BaseSrc.prototype, {
@@ -237,16 +287,16 @@ BasePushSrc.prototype = create(BaseSrc.prototype, {
   constructor: BasePushSrc,
 
   _source: function() {
-    if (!this._buffer.length) {
+    if (!this._bufferOut.length) {
       return null;
     }
-    return this._buffer.shift();
+    return this._bufferOut.shift();
   },
 
   enqueue: function(transfer) {
-    this._buffer.push(transfer);
+    this._bufferOut.push(transfer);
 
-    if (this.out(0).isPulling()) {
+    if (this.out(0).isPulling && this.out(0).isPulling()) {
       this.squeeze();
     }
   },
@@ -254,14 +304,13 @@ BasePushSrc.prototype = create(BaseSrc.prototype, {
 });
 
 Unit.BaseSink = BaseSink = function BaseSink() {
-
   Unit.prototype.constructor.apply(this, arguments);
 
   this.add(new Input());
 
-  this.in(0).on('chain', this._onChain.bind(this));
+  this.in(0).on(Unit.IOEvent.CHAIN, this._onChain.bind(this));
 
-  this._buffer = [];
+  this._bufferIn = [];
 };
 
 BaseSink.prototype = create(Unit.prototype, {
@@ -272,18 +321,35 @@ BaseSink.prototype = create(Unit.prototype, {
 
     console.log('onChain: ' + transfer.encoding);
 
-    this._buffer.push(transfer);
-    transfer.resolve();
+    this._bufferIn.push(transfer);
     this._onData();
+    transfer.resolve();
   },
 
   _onData: function() {},
 
   dequeue: function() {
-    if (!this._buffer.length) {
+    if (!this._bufferIn.length) {
       return null;
     }
-    return this._buffer.shift();
+    return this._bufferIn.shift();
   },
+
+});
+
+Unit.BaseParser = BaseParser = function BaseParser() {
+  BasePushSrc.prototype.constructor.apply(this, arguments);
+  BaseSink.prototype.constructor.apply(this, arguments);
+};
+
+BaseParser.prototype = create(BasePushSrc.prototype, BaseSink.prototype, {
+  constructor: BaseParser,
+
+  _onData: function() {
+    this.parse(this.dequeue());
+  },
+
+  // Implement _parse and call enqueue whenever you want to push data out
+  _parse: function(transfer) {},
 
 });

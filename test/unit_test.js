@@ -1,9 +1,13 @@
 var create = require('lodash.create'),
 	Unit = require('../unit.js'),
+	UnitFile = require('../unit-file.js'),
+	UnitMP4Mux = require('../unit-mp4-mux.js'),
 	Transfer = Unit.Transfer,
 	BaseSink = Unit.BaseSink,
 	BasePushSrc = Unit.BasePushSrc;
 	BaseTransform = Unit.BaseTransform;
+
+const FIXTURES_DIR = 'test/fixtures/';
 
 var FooBarTransform = function FooBarTransform() {
 	BaseTransform.prototype.constructor.apply(this, arguments);
@@ -102,4 +106,45 @@ describe("Unit", function() {
 
 	});
 
+});
+
+describe("UnitFile", function() {
+
+	var foobar = FIXTURES_DIR + 'foobar.txt';
+	var copy = FIXTURES_DIR + 'foobar_copy.txt';
+
+	describe("constructor", function() {
+		it('should open', function () {
+			var src = new UnitFile.Src(foobar);
+			var sink = new UnitFile.Sink(copy);
+
+			//src.out(0).on('open', done);
+		});
+
+		it('should pipe', function (done) {
+			var src = new UnitFile.Src(foobar);
+			var sink = new UnitFile.Sink(copy);
+
+			src.out(0).on('open', function() {
+				Unit.link(src, sink);
+			});
+
+			sink.on('finish', function() {done();});
+
+		});
+
+		after(function() {
+		    fs.unlinkSync(copy);
+  		});
+
+	});
+});
+
+describe("UnitMP4Mux", function() {
+
+	describe("constructor", function() {
+		it('should initialize', function () {
+			var unitMp4Mux = new UnitMP4Mux();
+		});
+	});
 });
