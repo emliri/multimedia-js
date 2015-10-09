@@ -205,6 +205,10 @@ Unit.Output = Output = function Output(readable) {
   this._shouldPushMore = true;
 };
 
+Output.eos = function(readable) {
+  readable.push(null, 'null');
+};
+
 // Call push to pass data out
 Output.prototype = create(stream.Readable.prototype, {
   constructor: Output,
@@ -235,6 +239,8 @@ Unit.BaseTransform = BaseTransform = function BaseTransform() {
       .add(new Output());
 
   this.in(0).on(Unit.IOEvent.CHAIN, this._onChain.bind(this));
+
+  this.in(0).on('finish', this._onFinish.bind(this));
 };
 
 BaseTransform.prototype = create(Unit.prototype, {
@@ -245,6 +251,10 @@ BaseTransform.prototype = create(Unit.prototype, {
     this._transform(transfer);
     this.out(0).push(transfer.data, transfer.encoding);
     transfer.resolve();
+  },
+
+  _onFinish: function() {
+    Output.eos(this.out(0));
   },
 
   _transform: function(transfer) {}, // virtual method to be implemented
@@ -349,7 +359,12 @@ Unit.BaseParser = BaseParser = function BaseParser() {
   this.in(0).on('finish', this._onFinish.bind(this));
 };
 
-assign(BaseParser.prototype, Unit.prototype, EventEmitter.prototype, BaseSrc.prototype, BasePushSrc.prototype, BaseSink.prototype, {
+assign(BaseParser.prototype,
+  //
+  Unit.prototype, EventEmitter.prototype,
+  BaseSrc.prototype, BasePushSrc.prototype,
+  BaseSink.prototype, {
+
   constructor: BaseParser,
 
   _onData: function() {
@@ -357,14 +372,10 @@ assign(BaseParser.prototype, Unit.prototype, EventEmitter.prototype, BaseSrc.pro
   },
 
   _onFinish: function() {
-    this.out(0).push(null, 'null');
+    Output.eos(this.out(0));
   },
 
   // Implement _parse and call enqueue whenever you want to push data out
   _parse: function(transfer) {},
 
 });
-
-console.log(BaseParser.prototype);
-
-

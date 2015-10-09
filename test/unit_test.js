@@ -144,6 +144,19 @@ describe("UnitFile", function() {
 
 		});
 
+		it('should write modified file', function (done) {
+			var src = new UnitFile.Src(foobar),
+				transform = new FooBarTransform(),
+				sink = new UnitFile.Sink(copy);
+
+			src.on('open', function() {
+				Unit.link(src, transform, sink);
+			});
+
+			sink.on('finish', function() {done();});
+
+		});
+
 		afterEach(function() {
 		    fs.unlinkSync(copy);
   		});
@@ -151,6 +164,7 @@ describe("UnitFile", function() {
 	});
 });
 
+/*
 describe("UnitMP3Parser", function() {
 
 	describe("basic tests", function() {
@@ -159,9 +173,9 @@ describe("UnitMP3Parser", function() {
 		});
 
 		it('should parse a file', function (done) {
-			var src = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3');
-			var parser = new UnitMP3Parser();
-			var sink = new BaseSink();
+			var src = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3'),
+				parser = new UnitMP3Parser(),
+				sink = new BaseSink();
 
 			sink.on('finish', function() {done();});
 
@@ -182,3 +196,4 @@ describe("UnitMP4Mux", function() {
 		});
 	});
 });
+*/
