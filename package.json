@@ -1,11 +1,11 @@
 {
   "name": "multimedia",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Multimedia streaming framework for browser and node  ",
   "main": "index.js",
   "scripts": {
     "build": "webpack --optimize-dedupe",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "keywords": [
     "Multimedia",
@@ -20,7 +20,7 @@
     "WebAudio"
   ],
   "author": "Stephan Hesse <tchakabam@gmail.com>",
-  "license": "Apache",
+  "license": "LGPL",
   "devDependencies": {
     "chai": "^3.3.0",
     "mocha": "^2.3.3",
