@@ -35,17 +35,11 @@ var AudioPacketType;
     AudioPacketType[AudioPacketType["HEADER"] = 0] = "HEADER";
     AudioPacketType[AudioPacketType["RAW"] = 1] = "RAW";
 })(AudioPacketType || (AudioPacketType = {}));
-function parseAudiodata(data) {
+function parseAudiodata(data, metadata) {
     var i = 0;
     var packetType = AudioPacketType.RAW;
-    var flags = data[i];
-    var codecId = flags >> 4;
-    var soundRateId = (flags >> 2) & 3;
-    var sampleSize = flags & 2 ? 16 : 8;
-    var channels = flags & 1 ? 2 : 1;
     var samples;
-    i++;
-    switch (codecId) {
+    switch (metadata.codecId) {
         case AAC_SOUND_CODEC_ID:
             var type = data[i++];
             packetType = type;
@@ -54,20 +48,43 @@ function parseAudiodata(data) {
         case MP3_SOUND_CODEC_ID:
             var version = (data[i + 1] >> 3) & 3; // 3 - MPEG 1
             var layer = (data[i + 1] >> 1) & 3; // 3 - Layer I, 2 - II, 1 - III
-            samples = layer === 1 ? (version === 3 ? 1152 : 576) :
-                (layer === 3 ? 384 : 1152);
+
+/*
+Sign  Length
+(bits)  Position
+(bits)  Description
+A 11  (31-21) Frame sync (all bits set)
+B 2 (20,19) MPEG Audio version ID
+00 - MPEG Version 2.5
+01 - reserved
+10 - MPEG Version 2 (ISO/IEC 13818-3)
+11 - MPEG Version 1 (ISO/IEC 11172-3)
+Note: MPEG Version 2.5 is not official standard. Bit No 20 in frame header is used to indicate version 2.5. Applications that do not support this MPEG version expect this bit always to be set, meaning that frame sync (A) is twelve bits long, not eleve as stated here. Accordingly, B is one bit long (represents only bit No 19). I recommend using methodology presented here, since this allows you to distinguish all three versions and keep full compatibility.
+
+C 2 (18,17) Layer description
+00 - reserved
+01 - Layer III
+10 - Layer II
+11 - Layer I
+D 1 (16)  Protection bit
+0 - Protected by CRC (16bit crc follows header)
+1 - Not protected
+*/
+            samples = layer === 1 ? (version === 3 ? 1152 : 576) : (layer === 3 ? 384 : 1152);
             break;
     }
-    return {
-        codecDescription: SOUNDFORMATS[codecId],
-        codecId: codecId,
-        data: data.subarray(i),
-        rate: SOUNDRATES[soundRateId],
-        size: sampleSize,
-        channels: channels,
-        samples: samples,
-        packetType: packetType
+    info = {
+      codecDescription: SOUNDFORMATS[metadata.codecId],
+      codecId: metadata.codecId,
+      data: data.subarray(i),
+      rate: metadata.sampleRate,
+      size: metadata.sampleSize,
+      channels: metadata.channels,
+      samples: samples,
+      packetType: packetType
     };
+    console.log("parsed audio packet with %d samples", samples);
+    return info;
 }
 var VIDEOCODECS = [null, 'JPEG', 'Sorenson', 'Screen', 'VP6', 'VP6 alpha', 'Screen2', 'AVC'];
 var VP6_VIDEO_CODEC_ID = 4;
@@ -128,7 +145,7 @@ var MP4Mux = (function () {
     function MP4Mux(metadata) {
         var _this = this;
         this.oncodecinfo = function (codecs) {
-            //
+            throw new Error('MP4Mux.oncodecinfo is not set');
         };
         this.ondata = function (data) {
             throw new Error('MP4Mux.ondata is not set');
@@ -155,14 +172,14 @@ var MP4Mux = (function () {
         this.cachedPackets = [];
         this.chunkIndex = 0;
     }
-    MP4Mux.prototype.pushPacket = function (type, data, timestamp) {
+    MP4Mux.prototype.pushPacket = function (type, data, timestamp, metadata) {
         if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
             this._tryGenerateHeader();
         }
         switch (type) {
             case AUDIO_PACKET:
                 var audioTrack = this.audioTrackState;
-                var audioPacket = parseAudiodata(data);
+                var audioPacket = parseAudiodata(data, metadata);
                 if (!audioTrack || audioTrack.trackInfo.codecId !== audioPacket.codecId) {
                     throw new Error('Unexpected audio packet codec: ' + audioPacket.codecDescription);
                 }
@@ -441,6 +458,21 @@ MP4Mux.MP3_SOUND_CODEC_ID = MP3_SOUND_CODEC_ID;
 MP4Mux.AAC_SOUND_CODEC_ID = AAC_SOUND_CODEC_ID;
 MP4Mux.TYPE_AUDIO_PACKET = AUDIO_PACKET;
 MP4Mux.TYPE_VIDEO_PACKET = VIDEO_PACKET;
+
+MP4Mux.Profiles = {
+  MP3_AUDIO_ONLY: {
+    audioTrackId: 0,
+    videoTrackId: -1,
+    tracks: [
+      {
+        codecId: MP4Mux.MP3_SOUND_CODEC_ID,
+        channels: 2,
+        samplerate: 44100,
+        samplesize: 16,
+      },
+    ],
+  },
+};
 
 function parseFLVMetadata(metadata) {
     var tracks = [];

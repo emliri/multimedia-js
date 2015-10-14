@@ -164,7 +164,7 @@ describe("UnitFile", function() {
 	});
 });
 
-/*
+
 describe("UnitMP3Parser", function() {
 
 	describe("basic tests", function() {
@@ -195,5 +195,25 @@ describe("UnitMP4Mux", function() {
 			var unitMp4Mux = new UnitMP4Mux();
 		});
 	});
+
+	describe("mux mp3 frames as mp4a payload", function() {
+		it('should pass all data through', function (done) {
+			var src = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3'),
+				parser = new UnitMP3Parser(),
+				muxer = new UnitMP4Mux(UnitMP4Mux.Profiles.MP3_AUDIO_ONLY),
+				sink = new UnitFile.Sink(FIXTURES_DIR + 'shalafon.mp4');
+
+			sink.on('finish', function() {done();});
+
+			// FIXME: finish should call done()
+			src.on('end', function() {
+				//done();
+			});
+
+			src.on('open', function() {
+				console.log('file open');
+				Unit.link(src, parser, muxer, sink);
+			});
+		});
+	});
 });
-*/

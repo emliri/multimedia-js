@@ -30,6 +30,7 @@ module.exports = UnitMP3Parser = function UnitMP3Parser() {
 
 	this._sampleRate = 0;
 	this._bitRate = 0;
+	this._timestamp = 0;
 }
 
 UnitMP3Parser.prototype = Unit.createBaseParser({
@@ -39,10 +40,23 @@ UnitMP3Parser.prototype = Unit.createBaseParser({
 	_onMp3Frame: function(data, bitRate, sampleRate) {
 		console.log('Found frame length ' + data.length + ' bitRate=' + bitRate + ', sampleRate='+sampleRate);
 		var buffer = new Buffer(data);
-		buffer.mimeType = 'audio/mpeg';
-		buffer.bitRate = this._bitRate = bitRate;
-		buffer.sampleRate = this._sampleRate = sampleRate;
+		var duration = 1152 / sampleRate;
+
+		buffer.meta = {
+			mimeType: 'audio/mpeg',
+			codecId: 2,
+			channels: 2,
+			bitRate: bitRate,
+			sampleRate: sampleRate,
+			sampleSize: 16,
+		};
+
+		buffer.duration = duration;
+		buffer.timestamp = this._timestamp;
 		this.enqueue(new Unit.Transfer(buffer, 'buffer'));
+
+		this._bitRate = bitRate;
+		this._timestamp += duration;
 	},
 
 	_onNoise: function() {
@@ -56,10 +70,6 @@ UnitMP3Parser.prototype = Unit.createBaseParser({
 	_parse: function(transfer) {
 
 		console.log('parse called');
-
-		if (transfer.data) {
-			this._timestamp = transfer.data.timestamp;
-		}
 
 		this.parser.push(new Uint8Array(transfer.data));
 	},

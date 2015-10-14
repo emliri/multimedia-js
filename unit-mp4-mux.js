@@ -19,21 +19,19 @@ var UnitMP4Mux,
 	BaseTransform = Unit.BaseTransform,
 	MP4Mux = require('./mp4-mux.js');
 
-module.exports = UnitMP4Mux = function UnitMP4Mux() {
-  	Unit.BaseParser.prototype.constructor.apply(this, arguments);
+module.exports = UnitMP4Mux = function UnitMP4Mux(mp4MuxProfile) {
+  Unit.BaseParser.prototype.constructor.apply(this, arguments);
 
-	this.muxer = new MP4Mux({
-		audioTrackId: 0,
-		videoTrackId: -1,
-		tracks: [
-			{
-				codecId: MP4Mux.MP3_SOUND_CODEC_ID,
-				channels: 2,
-				samplerate: 44100,
-				samplesize: 16,
-			},
-		],
-	});
+  // Initialize with empty track info
+  if (!mp4MuxProfile) {
+    mp4MuxProfile = {
+      audioTrackId: -1,
+      videoTrackId: -1,
+      tracks: [],
+    };
+  }
+
+	this.muxer = new MP4Mux(mp4MuxProfile);
 
 	this.muxer.ondata = this._onMp4Data.bind(this);
 	this.muxer.oncodecinfo = this._onCodecInfo.bind(this);
@@ -44,6 +42,8 @@ module.exports = UnitMP4Mux = function UnitMP4Mux() {
 	this.on('finish', this._onFinish.bind(this));
 }
 
+UnitMP4Mux.Profiles = MP4Mux.Profiles;
+
 UnitMP4Mux.prototype = Unit.createBaseParser({
 
 	constructor: UnitMP4Mux,
@@ -53,7 +53,7 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 	},
 
 	_onCodecInfo: function(codecInfo) {
-		console.log(codecInfo);
+		console.log("Codec info: " + codecInfo);
 		this._codecInfo = codecInfo;
 	},
 
@@ -66,6 +66,11 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 		if (transfer.data) {
 			this._timestamp = transfer.data.timestamp;
 		}
-		this.muxer.pushPacket(MP4Mux.TYPE_AUDIO_PACKET, transfer.data, this._timestamp);
+
+    console.log("UnitMP4Mux Timestamp: " + this._timestamp);
+
+    console.log("UnitMP4Mux._parse: Payload type: " + typeof(transfer.data));
+
+		this.muxer.pushPacket(MP4Mux.TYPE_AUDIO_PACKET, new Uint8Array(transfer.data), this._timestamp, transfer.data.meta);
 	},
 });

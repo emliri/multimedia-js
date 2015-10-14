@@ -25,7 +25,7 @@
     "chai": "^3.3.0",
     "mocha": "^2.3.3",
     "should": "^7.1.0",
-    "typescript": "^1.6.2"
+    "webpack": "^1.12.2"
   },
   "dependencies": {
     "av": "^0.4.4",
@@ -36,7 +36,6 @@
     "mp3": "^0.1.0",
     "ogg.js": "^0.1.0",
     "opus.js": "^0.1.1",
-    "stream-browserify": "^2.0.1",
-    "webpack": "^1.12.2"
+    "stream-browserify": "^2.0.1"
   }
 }
