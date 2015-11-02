@@ -15,15 +15,16 @@ Lesser General Public License for more details.
 */
 
 var Multimedia,
-	FLVParser = require('./flv-parser.js'),
-	MP4Parser = require('./mp3-parser.js'),
-	MP4Parser = require('./mp4-parser.js'),
-	MP4Iso = require('./mp4-iso.js'),
-	MP4Mux = require('./mp4-mux.js'),
-	MSEWriter = require('./mse-writer.js'),
-	WebAudioSink = require('./web-audio-sink.js'),
-    Unit = require('./unit.js');
+    Unit = require('./unit.js'),
+    MP4  = require('./unit-mp4-mux.js'),
+    MP3  = require('./unit-mp3-parser.js');
 
-module.exports = Multimedia = {};
+// Node-only packages ...
+var File = require('./unit-file.js');
 
-Multimedia.Unit = Unit;
+module.exports = Multimedia = {
+	Unit: Unit,
+	File: File,
+	MP4: MP4,
+	MP3: MP3
+};
