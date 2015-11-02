@@ -15,12 +15,12 @@ Lesser General Public License for more details.
 */
 
 var Multimedia,
-    Unit = require('./unit.js'),
-    MP4  = require('./unit-mp4-mux.js'),
-    MP3  = require('./unit-mp3-parser.js');
+    Unit = require('./src/unit.js'),
+    MP4  = require('./src/unit-mp4-mux.js'),
+    MP3  = require('./src/unit-mp3-parser.js');
 
 // Node-only packages ...
-var File = require('./unit-file.js');
+var File = require('./src/unit-file.js');
 
 module.exports = Multimedia = {
 	Unit: Unit,

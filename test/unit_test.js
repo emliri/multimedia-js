@@ -1,8 +1,8 @@
 var create = require('lodash.create'),
-	Unit = require('../unit.js'),
-	UnitFile = require('../unit-file.js'),
-	UnitMP4Mux = require('../unit-mp4-mux.js'),
-	UnitMP3Parser = require('../unit-mp3-parser.js'),
+	Unit = require('../src/unit.js'),
+	UnitFile = require('../src/unit-file.js'),
+	UnitMP4Mux = require('../src/unit-mp4-mux.js'),
+	UnitMP3Parser = require('../src/unit-mp3-parser.js'),
 	Transfer = Unit.Transfer,
 	BaseSink = Unit.BaseSink,
 	BasePushSrc = Unit.BasePushSrc;
