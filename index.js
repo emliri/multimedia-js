@@ -16,15 +16,17 @@ Lesser General Public License for more details.
 
 var Multimedia,
     Unit = require('./src/unit.js'),
-    MP4  = require('./src/unit-mp4-mux.js'),
-    MP3  = require('./src/unit-mp3-parser.js');
+    MP4Mux  = require('./src/unit-mp4-mux.js'),
+    MP3Mux  = require('./src/unit-mp3-parser.js');
 
 // Node-only packages ...
 var File = require('./src/unit-file.js');
 
 module.exports = Multimedia = {
 	Unit: Unit,
-	File: File,
-	MP4: MP4,
-	MP3: MP3
+	Units: {
+		File: File,
+		MP4Mux: MP4Mux,
+		MP3Parser: MP3Parser
+	}
 };
