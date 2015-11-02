@@ -1,0 +1,3 @@
+#!/bin/bash
+
+gst-launch-1.0 uridecodebin uri=file://$PWD/test/fixtures/shalafon.mp4 ! autoaudiosink
