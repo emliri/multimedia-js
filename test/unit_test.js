@@ -203,11 +203,13 @@ describe("UnitMP4Mux", function() {
 				muxer = new UnitMP4Mux(UnitMP4Mux.Profiles.MP3_AUDIO_ONLY),
 				sink = new UnitFile.Sink(FIXTURES_DIR + 'shalafon.mp4');
 
-			sink.on('finish', function() {done();});
+			sink.on('finish', function() {
+				done();
+			});
 
 			// FIXME: finish should call done()
 			src.on('end', function() {
-				//done();
+				done();
 			});
 
 			src.on('open', function() {
