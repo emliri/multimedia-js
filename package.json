@@ -1,6 +1,6 @@
 {
   "name": "multimedia",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Multimedia streaming framework for browser and node  ",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,7 @@
     "MediaSource",
     "WebAudio"
   ],
-  "repository": "https://github.com:tchakabam/multimedia.js.git",
+  "repository": "github.com/tchakabam/multimedia.js.git",
   "author": "Stephan Hesse <tchakabam@gmail.com>",
   "license": "LGPL",
   "devDependencies": {
