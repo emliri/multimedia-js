@@ -17,7 +17,7 @@ Lesser General Public License for more details.
 var Multimedia,
     Unit = require('./src/unit.js'),
     MP4Mux  = require('./src/unit-mp4-mux.js'),
-    MP3Mux  = require('./src/unit-mp3-parser.js');
+    MP3Parser  = require('./src/unit-mp3-parser.js');
 
 // Node-only packages ...
 var File = require('./src/unit-file.js');
