@@ -469,11 +469,13 @@ MP4Mux.Profiles = {
         channels: 2,
         samplerate: 44100,
         samplesize: 16,
+        timescale: 1000000000
       },
     ],
   },
 };
 
+/*
 function parseFLVMetadata(metadata) {
     var tracks = [];
     var audioTrackId = -1;
@@ -572,6 +574,7 @@ function parseFLVMetadata(metadata) {
     };
 }
 
+
 function splitMetadata(metadata) {
     var tracks = [];
     if (metadata.audioTrackId >= 0) {
@@ -592,4 +595,6 @@ function splitMetadata(metadata) {
     }
     return tracks;
 }
+
+*/
 
