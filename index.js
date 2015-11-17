@@ -19,10 +19,8 @@ var Multimedia,
     MP4Mux  = require('./src/unit-mp4-mux.js'),
     MP3Parser  = require('./src/unit-mp3-parser.js'),
     MSESink = require('./src/unit-mse-sink.js');
-    XHR = require('./src/unit-xhr.js');
-
-// Node-only packages ...
-var File = __BROWSER__ ? null : require('./src/unit-file.js');
+    XHR = require('./src/unit-xhr.js'),
+	File = require('./src/unit-file.js');
 
 module.exports = Multimedia = {
 	Unit: Unit,
@@ -34,5 +32,3 @@ module.exports = Multimedia = {
 		XHR: XHR
 	}
 };
-
-

@@ -1,5 +1,7 @@
 var create = require('lodash.create'),
 	mm = require('../index.js'),
+	fs = require('../src/file.js'),
+	Helpers = require('../src/helpers.js'),
 	Unit = mm.Unit,
 	UnitFile = mm.Units.File,
 	UnitMP4Mux = mm.Units.MP4Mux,
@@ -115,8 +117,7 @@ describe("UnitFile", function() {
 	var foobar = FIXTURES_DIR + 'foobar.txt';
 	var copy = FIXTURES_DIR + 'foobar_copy.txt';
 
-
-	if (!UnitFile) {
+	if (Helpers.haveGlobalWindow()) {
 		return;
 	}
 
@@ -173,7 +174,7 @@ describe("UnitFile", function() {
 
 describe("UnitMP3Parser", function() {
 
-	if (!UnitFile) {
+	if (Helpers.haveGlobalWindow()) {
 		return;
 	}
 
@@ -200,7 +201,7 @@ describe("UnitMP3Parser", function() {
 
 describe("UnitMP4Mux", function() {
 
-	if (!UnitFile) {
+	if (Helpers.haveGlobalWindow()) {
 		return;
 	}
 
@@ -236,7 +237,7 @@ describe("UnitMP4Mux", function() {
 
 describe("UnitMSESink", function() {
 
-	if (!window || !window.MediaSource) {
+	if (!Helpers.haveMediaSourceExtensions()) {
 		return;
 	}
 

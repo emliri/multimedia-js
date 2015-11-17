@@ -1,6 +1,6 @@
 var webpack = require('webpack');
 var path = require("path");
-var ignore = new webpack.IgnorePlugin(new RegExp("fs"))
+var ignore = new webpack.IgnorePlugin(/^fs$/);
 var config = [];
 
 const BUILD_DIR = "dist"

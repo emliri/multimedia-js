@@ -14,10 +14,10 @@ Lesser General Public License for more details.
 */
 
 var UnitFile,
-  	FileSrc, FileSink
+  	FileSrc, FileSink,
   	Unit = require('./unit.js'),
-    create = require('lodash.create'),
-  	fs = require('fs');
+    fs = require('./file.js'),
+    create = require('lodash.create');
 
 FileSrc = function FileSrc (path, options) {
   Unit.prototype.constructor.call(this);

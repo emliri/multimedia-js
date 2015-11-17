@@ -41,11 +41,13 @@
   },
   "dependencies": {
     "av": "^0.4.4",
+    "browserfs": "^0.5.7",
     "create": "0.0.2",
     "is-mime": "^0.3.0",
     "lodash.assign": "^3.2.0",
     "lodash.create": "^3.1.1",
     "mp3": "^0.1.0",
+    "node-browserfs": "^1.0.4",
     "ogg.js": "^0.1.0",
     "opus.js": "^0.1.1",
     "stream-browserify": "^2.0.1"
