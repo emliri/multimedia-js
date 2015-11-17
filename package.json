@@ -6,7 +6,8 @@
   "scripts": {
     "prepublish": "npm run build",
     "build": "webpack --optimize-dedupe",
-    "test": "mocha"
+    "test": "mocha",
+    "browser-test": "open http://localhost:8080/tests && webpack-dev-server 'mocha!./test/unit_test.js' --output-filename tests.js"
   },
   "keywords": [
     "Multimedia",
@@ -16,8 +17,14 @@
     "transmuxer",
     "pipeline",
     "playback",
-    "MPEG4", "ISO", "FF", "MP4", "MP3",
-    "muxer", "demuxer", "parser",
+    "MPEG4",
+    "ISO",
+    "FF",
+    "MP4",
+    "MP3",
+    "muxer",
+    "demuxer",
+    "parser",
     "media",
     "MediaSource",
     "WebAudio"
@@ -29,7 +36,8 @@
     "chai": "^3.3.0",
     "mocha": "^2.3.3",
     "should": "^7.1.0",
-    "webpack": "^1.12.2"
+    "webpack": "^1.12.2",
+    "webpack-dev-server": "^1.12.1"
   },
   "dependencies": {
     "av": "^0.4.4",

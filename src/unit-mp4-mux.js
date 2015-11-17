@@ -68,7 +68,6 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 		}
 
     	console.log("UnitMP4Mux Timestamp: " + this._timestamp);
-
     	console.log("UnitMP4Mux._parse: Payload type: " + typeof(transfer.data));
 
 		this.muxer.pushPacket(MP4Mux.TYPE_AUDIO_PACKET, new Uint8Array(transfer.data), this._timestamp, transfer.data.meta);

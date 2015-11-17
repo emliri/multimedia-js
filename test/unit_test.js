@@ -1,13 +1,13 @@
 var create = require('lodash.create'),
 	mm = require('../index.js'),
-	Units = mm.Unit,
+	Unit = mm.Unit,
 	UnitFile = mm.Units.File,
 	UnitMP4Mux = mm.Units.MP4Mux,
 	UnitMP3Parser = mm.Units.MP3Parser,
-	Transfer = Unit.Transfer,
-	BaseSink = Unit.BaseSink,
-	BasePushSrc = Unit.BasePushSrc;
-	BaseTransform = Unit.BaseTransform;
+	Transfer = mm.Unit.Transfer,
+	BaseSink = mm.Unit.BaseSink,
+	BasePushSrc = mm.Unit.BasePushSrc;
+	BaseTransform = mm.Unit.BaseTransform;
 
 const FIXTURES_DIR = 'test/fixtures/';
 
@@ -47,7 +47,7 @@ function testTransfer1(src, sink, done) {
 		if (dataCtr == 4) {
 			src.out(0).pause();
 
-			console.log(src.out(0).isPaused());
+			//console.log(src.out(0).isPaused());
 
 			src.enqueue(new Transfer('foobar', 'utf8'));
 			src.enqueue(new Transfer('foobar', 'utf8'));
@@ -97,7 +97,7 @@ describe("Unit", function() {
 		it('should pass data and transform it', function (done) {
 
 			var src = new BasePushSrc(),
-				transform = new FooBarTransform();
+				transform = new FooBarTransform(),
 				sink = new BaseSink();
 
 			// link them
@@ -114,6 +114,11 @@ describe("UnitFile", function() {
 
 	var foobar = FIXTURES_DIR + 'foobar.txt';
 	var copy = FIXTURES_DIR + 'foobar_copy.txt';
+
+
+	if (!UnitFile) {
+		return;
+	}
 
 	describe("basic tests", function() {
 		it('should open', function (done) {
@@ -168,6 +173,10 @@ describe("UnitFile", function() {
 
 describe("UnitMP3Parser", function() {
 
+	if (!UnitFile) {
+		return;
+	}
+
 	describe("basic tests", function() {
 		it('should initialize', function () {
 			var unitMp3Parser = new UnitMP3Parser();
@@ -190,6 +199,10 @@ describe("UnitMP3Parser", function() {
 });
 
 describe("UnitMP4Mux", function() {
+
+	if (!UnitFile) {
+		return;
+	}
 
 	describe("constructor", function() {
 		it('should initialize', function () {
@@ -219,4 +232,39 @@ describe("UnitMP4Mux", function() {
 			});
 		});
 	});
+});
+
+describe("UnitMSESink", function() {
+
+	if (!window || !window.MediaSource) {
+		return;
+	}
+
+	describe("constructor", function() {
+		it('should initialize', function () {
+			var unitMseSink = new mm.Units.MSESink();
+		});
+	});
+
+	describe("pipeline", function() {
+		it('should play', function () {
+			var unitMseSink = new mm.Units.MSESink('audio/mp4');
+			var	xhrSrc = new mm.Units.XHR.Src('test/fixtures/shalafon.mp4');
+			var transform = new Unit.BaseTransform();
+			transform._transform = function(transfer) {
+				transfer.data.timestamp = 0;
+			};
+			var media = document.createElement('video');
+
+			document.body.appendChild(media);
+
+			media.src = window.URL.createObjectURL(unitMseSink.mediaSource);
+
+			Unit.link(xhrSrc, transform, unitMseSink);
+
+			media.play();
+
+		});
+	});
+
 });

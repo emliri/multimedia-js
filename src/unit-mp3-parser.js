@@ -17,7 +17,8 @@ Lesser General Public License for more details.
 var UnitMP3Parser,
 	Unit = require('./unit.js'),
 	BaseTransform = Unit.BaseTransform,
-	MP3Parser = require('./mp3-parser.js');
+	MP3Parser = require('./mp3-parser.js'),
+	Constants = require('./constants.js');
 
 module.exports = UnitMP3Parser = function UnitMP3Parser() {
   	Unit.BaseParser.prototype.constructor.apply(this, arguments);
@@ -38,9 +39,9 @@ UnitMP3Parser.prototype = Unit.createBaseParser({
 	constructor: UnitMP3Parser,
 
 	_onMp3Frame: function(data, bitRate, sampleRate) {
-		console.log('Found frame length ' + data.length + ' bitRate=' + bitRate + ', sampleRate='+sampleRate);
+		console.log('Found frame length ' + data.length + ' bitRate=' + bitRate + ', sampleRate=' + sampleRate);
 		var buffer = new Buffer(data);
-		var duration = (1152 / sampleRate) * 1000000000;
+		var duration = (1152 / sampleRate) * Constants.TIMESCALE_SECONDS;
 
 		buffer.meta = {
 			mimeType: 'audio/mpeg',

@@ -50,6 +50,9 @@ var MSEBufferWriter = (function () {
             this.sourceBuffer.removeEventListener('update', this.sourceBufferUpdatedBound);
             return;
         }
+        if (data.timestamp) {
+            this.sourceBuffer.timestampOffset = data.timestamp / 1000000000.0;
+        }
         this.sourceBuffer.appendBuffer(data);
     };
     MSEBufferWriter.prototype._sourceBufferUpdated = function (e) {

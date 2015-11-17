@@ -43,6 +43,10 @@ Unit.createBaseSrc = function UnitCreateBaseSrc(proto) {
   return create(BaseSrc.prototype, proto);
 };
 
+Unit.createBasePushSrc = function UnitCreateBasePushSrc(proto) {
+  return create(BasePushSrc.prototype, proto);
+};
+
 Unit.createBaseSink = function UnitCreateBaseSink(proto) {
   return create(BaseSink.prototype, proto);
 };
@@ -170,8 +174,7 @@ Unit.Transfer = Transfer = function Transfer(data, encoding, doneCallback) {
   if (!encoding) {
     if (data instanceof Buffer) {
       encoding = 'buffer';
-    }
-    else if (data instanceof String) {
+    } else if (data instanceof String) {
       encoding = 'utf8';
     } else {
       encoding = 'object';
@@ -213,7 +216,7 @@ Input.prototype = create(stream.Writable.prototype, {
 });
 
 Unit.Output = Output = function Output(readable) {
-  stream.Readable.prototype.constructor.apply(this, {
+  stream.Readable.prototype.constructor.call(this, {
     objectMode: true,
   });
 
@@ -235,14 +238,12 @@ Output.prototype = create(stream.Readable.prototype, {
   },
 
   push: function(data, encoding) {
-    console.log('push: ' + encoding);
     this._dataRequested--;
     this._shouldPushMore = stream.Readable.prototype.push.call(this, data, encoding);
     return this._shouldPushMore;
   },
 
   isPulling: function() {
-    console.log (this._dataRequested);
     return this._dataRequested > 0;
   },
 
@@ -303,7 +304,7 @@ BaseSrc.prototype = create(Unit.prototype, {
   },
 
   // returns: Transfer
-  _source: function() {}, // virtual method be implemented
+  _source: function() {}, // virtual method to be implemented
 
 });
 
