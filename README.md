@@ -34,21 +34,6 @@ It is intended for use in Node (desktop/server) as well as in the browser.  Ther
   });
 ```
 
-### How to use it on a web page without `require`
-
-```
-  <script src="node_modules/multimedia/dist/multimedia_global.js"></script>
-  var mm == window.multimedia;
-```
-
-or
-
-```
-  <script src="node_modules/multimedia/dist/multimedia_var.js"></script>
-  // a variable named multimedia will be set and can be used likewise...
-  var mm = multimedia;
-```
-
 ### Install it
 
 ```
@@ -66,6 +51,22 @@ npm run build
 ```
 npm test
 ```
+
+### How to use it on a web page without `require`
+
+```
+  <script src="node_modules/multimedia/dist/multimedia_global.js"></script>
+  var mm == window.multimedia;
+```
+
+or
+
+```
+  <script src="node_modules/multimedia/dist/multimedia_var.js"></script>
+  // a variable named multimedia will be set and can be used likewise...
+  var mm = multimedia;
+```
+
 
 
 
