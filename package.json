@@ -1,6 +1,6 @@
 {
   "name": "multimedia",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Multimedia streaming framework for browser and node  ",
   "main": "index.js",
   "scripts": {
