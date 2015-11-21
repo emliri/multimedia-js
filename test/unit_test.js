@@ -249,13 +249,17 @@ describe("UnitMSESink", function() {
 
 	describe("pipeline", function() {
 		it('should play', function () {
-			var unitMseSink = new mm.Units.MSESink('audio/mp4');
+
 			var	xhrSrc = new mm.Units.XHR.Src('test/fixtures/shalafon.mp4');
 			var transform = new Unit.BaseTransform();
 			transform._transform = function(transfer) {
 				transfer.data.timestamp = 0;
 			};
-			var media = document.createElement('video');
+			var unitMseSink = new mm.Units.MSESink('audio/mp4');
+
+			var media = document.createElement('audio');
+
+			media.controls = true;
 
 			document.body.appendChild(media);
 
@@ -264,7 +268,6 @@ describe("UnitMSESink", function() {
 			Unit.link(xhrSrc, transform, unitMseSink);
 
 			media.play();
-
 		});
 	});
 
