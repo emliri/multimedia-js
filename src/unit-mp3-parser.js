@@ -41,7 +41,8 @@ UnitMP3Parser.prototype = Unit.createBaseParser({
 	_onMp3Frame: function(data, bitRate, sampleRate) {
 		console.log('Found frame length ' + data.length + ' bitRate=' + bitRate + ', sampleRate=' + sampleRate);
 		var buffer = new Buffer(data);
-		var duration = (1152 / sampleRate) * Constants.TIMESCALE_SECONDS;
+		/* to avoid rounding issues, timescale is the sample-rate */
+		var duration =  1152; // =(1152 / sampleRate) * sampleRate;
 
 		buffer.meta = {
 			mimeType: 'audio/mpeg',

@@ -469,7 +469,7 @@ MP4Mux.Profiles = {
         channels: 2,
         samplerate: 44100,
         samplesize: 16,
-        timescale: 1000000000
+        timescale: 44100,
       },
     ],
   },
