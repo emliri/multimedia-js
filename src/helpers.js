@@ -8,5 +8,9 @@ module.exports = Helpers = {
 
 	haveMediaSourceExtensions: function() {
 		return Helpers.haveGlobalWindow() && window.MediaSource;
+	},
+
+	haveMediaSourceSupportMimeType: function(mimeType) {
+		return Helpers.haveMediaSourceExtensions() && window.MediaSource.isTypeSupported(mimeType);
 	}
 };

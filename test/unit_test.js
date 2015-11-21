@@ -243,14 +243,49 @@ describe("UnitMSESink", function() {
 
 	describe("constructor", function() {
 		it('should initialize', function () {
-			var unitMseSink = new mm.Units.MSESink();
+			try {
+				var unitMseSink = new mm.Units.MSESink('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+			} catch(e) {
+				//
+			}
+
 		});
 	});
 
-	describe("pipeline", function() {
+	describe("mp3 playback pipeline", function() {
 		it('should play', function () {
 
-			var	xhrSrc = new mm.Units.XHR.Src('test/fixtures/shalafon.mp4');
+			var mimeType = 'audio/mpeg';
+
+			if (!Helpers.haveMediaSourceSupportMimeType('audio/mpeg')) {
+				return;
+			}
+
+			var	xhrSrc = new mm.Units.XHR.Src('test/fixtures/shalafon.mp3');
+			var transform = new Unit.BaseTransform();
+			transform._transform = function(transfer) {
+				transfer.data.timestamp = 0;
+			};
+			var unitMseSink = new mm.Units.MSESink(mimeType);
+			var media = document.createElement('audio');
+
+			media.controls = true;
+
+			document.body.appendChild(media);
+
+			media.src = window.URL.createObjectURL(unitMseSink.mediaSource);
+
+			Unit.link(xhrSrc, transform, unitMseSink);
+
+			media.play();
+		});
+	});
+
+	/*
+	describe.only("mp4 audio playback pipeline", function() {
+		it('should play', function () {
+
+			var	xhrSrc = new mm.Units.XHR.Src('test/fixtures/Dolphins.mp4');
 			var transform = new Unit.BaseTransform();
 			transform._transform = function(transfer) {
 				transfer.data.timestamp = 0;
@@ -266,6 +301,38 @@ describe("UnitMSESink", function() {
 			media.src = window.URL.createObjectURL(unitMseSink.mediaSource);
 
 			Unit.link(xhrSrc, transform, unitMseSink);
+
+			media.play();
+		});
+	});
+	*/
+
+	describe.only("mp3->mp4 audio muxing & playback pipeline", function() {
+		it('should play', function () {
+
+			var mimeType = 'audio/mp4; codecs="mp4a.40.2"';
+
+			if (!Helpers.haveMediaSourceSupportMimeType(mimeType)) {
+				return;
+			}
+
+			var	xhrSrc = new mm.Units.XHR.Src('test/fixtures/shalafon.mp3'),
+		    	parser = new UnitMP3Parser(),
+				muxer = new UnitMP4Mux(UnitMP4Mux.Profiles.MP3_AUDIO_ONLY);
+			var transform = new Unit.BaseTransform();
+			transform._transform = function(transfer) {
+				transfer.data.timestamp = 0;
+			};
+			var unitMseSink = new mm.Units.MSESink(mimeType);
+			var media = document.createElement('audio');
+
+			media.controls = true;
+
+			document.body.appendChild(media);
+
+			media.src = window.URL.createObjectURL(unitMseSink.mediaSource);
+
+			Unit.link(xhrSrc, parser, muxer, transform, unitMseSink);
 
 			media.play();
 		});

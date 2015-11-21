@@ -1,10 +1,15 @@
 var UnitMSESink,
+	Helpers = require('./helpers.js'),
 	Unit = require('./unit.js'),
 	BaseSink = Unit.BaseSink,
 	MSEWriter = require('./mse-writer.js');
 
 module.exports = UnitMSESink = function UnitMSESink(mimeType) {
   BaseSink.prototype.constructor.call(this);
+
+  if (!Helpers.haveMediaSourceSupportMimeType(mimeType)) {
+  	throw new Error('Local MediaSource doesn\'t support provided MIME type: ' + mimeType);
+  }
 
   this.mediaSource = new MediaSource();
   this.mseWriter = new MSEWriter(this.mediaSource);
