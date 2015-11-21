@@ -282,7 +282,7 @@ describe("UnitMSESink", function() {
 	});
 
 	/*
-	describe.only("mp4 audio playback pipeline", function() {
+	describe("mp4 audio playback pipeline", function() {
 		it('should play', function () {
 
 			var	xhrSrc = new mm.Units.XHR.Src('test/fixtures/Dolphins.mp4');
@@ -307,7 +307,7 @@ describe("UnitMSESink", function() {
 	});
 	*/
 
-	describe.only("mp3->mp4 audio muxing & playback pipeline", function() {
+	describe("mp3->mp4 audio muxing & playback pipeline", function() {
 		it('should play', function () {
 
 			var mimeType = 'audio/mp4; codecs="mp4a.40.2"';
