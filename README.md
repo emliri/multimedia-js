@@ -1,4 +1,6 @@
-# multimedia.js
+
+
+# multimedia.js [![Build Status](https://travis-ci.org/tchakabam/multimedia.js.svg)](https://travis-ci.org/tchakabam/multimedia.js)
 
 A toolkit and collection library for all things multimedia in JavaScript. Pipelines processing units using Node-like streams.
 
