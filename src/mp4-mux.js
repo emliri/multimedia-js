@@ -27,9 +27,23 @@ function hex(s) {
     return arr;
 }
 var SOUNDRATES = [5500, 11025, 22050, 44100];
-var SOUNDFORMATS = ['PCM', 'ADPCM', 'MP3', 'PCM le', 'Nellymouser16', 'Nellymouser8', 'Nellymouser', 'G.711 A-law', 'G.711 mu-law', null, 'AAC', 'Speex', 'MP3 8khz'];
+var SOUNDFORMATS = ['PCM',
+                    'ADPCM',
+                    'MP3',
+                    'PCM le',
+                    'Nellymouser16',
+                    'Nellymouser8',
+                    'Nellymouser',
+                    'G.711 A-law',
+                    'G.711 mu-law',
+                    null,
+                    'AAC',
+                    'Speex',
+                    'MP3 8khz'];
+
 var MP3_SOUND_CODEC_ID = 2;
 var AAC_SOUND_CODEC_ID = 10;
+
 var AudioPacketType;
 (function (AudioPacketType) {
     AudioPacketType[AudioPacketType["HEADER"] = 0] = "HEADER";
@@ -172,6 +186,7 @@ var MP4Mux = (function () {
         this.cachedPackets = [];
         this.chunkIndex = 0;
     }
+
     MP4Mux.prototype.pushPacket = function (type, data, timestamp, metadata) {
         if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
             this._tryGenerateHeader();
@@ -474,127 +489,3 @@ MP4Mux.Profiles = {
     ],
   },
 };
-
-/*
-function parseFLVMetadata(metadata) {
-    var tracks = [];
-    var audioTrackId = -1;
-    var videoTrackId = -1;
-    var duration = +metadata.asGetPublicProperty('duration');
-    var audioCodec, audioCodecId;
-    var audioCodecCode = metadata.asGetPublicProperty('audiocodecid');
-    switch (audioCodecCode) {
-        case MP3_SOUND_CODEC_ID:
-        case 'mp3':
-            audioCodec = 'mp3';
-            audioCodecId = MP3_SOUND_CODEC_ID;
-            break;
-        case AAC_SOUND_CODEC_ID:
-        case 'mp4a':
-            audioCodec = 'mp4a';
-            audioCodecId = AAC_SOUND_CODEC_ID;
-            break;
-        default:
-            if (!isNaN(audioCodecCode)) {
-                throw new Error('Unsupported audio codec: ' + audioCodecCode);
-            }
-            audioCodec = null;
-            audioCodecId = -1;
-            break;
-    }
-    var videoCodec, videoCodecId;
-    var videoCodecCode = metadata.asGetPublicProperty('videocodecid');
-    switch (videoCodecCode) {
-        case VP6_VIDEO_CODEC_ID:
-        case 'vp6f':
-            videoCodec = 'vp6f';
-            videoCodecId = VP6_VIDEO_CODEC_ID;
-            break;
-        case AVC_VIDEO_CODEC_ID:
-        case 'avc1':
-            videoCodec = 'avc1';
-            videoCodecId = AVC_VIDEO_CODEC_ID;
-            break;
-        default:
-            if (!isNaN(videoCodecCode)) {
-                throw new Error('Unsupported video codec: ' + videoCodecCode);
-            }
-            videoCodec = null;
-            videoCodecId = -1;
-            break;
-    }
-    var audioTrack = (audioCodec === null) ? null : {
-        codecDescription: audioCodec,
-        codecId: audioCodecId,
-        language: 'und',
-        timescale: +metadata.asGetPublicProperty('audiosamplerate') || 44100,
-        samplerate: +metadata.asGetPublicProperty('audiosamplerate') || 44100,
-        channels: +metadata.asGetPublicProperty('audiochannels') || 2,
-        samplesize: 16
-    };
-    var videoTrack = (videoCodec === null) ? null : {
-        codecDescription: videoCodec,
-        codecId: videoCodecId,
-        language: 'und',
-        timescale: 60000,
-        framerate: +metadata.asGetPublicProperty('videoframerate') ||
-            +metadata.asGetPublicProperty('framerate'),
-        width: +metadata.asGetPublicProperty('width'),
-        height: +metadata.asGetPublicProperty('height')
-    };
-    var trackInfos = metadata.asGetPublicProperty('trackinfo');
-    if (trackInfos) {
-        // Not in the Adobe's references, red5 specific?
-        for (var i = 0; i < trackInfos.length; i++) {
-            var info = trackInfos[i];
-            var sampleDescription = info.asGetPublicProperty('sampledescription')[0];
-            if (sampleDescription.asGetPublicProperty('sampletype') === audioCodecCode) {
-                audioTrack.language = info.asGetPublicProperty('language');
-                audioTrack.timescale = +info.asGetPublicProperty('timescale');
-            }
-            else if (sampleDescription.asGetPublicProperty('sampletype') === videoCodecCode) {
-                videoTrack.language = info.asGetPublicProperty('language');
-                videoTrack.timescale = +info.asGetPublicProperty('timescale');
-            }
-        }
-    }
-    if (videoTrack) {
-        videoTrackId = tracks.length;
-        tracks.push(videoTrack);
-    }
-    if (audioTrack) {
-        audioTrackId = tracks.length;
-        tracks.push(audioTrack);
-    }
-    return {
-        tracks: tracks,
-        duration: duration,
-        audioTrackId: audioTrackId,
-        videoTrackId: videoTrackId
-    };
-}
-
-
-function splitMetadata(metadata) {
-    var tracks = [];
-    if (metadata.audioTrackId >= 0) {
-        tracks.push({
-            tracks: [metadata.tracks[metadata.audioTrackId]],
-            duration: metadata.duration,
-            audioTrackId: 0,
-            videoTrackId: -1
-        });
-    }
-    if (metadata.videoTrackId >= 0) {
-        tracks.push({
-            tracks: [metadata.tracks[metadata.videoTrackId]],
-            duration: metadata.duration,
-            audioTrackId: -1,
-            videoTrackId: 0
-        });
-    }
-    return tracks;
-}
-
-*/
-

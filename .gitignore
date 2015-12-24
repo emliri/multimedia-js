@@ -3,3 +3,4 @@ node_modules
 multimedia_debug.js
 .DS_Store
 npm-debug.log
+/test/fixtures

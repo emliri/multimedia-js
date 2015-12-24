@@ -31,11 +31,28 @@ function configure(libraryTarget) {
   return config;
 }
 
-configure('var')
-configure('this')
-configure('commonjs')
-configure('commonjs2')
-configure('amd')
-configure('umd');
+configure('var');
+configure('this');
+configure('commonjs2');
+
+//configure('commonjs')
+//configure('amd')
+//configure('umd');
+
+config.push({
+  entry: './src/mp4-mux-worker.js',
+  output: {
+    path: path.resolve(__dirname, BUILD_DIR),
+    filename: 'mp4-mux-worker-bundle.js',
+    libraryTarget: 'this',
+    library: 'MP4MuxWorker'
+  },
+  plugins: [
+    new webpack.DefinePlugin({
+      '__BROWSER__': true
+    }),
+    ignore,
+  ]
+});
 
 module.exports = config;

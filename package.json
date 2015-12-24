@@ -7,7 +7,7 @@
     "prepublish": "npm run build",
     "build": "webpack --optimize-dedupe",
     "test": "mocha",
-    "browser-test": "open http://localhost:8080/tests && webpack-dev-server 'mocha!./test/unit_test.js' --output-filename tests.js"
+    "browser-test": "npm run build && open http://localhost:8080/tests && webpack-dev-server 'mocha!./test/unit_test.js' --output-filename tests.js"
   },
   "keywords": [
     "Multimedia",

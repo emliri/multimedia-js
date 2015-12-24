@@ -15,9 +15,9 @@ Lesser General Public License for more details.
 */
 
 var UnitMP4Mux,
-	Unit = require('./unit.js'),
-	BaseTransform = Unit.BaseTransform,
-	MP4Mux = require('./mp4-mux.js');
+    Unit = require('./unit.js'),
+    BaseTransform = Unit.BaseTransform,
+    MP4Mux = require('./mp4-mux.js');
 
 module.exports = UnitMP4Mux = function UnitMP4Mux(mp4MuxProfile) {
   Unit.BaseParser.prototype.constructor.apply(this, arguments);
@@ -40,6 +40,14 @@ module.exports = UnitMP4Mux = function UnitMP4Mux(mp4MuxProfile) {
 	this._timestamp = 0;
 
 	this.on('finish', this._onFinish.bind(this));
+
+  this.worker = typeof Worker !== 'undefined' ? new Worker('/dist/mp4-mux-worker-bundle.js') : null;
+  if (this.worker) {
+    this.worker.onmessage = function(e) {
+      this._onMp4Data(e.data);
+    }.bind(this);
+    this.worker.postMessage({mp4MuxProfile: mp4MuxProfile});
+  }
 }
 
 UnitMP4Mux.Profiles = MP4Mux.Profiles;
@@ -58,18 +66,26 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 	},
 
 	_onFinish: function(input) {
-		this.muxer.flush();
+    if (this.worker) {
+      this.worker.postMessage({eos: true});
+    } else if (this.muxer) {
+      this.muxer.flush();
+    }
 	},
 
 	_parse: function(transfer) {
-
+    var timestamp;
 		if (transfer.data) {
-			this._timestamp = transfer.data.timestamp;
+			timestamp = this._timestamp = transfer.data.timestamp;
 		}
 
-    	console.log("UnitMP4Mux Timestamp: " + this._timestamp);
-    	console.log("UnitMP4Mux._parse: Payload type: " + typeof(transfer.data));
+  	console.log("UnitMP4Mux Timestamp: " + this._timestamp);
+  	console.log("UnitMP4Mux._parse: Payload type: " + typeof(transfer.data));
 
-		this.muxer.pushPacket(MP4Mux.TYPE_AUDIO_PACKET, new Uint8Array(transfer.data), this._timestamp, transfer.data.meta);
-	},
+    if (this.worker) {
+      this.worker.postMessage({data: transfer.data, meta: transfer.data.meta, timestamp: timestamp, packetType: MP4Mux.TYPE_AUDIO_PACKET});
+    } else if (this.muxer) {
+      this.muxer.pushPacket(MP4Mux.TYPE_AUDIO_PACKET, new Uint8Array(transfer.data), timestamp, transfer.data.meta);
+    }
+  },
 });

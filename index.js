@@ -22,6 +22,8 @@ var Multimedia,
     XHR = require('./src/unit-xhr.js'),
 	File = require('./src/unit-file.js');
 
+//require('./src/worker-polyfill.js');
+
 module.exports = Multimedia = {
 	Unit: Unit,
 	Units: {

@@ -243,11 +243,9 @@ describe("UnitMSESink", function() {
 
 	describe("constructor", function() {
 		it('should initialize', function () {
-			try {
-				var unitMseSink = new mm.Units.MSESink('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
-			} catch(e) {
-				//
-			}
+
+			var unitMseSink = new mm.Units.MSESink('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+
 
 		});
 	});
