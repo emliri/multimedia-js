@@ -14,12 +14,13 @@ Lesser General Public License for more details.
 
 */
 
+var log = require('./log');
 var UnitMP4Mux,
     Unit = require('./unit.js'),
     BaseTransform = Unit.BaseTransform,
     MP4Mux = require('./mp4-mux.js');
 
-module.exports = UnitMP4Mux = function UnitMP4Mux(mp4MuxProfile) {
+module.exports = UnitMP4Mux = function UnitMP4Mux(mp4MuxProfile, useWorker) {
   Unit.BaseParser.prototype.constructor.apply(this, arguments);
 
   // Initialize with empty track info
@@ -41,7 +42,10 @@ module.exports = UnitMP4Mux = function UnitMP4Mux(mp4MuxProfile) {
 
 	this.on('finish', this._onFinish.bind(this));
 
-  this.worker = typeof Worker !== 'undefined' ? new Worker('/dist/mp4-mux-worker-bundle.js') : null;
+  if (useWorker) {
+    this.worker = typeof Worker !== 'undefined' ? new Worker('/dist/mp4-mux-worker-bundle.js') : null;
+  }
+
   if (this.worker) {
     this.worker.onmessage = function(e) {
       this._onMp4Data(e.data);
@@ -57,15 +61,17 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 	constructor: UnitMP4Mux,
 
 	_onMp4Data: function(data) {
+    log("_onMp4Data");
 		this.enqueue(new Unit.Transfer(new Buffer(data), 'buffer'));
 	},
 
 	_onCodecInfo: function(codecInfo) {
-		console.log("Codec info: " + codecInfo);
+		log("Codec info: " + codecInfo);
 		this._codecInfo = codecInfo;
 	},
 
 	_onFinish: function(input) {
+    console.log('MP4Mux._onFinish');
     if (this.worker) {
       this.worker.postMessage({eos: true});
     } else if (this.muxer) {
@@ -79,8 +85,8 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 			timestamp = this._timestamp = transfer.data.timestamp;
 		}
 
-  	console.log("UnitMP4Mux Timestamp: " + this._timestamp);
-  	console.log("UnitMP4Mux._parse: Payload type: " + typeof(transfer.data));
+  	log("UnitMP4Mux Timestamp: " + this._timestamp);
+  	log("UnitMP4Mux._parse: Payload type: " + typeof(transfer.data));
 
     if (this.worker) {
       this.worker.postMessage({data: transfer.data, meta: transfer.data.meta, timestamp: timestamp, packetType: MP4Mux.TYPE_AUDIO_PACKET});

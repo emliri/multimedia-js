@@ -14,6 +14,8 @@ Lesser General Public License for more details.
 
 */
 
+var log = require('./log');
+
 var Unit,
     Input, Output, Transfer,
     BaseTransform, BaseSrc, BasePushSrc, BaseSink, BaseParser,
@@ -210,7 +212,7 @@ Input.prototype = create(stream.Writable.prototype, {
   constructor: Input,
 
   _write: function(data, encoding, callback) {
-    console.log('_write: ' + encoding);
+    log('_write: ' + encoding);
     this.emit(Unit.IOEvent.CHAIN, new Transfer(data, encoding, callback));
   },
 });
@@ -292,7 +294,7 @@ BaseSrc.prototype = create(Unit.prototype, {
 
   squeeze: function() {
 
-    console.log('squeeze');
+    log('squeeze');
 
     var transfer = this._source();
     if (!transfer) {
@@ -351,7 +353,7 @@ BaseSink.prototype = create(Unit.prototype, {
 
   _onChain: function(transfer) {
 
-    console.log('BaseSink._onChain: ' + transfer.encoding);
+    log('BaseSink._onChain: ' + transfer.encoding);
 
     this._bufferIn.push(transfer);
     this._onData();

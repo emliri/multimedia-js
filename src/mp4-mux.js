@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+var log = require('./log');
 var MP4Iso = require('./mp4-iso.js');
 
 function hex(s) {
@@ -97,7 +98,7 @@ D 1 (16)  Protection bit
       samples: samples,
       packetType: packetType
     };
-    console.log("parsed audio packet with %d samples", samples);
+    log("parsed audio packet with %d samples", samples);
     return info;
 }
 var VIDEOCODECS = [null, 'JPEG', 'Sorenson', 'Screen', 'VP6', 'VP6 alpha', 'Screen2', 'AVC'];
@@ -238,10 +239,12 @@ var MP4Mux = (function () {
         if (this.state === MP4MuxState.NEED_HEADER_DATA) {
             this._tryGenerateHeader();
         }
+        /*
         if (this.cachedPackets.length >= MAX_PACKETS_IN_CHUNK &&
             this.state === MP4MuxState.MAIN_PACKETS) {
             this._chunk();
         }
+        */
     };
     MP4Mux.prototype.flush = function () {
         if (this.cachedPackets.length > 0) {

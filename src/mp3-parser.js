@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+    var log = require('./log');
+
     var BitratesMap = [
         32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,
         32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384,
@@ -48,7 +50,7 @@
                 length = data.length;
             }
 
-            console.log('push ' + length);
+            log('push ' + length);
 
             var offset = 0;
             var parsed;
@@ -69,7 +71,7 @@
         };
         MP3Parser.prototype._parse = function (data, start, end) {
 
-            console.log('_parse');
+            log('_parse');
 
             if (start + 2 > end) {
                 return -1; // we need at least 2 bytes to detect sync pattern
@@ -97,7 +99,7 @@
                         return -1;
                     }
                     if (this.onFrame) {
-                        console.log('onFrame');
+                        log('onFrame');
                         this.onFrame(data.subarray(start, start + frameLength), bitRate, sampleRate);
                     }
                     return frameLength;

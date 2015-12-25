@@ -11,6 +11,7 @@ Src = function Src(url) {
   req.responseType = 'arraybuffer';
   req.onload = function(e) {
   	this.enqueue(new Unit.Transfer(new Uint8Array(req.response), 'binary'));
+    this.enqueue(new Unit.Transfer(null, 'binary'));
   }.bind(this);
   req.send();
 }

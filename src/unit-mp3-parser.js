@@ -14,6 +14,7 @@ Lesser General Public License for more details.
 
 */
 
+var log = require('./log');
 var UnitMP3Parser,
 	Unit = require('./unit.js'),
 	BaseTransform = Unit.BaseTransform,
@@ -39,7 +40,7 @@ UnitMP3Parser.prototype = Unit.createBaseParser({
 	constructor: UnitMP3Parser,
 
 	_onMp3Frame: function(data, bitRate, sampleRate) {
-		console.log('Found frame length ' + data.length + ' bitRate=' + bitRate + ', sampleRate=' + sampleRate);
+		log('Found frame length ' + data.length + ' bitRate=' + bitRate + ', sampleRate=' + sampleRate);
 		var buffer = new Buffer(data);
 		/* to avoid rounding issues, timescale is the sample-rate */
 		var duration =  1152; // =(1152 / sampleRate) * sampleRate;
@@ -62,16 +63,16 @@ UnitMP3Parser.prototype = Unit.createBaseParser({
 	},
 
 	_onNoise: function() {
-		console.log('mp3 has noise');
+		log('mp3 has noise');
 	},
 
 	_onClose: function() {
-		console.log('parser closed');
+		log('parser closed');
 	},
 
 	_parse: function(transfer) {
 
-		console.log('parse called');
+		log('parse called');
 
 		this.parser.push(new Uint8Array(transfer.data));
 	},
