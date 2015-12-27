@@ -22,7 +22,7 @@ FooBarTransform.prototype = create(BaseTransform.prototype, {
 	constructor: FooBarTransform,
 
 	_transform: function(transfer) {
-		console.log('_transform');
+		console.log('FooBarTransform._transform');
 
 		transfer.data += 'barfoo';
 		transfer.encoding = 'utf8';
@@ -218,13 +218,14 @@ describe("UnitMP4Mux", function() {
 				muxer = new UnitMP4Mux(UnitMP4Mux.Profiles.MP3_AUDIO_ONLY),
 				sink = new UnitFile.Sink(FIXTURES_DIR + 'shalafon.mp4');
 
+			// when the sink has processed last byte
 			sink.on('finish', function() {
 				done();
 			});
 
-			// FIXME: finish should call done()
+			// when the src has pushed last byte
 			src.on('end', function() {
-				done();
+				// file handle is released now
 			});
 
 			src.on('open', function() {

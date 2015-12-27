@@ -22,7 +22,13 @@ var UnitFile,
 FileSrc = function FileSrc (path, options) {
   Unit.prototype.constructor.call(this);
 
-  this.addOutput(fs.createReadStream(path, options));
+  var fileStream = fs.createReadStream(path, options);
+
+  this.on('end' , function() {
+    fileStream.close();
+  });
+
+  this.addOutput(fileStream);
 };
 
 FileSrc.prototype = Unit.create({
@@ -32,7 +38,13 @@ FileSrc.prototype = Unit.create({
 FileSink = function FileSink (path, options) {
   Unit.prototype.constructor.call(this);
 
-  this.addInput(fs.createWriteStream(path, options));
+  var fileStream = fs.createWriteStream(path, options);
+
+  this.on('finish' , function() {
+    fileStream.close();
+  });
+
+  this.addInput(fileStream);
 };
 
 FileSink.prototype = Unit.create({

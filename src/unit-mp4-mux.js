@@ -18,6 +18,7 @@ var log = require('./log');
 var UnitMP4Mux,
     Unit = require('./unit.js'),
     BaseTransform = Unit.BaseTransform,
+    BaseParser = Unit.BaseParser,
     MP4Mux = require('./mp4-mux.js');
 
 module.exports = UnitMP4Mux = function UnitMP4Mux(mp4MuxProfile, useWorker) {
@@ -39,8 +40,6 @@ module.exports = UnitMP4Mux = function UnitMP4Mux(mp4MuxProfile, useWorker) {
 
 	this._codecInfo = null;
 	this._timestamp = 0;
-
-	this.on('finish', this._onFinish.bind(this));
 
   if (useWorker) {
     this.worker = typeof Worker !== 'undefined' ? new Worker('/dist/mp4-mux-worker-bundle.js') : null;
@@ -71,12 +70,13 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 	},
 
 	_onFinish: function(input) {
-    console.log('MP4Mux._onFinish');
+    log('MP4Mux._onFinish');
     if (this.worker) {
       this.worker.postMessage({eos: true});
     } else if (this.muxer) {
       this.muxer.flush();
     }
+    BaseParser.prototype._onFinish.call(this, input);
 	},
 
 	_parse: function(transfer) {

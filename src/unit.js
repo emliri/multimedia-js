@@ -259,7 +259,7 @@ Unit.BaseTransform = BaseTransform = function BaseTransform() {
 
   this.in(0).on(Unit.IOEvent.CHAIN, this._onChain.bind(this));
 
-  this.in(0).on('finish', this._onFinish.bind(this));
+  this.on('finish', this._onFinish.bind(this));
 };
 
 BaseTransform.prototype = create(Unit.prototype, {
@@ -375,7 +375,7 @@ Unit.BaseParser = BaseParser = function BaseParser() {
   BasePushSrc.prototype.constructor.apply(this, arguments);
   BaseSink.prototype.constructor.apply(this, arguments);
 
-  this.in(0).on('finish', this._onFinish.bind(this));
+  this.on('finish', this._onFinish.bind(this));
 };
 
 assign(BaseParser.prototype,
@@ -391,6 +391,7 @@ assign(BaseParser.prototype,
   },
 
   _onFinish: function() {
+    log('BaseParser._onFinish');
     Output.eos(this.out(0));
   },
 
