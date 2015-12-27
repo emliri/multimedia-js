@@ -83,9 +83,16 @@ Unit.linkArray = function(arguments) {
   return u2;
 };
 
-Unit.IOEvent = {
+var Event = Unit.Event = {
   CHAIN: 'chain',
   NEED_DATA: 'need-data',
+  FINISH: 'finish',
+  PIPE: 'pipe',
+  UNPIPE: 'unpipe',
+  ERROR: 'error',
+  END: 'end',
+  OPEN: 'open',
+  CLOSE: 'close'
 }
 
 Unit.prototype = create(EventEmitter.prototype, {
@@ -132,19 +139,21 @@ Unit.prototype = create(EventEmitter.prototype, {
   },
 
   addInput: function(input) {
-    this._installEventForwarder(input, 'finish');
-    this._installEventForwarder(input, 'open');
-    this._installEventForwarder(input, 'pipe');
-    this._installEventForwarder(input, 'unpipe');
-    this._installEventForwarder(input, 'error');
+    this._installEventForwarder(input, Event.FINISH);
+    this._installEventForwarder(input, Event.OPEN);
+    this._installEventForwarder(input, Event.PIPE);
+    this._installEventForwarder(input, Event.UNPIPE);
+    this._installEventForwarder(input, Event.ERROR);
+    this._installEventForwarder(input, Event.CHAIN);
     this.inputs.push(input);
   },
 
   addOutput: function(output) {
-    this._installEventForwarder(output, 'end');
-    this._installEventForwarder(output, 'open');
-    this._installEventForwarder(output, 'close');
-    this._installEventForwarder(output, 'error');
+    this._installEventForwarder(output, Event.END);
+    this._installEventForwarder(output, Event.OPEN);
+    this._installEventForwarder(output, Event.CLOSE);
+    this._installEventForwarder(output, Event.ERROR);
+    this._installEventForwarder(output, Event.NEED_DATA);
     this.outputs.push(output);
   },
 
@@ -165,7 +174,9 @@ Unit.prototype = create(EventEmitter.prototype, {
   },
 
   _installEventForwarder: function(source, event) {
-    source.on(event, function() { this.emit(event, source) }.bind(this));
+    source.on(event, function(data) {
+      this.emit(event, source, data)
+    }.bind(this));
   },
 
 });
@@ -213,7 +224,7 @@ Input.prototype = create(stream.Writable.prototype, {
 
   _write: function(data, encoding, callback) {
     log('_write: ' + encoding);
-    this.emit(Unit.IOEvent.CHAIN, new Transfer(data, encoding, callback));
+    this.emit(Unit.Event.CHAIN, new Transfer(data, encoding, callback));
   },
 });
 
@@ -236,7 +247,7 @@ Output.prototype = create(stream.Readable.prototype, {
 
   _read: function(size) {
     this._dataRequested++;
-    this.emit(Unit.IOEvent.NEED_DATA, this);
+    this.emit(Event.NEED_DATA, this);
   },
 
   push: function(data, encoding) {
@@ -257,16 +268,16 @@ Unit.BaseTransform = BaseTransform = function BaseTransform() {
   this.add(new Input())
       .add(new Output());
 
-  this.in(0).on(Unit.IOEvent.CHAIN, this._onChain.bind(this));
+  this.on(Event.CHAIN, this._onChain.bind(this));
 
-  this.on('finish', this._onFinish.bind(this));
+  this.on(Event.FINISH, this._onFinish.bind(this));
 };
 
 BaseTransform.prototype = create(Unit.prototype, {
 
   constructor: BaseTransform,
 
-  _onChain: function(transfer) {
+  _onChain: function(input, transfer) {
     this._transform(transfer);
     this.out(0).push(transfer.data, transfer.encoding);
     transfer.resolve();
@@ -285,7 +296,7 @@ Unit.BaseSrc = BaseSrc = function BaseSrc() {
 
   this.add(new Output());
 
-  this.out(0).on(Unit.IOEvent.NEED_DATA, this.squeeze.bind(this));
+  this.on(Event.NEED_DATA, this.squeeze.bind(this));
 };
 
 BaseSrc.prototype = create(Unit.prototype, {
@@ -342,7 +353,7 @@ Unit.BaseSink = BaseSink = function BaseSink() {
 
   this.add(new Input());
 
-  this.in(0).on(Unit.IOEvent.CHAIN, this._onChain.bind(this));
+  this.on(Event.CHAIN, this._onChain.bind(this));
 
   this._bufferIn = [];
 };
@@ -351,7 +362,7 @@ BaseSink.prototype = create(Unit.prototype, {
 
   constructor: BaseSink,
 
-  _onChain: function(transfer) {
+  _onChain: function(input, transfer) {
 
     log('BaseSink._onChain: ' + transfer.encoding);
 

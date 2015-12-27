@@ -221,6 +221,12 @@ describe("UnitMP4Mux", function() {
 			// when the sink has processed last byte
 			sink.on('finish', function() {
 				done();
+				// FIXME: make this work repeatedly
+				/*
+				console.log('done');
+				src = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3');
+				Unit.link(src, parser);
+				*/
 			});
 
 			// when the src has pushed last byte
@@ -232,6 +238,8 @@ describe("UnitMP4Mux", function() {
 				console.log('file open');
 				Unit.link(src, parser, muxer, sink);
 			});
+
+
 		});
 	});
 });
