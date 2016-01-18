@@ -19,6 +19,7 @@ var log = require('./log');
 var Unit,
     Input, Output, Transfer,
     BaseTransform, BaseSrc, BasePushSrc, BaseSink, BaseParser,
+    InputSelector,
     create = require('lodash.create'),
     assign = require('lodash.assign'),
     EventEmitter = require('events'),
@@ -260,6 +261,10 @@ Output.prototype = create(stream.Readable.prototype, {
     return this._dataRequested > 0;
   },
 
+  eos: function() {
+    stream.Readable.prototype.push.call(this, null, 'null');
+  }
+
 });
 
 Unit.BaseTransform = BaseTransform = function BaseTransform() {
@@ -269,7 +274,6 @@ Unit.BaseTransform = BaseTransform = function BaseTransform() {
       .add(new Output());
 
   this.on(Event.CHAIN, this._onChain.bind(this));
-
   this.on(Event.FINISH, this._onFinish.bind(this));
 };
 
@@ -283,7 +287,7 @@ BaseTransform.prototype = create(Unit.prototype, {
     transfer.resolve();
   },
 
-  _onFinish: function() {
+  _onFinish: function(input) {
     Output.eos(this.out(0));
   },
 
@@ -408,5 +412,44 @@ assign(BaseParser.prototype,
 
   // Implement _parse and call enqueue whenever you want to push data out
   _parse: function(transfer) {},
+
+});
+
+Unit.InputSelector = InputSelector = function InputSelector(numberOfIns) {
+  BaseTransform.prototype.constructor.apply(this, arguments);
+
+  numberOfIns = (numberOfIns || 1) - 1;
+  while(numberOfIns-- > 0) {
+    this.add(new Input());
+  }
+
+  this.selectedInputIndex = 0;
+}
+
+assign(InputSelector.prototype,
+  BaseTransform.prototype, {
+  constructor: InputSelector,
+
+  _onChain: function(input, transfer) {
+    var selectedInput = this.in(this.selectedInputIndex);
+    if (input !== selectedInput) {
+      // just drop and ignore data from non selected inputs
+      transfer.resolve();
+      return;
+    }
+    this._transform(transfer);
+    this.out(0).push(transfer.data, transfer.encoding);
+    transfer.resolve();
+  },
+
+  _onFinish: function(input) {
+    var selectedInput = this.in(this.selectedInputIndex);
+    if (input !== selectedInput) {
+      // just ignore eos from non selected inputs
+      return;
+    }
+
+    Output.eos(this.out(0));
+  },
 
 });

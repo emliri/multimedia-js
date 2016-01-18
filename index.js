@@ -18,7 +18,7 @@ var Multimedia,
     Unit = require('./src/unit.js'),
     MP4Mux  = require('./src/unit-mp4-mux.js'),
     MP3Parser  = require('./src/unit-mp3-parser.js'),
-    MSESink = require('./src/unit-mse-sink.js');
+    MSESink = require('./src/unit-mse-sink.js'),
     XHR = require('./src/unit-xhr.js'),
 	File = require('./src/unit-file.js');
 

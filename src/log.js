@@ -1,3 +1,7 @@
+var config = require('./config');
+
 module.exports = function() {
-	console.log.apply(console, arguments);
+	if (config.loggingEnabled()) {
+		console.log.apply(console, arguments);
+	}
 }
