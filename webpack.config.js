@@ -31,14 +31,15 @@ function configure(libraryTarget) {
   return config;
 }
 
-configure('var');
-configure('this');
+//configure('var');
+//configure('this');
 configure('commonjs2');
 
 //configure('commonjs')
 //configure('amd')
 //configure('umd');
 
+/*
 config.push({
   entry: './src/mp4-mux-worker.js',
   output: {
@@ -54,5 +55,6 @@ config.push({
     ignore,
   ]
 });
+*/
 
 module.exports = config;
