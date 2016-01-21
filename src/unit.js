@@ -195,6 +195,7 @@ Unit.Transfer = Transfer = function Transfer(data, encoding, doneCallback) {
     }
   }
 
+  this.resolved = false;
   this.data = data;
   this.encoding = encoding;
   this.doneCallback = doneCallback;
@@ -205,12 +206,32 @@ Transfer.prototype = create(Object.prototype, {
   constructor: Transfer,
 
   resolve: function() {
-    if (!this.doneCallback) {
+    if (!this.doneCallback || this.resolved) {
       return;
     }
     this.doneCallback();
+    this.resolved = true;
   },
+
+  setFlushing: function(flush) {
+    this.data.flush = flush;
+    return this;
+  },
+
+  setEmpty: function(empty) {
+    this.data.empty = empty;
+    return this;
+  }
+
 });
+
+Transfer.Flush = function() {
+  return new Transfer({}, 'binary').setFlushing(true).setEmpty(true);
+}
+
+Transfer.EOS = function() {
+  return new Transfer(null, 'binary');
+}
 
 Unit.Input = Input = function Input(writable, arguments) {
   stream.Writable.prototype.constructor.call(this, {

@@ -85,13 +85,34 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
 			timestamp = this._timestamp = transfer.data.timestamp;
 		}
 
+    if (transfer.data.flush) {
+      this._needFlush = true;
+    }
+
   	log("UnitMP4Mux Timestamp: " + this._timestamp);
   	log("UnitMP4Mux._parse: Payload type: " + typeof(transfer.data));
 
     if (this.worker) {
-      this.worker.postMessage({data: transfer.data, meta: transfer.data.meta, timestamp: timestamp, packetType: MP4Mux.TYPE_AUDIO_PACKET});
+
+      if (!transfer.data.empty) {
+        this.worker.postMessage({data: transfer.data, meta: transfer.data.meta, timestamp: timestamp, packetType: MP4Mux.TYPE_AUDIO_PACKET});
+      }
+
+      if (this._needFlush) {
+        this.worker.postMessage({eos: true});
+        this._needFlush = false;
+      }
+
     } else if (this.muxer) {
-      this.muxer.pushPacket(MP4Mux.TYPE_AUDIO_PACKET, new Uint8Array(transfer.data), timestamp, transfer.data.meta);
+
+      if (!transfer.data.empty) {
+        this.muxer.pushPacket(MP4Mux.TYPE_AUDIO_PACKET, new Uint8Array(transfer.data), timestamp, transfer.data.meta);
+      }
+
+      if (this._needFlush) {
+        this.muxer.flush();
+        this._needFlush = false;
+      }
     }
   },
 });

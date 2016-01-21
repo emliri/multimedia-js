@@ -74,6 +74,12 @@ UnitMP3Parser.prototype = Unit.createBaseParser({
 
 		log('parse called');
 
+		if (transfer.data.empty) {
+			log('empty transfer');
+			this.enqueue(transfer);
+			return;
+		}
+
 		this.parser.push(new Uint8Array(transfer.data));
 	},
 });

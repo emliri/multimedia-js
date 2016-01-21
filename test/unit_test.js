@@ -214,9 +214,9 @@ describe("UnitMP4Mux", function() {
 	describe("mux mp3 frames as mp4a payload", function() {
 		it('should pass all data through', function (done) {
 			var src = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3'),
-				parser = new UnitMP3Parser(),
-				muxer = new UnitMP4Mux(UnitMP4Mux.Profiles.MP3_AUDIO_ONLY),
-				sink = new UnitFile.Sink(FIXTURES_DIR + 'shalafon.mp4');
+  			parser = new UnitMP3Parser(),
+  			muxer = new UnitMP4Mux(UnitMP4Mux.Profiles.MP3_AUDIO_ONLY),
+  			sink = new UnitFile.Sink(FIXTURES_DIR + 'shalafon.mp4');
 
 			// when the sink has processed last byte
 			sink.on('finish', function() {
@@ -238,9 +238,74 @@ describe("UnitMP4Mux", function() {
 				console.log('file open');
 				Unit.link(src, parser, muxer, sink);
 			});
+		});
 
+		it('should pass all data through repeatedly', function (done) {
+
+      function appendBuffer(buffer1, buffer2) {
+        var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
+        tmp.set(new Uint8Array(buffer1), 0);
+        tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
+        return tmp;
+      }
+
+      var fileSrc = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3');
+      var dataSink = new mm.Unit.BaseSink();
+      var data;
+      dataSink._onData = function() {
+        data = data ? appendBuffer(data, dataSink.dequeue().data) : dataSink.dequeue().data;
+        console.log('read bytes from file: ' + data.length);
+      };
+
+      dataSink.on('finish', function() {
+        run();
+      });
+
+      fileSrc.on('open', function() {
+        console.log('file open');
+        Unit.link(fileSrc, dataSink);
+      });
+
+      function run() {
+
+        var src = new mm.Unit.BasePushSrc();
+        var parser = new mm.Units.MP3Parser();
+        var muxer = new mm.Units.MP4Mux(mm.Units.MP4Mux.Profiles.MP3_AUDIO_ONLY);
+        var sink = new mm.Unit.BaseSink();
+        sink._onData = function() {
+          var transfer = sink.dequeue();
+          //this.trigger('data', transfer.data);
+          console.log('mp4 data bytes: ' + transfer.data.length);
+
+        }.bind(this);
+
+        mm.Unit.link(src, parser, muxer, sink);
+
+        // when the sink has processed last byte
+        sink.on('finish', function() {
+          done();
+        });
+
+        // when the src has pushed last byte
+        src.on('end', function() {
+          // file handle is released now
+        });
+
+        src.enqueue(new mm.Unit.Transfer(data, 'binary'));
+        src.enqueue(Transfer.Flush());
+
+        src.enqueue(new mm.Unit.Transfer(data, 'binary'));
+        src.enqueue(Transfer.Flush());
+
+        src.enqueue(new mm.Unit.Transfer(data, 'binary'));
+        // Optional - EOS will flush everything anyway
+        src.enqueue(Transfer.Flush());
+
+        src.enqueue(Transfer.EOS());
+      }
 
 		});
+
 	});
 });
 
