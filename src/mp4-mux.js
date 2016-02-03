@@ -246,9 +246,15 @@ var MP4Mux = (function () {
         }
         */
     };
-    MP4Mux.prototype.flush = function () {
+    MP4Mux.prototype.flush = function (resetBaseMediaDecodeTime) {
         if (this.cachedPackets.length > 0) {
             this._chunk();
+        }
+        // reset all track's cached duration to zero
+        if (resetBaseMediaDecodeTime) {
+            for (var i = 0; i < this.trackStates.length; i++) {
+                this.trackStates[i].cachedDuration = 0;
+            }
         }
     };
     MP4Mux.prototype._checkIfNeedHeaderData = function () {

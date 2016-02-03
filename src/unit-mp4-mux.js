@@ -95,7 +95,12 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
     if (this.worker) {
 
       if (!transfer.data.empty) {
-        this.worker.postMessage({data: transfer.data, meta: transfer.data.meta, timestamp: timestamp, packetType: MP4Mux.TYPE_AUDIO_PACKET});
+        this.worker.postMessage({
+          data: transfer.data,
+          meta: transfer.data.meta,
+          timestamp: timestamp,
+          packetType: MP4Mux.TYPE_AUDIO_PACKET
+        });
       }
 
       if (this._needFlush) {
@@ -106,11 +111,16 @@ UnitMP4Mux.prototype = Unit.createBaseParser({
     } else if (this.muxer) {
 
       if (!transfer.data.empty) {
-        this.muxer.pushPacket(MP4Mux.TYPE_AUDIO_PACKET, new Uint8Array(transfer.data), timestamp, transfer.data.meta);
+        this.muxer.pushPacket(
+          MP4Mux.TYPE_AUDIO_PACKET,
+          new Uint8Array(transfer.data),
+          timestamp,
+          transfer.data.meta
+        );
       }
 
       if (this._needFlush) {
-        this.muxer.flush();
+        this.muxer.flush(false);
         this._needFlush = false;
       }
     }
