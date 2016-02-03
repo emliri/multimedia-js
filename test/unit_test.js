@@ -242,6 +242,31 @@ describe("UnitMP4Mux", function() {
 
 		it('should pass all data through repeatedly', function (done) {
 
+      var data;
+
+      // first grab all the data from the file into memory, then run the actual test
+      getMp3ChunkDataFromFile(function() {
+      	appendMp3ChunksToMp4();
+      });
+
+      function getMp3ChunkDataFromFile(doneReadingFile) {
+	      var fileSrc = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3');
+	      var dataSink = new mm.Unit.BaseSink();
+	      dataSink._onData = function() {
+	        data = data ? appendBuffer(data, dataSink.dequeue().data) : dataSink.dequeue().data;
+	        console.log('read bytes from file: ' + data.length);
+	      };
+
+	      dataSink.on('finish', function() {
+	        doneReadingFile();
+	      });
+
+	      fileSrc.on('open', function() {
+	        console.log('file open');
+	        Unit.link(fileSrc, dataSink);
+	      });
+      }
+
       function appendBuffer(buffer1, buffer2) {
         var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
         tmp.set(new Uint8Array(buffer1), 0);
@@ -249,40 +274,27 @@ describe("UnitMP4Mux", function() {
         return tmp;
       }
 
-      var fileSrc = new UnitFile.Src(FIXTURES_DIR + 'shalafon.mp3');
-      var dataSink = new mm.Unit.BaseSink();
-      var data;
-      dataSink._onData = function() {
-        data = data ? appendBuffer(data, dataSink.dequeue().data) : dataSink.dequeue().data;
-        console.log('read bytes from file: ' + data.length);
-      };
-
-      dataSink.on('finish', function() {
-        run();
-      });
-
-      fileSrc.on('open', function() {
-        console.log('file open');
-        Unit.link(fileSrc, dataSink);
-      });
-
-      function run() {
+      function appendMp3ChunksToMp4() {
 
         var src = new mm.Unit.BasePushSrc();
         var parser = new mm.Units.MP3Parser();
         var muxer = new mm.Units.MP4Mux(mm.Units.MP4Mux.Profiles.MP3_AUDIO_ONLY);
         var sink = new mm.Unit.BaseSink();
+        var fileSink = new UnitFile.Sink(FIXTURES_DIR + 'shalafon3.mp4');
+
         sink._onData = function() {
           var transfer = sink.dequeue();
-          //this.trigger('data', transfer.data);
           console.log('mp4 data bytes: ' + transfer.data.length);
-
         }.bind(this);
 
         mm.Unit.link(src, parser, muxer, sink);
 
         // when the sink has processed last byte
         sink.on('finish', function() {
+          done();
+        });
+
+        fileSink.on('finish', function() {
           done();
         });
 
