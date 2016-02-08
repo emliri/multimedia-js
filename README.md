@@ -12,7 +12,7 @@ It is intended for use in Node (desktop/server) as well as in the browser.  Ther
 
 ***Note that we could now exchange the word "file" by anything else like some sort of player, decoder, transcoder, some kind of processing, WebAudio, a MediaSource, an HTTP request ...***
 
-```
+```JavaScript
   var mm = require('multimedia');
   // Create some pipeline elements
   var src = new mm.Units.File.Src('somefile.mp3'),
@@ -56,17 +56,19 @@ npm test
 
 ### How to use it on a web page without `require`
 
-```
-  <script src="node_modules/multimedia/dist/multimedia_global.js"></script>
+```HTML
+  <script src="node_modules/multimedia/dist/multimedia_global.js">
   var mm == window.multimedia;
+  </script>
 ```
 
 or
 
-```
-  <script src="node_modules/multimedia/dist/multimedia_var.js"></script>
+```HTML
+  <script src="node_modules/multimedia/dist/multimedia_var.js">
   // a variable named multimedia will be set and can be used likewise...
   var mm = multimedia;
+  </script>
 ```
 
 
