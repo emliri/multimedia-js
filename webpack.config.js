@@ -1,60 +1,63 @@
-var webpack = require('webpack');
-var path = require("path");
-var ignore = new webpack.IgnorePlugin(/^fs$/);
-var config = [];
 
-const BUILD_DIR = "dist"
+const path = require('path');
+const webpack = require('webpack');
+const ignore = new webpack.IgnorePlugin(/^fs$/);
 
-function distroFilename(libraryTarget) {
-  if (libraryTarget == 'this') {
-    return distroFilename('global');
-  }
-  return 'multimedia_' + libraryTarget + '.js';
+function generate(options) {
+
+    const libName = options.libName;
+
+    const buildPath = path.resolve(options.buildPath);
+
+    console.log('Generating config for library:', libName, 'with options:\n', options, '\n');
+    console.log('Resolved build path:', buildPath);
+
+    const baseConfig = {
+        devtool: 'source-map',
+        entry: options.entrySrc,
+        externals: options.externals,
+        output: {
+            path: buildPath,
+            publicPath: buildPath + '/',
+            filename: libName + '.' + options.libraryTarget + '.js',
+            library: libName,
+            libraryTarget: options.libraryTarget,
+            sourceMapFilename: '[file].map'
+        },
+        module: {
+          rules: [
+            {
+                test: /\.ts$/,
+                use: {
+                    loader: 'ts-loader'
+                }
+            }
+          ]
+        },
+        //watch: options.watch,
+        plugins: [
+          new webpack.DefinePlugin({
+            '__BROWSER__': true
+          }),
+          ignore,
+        ]
+    };
+
+    return baseConfig;
 }
 
-function configure(libraryTarget) {
-  config.push({
-    entry: './index.js',
-    output: {
-      path: path.resolve(__dirname, BUILD_DIR),
-      filename: distroFilename(libraryTarget),
-      libraryTarget: libraryTarget,
-      library: 'multimedia'
-    },
-    plugins: [
-      new webpack.DefinePlugin({
-        '__BROWSER__': true
-      }),
-      ignore,
-    ]
-  });
-  return config;
-}
+const config = [];
 
-//configure('var');
-//configure('this');
-configure('commonjs2');
+const entrySrc = './index';
+const libName = 'multimedia';
+const buildPath = 'dist';
+const libraryTarget = 'umd';
 
-//configure('commonjs')
-//configure('amd')
-//configure('umd');
-
-/*
-config.push({
-  entry: './src/mp4-mux-worker.js',
-  output: {
-    path: path.resolve(__dirname, BUILD_DIR),
-    filename: 'mp4-mux-worker-bundle.js',
-    libraryTarget: 'this',
-    library: 'MP4MuxWorker'
-  },
-  plugins: [
-    new webpack.DefinePlugin({
-      '__BROWSER__': true
-    }),
-    ignore,
-  ]
-});
-*/
+config.push(generate({
+    entrySrc,
+    libName,
+    libraryTarget,
+    buildPath
+}));
 
 module.exports = config;

@@ -14,23 +14,9 @@ Lesser General Public License for more details.
 
 */
 
-var Multimedia,
-    Unit = require('./src/unit.js'),
-    MP4Mux  = require('./src/unit-mp4-mux.js'),
-    MP3Parser  = require('./src/unit-mp3-parser.js'),
-    MSESink = require('./src/unit-mse-sink.js'),
-    XHR = require('./src/unit-xhr.js'),
-	File = require('./src/unit-file.js');
-
-//require('./src/worker-polyfill.js');
-
-module.exports = Multimedia = {
-	Unit: Unit,
-	Units: {
-		File: File,
-		MP4Mux: MP4Mux,
-		MP3Parser: MP3Parser,
-		MSESink: MSESink,
-		XHR: XHR
-	}
-};
+require('./src/core/processor.ts');
+require('./src/core/buffer.ts');
+require('./src/core/mime-type.ts');
+//require('./src/core/object.ts');
+require('./src/core/packet.ts');
+require('./src/core/socket.ts');

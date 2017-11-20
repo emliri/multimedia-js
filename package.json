@@ -4,52 +4,39 @@
   "description": "Multimedia streaming framework for browser and node  ",
   "main": "index.js",
   "scripts": {
-    "prepublish": "npm run build",
-    "build": "webpack --optimize-dedupe",
-    "test": "mocha",
+    "build": "webpack",
+    "dev": "webpack-dev-server",
+    "test": "jest",
     "browser-test": "npm run build && open http://localhost:8080/tests && webpack-dev-server 'mocha!./test/unit_test.js' --output-filename tests.js"
   },
-  "keywords": [
-    "Multimedia",
-    "streaming",
-    "dataflow",
-    "transcoder",
-    "transmuxer",
-    "pipeline",
-    "playback",
-    "MPEG4",
-    "ISO",
-    "FF",
-    "MP4",
-    "MP3",
-    "muxer",
-    "demuxer",
-    "parser",
-    "media",
-    "MediaSource",
-    "WebAudio"
-  ],
+  "keywords": [],
   "repository": "github.com/tchakabam/multimedia.js.git",
   "author": "Stephan Hesse <tchakabam@gmail.com>",
   "license": "LGPL",
-  "devDependencies": {
-    "chai": "^3.3.0",
-    "mocha": "^2.3.3",
-    "should": "^7.1.0",
-    "webpack": "^1.12.2",
-    "webpack-dev-server": "^1.12.1"
-  },
   "dependencies": {
-    "av": "^0.4.4",
-    "browserfs": "^0.5.7",
-    "create": "0.0.2",
-    "is-mime": "^0.3.0",
-    "lodash.assign": "^3.2.0",
-    "lodash.create": "^3.1.1",
-    "mp3": "^0.1.0",
-    "node-browserfs": "^1.0.4",
-    "ogg.js": "^0.1.0",
-    "opus.js": "^0.1.1",
-    "stream-browserify": "^2.0.1"
+    "ts-events": "3.2.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^21.1.5",
+    "jest": "^21.2.1",
+    "should": "^13.1.3",
+    "ts-jest": "^21.2.1",
+    "ts-loader": "^3.1.1",
+    "typescript": "^2.6.1",
+    "webpack": "^3.8.1",
+    "webpack-dev-server": "^2.9.4"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json"
+    ]
   }
 }
