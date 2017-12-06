@@ -25,6 +25,10 @@ export enum SampleDepth {
     THIRTYTWO = 32
 }
 
+export class PayloadDetails {
+    // TBD
+}
+
 export class PayloadDescriptor {
     mimeType: MimeType;
 
@@ -33,13 +37,18 @@ export class PayloadDescriptor {
     dataFormat: DataFormat;
     dataLayout: DataLayout;
 
-    details: Object;
+    private details_: PayloadDetails;
 
     constructor(mimeType) {
         this.mimeType = mimeType;
         this.sampleDuration = 0;;
         this.dataFormat = DataFormat.UNSPECIFIED;
         this.dataLayout = DataLayout.UNSPECIFIED;
+        this.details_ = new PayloadDetails();
+    }
+
+    details(): PayloadDetails {
+        return this.details_;
     }
 
     getSampleSize(): number {
