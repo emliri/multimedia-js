@@ -1,8 +1,8 @@
+import 'should';
+
 import {Socket, SocketType, SocketDescriptor, InputSocket, OutputSocket} from './socket';
 import {Packet, PacketReceiveCallback} from './packet';
 import {PayloadDescriptor} from './mime-type';
-
-import 'should';
 
 describe('SocketDescriptor', () => {
 
@@ -56,6 +56,17 @@ describe('Socket', () => {
 
         s.payloads().should.be.equal(sd.payloads);
     });
+
+    it('should be abstract and not implement `transfer` method', () => {
+        
+        let s, sd;
+
+        sd = new SocketDescriptor();
+        s = new Socket(SocketType.INPUT, sd);
+
+        (s.transfer === undefined).should.be.true;
+
+     });
 });
 
 describe('InputSocket', () => {
