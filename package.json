@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack",
     "dev": "webpack-dev-server",
-    "test": "jest",
+    "test": "jest --verbose",
     "browser-test": "npm run build && open http://localhost:8080/tests && webpack-dev-server 'mocha!./test/unit_test.js' --output-filename tests.js"
   },
   "keywords": [],
