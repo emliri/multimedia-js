@@ -14,8 +14,9 @@ export type ID3Sample = {
 }
 
 export type MP3ParserResult = {
+  endOffset: number,
   mp3Frames: MPEGAudioFrame[]
-  id3Sample: ID3Sample[]
+  id3Samples: ID3Sample[]
 }
 
 export class MP3Parser {
@@ -38,44 +39,50 @@ export class MP3Parser {
     return false;
   }
 
-  static parse(data: Uint8Array) {
+  static parse(data: Uint8Array, offset: number = 0, onlyNext: boolean = false): MP3ParserResult {
     const mp3Frames: MPEGAudioFrame[] = [];
     const id3Samples: ID3Sample[] = [];
     const length = data.length;
 
     let pts;
-    let offset = 0
-
-    let id3Data = ID3Parser.getID3Data(data, 0);
-    if (id3Data) {
-      pts = ID3_TIMESCALE * ID3Parser.getTimeStamp(id3Data);
-      offset = id3Data.length;
-      id3Samples.push({ pts: pts, dts: pts, data: id3Data })
-    }
-
-    let frameIndex = 0;
+    let id3Data;
 
     while (offset < length) {
       if (MPEGAudioParser.isHeader(data, offset)) {
 
         const frame = MPEGAudioParser.parseFrame(data, offset);
         if (frame) {
-          offset += frame.data.length;
-          frameIndex++;
 
           mp3Frames.push(frame)
+
+          offset += frame.data.length;
+
+          if (onlyNext) {
+            return {
+              endOffset: offset,
+              mp3Frames,
+              id3Samples
+            }
+          }
+
         } else {
           break;
         }
 
       } else if (ID3Parser.isHeader(data, offset)) {
-
         id3Data = ID3Parser.getID3Data(data, offset);
         pts = ID3_TIMESCALE * ID3Parser.getTimeStamp(id3Data);
-
         id3Samples.push({ pts: pts, dts: pts, data: id3Data })
 
         offset += id3Data.length;
+
+        if (onlyNext) {
+          return {
+            endOffset: offset,
+            mp3Frames,
+            id3Samples
+          }
+        }
 
       } else {
         // nothing found, keep looking
@@ -84,6 +91,7 @@ export class MP3Parser {
     }
 
     return {
+      endOffset: offset,
       mp3Frames,
       id3Samples
     }

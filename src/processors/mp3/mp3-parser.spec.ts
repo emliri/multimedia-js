@@ -24,21 +24,26 @@ describe('MP3Parser', () => {
   })
 
   it('should probe the first mp3 test data without errors', () => {
-
     const res = MP3Parser.probe(mp3TestData[0])
-
-    console.log(res)
 
     res.should.be.false
   })
 
   it('should parse the first mp3 test data without errors', () => {
-
     const res: MP3ParserResult = MP3Parser.parse(mp3TestData[0])
 
-    console.log(res.mp3Frames.length)
-
+    res.id3Samples.length.should.equal(0)
     res.mp3Frames.length.should.equal(215)
+  })
+
+  it('should parse the first mp3 test data without errors, using only-next option', () => {
+    const res: MP3ParserResult = MP3Parser.parse(mp3TestData[0], 0, true)
+
+    res.id3Samples.length.should.equal(0)
+    res.mp3Frames.length.should.equal(1)
+
+    console.log(res.offset)
+    console.log(res.mp3Frames[0])
   })
 
 })
