@@ -2,7 +2,21 @@
  * MP3 demuxer
  */
 import {ID3Parser} from './id3-parser';
-import {MPEGAudioParser} from './mpeg-audio-parser';
+import {MPEGAudioParser, MPEGAudioFrame} from './mpeg-audio-parser';
+import { TIMEOUT } from 'dns';
+
+export const ID3_TIMESCALE = 90;
+
+export type ID3Sample = {
+  pts: number,
+  dts: number,
+  data: Uint8Array
+}
+
+export type MP3ParserResult = {
+  mp3Frames: MPEGAudioFrame[]
+  id3Sample: ID3Sample[]
+}
 
 export class MP3Parser {
 
@@ -24,42 +38,54 @@ export class MP3Parser {
     return false;
   }
 
-  // feed incoming data to the front of the parsing pipeline
-  static append(data, timeOffset, contiguous, accurateTimeOffset) {
+  static parse(data: Uint8Array) {
+    const mp3Frames: MPEGAudioFrame[] = [];
+    const id3Samples: ID3Sample[] = [];
+    const length = data.length;
+
+    let pts;
+    let offset = 0
 
     let id3Data = ID3Parser.getID3Data(data, 0);
-    let pts = 90 * ID3Parser.getTimeStamp(id3Data);
-    var offset = id3Data.length;
-    var length = data.length;
-    var frameIndex = 0,
-        stamp = 0;
+    if (id3Data) {
+      pts = ID3_TIMESCALE * ID3Parser.getTimeStamp(id3Data);
+      offset = id3Data.length;
+      id3Samples.push({ pts: pts, dts: pts, data: id3Data })
+    }
 
-    let id3Samples = [{ pts: pts, dts: pts, data: id3Data }];
+    let frameIndex = 0;
 
     while (offset < length) {
       if (MPEGAudioParser.isHeader(data, offset)) {
 
-        var frame = MPEGAudioParser.parseFrame(data, offset);
-
+        const frame = MPEGAudioParser.parseFrame(data, offset);
         if (frame) {
           offset += frame.data.length;
-          //stamp = frame.
           frameIndex++;
+
+          mp3Frames.push(frame)
         } else {
           break;
         }
 
       } else if (ID3Parser.isHeader(data, offset)) {
+
         id3Data = ID3Parser.getID3Data(data, offset);
-        id3Samples.push({ pts: stamp, dts: stamp, data: id3Data });
+        pts = ID3_TIMESCALE * ID3Parser.getTimeStamp(id3Data);
+
+        id3Samples.push({ pts: pts, dts: pts, data: id3Data })
+
         offset += id3Data.length;
+
       } else {
-        //nothing found, keep looking
+        // nothing found, keep looking
         offset++;
       }
     }
 
-
+    return {
+      mp3Frames,
+      id3Samples
+    }
   }
 }
-

@@ -1,15 +1,15 @@
 /**
- *  MPEG-Audio parser
+ * @module
+ * MPEG-Audio parser
  */
 
 export const MPEGAudioSamplingRates: number[] = [44100, 48000, 32000, 22050, 24000, 16000, 11025, 12000, 8000];
 
 export const MPEGAudioBitratesTable: number[] = [ 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,
-                                    32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384,
-                                    32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,
-                                    32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256,
-                                    8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160 ];
-
+                                                  32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384,
+                                                  32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,
+                                                  32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256,
+                                                  8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160 ];
 export type MPEGAudioHeader = {
     sampleRate: number
     channelCount: number
@@ -17,6 +17,7 @@ export type MPEGAudioHeader = {
 };
 
 export type MPEGAudioFrame = {
+    headerRef: MPEGAudioHeader,
     data: Uint8Array
     frameDuration: number
     sampleDuration: number
@@ -24,22 +25,22 @@ export type MPEGAudioFrame = {
 
 export const SAMPLES_PER_FRAME = 1152;
 
-export const MPEGAudioParser = {
-
-    parseFrame: function (data: Uint8Array, offset: number): MPEGAudioFrame {
+export class MPEGAudioParser {
+    static parseFrame (data: Uint8Array, offset: number): MPEGAudioFrame {
         // Using http://www.datavoyage.com/mpgscript/mpeghdr.htm as a reference
         if (offset + 24 > data.length) {
             return null;
         }
 
-        var header = MPEGAudioParser.parseHeader(data, offset);
+        const header = MPEGAudioParser.parseHeader(data, offset);
 
         if (header && offset + header.frameLength <= data.length) {
 
-            var sampleDuration = 1 / header.sampleRate;
-            var frameDuration = SAMPLES_PER_FRAME * sampleDuration;
+            const sampleDuration = 1 / header.sampleRate;
+            const frameDuration = SAMPLES_PER_FRAME * sampleDuration;
 
             return  {
+                headerRef: header,
                 data: data.subarray(offset, offset + header.frameLength),
                 frameDuration,
                 sampleDuration
@@ -47,9 +48,9 @@ export const MPEGAudioParser = {
         }
 
         return null;
-    },
+    }
 
-    parseHeader: function (data: Uint8Array, offset: number): MPEGAudioHeader {
+    static parseHeader (data: Uint8Array, offset: number): MPEGAudioHeader {
 
         var headerB = (data[offset + 1] >> 3) & 3;
         var headerC = (data[offset + 1] >> 1) & 3;
@@ -72,15 +73,15 @@ export const MPEGAudioParser = {
         }
 
         return null;
-    },
+    }
 
-    isHeaderPattern: function (data: Uint8Array, offset: number): boolean {
+    static isHeaderPattern (data: Uint8Array, offset: number): boolean {
         return data[offset] === 0xff &&
             (data[offset + 1] & 0xe0) === 0xe0 &&
             (data[offset + 1] & 0x06) !== 0x00;
-    },
+    }
 
-    isHeader: function (data: Uint8Array, offset): boolean {
+    static isHeader (data: Uint8Array, offset): boolean {
         // Look for MPEG header | 1111 1111 | 111X XYZX | where X can be either 0 or 1 and Y or Z should be 1
         // Layer bits (position 14 and 15) in header should be always different from 0 (Layer I or Layer II or Layer III)
         // More info http://www.mp3-tech.org/programmer/frame_header.html
@@ -88,9 +89,9 @@ export const MPEGAudioParser = {
             return true;
         }
         return false;
-    },
+    }
 
-    probe: function (data: Uint8Array, offset: number) {
+    static probe (data: Uint8Array, offset: number): boolean {
         // same as isHeader but we also check that MPEG frame follows last MPEG frame
         // or end of data is reached
         if (offset + 1 < data.length && MPEGAudioParser.isHeaderPattern(data, offset)) {
