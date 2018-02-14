@@ -20,3 +20,6 @@ require('./src/core/mime-type.ts');
 //require('./src/core/object.ts');
 require('./src/core/packet.ts');
 require('./src/core/socket.ts');
+
+require('./src/processors/mp3-parser.processor')
+require('./src/processors/lambda.processor')
