@@ -4,7 +4,7 @@ import {InputSocket, SocketDescriptor, SocketType} from '../core/socket';
 
 import {MP3Parser} from './mp3/mp3-parser'
 
-export class MP3ParserProcessor extends Processor {
+export class MP3ParseProcessor extends Processor {
 
     constructor() {
         super();

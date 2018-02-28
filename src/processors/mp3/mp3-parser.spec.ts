@@ -42,8 +42,8 @@ describe('MP3Parser', () => {
     res.id3Samples.length.should.equal(0)
     res.mp3Frames.length.should.equal(1)
 
-    console.log(res.offset)
-    console.log(res.mp3Frames[0])
+    //console.log(res.offset)
+    //console.log(res.mp3Frames[0])
   })
 
 })
