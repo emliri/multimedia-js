@@ -1,5 +1,6 @@
 import {SocketDescriptor, SocketType, InputSocket, OutputSocket} from './socket';
 import {Packet} from './packet';
+import { ECDH } from 'crypto';
 
 export abstract class Processor {
 
@@ -38,7 +39,14 @@ export abstract class Processor {
     protected abstract processTransfer_(inS: InputSocket, p: Packet): boolean;
 
     private onReceiveFromInput_(inS: InputSocket, p: Packet): boolean {
-        return this.processTransfer_(inS, p);
+        let result = false
+        try {
+          result = this.processTransfer_(inS, p);
+        } catch(err) {
+          console.error('There was a fatal error processing a packet: ' + err.message)
+          console.error(err)
+        }
+        return result
     }
 
     private wrapTemplateSocketDescriptor_(type: SocketType, sd?: SocketDescriptor): SocketDescriptor {

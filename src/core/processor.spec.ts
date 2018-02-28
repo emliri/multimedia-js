@@ -6,9 +6,9 @@ import {SocketDescriptor} from './socket';
 let sd;
 let proc;
 
-const newProc(proc) {
+const newProc = (proc) => {
     proc.templateSocketDescriptor = (sd) => {
-        return sd;        
+        return sd;
     };
     return proc;
 }
@@ -37,7 +37,7 @@ describe('Processor', () => {
         proc.createInput();
         proc.createOutput();
     });
-        
+
 });
 
 

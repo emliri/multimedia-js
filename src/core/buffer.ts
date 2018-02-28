@@ -1,15 +1,15 @@
 import {PayloadDescriptor} from './mime-type';
 
 export class BufferProperties extends PayloadDescriptor {
-
     mediaKey: any;
     params: Object;
     samplesCount: number;
     timestampDelta: number;
 
-    constructor(mimeType, sampleDuration) {
+    constructor(mimeType = 'unknown', sampleDuration = -1) {
         super(mimeType);
 
+        this.sampleDuration = sampleDuration
         this.samplesCount = 0;
         this.timestampDelta = 0;
 
@@ -20,7 +20,6 @@ export class BufferProperties extends PayloadDescriptor {
     getTotalDuration() {
         return this.sampleDuration * this.samplesCount;
     }
-
 }
 
 export class BufferSlice {
@@ -30,25 +29,36 @@ export class BufferSlice {
     offset: number;
     length: number;
 
-    constructor(arrayBuffer: ArrayBuffer, offset: number, length: number, props) {
-        this.arrayBuffer = arrayBuffer;
+    constructor(arrayBuffer: ArrayBuffer,
+        offset: number = 0,
+        length: number = arrayBuffer.byteLength,
+        props: BufferProperties = new BufferProperties()) {
 
-        if(offset < 0 || length < 0) {
-            throw new Error('Illegal parameters for BufferSlice window');
-        }
+      this.arrayBuffer = arrayBuffer;
 
-        this.offset = offset;
-        this.length = length;
+      if(offset < 0 || length < 0) {
+          throw new Error('Illegal parameters for BufferSlice window');
+      }
 
-        this.props = props;
+      this.offset = offset;
+      this.length = length;
+
+      this.props = props
     }
 
-    getDataView() : DataView {
-        return new DataView(this.arrayBuffer, this.offset, this.length);
+    getDataView(): DataView {
+      return new DataView(this.arrayBuffer, this.offset, this.length);
     }
 
-    getUint8() {
+    getBuffer(): Buffer {
+      if (!global.Buffer) {
+        throw new Error('`Buffer` is not supported as built-in class')
+      }
+      return Buffer.from(this.arrayBuffer, this.offset, this.length)
+    }
 
+    getUint8Array(): Uint8Array {
+      return new Uint8Array(this.arrayBuffer)
     }
 }
 
