@@ -21,5 +21,7 @@ require('./src/core/mime-type.ts');
 require('./src/core/packet.ts');
 require('./src/core/socket.ts');
 
-require('./src/processors/mp3-parser.processor')
+require('./src/processors/mp4-mux.processor')
+require('./src/processors/mp4-demux.processor')
+require('./src/processors/mp3-parse.processor')
 require('./src/processors/lambda.processor')
