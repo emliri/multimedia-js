@@ -1,6 +1,5 @@
 import {SocketDescriptor, SocketType, InputSocket, OutputSocket} from './socket';
 import {Packet} from './packet';
-import { ECDH } from 'crypto';
 
 export abstract class Processor {
 
@@ -14,14 +13,42 @@ export abstract class Processor {
 
     abstract templateSocketDescriptor(socketType: SocketType): SocketDescriptor;
 
+    /**
+     * Returns a copy of internal array, safe to manipulate
+     * @returns {InputSocket[]}
+     */
     inputs() {
         return this.inputs_.slice();
     }
 
+    /**
+     * Returns a copy of internal array, safe to manipulate
+     * @returns {OutputSocket[]}
+     */
     outputs() {
         return this.outputs_.slice();
     }
 
+    /**
+     * Read-only internal array ref
+     * @type {InputSocket[]}
+     */
+    get in() {
+      return this.inputs_
+    }
+
+    /**
+     * Read-only internal array ref
+     * @type {OutputSocket[]}
+     */
+    get out() {
+      return this.outputs_
+    }
+
+    /**
+     * Adds a new input socket with the given descriptor (or from default template)
+     * @param {SocketDescriptor} sd optional
+     */
     createInput(sd?: SocketDescriptor): InputSocket {
         const s = new InputSocket((p: Packet) => {
             return this.onReceiveFromInput_(s, p);
@@ -30,6 +57,10 @@ export abstract class Processor {
         return s;
     }
 
+    /**
+     * Adds a new output socket with the given descriptor (or from default template)
+     * @param {SocketDescriptor} sd optional
+     */
     createOutput(sd?: SocketDescriptor): OutputSocket {
         const s = new OutputSocket(this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
         this.outputs_.push(s);
@@ -43,8 +74,8 @@ export abstract class Processor {
         try {
           result = this.processTransfer_(inS, p);
         } catch(err) {
-          console.error('There was a fatal error processing a packet: ' + err.message)
-          console.error(err)
+          console.error(`There was a fatal error processing a packet: ${err.message}. Stacktrace:`)
+          console.log(err)
         }
         return result
     }

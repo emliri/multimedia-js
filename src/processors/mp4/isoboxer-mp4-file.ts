@@ -1,6 +1,6 @@
 import {ISOBox, ISOFile, ISOBoxPropertyBag} from './isoboxer-types'
 
-import {MP4Writer} from './mp4-writer'
+import {MP4Writer} from './isoboxer-mp4-writer'
 
 export const MP4_FULLBOX_FLAG_TRACK_ENABLED: number = 0x000001
 export const MP4_FULLBOX_FLAG_TRACK_IN_MOVIE: number = 0x000002

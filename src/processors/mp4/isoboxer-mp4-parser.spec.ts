@@ -3,7 +3,7 @@ import 'should';
 const fs = require('fs')
 const path = require('path')
 
-import {MP4Parser} from './mp4-parser'
+import {MP4Parser} from './isoboxer-mp4-parser'
 
 import {ISOFile} from './isoboxer-types'
 

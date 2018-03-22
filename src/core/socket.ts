@@ -1,9 +1,13 @@
 import {PayloadDescriptor} from './mime-type';
 import {Packet, PacketReceiveCallback} from './packet';
 
+import {getLogger, makeLogTimestamped, LoggerLevels} from '../logger'
+
+const {log} = getLogger('Socket', LoggerLevels.OFF)
+
 export enum SocketType {
     INPUT,
-    OUTPUT 
+    OUTPUT
 }
 
 export class SocketState {
@@ -74,56 +78,62 @@ export class OutputSocket extends Socket {
     private peers_: Socket[];
 
     constructor(descriptor: SocketDescriptor) {
-        super(SocketType.OUTPUT, descriptor);
-        this.peers_ = [];
+      super(SocketType.OUTPUT, descriptor);
+      this.peers_ = [];
     }
 
     transfer(p: Packet): boolean {
-        let b: boolean;
-        this.setTransferring_(true);
-        this.peers_.forEach((s) => {
-            b = s.transfer(p);
-            this.onPacketTransferred_(s, b);
-        });
-        this.setTransferring_(false);
-        return b;
+
+      log(makeLogTimestamped('OutputSocket.transfer packet'))
+
+      let b: boolean;
+      this.setTransferring_(true);
+      this.peers_.forEach((s) => {
+
+        log('call transfer on peer socket')
+
+        b = s.transfer(p);
+        this.onPacketTransferred_(s, b);
+      });
+      this.setTransferring_(false);
+      return b;
     }
 
     connect(s: Socket) {
-        if (this.isConnectedTo(s)) {
-            throw new Error('Socket is already connected to peer');
-        }
-        this.peers_.push(s);
-        return this;
+      if (this.isConnectedTo(s)) {
+        throw new Error('Socket is already connected to peer');
+      }
+      this.peers_.push(s);
+      return this;
     }
 
     disconnect(s: Socket) {
-        const index = this.peers_.indexOf(s);
-        if (index < 0) {
-            throw new Error('Socket can not be disconnected as its not connected')
-        }
-        this.peers_.splice(index, 1);
-        return this;
+      const index = this.peers_.indexOf(s);
+      if (index < 0) {
+        throw new Error('Socket can not be disconnected as its not connected')
+      }
+      this.peers_.splice(index, 1);
+      return this;
     }
 
     isConnectedTo(s: Socket) {
-        const index = this.peers_.indexOf(s);
-        return index >= 0;
+      const index = this.peers_.indexOf(s);
+      return index >= 0;
     }
 
     getPeerSockets() {
-        return this.peers_;
+      return this.peers_;
     }
 
     private onPacketTransferred_(peerSocket: Socket, peerTransferReturnVal: boolean) {
-        switch(peerSocket.type()) {
-        case SocketType.INPUT:
-            this.onPacketTransferredToPeerInput_(peerTransferReturnVal);
-            break;
-        case SocketType.OUTPUT:
-            this.onPacketTransferredToPeerOutput_(peerTransferReturnVal);
-            break;
-        }
+      switch(peerSocket.type()) {
+      case SocketType.INPUT:
+        this.onPacketTransferredToPeerInput_(peerTransferReturnVal);
+        break;
+      case SocketType.OUTPUT:
+        this.onPacketTransferredToPeerOutput_(peerTransferReturnVal);
+        break;
+      }
     }
 
     private onPacketTransferredToPeerInput_(peerTransferReturnVal: boolean) {}

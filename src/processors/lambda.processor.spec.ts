@@ -11,14 +11,10 @@ describe('LambdaProcessor', () => {
     const inputPacket: Packet = Packet.fromArrayBuffer((new Uint8Array(1).buffer))
 
     const lambdaProc = new LambdaProcessor((s, p) => {
-
       p.should.be.deepEqual(inputPacket)
-
       done()
-
       return true
-
-    }, () => new SocketDescriptor())
+    })
 
     lambdaProc.createInput().transfer(inputPacket)
 

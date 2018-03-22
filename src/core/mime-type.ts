@@ -1,6 +1,16 @@
 export type MimeType = string;
 export type MimeTypes = MimeType[];
 
+export enum CommonMimeTypes {
+  AUDIO_MP3 = 'audio/mpeg',
+  AUDIO_OPUS = 'audio/opus',
+  VIDEO_MP4 = 'video/mp4'
+}
+
+export function appendCodecsToMimeType(mimeType: MimeType, codec: string[]): string {
+  return mimeType
+}
+
 export enum DataFormat {
     UNSPECIFIED,
     S_LE,

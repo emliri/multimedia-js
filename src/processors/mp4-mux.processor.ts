@@ -2,8 +2,7 @@ import {Processor} from '../core/processor';
 import {Packet} from '../core/packet';
 import {InputSocket, SocketDescriptor, SocketType} from '../core/socket';
 
-// import {MP4Writer} from './mp4/mp4-writer'
-
+// This version of our mp4-mux processor is based on the mozilla rtmpjs code
 import {
   MP4Mux,
   MP4Track,
@@ -15,6 +14,8 @@ import {
   AVC_VIDEO_CODEC_ID,
   VP6_VIDEO_CODEC_ID
 } from './mozilla-rtmpjs/mp4mux'
+
+// import {MP4Writer} from './mp4/mp4-writer'
 
 export enum MP4MuxProcessorSupportedCodecs {
   AVC = 'avc',
@@ -154,7 +155,7 @@ export class MP4MuxProcessor extends Processor {
   private onMp4MuxerData_(data: Uint8Array) {
     const p: Packet = Packet.fromArrayBuffer(data.buffer)
 
-    this.outputs()[0].transfer(p)
+    this.out[0].transfer(p)
   }
 
   private onMp4MuxerCodecInfo_(codecInfo: string[]) {

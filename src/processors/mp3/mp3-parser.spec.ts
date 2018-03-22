@@ -7,7 +7,7 @@ import {MP3Parser, MP3ParserResult} from './mp3-parser'
 
 describe('MP3Parser', () => {
 
-  let mp3TestData: Uint8Array[] = []
+  const mp3TestData: Uint8Array[] = []
 
   beforeAll((done) => {
 
