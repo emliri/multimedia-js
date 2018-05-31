@@ -1,22 +1,22 @@
-import {ISOBox, ISOFile, ISOBoxPropertyBag} from './isoboxer-types'
+import {ISOBox, ISOFile} from './isoboxer-types'
 
-import {MP4Writer} from './isoboxer-mp4-writer'
+import {IB_MP4Writer} from './isoboxer-mp4-writer'
 
 export const MP4_FULLBOX_FLAG_TRACK_ENABLED: number = 0x000001
 export const MP4_FULLBOX_FLAG_TRACK_IN_MOVIE: number = 0x000002
 export const MP4_FULLBOX_FLAG_TRACK_IN_PREVIEW: number = 0x000004
 
-export enum MP4MediaHandlerType {
+export enum IB_MP4MediaHandlerType {
   HINT = 'hint',
   SOUND = 'soun',
   VIDEO = 'vide'
 }
 
-export abstract class MP4Container {
+export abstract class IB_MP4Container {
   abstract toISOBoxes()
 }
 
-export class MP4TrackSample {
+export class IB_MP4TrackSample {
   data: Uint8Array
   duration: number = 0
   compositionTimeOffset: number = 0
@@ -41,8 +41,8 @@ export class MP4TrackSample {
   }
 }
 
-export abstract class MP4Track extends MP4Container {
-  constructor(mediaHandlerType: MP4MediaHandlerType, name?: string) {
+export abstract class IB_MP4Track extends IB_MP4Container {
+  constructor(mediaHandlerType: IB_MP4MediaHandlerType, name?: string) {
     super()
 
     this.handlerType = mediaHandlerType
@@ -63,18 +63,18 @@ export abstract class MP4Track extends MP4Container {
   volume: number = 1
   flags: number = MP4_FULLBOX_FLAG_TRACK_ENABLED | MP4_FULLBOX_FLAG_TRACK_IN_MOVIE | MP4_FULLBOX_FLAG_TRACK_IN_PREVIEW
   language: string = 'en'
-  handlerType: MP4MediaHandlerType = MP4MediaHandlerType.HINT
+  handlerType: IB_MP4MediaHandlerType = IB_MP4MediaHandlerType.HINT
   name: string = ""
   codecData: ArrayBuffer = null;
 
-  samples: MP4TrackSample[] = []
+  samples: IB_MP4TrackSample[] = []
 }
 
-export class MP4SoundTrack extends MP4Track {
+export class IB_MP4SoundTrack extends IB_MP4Track {
   balance: number = 0
 
   constructor() {
-    super(MP4MediaHandlerType.SOUND)
+    super(IB_MP4MediaHandlerType.SOUND)
   }
 
   toISOBoxes(): ISOBox[] {
@@ -82,12 +82,12 @@ export class MP4SoundTrack extends MP4Track {
   }
 }
 
-export class MP4VideoTrack extends MP4Track {
+export class IB_MP4VideoTrack extends IB_MP4Track {
   graphicsMode: number
   opColor: number
 
   constructor() {
-    super(MP4MediaHandlerType.VIDEO)
+    super(IB_MP4MediaHandlerType.VIDEO)
   }
 
   toISOBoxes(): ISOBox[] {
@@ -95,9 +95,9 @@ export class MP4VideoTrack extends MP4Track {
   }
 }
 
-export class MP4HintTrack extends MP4Track {
+export class IB_MP4HintTrack extends IB_MP4Track {
   constructor() {
-    super(MP4MediaHandlerType.HINT)
+    super(IB_MP4MediaHandlerType.HINT)
   }
 
   toISOBoxes(): ISOBox[] {
@@ -105,7 +105,7 @@ export class MP4HintTrack extends MP4Track {
   }
 }
 
-export class MP4TrackFragment extends MP4Container {
+export class IB_MP4TrackFragment extends IB_MP4Container {
 
   baseMediaDecodeTime: number = 0;
 
@@ -116,7 +116,7 @@ export class MP4TrackFragment extends MP4Container {
   sampleSizePresent: boolean;
   sampleCTSOffsetsPresent: boolean;
 
-  samples: MP4TrackSample[] = []
+  samples: IB_MP4TrackSample[] = []
 
   constructor() {
     super()
@@ -127,7 +127,7 @@ export class MP4TrackFragment extends MP4Container {
   }
 }
 
-export class MP4Fragment extends MP4Container {
+export class IB_MP4Fragment extends IB_MP4Container {
   constructor() {
     super()
   }
@@ -136,10 +136,10 @@ export class MP4Fragment extends MP4Container {
     return []
   }
 
-  trackFragments: MP4TrackFragment[] = []
+  trackFragments: IB_MP4TrackFragment[] = []
 }
 
-export class MP4File extends MP4Container {
+export class IB_MP4File extends IB_MP4Container {
   constructor(brand: string, fragmented: boolean = false) {
     super()
 
@@ -164,8 +164,8 @@ export class MP4File extends MP4Container {
 
   timescale: number = 1
 
-  tracks: MP4Track[] = []
-  fragments: MP4Fragment[] = []
+  tracks: IB_MP4Track[] = []
+  fragments: IB_MP4Fragment[] = []
 
   isFragmented(): boolean {
     return !! (this.fragments && this.fragments.length)
@@ -174,35 +174,35 @@ export class MP4File extends MP4Container {
   toISOBoxes(): ISOBox[] {
     const isoBoxes = []
 
-    const file = MP4Writer.createBlankFile()
+    const file = IB_MP4Writer.createBlankFile()
 
-    const ftyp = MP4Writer.createBox('ftyp', file)
-    const moov = MP4Writer.createBox('moov', file)
+    const ftyp = IB_MP4Writer.createBox('ftyp', file)
+    const moov = IB_MP4Writer.createBox('moov', file)
 
-    const mvhd = MP4Writer.createBox('mvhd', file)
+    const mvhd = IB_MP4Writer.createBox('mvhd', file)
     moov.append(mvhd, null)
 
     // MVEX box
     if (this.isFragmented()) {
-      const mvex = MP4Writer.createBox('mvex', moov)
-      const mehd = MP4Writer.createBox('mehd', mvex, null, true)
-      const trex = MP4Writer.createBox('trex', mvex, null, true)
+      const mvex = IB_MP4Writer.createBox('mvex', moov)
+      const mehd = IB_MP4Writer.createBox('mehd', mvex, null, true)
+      const trex = IB_MP4Writer.createBox('trex', mvex, null, true)
     }
 
     // TRAK boxes
     if (this.tracks) {
       this.tracks.forEach((track) => {
-        const trak = MP4Writer.createBox('trak', moov)
-        const tkhd = MP4Writer.createBox('tkhd', trak)
-        const mdia = MP4Writer.createBox('mdia', trak)
-        const mdhd = MP4Writer.createBox('mdhd', trak)
+        const trak = IB_MP4Writer.createBox('trak', moov)
+        const tkhd = IB_MP4Writer.createBox('tkhd', trak)
+        const mdia = IB_MP4Writer.createBox('mdia', trak)
+        const mdhd = IB_MP4Writer.createBox('mdhd', trak)
       })
     }
 
     isoBoxes.push(ftyp, moov)
 
     if (!this.isFragmented()) {
-      const mdat = MP4Writer.createBox('mdat', file)
+      const mdat = IB_MP4Writer.createBox('mdat', file)
       isoBoxes.push(mdat)
     }
 

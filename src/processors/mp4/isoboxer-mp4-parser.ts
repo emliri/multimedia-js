@@ -2,7 +2,7 @@ const ISOBoxer = require('codem-isoboxer')
 
 import {ISOFile, ISOBox} from './isoboxer-types'
 
-export class MP4Parser {
+export class IB_MP4Parser {
   static parse(data: Uint8Array): ISOFile {
     const res: ISOFile = ISOBoxer.parseBuffer(data.buffer)
     return res;

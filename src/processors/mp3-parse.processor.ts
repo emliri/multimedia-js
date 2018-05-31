@@ -33,6 +33,8 @@ export class MP3ParseProcessor extends Processor {
 
   private _onBufferSlice(bufferSlice: BufferSlice) {
 
+    //console.log('onBufferSlice');
+
     const res: MP3ParserResult = MP3Parser.parse(bufferSlice.getUint8Array())
 
     res.mp3Frames.forEach((frame) => {

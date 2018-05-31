@@ -2,14 +2,14 @@ import {Processor} from '../core/processor';
 import {Packet} from '../core/packet';
 import {InputSocket, SocketDescriptor, SocketType} from '../core/socket';
 
-import {MP4Parser} from './mp4/isoboxer-mp4-parser'
+import { IB_MP4Parser } from './mp4/isoboxer-mp4-parser'
 import { ISOFile, ISOBox } from './mp4/isoboxer-types';
 
 import {getLogger} from '../logger'
 
 const {log} = getLogger('MP4DemuxProcessor')
 
-export class MP4DemuxProcessor extends Processor {
+export class IsoboxerMP4DemuxProcessor extends Processor {
     constructor() {
         super();
         this.createInput()
@@ -23,18 +23,18 @@ export class MP4DemuxProcessor extends Processor {
 
       p.data.forEach((bufferSlice) => {
 
-        const isoFile: ISOFile = MP4Parser.parse(bufferSlice.getUint8Array())
+        const isoFile: ISOFile = IB_MP4Parser.parse(bufferSlice.getUint8Array())
         const movie = isoFile.fetchAll('moov')
         const tracks = isoFile.fetchAll('trak')
         const mediaBoxes: ISOBox[] = []
         tracks.forEach((track) => {
-          const mdia = MP4Parser.findSubBoxes(track, 'mdia')[0]
+          const mdia = IB_MP4Parser.findSubBoxes(track, 'mdia')[0]
           mediaBoxes.push(mdia)
         })
 
         const sampleTables: ISOBox[] = []
         mediaBoxes.forEach((mediaBox) => {
-          const stbl = MP4Parser.findSubBoxes(mediaBox, 'stbl')[0]
+          const stbl = IB_MP4Parser.findSubBoxes(mediaBox, 'stbl')[0]
           if (!stbl) {
             throw new Error('No stbl found in mdia box')
           }
@@ -44,18 +44,18 @@ export class MP4DemuxProcessor extends Processor {
         const samples = []
         const stsdEntries = []
         sampleTables.forEach((stbl) => {
-          const sampleDescription: any = MP4Parser.findSubBoxes(stbl, 'stsd')[0]
+          const sampleDescription: any = IB_MP4Parser.findSubBoxes(stbl, 'stsd')[0]
           sampleDescription.entries.forEach((stsdEntry) => {
             stsdEntries.push(stsdEntry)
           })
 
-          const ctsToSampleBox: any = MP4Parser.findSubBoxes(stbl, 'ctts')[0]
-          const dtsToSampleBox: any = MP4Parser.findSubBoxes(stbl, 'stts')[0]
-          const syncSampleBox: any = MP4Parser.findSubBoxes(stbl, 'stss')[0]
+          const ctsToSampleBox: any = IB_MP4Parser.findSubBoxes(stbl, 'ctts')[0]
+          const dtsToSampleBox: any = IB_MP4Parser.findSubBoxes(stbl, 'stts')[0]
+          const syncSampleBox: any = IB_MP4Parser.findSubBoxes(stbl, 'stss')[0]
 
-          const sampleToChunkBox = MP4Parser.findSubBoxes(stbl, 'stsc')[0]
-          const sampleSizeBox = MP4Parser.findSubBoxes(stbl, 'stsz')[0]
-          const chunkOffsetBox = MP4Parser.findSubBoxes(stbl, 'stco')[0]
+          const sampleToChunkBox = IB_MP4Parser.findSubBoxes(stbl, 'stsc')[0]
+          const sampleSizeBox = IB_MP4Parser.findSubBoxes(stbl, 'stsz')[0]
+          const chunkOffsetBox = IB_MP4Parser.findSubBoxes(stbl, 'stco')[0]
 
           //console.log('DTS-to-sample', dtsToSampleBox)
           //console.log('Entries', dtsToSampleBox.entries)
@@ -81,7 +81,9 @@ export class MP4DemuxProcessor extends Processor {
           }
         })
 
-        const fragments = isoFile.fetchAll('moof')
+        const fragments = isoFile.fetchAll('moof');
+
+        //console.log(fragments);
       })
 
       return true

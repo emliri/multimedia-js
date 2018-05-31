@@ -2,13 +2,13 @@ const ISOBoxer = require('codem-isoboxer');
 
 import {ISOFile, ISOBox} from './isoboxer-types'
 
-export class MP4Writer {
+export class IB_MP4Writer {
   static createBlankFile(): ISOFile {
     return ISOBoxer.createFile()
   }
 
   static createFileFromBoxes(isoBoxes: ISOBox[]): ISOFile {
-    const newFile = MP4Writer.createBlankFile()
+    const newFile = IB_MP4Writer.createBlankFile()
     newFile.boxes.push(...isoBoxes)
     return newFile;
   }
@@ -33,7 +33,7 @@ export class MP4Writer {
   }
 
   static writeBoxes(isoBoxes: ISOBox[]): ArrayBuffer {
-    const newFile = MP4Writer.createBlankFile()
+    const newFile = IB_MP4Writer.createBlankFile()
     newFile.boxes.push(...isoBoxes)
     return newFile.write()
   }

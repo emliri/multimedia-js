@@ -3,15 +3,15 @@ import 'should';
 const fs = require('fs')
 const path = require('path')
 
-import {MP4DemuxProcessor} from './mp4-demux.processor'
+import { IsoboxerMP4DemuxProcessor } from './isoboxer-mp4-demux.processor'
 import { Packet } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 
-describe('MP4DemuxProcessor', () => {
+describe('IsoboxerMP4DemuxProcessor', () => {
 
   const testData: ArrayBuffer[] = []
   const files = [
-    './src/processors/mp4/fixtures/v-0360p-0750k-libx264.mp4',
+    './src/processors/mp4/fixtures/v-0576p-1400k-libx264.mp4',
     './src/processors/mp4/fixtures/ToS-4k-1920.mov'
   ]
 
@@ -30,7 +30,7 @@ describe('MP4DemuxProcessor', () => {
   })
 
   it('should create an output for each track in the input file', (done) => {
-    const mp4Demux = new MP4DemuxProcessor()
+    const mp4Demux = new IsoboxerMP4DemuxProcessor()
 
     const p: Packet = Packet.fromArrayBuffer(testData[0])
 

@@ -1,11 +1,25 @@
 export type MimeType = string;
 export type MimeTypes = MimeType[];
 
+/*
+export function isValidMimeTypeString(mimeType: string) {
+  //
+}
+*/
+
 export enum CommonMimeTypes {
   AUDIO_MP3 = 'audio/mpeg',
   AUDIO_OPUS = 'audio/opus',
-  VIDEO_MP4 = 'video/mp4'
+  VIDEO_MP4 = 'video/mp4',
+  VIDEO_AVC = 'video/avc',
+  VIDEO_AAC = 'video/aac'
 }
+
+// TODO: parse & validate mime-types
+/**
+ * @see https://en.wikipedia.org/wiki/Media_type
+ *
+ */
 
 export function appendCodecsToMimeType(mimeType: MimeType, codec: string[]): string {
   return mimeType
@@ -49,7 +63,7 @@ export class PayloadDescriptor {
 
     private details_: PayloadDetails;
 
-    constructor(mimeType) {
+    constructor(mimeType: string) {
         this.mimeType = mimeType;
         this.sampleDuration = 0;;
         this.dataFormat = DataFormat.UNSPECIFIED;

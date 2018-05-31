@@ -1,0 +1,7 @@
+Hard fork of parts of RTMP.js by Yury Delendik at Mozilla. See https://github.com/yurydelendik/rtmp.js
+
+Since this is not maintained anymore, we are not going to try and merge our changes back.
+
+We want to leverage the work already done here on a Typescript based MP4 packager.
+
+Thanks to Mozilla and Yury Delendik!

@@ -1,13 +1,8 @@
-export type ISOBoxPropertyBag = {
-
-} & any;
-
 export type ISOFileCursor = {
   offset: number
 }
 
 export type ISOBox = {
-
   size: number,
   type: string,
   boxes: ISOBox[],
