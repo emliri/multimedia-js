@@ -1,26 +1,42 @@
 import {BufferSlices, BufferSlice, BufferProperties} from './buffer';
 
 export class Packet {
+  static fromArrayBuffer(
+    arrayBuffer: ArrayBuffer,
+    mimeType?: string,
+    sampleDuration?: number,
+    samplesCount?: number): Packet {
 
-  data: BufferSlices;
-  timestamp: number;
-  createdAt: Date;
+    const p = new Packet();
+    const bufferProps = new BufferProperties(mimeType, sampleDuration, samplesCount);
 
-  static fromArrayBuffer(arrayBuffer: ArrayBuffer, mimeType?: string, sampleDuration?: number): Packet {
-    const p = new Packet()
-    p.data.push(new BufferSlice(
+    return Packet.fromSlice(new BufferSlice(
       arrayBuffer,
       0,
       arrayBuffer.byteLength,
-      new BufferProperties(mimeType, sampleDuration)
+      bufferProps
     ))
-    return p
   }
 
-  constructor() {
-    this.data = [];
-    this.timestamp = 0;
-    this.createdAt = new Date();
+  static fromSlice(bufferSlice: BufferSlice): Packet {
+    const p = new Packet();
+
+    p.data.push(
+      bufferSlice
+    )
+
+    return p;
+  }
+
+  data: BufferSlices = [];
+  timestamp: number = 0;
+  presentationTimeOffset: number = 0;
+  createdAt: Date = new Date();
+
+  constructor() {}
+
+  getPresentationTime(): number {
+    return this.timestamp + this.presentationTimeOffset;
   }
 
   forEachBufferSlice(

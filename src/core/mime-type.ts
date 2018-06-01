@@ -15,6 +15,8 @@ export enum CommonMimeTypes {
   VIDEO_AAC = 'video/aac'
 }
 
+export const UNKNOWN_MIMETYPE = 'unknown/*';
+
 // TODO: parse & validate mime-types
 /**
  * @see https://en.wikipedia.org/wiki/Media_type
@@ -25,7 +27,7 @@ export function appendCodecsToMimeType(mimeType: MimeType, codec: string[]): str
   return mimeType
 }
 
-export enum DataFormat {
+export enum PayloadDataFormat {
     UNSPECIFIED,
     S_LE,
     S_BE,
@@ -33,7 +35,7 @@ export enum DataFormat {
     U_BE
 }
 
-export enum DataLayout {
+export enum PayloadDataLayout {
     UNSPECIFIED,
     INTERLEAVED,
     PROGRESSIVE
@@ -58,16 +60,21 @@ export class PayloadDescriptor {
 
     sampleDuration: number;
     sampleDepth: SampleDepth;
-    dataFormat: DataFormat;
-    dataLayout: DataLayout;
+
+    dataFormat: PayloadDataFormat;
+    dataLayout: PayloadDataLayout;
 
     private details_: PayloadDetails;
 
-    constructor(mimeType: string) {
+    constructor(mimeType: string, sampleDuration: number = NaN, sampleDepth: number = NaN) {
+
         this.mimeType = mimeType;
-        this.sampleDuration = 0;;
-        this.dataFormat = DataFormat.UNSPECIFIED;
-        this.dataLayout = DataLayout.UNSPECIFIED;
+        this.sampleDuration = sampleDuration;
+        this.sampleDepth = sampleDepth;
+
+        this.dataFormat = PayloadDataFormat.UNSPECIFIED;
+        this.dataLayout = PayloadDataLayout.UNSPECIFIED;
+
         this.details_ = new PayloadDetails();
     }
 
