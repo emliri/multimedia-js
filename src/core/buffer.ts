@@ -85,13 +85,36 @@ export class BufferSlice {
 
     /**
      * Returns a *new* slice instance around the exact same data buffer with a fresh vanilla properties object (by default),
-     * and the given offset/length window. Optionally new properties can be passed directly here.
+     * and the given offset/length window _relative_ to the orignal one (*important*).
+     *
+     * That means that one can only restrain the window from the previous point of view, but not extend it.
+     * Hence the method name.
+     *
+     * The offset is relative and will be added to the original slice one to form the new absolute offset.
+     * The length is arbitrary but can not exceed the length of the original slice (and error will be thrown).
+     * By default (no length passed), the length will correspond to the remainder of the slice based on its new offset.
+     *
+     * Optionally new properties can be passed directly here.
      *
      * @param offset
      * @param length
      * @param props
      */
-    unwrap(offset: number, length: number, props?: BufferProperties): BufferSlice {
+    unwrap(
+        offset: number,
+        length?: number,
+        props?: BufferProperties): BufferSlice {
+
+      if (length > this.length) {
+        throw new Error('can not unwrap longer slice than original length');
+      }
+
+      offset += this.offset;
+
+      if (isNaN(length)) {
+        length = this.arrayBuffer.byteLength - offset;
+      }
+
       const slice = new BufferSlice(this.arrayBuffer, offset, length, props);
       return slice;
     }
@@ -104,43 +127,46 @@ export class BufferSlice {
     }
 
     /**
-     * Returns an ArrayBufferView for the internal buffer based on the current offset/length of this slice
-     * or of the argument values.
+     * Returns an ArrayBufferView for the internal buffer based on the current offset/length of this slice.
+     *
+     * This should be the default method to pass the data slice into nested components for processing.
      *
      * @param offset
      * @param length
      */
-    getUint8Array(offset?: number, length?: number): Uint8Array {
-      return new Uint8Array(this.arrayBuffer, offset || this.offset, length || this.length);
+    getUint8Array(): Uint8Array {
+      return new Uint8Array(this.arrayBuffer, this.offset, this.length);
     }
 
     /**
      *
-     * Returns an ArrayBufferView for the internal buffer based on the current offset/length of this slice
-     * or of the argument values.
+     * Returns an ArrayBufferView for the internal buffer based on the current offset/length of this slice.
+     *
+     * This should be the default method to pass the data slice into nested components for deep-analysis or manipulation.
      *
      * @param offset
      * @param length
      */
-    getDataView(offset?: number, length?: number): DataView {
-      return new DataView(this.arrayBuffer, offset || this.offset, length || this.length);
+    getDataView(): DataView {
+      return new DataView(this.arrayBuffer, this.offset, this.length);
     }
 
     /**
      *
-     * Returns an ArrayBufferView for the internal buffer based on the current offset/length of this slice
-     * or of the argument values.
+     * Returns an ArrayBufferView for the internal buffer based on the current offset/length of this slice.
+     *
+     * May be an alternative to getUint8Array.
      *
      * This might only work on Node.js or browser envs that have a Buffer constructor.
      *
      * @param offset
      * @param length
      */
-    getBuffer(offset?: number, length?: number): Buffer {
+    getBuffer(): Buffer {
       if (!Buffer) {
         throw new Error('`Buffer` is not supported as built-in class')
       }
-      return Buffer.from(this.arrayBuffer, offset || this.offset, length || this.length);
+      return Buffer.from(this.arrayBuffer, this.offset, this.length);
     }
 }
 
