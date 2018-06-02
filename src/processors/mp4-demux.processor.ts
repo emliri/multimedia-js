@@ -19,11 +19,15 @@ export class MP4DemuxProcessor extends Processor {
 
     private _trackIdToOutputs: { [id: number] : OutputSocket} = {};
 
-    constructor() {
+    private _onCreateOutput: (out: OutputSocket) => void;
+
+    constructor(onCreateOutput: (out: OutputSocket) => void = null) {
         super();
         this.createInput()
 
         this._demuxer = createMp4Demuxer();
+
+        this._onCreateOutput = onCreateOutput;
     }
 
     templateSocketDescriptor(st: SocketType): SocketDescriptor {
@@ -38,7 +42,11 @@ export class MP4DemuxProcessor extends Processor {
       ]);
 
       if (!this._trackIdToOutputs[track.id]) {
-        this._trackIdToOutputs[track.id] = this.createOutput(sd);
+        const out = this._trackIdToOutputs[track.id] = this.createOutput(sd);
+
+        if (this._onCreateOutput) {
+          this._onCreateOutput(out);
+        }
       }
 
       return this._trackIdToOutputs[track.id];
@@ -79,13 +87,21 @@ export class MP4DemuxProcessor extends Processor {
 
           track.getFrames().forEach((frame: Frame) => {
 
-            //log('frame:', frame.frameType, frame.size, frame.getDecodingTimeUs(), frame.getPresentationTimeUs(), frame.bytesOffset);
+            //log('frame:', frame.frameType, frame.bytesOffset, frame.size, frame.getDecodingTimeUs(), frame.getPresentationTimeUs());
 
-            const p: Packet = Packet.fromSlice(bufferSlice.unwrap(frame.bytesOffset, frame.size, props));
+            const frameSlice = bufferSlice.unwrap(
+              frame.bytesOffset,
+              frame.size,
+              props
+            );
+
+            const p: Packet = Packet.fromSlice(frameSlice);
 
             // timestamps of this packet
             p.timestamp = frame.getDecodingTimestampInSeconds();
             p.presentationTimeOffset = frame.getPresentationTimestampInSeconds() - frame.getDecodingTimestampInSeconds();
+
+            //console.log(frame.bytesOffset, frame.size);
 
             output.transfer(p)
           })
