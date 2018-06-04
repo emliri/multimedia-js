@@ -31,17 +31,21 @@ export class H264ParseProcessor extends Processor {
 
     p.forEachBufferSlice(
       this._onBufferSlice.bind(this, p),
-      this._onProcessingError,
+      //this._onProcessingError,
+      null,
       this)
 
     return true
   }
 
-  private _onProcessingError(bufferSlice: BufferSlice, err: Error) {
+  private _onProcessingError(bufferSlice: BufferSlice, err: Error): boolean {
     console.error('H264Parse error:', err)
+
+    return false;
+
   }
 
-  private _onBufferSlice( p: Packet, bufferSlice: BufferSlice) {
+  private _onBufferSlice(p: Packet, bufferSlice: BufferSlice) {
     const avcStream = bufferSlice.getUint8Array();
     const avcView = bufferSlice.getDataView();
     const result = [];
@@ -55,7 +59,9 @@ export class H264ParseProcessor extends Processor {
         const naluBytes = bufferSlice.unwrap(i, length).getUint8Array();
         const nalu = new NALU(naluBytes);
 
-        if (nalu.type() === NALU.IDR) {
+        const type = nalu.type();
+
+        if (type === NALU.IDR || type === NALU.SPS || type === NALU.PPS) {
           console.log(nalu.toString(), p.timestamp);
         }
 
@@ -65,7 +71,5 @@ export class H264ParseProcessor extends Processor {
           )
         )
     }
-
-
   }
 }
