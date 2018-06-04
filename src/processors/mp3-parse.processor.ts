@@ -29,6 +29,8 @@ export class MP3ParseProcessor extends Processor {
 
   private _onProcessingError(bufferSlice: BufferSlice, err: Error) {
     console.error('MP3Parse error:', err)
+
+    return true;
   }
 
   private _onBufferSlice(bufferSlice: BufferSlice) {
