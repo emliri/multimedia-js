@@ -41,10 +41,17 @@ export class Packet {
 
   forEachBufferSlice(
     method: (bs: BufferSlice) => void,
-    errorHandler: (bs: BufferSlice, err: Error) => void = null,
+    errorHandler: (bs: BufferSlice, err: Error) => boolean = null,
     context: any = null) {
 
-    this.data.forEach((bufferSlice) => {
+    let abort = false;
+    // we use an on-stack shallow copy of the array to prevent any
+    // side-effects on other manipulation of the packet itself from within
+    // the loop we will run here.
+    this.data.slice().forEach((bufferSlice) => {
+      if (abort) {
+        return;
+      }
       if (context) {
         method = method.bind(context)
         if (errorHandler) {
@@ -55,7 +62,10 @@ export class Packet {
         method(bufferSlice)
       } catch(err) {
         if (errorHandler) {
-          errorHandler(bufferSlice, err)
+          if (!errorHandler(bufferSlice, err)) {
+            abort = true;
+            console.error('Packet buffers loop aborted: ', err)
+          }
         } else {
           throw err
         }
