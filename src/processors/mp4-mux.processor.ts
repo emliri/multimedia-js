@@ -61,22 +61,28 @@ export class MP4MuxProcessor extends Processor {
     this.initMP4Metadata()
   }
 
-  initMP4Metadata() {
+  private initMP4Metadata() {
     const mp4Metadata: MP4Metadata = this.mp4Metadata_ = {
       tracks: [],
       duration: 0,
-      audioTrackId: 0,
-      videoTrackId: 1
+      audioTrackId: NaN,
+      videoTrackId: NaN
     }
   }
 
-  initMuxer() {
+  private initMuxer() {
+    console.log('initMuxer', this.mp4Metadata_)
+
     const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_)
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this)
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this)
 
-    this.closed_ = true
+    this.closed_ = true;
+  }
+
+  private getNextTrackId(): number {
+    return (this.mp4Metadata_.tracks.length);
   }
 
   isClosed(): boolean {
@@ -90,13 +96,13 @@ export class MP4MuxProcessor extends Processor {
   }
 
   addAudioTrack(audioCodec: MP4MuxProcessorSupportedCodecs,
-    sampleRate?: number, numChannels?: number, language?: string): void {
+    sampleRate?: number, numChannels?: number, language?: string): InputSocket {
 
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec)
     }
 
-    this.createInput()
+    const s = this.createInput()
 
     var audioTrack: MP4Track = {
       codecDescription: audioCodec,
@@ -108,17 +114,21 @@ export class MP4MuxProcessor extends Processor {
       samplesize: 16
     };
 
+    this.mp4Metadata_.audioTrackId = this.getNextTrackId();
     this.mp4Metadata_.tracks.push(audioTrack)
+
+    return s;
   }
 
-  addVideoTrack(videoCodec: MP4MuxProcessorSupportedCodecs,
-    videoCodecId, frameRate: number, width: number, height: number): void {
+  addVideoTrack(
+    videoCodec: MP4MuxProcessorSupportedCodecs,
+    frameRate: number, width: number, height: number): InputSocket {
 
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec)
     }
 
-    this.createInput()
+    const s = this.createInput()
 
     var videoTrack: MP4Track = {
       codecDescription: videoCodec,
@@ -130,7 +140,10 @@ export class MP4MuxProcessor extends Processor {
       height: height
     };
 
-    this.mp4Metadata_.tracks.push(videoTrack)
+    this.mp4Metadata_.videoTrackId = this.getNextTrackId();
+    this.mp4Metadata_.tracks.push(videoTrack);
+
+    return s;
   }
 
   flush() {
@@ -145,9 +158,9 @@ export class MP4MuxProcessor extends Processor {
   protected processTransfer_(inS: InputSocket, p: Packet) {
     this.close()
 
-    const mp4Muxer = this.mp4Muxer_
+    const mp4Muxer = this.mp4Muxer_;
 
-    mp4Muxer.pushPacket(AUDIO_PACKET, p.data[0].getUint8Array(), p.timestamp)
+    mp4Muxer.pushPacket(VIDEO_PACKET, p.data[0].getUint8Array(), p.timestamp)
 
     return true
   }

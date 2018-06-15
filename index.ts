@@ -14,14 +14,35 @@ Lesser General Public License for more details.
 
 */
 
-require('./src/core/processor.ts');
-require('./src/core/buffer.ts');
-require('./src/core/mime-type.ts');
-//require('./src/core/object.ts');
-require('./src/core/packet.ts');
-require('./src/core/socket.ts');
+import { LambdaProcessor } from './src/processors/lambda.processor';
 
-require('./src/processors/mp4-mux.processor')
-require('./src/processors/mp4-demux.processor')
-require('./src/processors/mp3-parse.processor')
-require('./src/processors/lambda.processor')
+import { MP3ParseProcessor } from './src/processors/mp3-parse.processor';
+import { H264ParseProcessor } from './src/processors/h264-parse.processor';
+
+import { MP4MuxProcessor } from './src/processors/mp4-mux.processor';
+import { MP4DemuxProcessor } from './src/processors/mp4-demux.processor';
+
+import { BroadwayProcessor } from './src/processors/broadway.processor';
+
+import { HttpToMediaSourceTubing } from './src/tubings/http-to-media-source.tubing';
+
+export const Processors = {
+  H264ParseProcessor,
+  MP3ParseProcessor,
+  MP4MuxProcessor,
+  MP4DemuxProcessor,
+  BroadwayProcessor,
+  LambdaProcessor
+};
+
+import { XhrSocket } from './src/io-sockets/xhr.socket';
+import { NodeFsWriteSocket } from './src/io-sockets/node-fs-write.socket';
+import { NodeFsReadSocket } from './src/io-sockets/node-fs-read.socket';
+
+export const IoSockets = {
+  XhrSocket,
+  // NodeFsReadSocket,
+  // NodeFsWriteSocket
+}
+
+export const Tubings = { HttpToMediaSourceTubing }

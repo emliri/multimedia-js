@@ -50,11 +50,11 @@ export const getLogger = function(category: string, level: number = LoggerLevels
   }
   */
   return {
-    info: checkLogLevel(level, LoggerLevels.INFO) ? console.info.bind(window.console, getPrefix('i', category)) : noop,
-    log: checkLogLevel(level, LoggerLevels.LOG) ? console.log.bind(window.console, getPrefix('l', category)) : noop,
-    debug: checkLogLevel(level, LoggerLevels.DEBUG) ? console.debug.bind(window.console, getPrefix('d', category)) : noop,
-    warn: checkLogLevel(level, LoggerLevels.WARN) ? console.warn.bind(window.console, getPrefix('w', category)) : noop,
-    error: checkLogLevel(level, LoggerLevels.ERROR) ? console.error.bind(window.console, getPrefix('e', category)) : noop
+    info: checkLogLevel(level, LoggerLevels.INFO) ? console.info.bind(window['console'], getPrefix('i', category)) : noop,
+    log: checkLogLevel(level, LoggerLevels.LOG) ? console.log.bind(window['console'], getPrefix('l', category)) : noop,
+    debug: checkLogLevel(level, LoggerLevels.DEBUG) ? console.debug.bind(window['console'], getPrefix('d', category)) : noop,
+    warn: checkLogLevel(level, LoggerLevels.WARN) ? console.warn.bind(window['console'], getPrefix('w', category)) : noop,
+    error: checkLogLevel(level, LoggerLevels.ERROR) ? console.error.bind(window['console'], getPrefix('e', category)) : noop
 }
 }
 

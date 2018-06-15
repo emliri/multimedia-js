@@ -213,13 +213,13 @@ import {
     videoTrackId: number;
   }
 
-  enum MP4MuxState {
+  export enum MP4MuxState {
     CAN_GENERATE_HEADER = 0,
     NEED_HEADER_DATA = 1,
     MAIN_PACKETS = 2
   }
 
-  interface MP4TrackState {
+  export interface MP4TrackState {
     trackId: number;
     trackInfo: MP4Track;
     cachedDuration: number;

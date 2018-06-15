@@ -3,6 +3,7 @@ import 'should';
 import {Socket, SocketType, SocketDescriptor, InputSocket, OutputSocket} from './socket';
 import {Packet, PacketReceiveCallback} from './packet';
 import {PayloadDescriptor} from './mime-type';
+import { Signal, SignalDirection } from './signal';
 
 describe('SocketDescriptor', () => {
 
@@ -44,7 +45,7 @@ describe('Socket', () => {
     });
 
     it('should accept the SocketDescriptor argument by reference not value so that this can be shared and mutated across them', () => {
-       
+
         let s, sd;
 
         sd = new SocketDescriptor();
@@ -58,7 +59,7 @@ describe('Socket', () => {
     });
 
     it('should be abstract and not implement `transfer` method', () => {
-        
+
         let s, sd;
 
         sd = new SocketDescriptor();
@@ -67,6 +68,34 @@ describe('Socket', () => {
         (s.transfer === undefined).should.be.true;
 
      });
+
+    it('should set/get its owner', () => {
+
+        const socket = new Socket(SocketType.INPUT, new SocketDescriptor());
+        const owner = {
+            getOwnSockets: () => {},
+            cast: () => {}
+        };
+
+        socket.setOwner(owner);
+        socket.getOwner().should.be.equal(owner);
+
+    })
+
+     it('should on calling cast method pass signals to its signal-handler and return the result', (done) => {
+
+        const socket = new Socket(SocketType.INPUT, new SocketDescriptor());
+
+        socket.setSignalHandler((s: Signal) => {
+          return Promise.resolve(true);
+        })
+
+        socket.cast(new Signal(SignalDirection.DOWN)).then((res) => {
+          res.should.be.equal(true);
+          done();
+        })
+
+     })
 });
 
 describe('InputSocket', () => {
@@ -106,9 +135,9 @@ describe('InputSocket', () => {
         is.transfer(packet).should.be.equal(cbRetVal);
         is.isTransferring().should.be.equal(false);
     });
-    
+
     it('should transfer a packet to the callback and set the transferring state flag during transfer accordingly (with falsy callback return val)', () => {
-        
+
         let packet = new Packet();
         let cbRetVal = false;
         let is;
@@ -125,6 +154,54 @@ describe('InputSocket', () => {
         is.transfer(packet).should.be.equal(cbRetVal);
         is.isTransferring().should.be.equal(false);
     });
+
+    it('should on calling cast method pass signals to its signal-handler and to the owner of the socket and return the result - case 1', (done) => {
+
+      const socket = new Socket(SocketType.INPUT, new SocketDescriptor());
+
+      socket.setSignalHandler((s: Signal) => {
+        return Promise.resolve(false);
+      })
+
+      const owner = {
+        getOwnSockets: () => {},
+        cast: (s: Signal) => {
+          return Promise.resolve(false);
+        }
+      };
+
+      socket.setOwner(owner);
+
+      socket.cast(new Signal(SignalDirection.DOWN)).then((res) => {
+        res.should.be.equal(false);
+        done();
+      })
+
+    })
+
+    it('should on calling cast method pass signals to its signal-handler and to the owner of the socket and return the result - case 2', (done) => {
+
+      const socket = new Socket(SocketType.INPUT, new SocketDescriptor());
+
+      socket.setSignalHandler((s: Signal) => {
+        return Promise.resolve(true);
+      })
+
+      const owner = {
+        getOwnSockets: () => {},
+        cast: (s: Signal) => {
+          return Promise.resolve(false);
+        }
+      };
+
+      socket.setOwner(owner);
+
+      socket.cast(new Signal(SignalDirection.DOWN)).then((res) => {
+        res.should.be.equal(true);
+        done();
+      })
+
+    })
 });
 
 describe('OutputSocket', () => {
@@ -199,7 +276,7 @@ describe('OutputSocket', () => {
         os.disconnect(is).should.be.equal(os);
 
         os.isConnectedTo(is).should.be.false;
-        
+
         os.getPeerSockets().length.should.be.equal(0);
     });
 
@@ -232,7 +309,7 @@ describe('OutputSocket', () => {
     });
 
     it('should be able to transfer a Packet to a peer OutputSocket (and on to its peers)', (done) => {
-        
+
         let is;
         let packetCount = 0;
         let sd = new SocketDescriptor();

@@ -69,6 +69,10 @@ export class MP4DemuxProcessor extends Processor {
 
           log('mime-type:', track.mimeType, track.id, track.getDuration(), track.type, track.getTimescale());
 
+          if (track.isVideo()) {
+            log('video-track:', track.getResolution());
+          }
+
           //log('timescale', track.ge)
 
           log('defaults', track.getDefaults())

@@ -4,7 +4,6 @@ import { Packet } from "../core/packet";
 import { BufferSlice } from "../core/buffer";
 
 import * as BroadwayPlayer from '../ext-mod/Broadway/Player/Player';
-import { create } from "domain";
 
 // global node-canvas instance, only for testing !
 const { createCanvas } = require('canvas')
@@ -39,7 +38,7 @@ BroadwayPlayer.prototype._createBasicCanvasObj = function(options) {
 
 export class BroadwayProcessor extends Processor {
 
-  private _player: BroadwayPlayer = new BroadwayPlayer({
+  private _player: any = new BroadwayPlayer({
     useWorker: false,
     reuseMemory: true,
     webgl: false,

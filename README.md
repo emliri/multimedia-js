@@ -13,6 +13,6 @@ Featuring: way more format support, more use cases, more performance, more magic
 
 <img src="https://media.giphy.com/media/3oEhmM10mIi1dkMfmg/giphy.gif" />
 
-# multimedia.js
+# multimedia.js v2
 
 ...
