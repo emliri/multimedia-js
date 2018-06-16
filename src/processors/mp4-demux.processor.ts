@@ -11,7 +11,8 @@ import {createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom} from '../e
 import { PayloadDescriptor } from '../core/mime-type';
 
 import { Mp4Track } from '../ext-mod/inspector.js/src/demuxer/mp4/mp4-track';
-import { BufferProperties } from '../core/buffer';
+import { BufferProperties, BufferSlice } from '../core/buffer';
+import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 export class MP4DemuxProcessor extends Processor {
 
@@ -79,6 +80,26 @@ export class MP4DemuxProcessor extends Processor {
 
           const output: OutputSocket = this._ensureOutputForTrack(track);
 
+          const avcC = (<AvcC> track.getReferenceAtom());
+
+          const sps: Uint8Array[] = avcC.sps;
+          const pps: Uint8Array[] = avcC.pps;
+
+          const avcCodecData = avcC.data;
+
+          const initProps: BufferProperties = new BufferProperties();
+
+          initProps.isBitstreamHeader = true;
+
+          //output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(sps[0], initProps)));
+          //output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
+
+          output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(avcCodecData, initProps)));
+
+          if (avcC.numOfPictureParameterSets > 1 || avcC.numOfSequenceParameterSets > 1) {
+            throw new Error('No support for more than one sps/pps pair');
+          }
+
           const props: BufferProperties = new BufferProperties(
             track.mimeType,
             track.getDefaults().sampleDuration,
@@ -98,6 +119,8 @@ export class MP4DemuxProcessor extends Processor {
               frame.size,
               props
             );
+
+            console.log(frame.size);
 
             const p: Packet = Packet.fromSlice(frameSlice);
 

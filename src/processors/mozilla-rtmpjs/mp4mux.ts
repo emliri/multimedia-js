@@ -70,7 +70,7 @@ import {
   export const MP3_SOUND_CODEC_ID = 2;
   export const AAC_SOUND_CODEC_ID = 10;
 
-  enum AudioPacketType {
+  export enum AudioPacketType {
     HEADER = 0,
     RAW = 1,
   }
@@ -86,7 +86,7 @@ import {
     packetType: AudioPacketType;
   }
 
-  function parseAudiodata(data: Uint8Array): AudioPacket {
+  export function parseAudiodata(data: Uint8Array): AudioPacket {
     var i = 0;
     var packetType = AudioPacketType.RAW;
     var flags = data[i];
@@ -125,7 +125,7 @@ import {
   export const VP6_VIDEO_CODEC_ID = 4;
   export const AVC_VIDEO_CODEC_ID = 7;
 
-  enum VideoFrameType {
+  export enum VideoFrameType {
     KEY = 1,
     INNER = 2,
     DISPOSABLE = 3,
@@ -133,7 +133,7 @@ import {
     INFO = 5,
   }
 
-  enum VideoPacketType {
+  export enum VideoPacketType {
     HEADER = 0,
     NALU = 1,
     END = 2,
@@ -150,7 +150,7 @@ import {
     verticalOffset?: number;
   }
 
-  function parseVideodata(data: Uint8Array): VideoPacket {
+  export function parseVideodata(data: Uint8Array): VideoPacket {
     var i = 0;
     var frameType = data[i] >> 4;
     var codecId = data[i] & 15;
@@ -274,7 +274,9 @@ import {
       this.chunkIndex = 0;
     }
 
-    public pushPacket(type: number, data: Uint8Array, timestamp: number) {
+    public pushPacket(type: number, data: Uint8Array, timestamp: number,
+      forceRaw: boolean = false, isInitData: boolean = false, cto: number = 0) {
+
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._tryGenerateHeader();
       }
@@ -302,7 +304,19 @@ import {
           break;
         case VIDEO_PACKET:
           var videoTrack = this.videoTrackState;
-          var videoPacket = parseVideodata(data);
+          var videoPacket: VideoPacket;
+          if (forceRaw) {
+            videoPacket = {
+              frameType: VideoFrameType.KEY,
+              codecId: 7,
+              codecDescription: VIDEOCODECS[7],
+              data: data,
+              packetType: isInitData ? VideoPacketType.HEADER : VideoPacketType.NALU,
+              compositionTime: timestamp + cto
+            };
+          } else {
+            videoPacket = parseVideodata(data);
+          }
           if (!videoTrack || videoTrack.trackInfo.codecId !== videoPacket.codecId) {
             throw new Error('Unexpected video packet codec: ' + videoPacket.codecDescription);
           }

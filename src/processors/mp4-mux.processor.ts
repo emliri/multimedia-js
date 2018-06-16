@@ -160,7 +160,13 @@ export class MP4MuxProcessor extends Processor {
 
     const mp4Muxer = this.mp4Muxer_;
 
-    mp4Muxer.pushPacket(VIDEO_PACKET, p.data[0].getUint8Array(), p.timestamp)
+    const bufferSlice = p.data[0];
+
+    const data = bufferSlice.getUint8Array();
+
+    console.log(data.byteLength);
+
+    mp4Muxer.pushPacket(VIDEO_PACKET, data, p.timestamp, true, bufferSlice.props.isBitstreamHeader, p.presentationTimeOffset);
 
     return true
   }

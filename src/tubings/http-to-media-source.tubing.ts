@@ -3,6 +3,7 @@ import { MP4DemuxProcessor } from "../processors/mp4-demux.processor";
 import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from "../processors/mp4-mux.processor";
 import { Tubing, TubingState, TubingStateChangeCallback } from "../core/tubing";
 import { Socket, OutputSocket } from '../core/socket';
+import { H264ParseProcessor } from "../processors/h264-parse.processor";
 
 export class HttpToMediaSourceTubing extends Tubing {
 
@@ -34,7 +35,11 @@ export class HttpToMediaSourceTubing extends Tubing {
       );
       //*/
 
-      s.connect(mp4MuxProc.in[0])
+      const h264ParseProc = new H264ParseProcessor();
+
+      s.connect(h264ParseProc.in[0]);
+
+      h264ParseProc.out[0].connect(mp4MuxProc.in[0]);
     };
 
     const mp4DemuxProc = new MP4DemuxProcessor(onMp4DemuxCreateOutput);

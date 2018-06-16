@@ -48,27 +48,41 @@ export class H264ParseProcessor extends Processor {
   private _onBufferSlice(p: Packet, bufferSlice: BufferSlice) {
     const avcStream = bufferSlice.getUint8Array();
     const avcView = bufferSlice.getDataView();
-    const result = [];
+
     let length;
 
     for (let i = 0; i < avcStream.length; i += length) {
+
         length = avcView.getUint32(i);
+
+        if (length > avcStream.length) {
+          this.out[0].transfer(Packet.fromSlice(bufferSlice));
+          break; // no NALUs, but forward data anyway
+        }
 
         i += 4;
 
-        const naluBytes = bufferSlice.unwrap(i, length).getUint8Array();
+        const naluSlice = bufferSlice.unwrap(i, length);
+        const naluBytes = naluSlice.getUint8Array();
         const nalu = new NALU(naluBytes);
 
         const type = nalu.type();
+
+        console.log(naluBytes.byteLength)
+
+        console.log(nalu.toString())
 
         if (type === NALU.IDR || type === NALU.SPS || type === NALU.PPS) {
           console.log(nalu.toString(), p.timestamp);
         }
 
         this.out[0].transfer(
+          ///*
           Packet.fromSlice(
-            bufferSlice.unwrap(i - 4, length + 4, bufferSlice.props)
+            naluSlice
           )
+          //*/
+          //Packet.fromArrayBuffer()
         )
     }
   }
