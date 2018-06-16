@@ -76,6 +76,8 @@ export class H264ParseProcessor extends Processor {
           console.log(nalu.toString(), p.timestamp);
         }
 
+        naluSlice.props.isKeyframe = (type === NALU.IDR);
+
         this.out[0].transfer(
           ///*
           Packet.fromSlice(
