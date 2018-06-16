@@ -72,7 +72,14 @@ export class Packet {
   }
 
   set symbol(symbol: PacketSymbol) {
+    if (this.data.length > 0) {
+      throw new Error('Symbolic packets should not carry data');
+    }
     this._symbol = symbol;
+  }
+
+  isSymbolic(): boolean {
+    return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
 
   getPresentationTime(): number {
