@@ -18,6 +18,7 @@ export class BufferProperties extends PayloadDescriptor {
       sampleDepth = NaN,
       public samplesCount: number = 0,
       public isBitstreamHeader: boolean = false,
+      public isKeyframe: boolean = false,
       public timestampDelta: number = 0,
       public mediaKey: any = null,
       public params: { [param: string] : any; } = {}
