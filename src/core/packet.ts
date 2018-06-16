@@ -1,5 +1,13 @@
 import {BufferSlices, BufferSlice, BufferProperties} from './buffer';
 
+export enum PacketSymbol {
+  VOID,
+  INIT,
+  GAP,
+  FLUSH,
+  EOS
+}
+
 export class Packet {
   static fromArrayBuffer(
     arrayBuffer: ArrayBuffer,
@@ -28,12 +36,44 @@ export class Packet {
     return p;
   }
 
+  static fromSymbol(symbol: PacketSymbol) {
+    const p = new Packet();
+    p.symbol = symbol;
+    return p;
+  }
+
+  static newEos() {
+    return Packet.fromSymbol(PacketSymbol.EOS)
+  }
+
+  static newFlush() {
+    return Packet.fromSymbol(PacketSymbol.FLUSH)
+  }
+
+  static newGap() {
+    return Packet.fromSymbol(PacketSymbol.GAP)
+  }
+
+  static newInit() {
+    return Packet.fromSymbol(PacketSymbol.INIT)
+  }
+
+  private _symbol: PacketSymbol = PacketSymbol.VOID;
+
   constructor(
     public data: BufferSlices = [],
     public timestamp: number = 0,
     public presentationTimeOffset: number = 0,
     public createdAt: Date = new Date()
   ) {}
+
+  get symbol(): PacketSymbol {
+    return this._symbol;
+  }
+
+  set symbol(symbol: PacketSymbol) {
+    this._symbol = symbol;
+  }
 
   getPresentationTime(): number {
     return this.timestamp + this.presentationTimeOffset;
