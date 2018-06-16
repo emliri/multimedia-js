@@ -158,9 +158,7 @@ export class MP4MuxProcessor extends Processor {
   protected processTransfer_(inS: InputSocket, p: Packet) {
     this.close()
 
-    if (p.symbol === PacketSymbol.EOS) {
-      console.log('received EOS');
-      this.flush();
+    if (p.isSymbolic() || p.data.length === 0) {
       return;
     }
 
@@ -169,10 +167,6 @@ export class MP4MuxProcessor extends Processor {
     const bufferSlice = p.data[0];
 
     const data = bufferSlice.getUint8Array();
-
-    console.log(data.byteLength);
-
-    console.log(bufferSlice.props.isKeyframe)
 
     if (bufferSlice.props.isKeyframe) {
       this.flush();
@@ -188,6 +182,17 @@ export class MP4MuxProcessor extends Processor {
     );
 
     return true
+  }
+
+  protected handleSymbolicPacket_(symbol: PacketSymbol) {
+    switch (symbol) {
+    case PacketSymbol.EOS:
+      console.log('received EOS');
+      this.flush();
+      return false;
+    default:
+      super.handleSymbolicPacket_(symbol);
+    }
   }
 
   private onMp4MuxerData_(data: Uint8Array) {
