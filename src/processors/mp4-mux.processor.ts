@@ -50,9 +50,10 @@ function isVideoCodec(codec: MP4MuxProcessorSupportedCodecs): boolean {
 
 export class MP4MuxProcessor extends Processor {
 
-  private mp4Muxer_: MP4Mux = null
-  private mp4Metadata_: MP4Metadata = null
-  private closed_: boolean = false
+  private mp4Muxer_: MP4Mux = null;
+  private mp4Metadata_: MP4Metadata = null;
+  private closed_: boolean = false;
+  private keyFramePushed_: boolean = false;
 
   constructor() {
     super();
@@ -158,28 +159,28 @@ export class MP4MuxProcessor extends Processor {
   protected processTransfer_(inS: InputSocket, p: Packet) {
     this.close()
 
-    if (p.isSymbolic() || p.data.length === 0) {
-      return;
-    }
+    p.forEachBufferSlice((bufferSlice) => {
+      const mp4Muxer = this.mp4Muxer_;
+      const data = bufferSlice.getUint8Array();
 
-    const mp4Muxer = this.mp4Muxer_;
+      if (this.keyFramePushed_ && bufferSlice.props.isKeyframe) {
+        this.flush();
+      }
 
-    const bufferSlice = p.data[0];
+      mp4Muxer.pushPacket(VIDEO_PACKET,
+        data,
+        p.timestamp,
+        true,
+        bufferSlice.props.isBitstreamHeader,
+        bufferSlice.props.isKeyframe,
+        p.presentationTimeOffset,
+      );
 
-    const data = bufferSlice.getUint8Array();
-
-    if (bufferSlice.props.isKeyframe) {
-      this.flush();
-    }
-
-    mp4Muxer.pushPacket(VIDEO_PACKET,
-      data,
-      p.timestamp,
-      true,
-      bufferSlice.props.isBitstreamHeader,
-      bufferSlice.props.isKeyframe,
-      p.presentationTimeOffset,
-    );
+      if (!this.keyFramePushed_
+        && bufferSlice.props.isKeyframe) {
+        this.keyFramePushed_ = true;
+      }
+    })
 
     return true
   }
