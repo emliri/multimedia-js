@@ -1,5 +1,5 @@
 import {Processor} from '../core/processor';
-import {Packet} from '../core/packet';
+import {Packet, PacketSymbol} from '../core/packet';
 import {InputSocket, SocketDescriptor, SocketType} from '../core/socket';
 
 // This version of our mp4-mux processor is based on the mozilla rtmpjs code
@@ -158,6 +158,12 @@ export class MP4MuxProcessor extends Processor {
   protected processTransfer_(inS: InputSocket, p: Packet) {
     this.close()
 
+    if (p.symbol === PacketSymbol.EOS) {
+      console.log('received EOS');
+      this.flush();
+      return;
+    }
+
     const mp4Muxer = this.mp4Muxer_;
 
     const bufferSlice = p.data[0];
@@ -166,13 +172,28 @@ export class MP4MuxProcessor extends Processor {
 
     console.log(data.byteLength);
 
-    mp4Muxer.pushPacket(VIDEO_PACKET, data, p.timestamp, true, bufferSlice.props.isBitstreamHeader, p.presentationTimeOffset);
+    console.log(bufferSlice.props.isKeyframe)
+
+    if (bufferSlice.props.isKeyframe) {
+      this.flush();
+    }
+
+    mp4Muxer.pushPacket(VIDEO_PACKET,
+      data,
+      p.timestamp,
+      true,
+      bufferSlice.props.isBitstreamHeader,
+      bufferSlice.props.isKeyframe,
+      p.presentationTimeOffset,
+    );
 
     return true
   }
 
   private onMp4MuxerData_(data: Uint8Array) {
     const p: Packet = Packet.fromArrayBuffer(data.buffer)
+
+    console.log(p)
 
     this.out[0].transfer(p)
   }

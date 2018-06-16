@@ -182,7 +182,7 @@ import {
   export const AUDIO_PACKET = 8;
   export const VIDEO_PACKET = 9;
 
-  var MAX_PACKETS_IN_CHUNK = 50;
+  var MAX_PACKETS_IN_CHUNK = Infinity;
   var SPLIT_AT_KEYFRAMES = true;
 
   interface CachedPacket {
@@ -275,7 +275,7 @@ import {
     }
 
     public pushPacket(type: number, data: Uint8Array, timestamp: number,
-      forceRaw: boolean = false, isInitData: boolean = false, cto: number = 0) {
+      forceRaw: boolean = false, isInitData: boolean = false, isKeyframe: boolean = false, cto: number = 0) {
 
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._tryGenerateHeader();
@@ -307,7 +307,7 @@ import {
           var videoPacket: VideoPacket;
           if (forceRaw) {
             videoPacket = {
-              frameType: VideoFrameType.KEY,
+              frameType: isKeyframe ? VideoFrameType.KEY : VideoFrameType.INNER,
               codecId: 7,
               codecDescription: VIDEOCODECS[7],
               data: data,
