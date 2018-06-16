@@ -23,6 +23,8 @@ export class XhrSocket extends SeekableOutputSocket {
 
     if (xhr.xhrState === XHRState.DONE) {
       this.transfer(Packet.fromArrayBuffer(<ArrayBuffer> xhr.responseData))
+      // EOS
+      this.transfer(Packet.newEos());
     }
   }
 
