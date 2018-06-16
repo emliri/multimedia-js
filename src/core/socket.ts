@@ -174,6 +174,11 @@ export class OutputSocket extends Socket {
       return b;
     }
 
+    /**
+     *
+     * @param {Socket} s Socket to whiche this socket transfers data to.
+     * @returns {OutputSocket} This socket.
+     */
     connect(s: Socket) {
       if (!s) {
         throw new Error('Socket connect called with ' + s);

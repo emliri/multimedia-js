@@ -11,20 +11,19 @@ import {PayloadDescriptor, UNKNOWN_MIMETYPE} from './mime-type';
  *
  */
 export class BufferProperties extends PayloadDescriptor {
-    mediaKey: any;
-    params: { [param: string] : any; };
 
-    samplesCount: number;
-    timestampDelta: number;
-
-    constructor(mimeType = UNKNOWN_MIMETYPE, sampleDuration = NaN, sampleDepth = NaN, samplesCount = 0) {
+    constructor(
+      mimeType = UNKNOWN_MIMETYPE,
+      sampleDuration = NaN,
+      sampleDepth = NaN,
+      public samplesCount: number = 0,
+      public isBitstreamHeader: boolean = false,
+      public timestampDelta: number = 0,
+      public mediaKey: any = null,
+      public params: { [param: string] : any; } = {}
+    ) {
         super(mimeType, sampleDuration, sampleDepth);
-
         this.samplesCount = samplesCount;
-        this.timestampDelta = 0;
-
-        this.params = {};
-        this.mediaKey = null;
     }
 
     getTotalDuration() {
@@ -53,6 +52,10 @@ export class BufferProperties extends PayloadDescriptor {
  *
  */
 export class BufferSlice {
+
+    static fromTypedArray(typedArray: Uint8Array | Uint16Array | Int8Array | Int16Array, props?: BufferProperties) {
+      return new BufferSlice(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength, props);
+    }
 
     static copy(original: BufferSlice): BufferSlice {
       const thiz = original;
@@ -106,7 +109,7 @@ export class BufferSlice {
         props?: BufferProperties): BufferSlice {
 
       if (length > this.length) {
-        throw new Error('can not unwrap longer slice than original length');
+        throw new Error(`can not unwrap longer slice (${length}) than original length: ${this.length}`);
       }
 
       offset += this.offset;
@@ -117,6 +120,10 @@ export class BufferSlice {
 
       const slice = new BufferSlice(this.arrayBuffer, offset, length, props);
       return slice;
+    }
+
+    shiftStart(offsetIncrement: number) {
+      return this.unwrap(this.offset + offsetIncrement, this.length - offsetIncrement);
     }
 
     /**

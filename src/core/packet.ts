@@ -18,8 +18,8 @@ export class Packet {
     ))
   }
 
-  static fromSlice(bufferSlice: BufferSlice): Packet {
-    const p = new Packet();
+  static fromSlice(bufferSlice: BufferSlice, timestamp?: number, pto?: number): Packet {
+    const p = new Packet([], timestamp, pto);
 
     p.data.push(
       bufferSlice
@@ -28,12 +28,12 @@ export class Packet {
     return p;
   }
 
-  data: BufferSlices = [];
-  timestamp: number = 0;
-  presentationTimeOffset: number = 0;
-  createdAt: Date = new Date();
-
-  constructor() {}
+  constructor(
+    public data: BufferSlices = [],
+    public timestamp: number = 0,
+    public presentationTimeOffset: number = 0,
+    public createdAt: Date = new Date()
+  ) {}
 
   getPresentationTime(): number {
     return this.timestamp + this.presentationTimeOffset;
