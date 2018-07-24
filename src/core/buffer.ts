@@ -58,6 +58,10 @@ export class BufferSlice {
       return new BufferSlice(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength, props);
     }
 
+    /**
+     * @param original existing BufferSlice representing a data window into an existing ArrayBuffer
+     * @returns a new slice with a newly allocated underlying ArrayBuffer that is a copy of the original slice window data
+     */
     static copy(original: BufferSlice): BufferSlice {
       const thiz = original;
       const slice = new BufferSlice(thiz.arrayBuffer.slice(thiz.offset, thiz.offset + this.length));
@@ -66,9 +70,10 @@ export class BufferSlice {
     }
 
     props: BufferProperties;
-    arrayBuffer: ArrayBuffer;
-    offset: number;
-    length: number;
+
+    readonly arrayBuffer: ArrayBuffer;
+    readonly offset: number;
+    readonly length: number;
 
     constructor(arrayBuffer: ArrayBuffer,
         offset: number = 0,
@@ -103,6 +108,7 @@ export class BufferSlice {
      * @param offset
      * @param length
      * @param props
+     * @returns new BufferSlice
      */
     unwrap(
         offset: number,
@@ -123,12 +129,27 @@ export class BufferSlice {
       return slice;
     }
 
-    shiftStart(offsetIncrement: number) {
+    /**
+     * @param offsetIncrement Amount of bytes to move front of window forward
+     * @see unwrap called internally, same limitations apply
+     * @returns new BufferSlice
+     */
+    shrinkFront(offsetIncrement: number) {
       return this.unwrap(this.offset + offsetIncrement, this.length - offsetIncrement);
     }
 
     /**
+     * @param lengthReduction Amount of bytes to move back of window in retreat
+     * @returns new BufferSlice
+     */
+    shrinkBack(lengthReduction: number) {
+      return this.unwrap(this.offset, this.length - lengthReduction);
+    }
+
+    /**
      * Copies the actual underlying data and creates a new slice with the same properties.
+     *
+     * @see BufferSlice.copy (static method)
      */
     copy(): BufferSlice {
       return BufferSlice.copy(this);
