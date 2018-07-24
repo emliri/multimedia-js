@@ -14,6 +14,7 @@ import {
   AVC_VIDEO_CODEC_ID,
   VP6_VIDEO_CODEC_ID
 } from './mozilla-rtmpjs/mp4mux'
+import { isNumber } from '../common-utils';
 
 // import {MP4Writer} from './mp4/mp4-writer'
 
@@ -47,6 +48,8 @@ function isVideoCodec(codec: MP4MuxProcessorSupportedCodecs): boolean {
     return true
   }
 }
+
+const VIDEO_TRACK_DEFAULT_TIMESCALE = 12800;
 
 export class MP4MuxProcessor extends Processor {
 
@@ -98,7 +101,7 @@ export class MP4MuxProcessor extends Processor {
   }
 
   addAudioTrack(audioCodec: MP4MuxProcessorSupportedCodecs,
-    sampleRate?: number, numChannels?: number, language?: string): InputSocket {
+    sampleRate?: number, numChannels?: number, language?: string, duration?: number): InputSocket {
 
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec)
@@ -107,6 +110,7 @@ export class MP4MuxProcessor extends Processor {
     const s = this.createInput()
 
     var audioTrack: MP4Track = {
+      duration: isNumber(duration) ? duration : -1,
       codecDescription: audioCodec,
       codecId: getCodecId(audioCodec),
       language: language || 'und',
@@ -124,7 +128,7 @@ export class MP4MuxProcessor extends Processor {
 
   addVideoTrack(
     videoCodec: MP4MuxProcessorSupportedCodecs,
-    frameRate: number, width: number, height: number): InputSocket {
+    frameRate: number, width: number, height: number, duration?: number): InputSocket {
 
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec)
@@ -133,10 +137,11 @@ export class MP4MuxProcessor extends Processor {
     const s = this.createInput()
 
     var videoTrack: MP4Track = {
+      duration: isNumber(duration) ? duration * VIDEO_TRACK_DEFAULT_TIMESCALE : -1,
       codecDescription: videoCodec,
       codecId: getCodecId(videoCodec),
       language: 'und',
-      timescale: 12800,
+      timescale: VIDEO_TRACK_DEFAULT_TIMESCALE,
       framerate: frameRate,
       width: width,
       height: height
@@ -146,6 +151,12 @@ export class MP4MuxProcessor extends Processor {
 
     this.mp4Metadata_.videoTrackId = this.getNextTrackId();
     this.mp4Metadata_.tracks.push(videoTrack);
+
+    if (isNumber(duration)) {
+      this.mp4Metadata_.duration = duration * VIDEO_TRACK_DEFAULT_TIMESCALE;
+
+      console.log('set duration:', this.mp4Metadata_.duration)
+    }
 
     return s;
   }
@@ -180,11 +191,11 @@ export class MP4MuxProcessor extends Processor {
 
       mp4Muxer.pushPacket(VIDEO_PACKET,
         data,
-        p.timestamp * 12800,
+        p.timestamp * VIDEO_TRACK_DEFAULT_TIMESCALE,
         true,
         bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.presentationTimeOffset * 12800,
+        p.presentationTimeOffset * VIDEO_TRACK_DEFAULT_TIMESCALE,
       );
 
       if (!this.keyFramePushed_
