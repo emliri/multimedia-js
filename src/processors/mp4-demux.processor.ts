@@ -6,7 +6,7 @@ import {getLogger} from '../logger'
 
 const {log} = getLogger('MP4DemuxProcessor')
 
-import {createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom} from '../ext-mod/inspector.js/src/index';
+import {createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom} from '../ext-mod/inspector.js/src';
 
 import { PayloadDescriptor } from '../core/mime-type';
 
@@ -91,8 +91,12 @@ export class MP4DemuxProcessor extends Processor {
 
           initProps.isBitstreamHeader = true;
 
-          //output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(sps[0], initProps)));
-          //output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
+          /*
+          console.log('pushing SPS data')
+          output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(sps[0], initProps)));
+          console.log('pushing PPS data')
+          output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
+          */
 
           output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(avcCodecData, initProps)));
 
@@ -120,13 +124,15 @@ export class MP4DemuxProcessor extends Processor {
               props
             );
 
-            console.log(frame.size);
+            //console.log(frame.size);
 
             const p: Packet = Packet.fromSlice(frameSlice);
 
             // timestamps of this packet
             p.timestamp = frame.getDecodingTimestampInSeconds();
             p.presentationTimeOffset = frame.getPresentationTimestampInSeconds() - frame.getDecodingTimestampInSeconds();
+
+            //console.log(p)
 
             //console.log(frame.bytesOffset, frame.size);
 
