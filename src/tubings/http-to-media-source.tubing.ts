@@ -33,7 +33,8 @@ export class HttpToMediaSourceTubing extends Tubing {
       const socket = mp4MuxProc.addVideoTrack(
         MP4MuxProcessorSupportedCodecs.AVC,
         25, // fps
-        768, 576 // res
+        768, 576, // resolution
+        60
       );
       //*/
 
