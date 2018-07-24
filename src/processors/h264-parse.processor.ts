@@ -8,12 +8,13 @@ import { BufferSlice, BufferProperties } from '../core/buffer';
 
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
 import { BitReader } from '../ext-mod/inspector.js/src/utils/bit-reader';
+
 import { H264Parser } from './h264/h264';
 import { NALU } from './h264/nalu';
 
 export class H264ParseProcessor extends Processor {
 
-  private h264Reader: H264Reader;
+  //private h264Reader: H264Reader;
 
   private h264Parser: H264Parser = new H264Parser();
 
@@ -51,11 +52,14 @@ export class H264ParseProcessor extends Processor {
 
     let length;
 
+    //console.log('got buffer of length:', avcStream.length)
+
     for (let i = 0; i < avcStream.length; i += length) {
 
         length = avcView.getUint32(i);
 
         if (length > avcStream.length) {
+          console.warn('No NALUs found! Forwarding data anyway...');
           this.out[0].transfer(Packet.fromSlice(bufferSlice));
           break; // no NALUs, but forward data anyway
         }
@@ -68,9 +72,8 @@ export class H264ParseProcessor extends Processor {
 
         const type = nalu.type();
 
-        console.log(naluBytes.byteLength)
-
-        console.log(nalu.toString())
+        //console.log(naluBytes.byteLength)
+        //console.log(nalu.toString())
 
         if (type === NALU.IDR || type === NALU.SPS || type === NALU.PPS) {
           console.log(nalu.toString(), p.timestamp);
@@ -81,7 +84,7 @@ export class H264ParseProcessor extends Processor {
         this.out[0].transfer(
           ///*
           Packet.fromSlice(
-            naluSlice
+            bufferSlice // naluSlice /* <- that would "unframe" the NALU bytes, like this we just pass through after parsing */
           )
           //*/
           //Packet.fromArrayBuffer()
