@@ -4,12 +4,13 @@ import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from "../processors/m
 import { Tubing, TubingState, TubingStateChangeCallback } from "../core/tubing";
 import { Socket, OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from "../processors/h264-parse.processor";
+import { HTML5MediaSourceBufferSocket } from "../io-sockets/html5-media-source-buffer.socket";
 
 export class HttpToMediaSourceTubing extends Tubing {
 
   private _xhrSocket: XhrSocket;
 
-  constructor(url: string) {
+  constructor(url: string, mediaSource: MediaSource) {
 
     super(
       (prevState, newState) => {
@@ -20,11 +21,12 @@ export class HttpToMediaSourceTubing extends Tubing {
       }
     );
 
-    const xhrSocket = this._xhrSocket = new XhrSocket(url);
-
+    const mediaSourceSocket: HTML5MediaSourceBufferSocket = new HTML5MediaSourceBufferSocket(mediaSource, 'video/mp4; codecs=avc1.4d401f');
     const mp4MuxProc = new MP4MuxProcessor();
 
-    const onMp4DemuxCreateOutput = (s: OutputSocket) => {
+    mp4MuxProc.out[0].connect(mediaSourceSocket);
+
+    const onMp4DemuxCreateOutput = (demuxOutput: OutputSocket) => {
       console.log('mp4 demux output created');
 
       ///*
@@ -37,18 +39,17 @@ export class HttpToMediaSourceTubing extends Tubing {
 
       const h264ParseProc = new H264ParseProcessor();
 
-      s.connect(h264ParseProc.in[0]);
+      demuxOutput.connect(h264ParseProc.in[0]);
 
       h264ParseProc.out[0].connect(mp4MuxProc.in[0]);
     };
 
     const mp4DemuxProc = new MP4DemuxProcessor(onMp4DemuxCreateOutput);
 
+    const xhrSocket = this._xhrSocket = new XhrSocket(url);
     xhrSocket.connect(mp4DemuxProc.in[0]);
 
-    const mediaSourceSocket = null;
-
-    this.add(mp4DemuxProc, mp4MuxProc, mediaSourceSocket);
+    this.add(mp4DemuxProc, mp4MuxProc);
   }
 
   /**
