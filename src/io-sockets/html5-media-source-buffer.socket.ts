@@ -2,6 +2,7 @@ import { InputSocket, SocketDescriptor } from "../core/socket";
 import { Packet } from "../core/packet";
 import { MediaSourceController } from "./html5-media-source/media-source-controller";
 import { SourceBufferQueue } from "./html5-media-source/source-buffer-queue";
+import { concatArrayBuffers } from "../common-utils";
 
 export class HTML5MediaSourceBufferSocket extends InputSocket {
   private mediaSourceController: MediaSourceController;
@@ -44,14 +45,3 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
   }
 }
 
-var concatArrayBuffers = function(buffer1: ArrayBuffer, buffer2: ArrayBuffer): ArrayBuffer {
-  if (!buffer1) {
-    return buffer2;
-  } else if (!buffer2) {
-    return buffer1;
-  }
-  var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-  tmp.set(new Uint8Array(buffer1), 0);
-  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-  return tmp.buffer;
-};
