@@ -54,6 +54,7 @@ export class MP4MuxProcessor extends Processor {
   private mp4Metadata_: MP4Metadata = null;
   private closed_: boolean = false;
   private keyFramePushed_: boolean = false;
+  private lastCodecInfo_: string[];
 
   constructor() {
     super();
@@ -135,16 +136,22 @@ export class MP4MuxProcessor extends Processor {
       codecDescription: videoCodec,
       codecId: getCodecId(videoCodec),
       language: 'und',
-      timescale: 60000,
+      timescale: 12800,
       framerate: frameRate,
       width: width,
       height: height
     };
 
+    console.log('created video track:', videoTrack)
+
     this.mp4Metadata_.videoTrackId = this.getNextTrackId();
     this.mp4Metadata_.tracks.push(videoTrack);
 
     return s;
+  }
+
+  getCodecInfo(): string[] {
+    return this.lastCodecInfo_;
   }
 
   flush() {
@@ -167,13 +174,17 @@ export class MP4MuxProcessor extends Processor {
         this.flush();
       }
 
+      if (bufferSlice.props.isBitstreamHeader) {
+        console.log('Got codec init data');
+      }
+
       mp4Muxer.pushPacket(VIDEO_PACKET,
         data,
-        p.timestamp,
+        p.timestamp * 12800,
         true,
         bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.presentationTimeOffset,
+        p.presentationTimeOffset * 12800,
       );
 
       if (!this.keyFramePushed_
@@ -199,12 +210,14 @@ export class MP4MuxProcessor extends Processor {
   private onMp4MuxerData_(data: Uint8Array) {
     const p: Packet = Packet.fromArrayBuffer(data.buffer)
 
-    console.log(p)
+    console.log('fmp4 data:', p)
 
     this.out[0].transfer(p)
   }
 
   private onMp4MuxerCodecInfo_(codecInfo: string[]) {
-    console.log(codecInfo)
+    console.log('codec info:', codecInfo)
+
+    this.lastCodecInfo_ = codecInfo;
   }
 }
