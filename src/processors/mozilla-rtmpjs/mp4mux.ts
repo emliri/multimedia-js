@@ -195,7 +195,9 @@ import {
     codecDescription?: string;
     codecId: number;
     language: string;
+
     timescale: number;
+    duration: number, // -1 for unknown
 
     samplerate?: number;
     channels?: number;
@@ -435,9 +437,9 @@ import {
         var trakFlags = TrackHeaderFlags.TRACK_ENABLED | TrackHeaderFlags.TRACK_IN_MOVIE;
         if (trackState === this.audioTrackState) {
           trak = new TrackBox(
-            new TrackHeaderBox(trakFlags, trackState.trackId, -1, 0 /*width*/, 0 /*height*/, 1.0, i),
+            new TrackHeaderBox(trakFlags, trackState.trackId, trackInfo.duration, 0 /*width*/, 0 /*height*/, 1.0, i),
             new MediaBox(
-              new MediaHeaderBox(trackInfo.timescale, -1, trackInfo.language),
+              new MediaHeaderBox(trackInfo.timescale, trackInfo.duration, trackInfo.language),
               new HandlerBox('soun', 'SoundHandler'),
               new MediaInformationBox(
                 new SoundMediaHeaderBox(),
@@ -455,9 +457,9 @@ import {
           );
         } else if (trackState === this.videoTrackState) {
           trak = new TrackBox(
-            new TrackHeaderBox(trakFlags, trackState.trackId, -1, trackInfo.width, trackInfo.height, 0 /* volume */, i),
+            new TrackHeaderBox(trakFlags, trackState.trackId, trackInfo.duration, trackInfo.width, trackInfo.height, 0 /* volume */, i),
             new MediaBox(
-              new MediaHeaderBox(trackInfo.timescale, -1, trackInfo.language),
+              new MediaHeaderBox(trackInfo.timescale, trackInfo.duration, trackInfo.language),
               new HandlerBox('vide', 'VideoHandler'),
               new MediaInformationBox(
                 new VideoMediaHeaderBox(),
@@ -679,6 +681,7 @@ import {
     }
 
     var audioTrack: MP4Track = (audioCodec === null) ? null : {
+      duration: -1,
       codecDescription: audioCodec,
       codecId: audioCodecId,
       language: 'und',
@@ -688,6 +691,7 @@ import {
       samplesize: 16
     };
     var videoTrack: MP4Track = (videoCodec === null) ? null : {
+      duration: -1,
       codecDescription: videoCodec,
       codecId: videoCodecId,
       language: 'und',
