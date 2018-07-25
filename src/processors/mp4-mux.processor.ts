@@ -87,7 +87,7 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private getNextTrackId(): number {
-    return (this.mp4Metadata_.tracks.length);
+    return (this.mp4Metadata_.tracks.length + 1);
   }
 
   isClosed(): boolean {

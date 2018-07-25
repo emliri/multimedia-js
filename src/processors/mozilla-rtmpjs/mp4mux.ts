@@ -252,18 +252,18 @@ import {
     public constructor(metadata: MP4Metadata) {
       this.metadata = metadata;
 
-      this.trackStates = this.metadata.tracks.map((t, index) => {
-        var state = {
+      this.trackStates = this.metadata.tracks.map((t: MP4Track, index) => {
+        const state = {
           trackId: index + 1,
           trackInfo: t,
           cachedDuration: 0,
           samplesProcessed: 0,
           initializationData: []
         };
-        if (this.metadata.audioTrackId === index) {
+        if (this.metadata.audioTrackId === state.trackId) {
           this.audioTrackState = state;
         }
-        if (this.metadata.videoTrackId === index) {
+        if (this.metadata.videoTrackId === state.trackId) {
           this.videoTrackState = state;
         }
         return state;
@@ -481,7 +481,7 @@ import {
 
       var mvex = new MovieExtendsBox(null, [
         new TrackExtendsBox(1, 1, 0, 0, 0),
-        new TrackExtendsBox(2, 1, 0, 0, 0)
+        //new TrackExtendsBox(2, 1, 0, 0, 0) // FIXME: add trex boxes depending on actual metadata
       ], null);
       var udat = new BoxContainerBox('udat', [
         new MetaBox(
@@ -607,10 +607,10 @@ import {
             }
             var tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
             tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
-            var trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT |
+            var trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT | TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT |
                             TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT |
                             TrackRunFlags.SAMPLE_FLAGS_PRESENT | TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET;
-            trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, 0 /* first flag */ );
+            trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS );
             trackState.cachedDuration = lastTime;
             trackState.samplesProcessed = samplesProcessed;
             break;
