@@ -15,6 +15,8 @@ export class Fmp4ToMediaSource extends TestCase {
   setup() {
     this._videoEl = document.createElement('video');
 
+    this._videoEl.controls = true;
+
     this._videoEl.addEventListener('error', () => {
       console.error(this._videoEl.error);
     })
