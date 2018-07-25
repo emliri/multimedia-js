@@ -1,10 +1,12 @@
 import { XhrSocket } from "../io-sockets/xhr.socket";
 import { MP4DemuxProcessor } from "../processors/mp4-demux.processor";
+import { MPEGTSDemuxProcessor } from "../processors/mpeg-ts-demux.processor";
 import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from "../processors/mp4-mux.processor";
 import { Tubing, TubingState, TubingStateChangeCallback } from "../core/tubing";
 import { Socket, OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from "../processors/h264-parse.processor";
 import { HTML5MediaSourceBufferSocket } from "../io-sockets/html5-media-source-buffer.socket";
+import { ProcessorEvent, ProcessorEventData } from "../core/processor";
 
 export class HttpToMediaSourceTubing extends Tubing {
 
@@ -26,7 +28,11 @@ export class HttpToMediaSourceTubing extends Tubing {
 
     mp4MuxProc.out[0].connect(mediaSourceSocket);
 
-    const onMp4DemuxCreateOutput = (demuxOutput: OutputSocket) => {
+    const mp4DemuxProc = new MP4DemuxProcessor();
+
+    mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
+      const demuxOutputSocket = <OutputSocket> data.socket;
+
       console.log('mp4 demux output created');
 
       ///*
@@ -40,12 +46,10 @@ export class HttpToMediaSourceTubing extends Tubing {
 
       const h264ParseProc = new H264ParseProcessor();
 
-      demuxOutput.connect(h264ParseProc.in[0]);
+      demuxOutputSocket.connect(h264ParseProc.in[0]);
 
       h264ParseProc.out[0].connect(mp4MuxProc.in[0]);
-    };
-
-    const mp4DemuxProc = new MP4DemuxProcessor(onMp4DemuxCreateOutput);
+    })
 
     const xhrSocket = this._xhrSocket = new XhrSocket(url);
     xhrSocket.connect(mp4DemuxProc.in[0]);
