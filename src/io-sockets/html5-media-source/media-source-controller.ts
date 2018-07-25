@@ -72,7 +72,7 @@ export class MediaSourceController extends EventEmitter {
           this.onSourceBufferQueueUpdateCb_(sbQueue, eventData)
       });
 
-      sbQueue.setModeSequential(true);
+      //sbQueue.setModeSequential(true);
 
       this.sourceBufferQueues_.push(sbQueue);
 
@@ -119,9 +119,14 @@ export class MediaSourceController extends EventEmitter {
     }
   }
 
-  setMediaDuration(duration) {
+  setMediaDuration(duration, forceImmediateUpdate: boolean = false) {
     if (this.mediaDuration_ !== duration) {
       this.mediaDuration_ = duration
+
+      if (forceImmediateUpdate) {
+        this.mediaSource.duration = duration; // TODO: async update
+      }
+
       this.emit(MediaSourceControllerEvents.MEDIA_DURATION_CHANGED, duration)
     }
   }

@@ -199,18 +199,23 @@ export class SourceBufferQueue {
 
     const {method, arrayBuffer, timestampOffset, start, end} = item;
 
-    this.sourceBuffer_.timestampOffset = timestampOffset
+    //this.sourceBuffer_.timestampOffset = timestampOffset
 
     switch(method) {
       case 'appendBuffer':
+
+        console.log('appending to source-buffer:', item)
+
         this.sourceBuffer_[method](arrayBuffer)
+
         //this.incrBufferedBytesCnt_(arrayBuffer.bytesLength);
-        // TODO: we need to parse the MP4 here to know what size it is
+        // TODO: we need to parse the MP4 here to know what duration it is
         break
       case 'remove':
         this.sourceBuffer_[method](start, end)
         break
       case 'drop':
+        console.log('dropping source-buffer data...');
         this.drop(false)
         break
     }
@@ -231,6 +236,9 @@ export class SourceBufferQueue {
   }
 
   private onUpdateStart_() {
+
+    console.log('onUpdateStart_');
+
     if (this.updateStartedTime_ !== null) {
       throw new Error('updateStartedTime_ should be null')
     }
