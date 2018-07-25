@@ -1,8 +1,28 @@
 import {SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, Socket} from './socket';
 import {Packet, PacketSymbol} from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
+import { EventEmitter } from 'eventemitter3';
 
-export abstract class Processor implements SocketOwner, SignalReceiver {
+export enum ProcessorEvent {
+    ANY_SOCKET_CREATED = 'processor:socket-created',
+    INPUT_SOCKET_CREATED = 'processor:input-socket-created',
+    OUTPUT_SOCKET_CREATED = 'processor:output-socket-created',
+    SYMBOLIC_PACKET = 'processor:symbolic-packet',
+    SIGNAL = 'processor:signal'
+}
+
+export type ProcessorEventData = {
+    event: ProcessorEvent,
+    processor: Processor
+    socket?: Socket
+    symbol?: PacketSymbol,
+    packet?: Packet,
+    signal?: Signal
+}
+
+export type ProcessorEventHandler = (data: ProcessorEventData) => void;
+
+export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver{
 
     private inputs_: InputSocket[];
     private outputs_: OutputSocket[];
@@ -11,6 +31,7 @@ export abstract class Processor implements SocketOwner, SignalReceiver {
     public enableSymbolProxying: boolean = true;
 
     constructor(onSignal?: SignalHandler) {
+        super();
         this.inputs_ = [];
         this.outputs_ = [];
         this.onSignal_ = onSignal || null;
@@ -18,6 +39,28 @@ export abstract class Processor implements SocketOwner, SignalReceiver {
 
     // maybe better call protoSocketDescriptor as in prototype pattern?
     abstract templateSocketDescriptor(socketType: SocketType): SocketDescriptor;
+
+    emit(event: ProcessorEvent, data: ProcessorEventData) {
+        if (event !== data.event) {
+            throw new Error("Event emitted must be identic the one carried in event data");
+        }
+        return super.emit(event, data);
+    }
+
+    on(event: ProcessorEvent, handler: ProcessorEventHandler) {
+        super.on(event, handler);
+        return this;
+    }
+
+    once(event: ProcessorEvent, handler: ProcessorEventHandler) {
+      super.once(event, handler);
+      return this;
+    }
+
+    off(event: ProcessorEvent, handler: ProcessorEventHandler) {
+      super.off(event, handler);
+      return this;
+    }
 
     getOwnSockets(): Set<Socket> {
         return new Set(Array.prototype.concat(this.inputs_, this.outputs_));
@@ -80,6 +123,16 @@ export abstract class Processor implements SocketOwner, SignalReceiver {
             return this.onReceiveFromInput_(s, p);
         }, this.wrapTemplateSocketDescriptor_(SocketType.INPUT));
         this.inputs_.push(s);
+        this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
+          processor: this,
+          event: ProcessorEvent.ANY_SOCKET_CREATED,
+          socket: s
+        });
+        this.emit(ProcessorEvent.INPUT_SOCKET_CREATED, {
+          processor: this,
+          event: ProcessorEvent.INPUT_SOCKET_CREATED,
+          socket: s
+        });
         return s;
     }
 
@@ -90,6 +143,16 @@ export abstract class Processor implements SocketOwner, SignalReceiver {
     createOutput(sd?: SocketDescriptor): OutputSocket {
         const s = new OutputSocket(this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
         this.outputs_.push(s);
+        this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
+          processor: this,
+          event: ProcessorEvent.ANY_SOCKET_CREATED,
+          socket: s
+        });
+        this.emit(ProcessorEvent.OUTPUT_SOCKET_CREATED, {
+          processor: this,
+          event: ProcessorEvent.OUTPUT_SOCKET_CREATED,
+          socket: s
+        });
         return s;
     }
 
@@ -98,9 +161,14 @@ export abstract class Processor implements SocketOwner, SignalReceiver {
      * @returns True when packet was forwarded
      */
     private onSymbolicPacketReceived_(p: Packet): boolean {
+        this.emit(ProcessorEvent.SYMBOLIC_PACKET, {
+          processor: this,
+          event: ProcessorEvent.SYMBOLIC_PACKET,
+          symbol: p.symbol,
+          packet: p
+        });
         const proxy = this.handleSymbolicPacket_(p.symbol);
         if (proxy && this.enableSymbolProxying) {
-          console.log('proxy symbol', p.symbol)
           this.transferPacketToAllOutputs_(p);
           return true;
         }
@@ -137,6 +205,12 @@ export abstract class Processor implements SocketOwner, SignalReceiver {
     }
 
     private onSignalCast_(signal: Signal): SignalReceiverCastResult {
+        this.emit(ProcessorEvent.SIGNAL, {
+          processor: this,
+          event: ProcessorEvent.SIGNAL,
+          signal
+        });
+
         if (this.onSignal_) {
           return this.onSignal_(signal);
         } else {
