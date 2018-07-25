@@ -20,15 +20,11 @@ export class MP4DemuxProcessor extends Processor {
 
     private _trackIdToOutputs: { [id: number] : OutputSocket} = {};
 
-    private _onCreateOutput: (out: OutputSocket) => void;
-
-    constructor(onCreateOutput: (out: OutputSocket) => void = null) {
+    constructor() {
         super();
         this.createInput()
 
         this._demuxer = createMp4Demuxer();
-
-        this._onCreateOutput = onCreateOutput;
     }
 
     templateSocketDescriptor(st: SocketType): SocketDescriptor {
@@ -44,10 +40,6 @@ export class MP4DemuxProcessor extends Processor {
 
       if (!this._trackIdToOutputs[track.id]) {
         const out = this._trackIdToOutputs[track.id] = this.createOutput(sd);
-
-        if (this._onCreateOutput) {
-          this._onCreateOutput(out);
-        }
       }
 
       return this._trackIdToOutputs[track.id];
