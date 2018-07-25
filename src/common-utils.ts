@@ -13,3 +13,12 @@ export function concatArrayBuffers(buffer1: ArrayBuffer, buffer2: ArrayBuffer): 
   tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
   return tmp.buffer;
 };
+
+export function forEachOwnPropKeyInObject<T>(object: Object, callback: (el: T) => void) {
+  for (const key in object) {
+    if (object.hasOwnProperty(key)) {
+      const element = object[key];
+      callback(element);
+    }
+  }
+}
