@@ -489,7 +489,21 @@ import {
           [new RawTag('ilst', hex('00000025A9746F6F0000001D6461746100000001000000004C61766635342E36332E313034'))]
         )
       ]);
-      var mvhd = new MovieHeaderBox(1000, 0 /* unknown duration */, this.trackStates.length + 1);
+
+      /**
+       * We are using the smallest of all track durations to set the movie header duration field and timescale
+       */
+      const minDurationTrackInfo = this.trackStates
+        .sort((a, b) => (a.trackInfo.duration / a.trackInfo.timescale)
+                      - (b.trackInfo.duration / b.trackInfo.timescale))
+        [0].trackInfo;
+
+      var mvhd = new MovieHeaderBox(
+        minDurationTrackInfo.timescale,
+        minDurationTrackInfo.duration,
+        this.trackStates.length + 1
+      );
+
       var moov = new MovieBox(mvhd, traks, mvex, udat);
       var ftype = new FileTypeBox('isom', 0x00000200, brands);
 
