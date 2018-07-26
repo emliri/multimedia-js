@@ -115,6 +115,10 @@ export class BufferSlice {
         length?: number,
         props?: BufferProperties): BufferSlice {
 
+      if (isNaN(offset)) {
+        throw new Error('data bytes offset must be a number');
+      }
+
       if (length > this.length) {
         throw new Error(`can not unwrap longer slice (${length}) than original length: ${this.length}`);
       }
