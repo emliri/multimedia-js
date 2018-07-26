@@ -23,38 +23,57 @@ export class HttpToMediaSourceTubing extends Tubing {
       }
     );
 
-    const mediaSourceSocket: HTML5MediaSourceBufferSocket = new HTML5MediaSourceBufferSocket(mediaSource, 'video/mp4; codecs=avc1.4d401f');
+    const mp4DemuxProc = new MP4DemuxProcessor();
+    const tsDemuxProc = new MPEGTSDemuxProcessor();
+    const h264ParseProc = new H264ParseProcessor();
     const mp4MuxProc = new MP4MuxProcessor();
+
+    const xhrSocket = this._xhrSocket = new XhrSocket(url);
+    const mediaSourceSocket: HTML5MediaSourceBufferSocket = new HTML5MediaSourceBufferSocket(mediaSource, 'video/mp4; codecs=avc1.4d401f');
+
+    tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
+    mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
 
     mp4MuxProc.out[0].connect(mediaSourceSocket);
 
-    const mp4DemuxProc = new MP4DemuxProcessor();
+    if (url.endsWith('.ts')) { // FIXME use mime-type of response
+      xhrSocket.connect(tsDemuxProc.in[0]);
+    } else { // FIXME use mime-type of response
+      xhrSocket.connect(mp4DemuxProc.in[0]);
+    }
 
-    mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
+    this.add(mp4DemuxProc, tsDemuxProc, mp4MuxProc);
+
+    function onDemuxOutputCreated(data: ProcessorEventData) {
       const demuxOutputSocket = <OutputSocket> data.socket;
 
-      console.log('mp4 demux output created');
+      console.log('demuxer output created');
 
-      ///*
-      const socket = mp4MuxProc.addVideoTrack(
-        MP4MuxProcessorSupportedCodecs.AVC,
-        25, // fps
-        768, 576, // resolution
-        60
-      );
-      //*/
+      let muxerInputSocket;
 
-      const h264ParseProc = new H264ParseProcessor();
+      if (data.processor === mp4DemuxProc) {
+
+        muxerInputSocket = mp4MuxProc.addVideoTrack(
+          MP4MuxProcessorSupportedCodecs.AVC,
+          25, // fps
+          768, 576, // resolution
+          60 // duration
+        );
+
+
+      } else if (data.processor === tsDemuxProc) {
+
+        muxerInputSocket = mp4MuxProc.addVideoTrack(
+          MP4MuxProcessorSupportedCodecs.AVC,
+          60, // fps
+          1280, 720, // resolution
+          10 // duration
+        );
+      }
 
       demuxOutputSocket.connect(h264ParseProc.in[0]);
-
-      h264ParseProc.out[0].connect(mp4MuxProc.in[0]);
-    })
-
-    const xhrSocket = this._xhrSocket = new XhrSocket(url);
-    xhrSocket.connect(mp4DemuxProc.in[0]);
-
-    this.add(mp4DemuxProc, mp4MuxProc);
+      h264ParseProc.out[0].connect(muxerInputSocket);
+    }
   }
 
   /**
