@@ -3,10 +3,13 @@ import { SocketType, SocketDescriptor, InputSocket } from "../core/socket";
 import { Packet } from "../core/packet";
 import { BufferSlice } from "../core/buffer";
 
-import * as BroadwayPlayer from '../ext-mod/Broadway/Player/Player';
+//import * as BroadwayPlayer from '../ext-mod/Broadway/Player/Player';
+declare var BroadwayPlayer: any;
 
 // global node-canvas instance, only for testing !
 const { createCanvas } = require('canvas')
+
+var BroadwayPlayer: any = () => {}
 
 // global SUPER DIRTY HACK for testing
 BroadwayPlayer.prototype._createBasicCanvasObj = function(options) {
