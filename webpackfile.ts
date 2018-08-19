@@ -21,6 +21,25 @@ const configs = []
   )
 }
 
+// Worker
+{
+  const entrySrc = './src/base.worker.ts'
+  const libName = 'MultimediaWorker'
+  const buildPath = 'dist'
+  const libraryTarget = 'umd'
+  const debug = true
+
+  configs.push(
+    createWebpackConfig({
+      debug,
+      entrySrc,
+      libName,
+      libraryTarget,
+      buildPath
+    })
+  )
+}
+
 // TestCasesWeb
 {
   const entrySrc = './test-cases/web/index.ts'

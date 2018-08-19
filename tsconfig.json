@@ -2,6 +2,7 @@
     "compilerOptions": {
         "allowJs": true,
         "sourceMap": true,
+        //"inlineSourceMap": true,
         "module": "commonjs",
         "target": "ES5",
         "lib": [
@@ -11,10 +12,12 @@
     },
     "exclude": [
         "node_modules",
+        "test-data",
         "**/*.spec.ts"
     ],
     "include": [
-        "*.ts",
-        "src/**/*"
+        "index.ts",
+        "src/**/*",
+        "test-cases/**/*"
     ]
 }
