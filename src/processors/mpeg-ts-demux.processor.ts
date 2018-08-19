@@ -2,13 +2,13 @@ import { Processor } from "../core/processor";
 
 import {createMpegTSDemuxer, TSTrack, Frame} from '../ext-mod/inspector.js/src';
 
-import * as Thumbcoil from '../ext-mod/thumbcoil/dist/thumbcoil'
+//import * as Thumbcoil from '../ext-mod/thumbcoil/dist/thumbcoil'
 
 import { SocketDescriptor, SocketType, InputSocket, OutputSocket } from "../core/socket";
 import { Packet } from "../core/packet";
 
-import {forEachOwnPropKeyInObject} from "../common-utils"
-import { BufferProperties } from "../core/buffer";
+import {forEachOwnPropKeyInObject, dispatchAsyncTask} from "../common-utils"
+import { BufferProperties, BufferSlice } from "../core/buffer";
 
 export class MPEGTSDemuxProcessor extends Processor {
 
@@ -28,6 +28,26 @@ export class MPEGTSDemuxProcessor extends Processor {
     return new SocketDescriptor()
   }
 
+  protected onWorkerMessage(event: Event) {
+
+  }
+
+  private processPacket_(p: Packet) {
+
+    p.forEachBufferSlice((bufferSlice) => {
+
+      /*
+      const parsedData = Thumbcoil.tsInspector.inspect(bufferSlice.getUint8Array())
+
+      Thumbcoil.tsInspector.domify(parsedData)
+
+      console.log(parsedData)
+      */
+
+    });
+  }
+
+
   ///*
   protected processTransfer_(inS: InputSocket, p: Packet) {
 
@@ -35,20 +55,19 @@ export class MPEGTSDemuxProcessor extends Processor {
       this.createOutput();
     }
 
-    p.forEachBufferSlice((bufferSlice) => {
-      const result = Thumbcoil.tsInspector.inspect(bufferSlice.getUint8Array())
+    //dispatchAsyncTask(this.processPacket_.bind(this, p))
 
-      console.log(result)
-    })
+    this.dispatchWorkerTask({
+      name: 'ts-inspect',
+      packet: p
+    });
 
     return true;
   }
 
   //*/
 
-  // Using inspector.js - FIXME: has bugs with byte offset that need to be fixed in inspector.js,
-  // but is tricky as the whole TS-parsing drops context and we would need to dive into that
-  // or make plain copies in there and pass them out somehow, which would be ugly
+  // Using inspector.js - FIXME: need to write copies of ES NALUs
   /*
   protected processTransfer_(inS: InputSocket, p: Packet) {
 
