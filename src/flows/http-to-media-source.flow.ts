@@ -2,13 +2,13 @@ import { XhrSocket } from "../io-sockets/xhr.socket";
 import { MP4DemuxProcessor } from "../processors/mp4-demux.processor";
 import { MPEGTSDemuxProcessor } from "../processors/mpeg-ts-demux.processor";
 import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from "../processors/mp4-mux.processor";
-import { Tubing, TubingState, TubingStateChangeCallback } from "../core/tubing";
+import { Flow, FlowState, FlowStateChangeCallback } from "../core/flow";
 import { Socket, OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from "../processors/h264-parse.processor";
 import { HTML5MediaSourceBufferSocket } from "../io-sockets/html5-media-source-buffer.socket";
 import { ProcessorEvent, ProcessorEventData } from "../core/processor";
 
-export class HttpToMediaSourceTubing extends Tubing {
+export class HttpToMediaSourceFlow extends Flow {
 
   private _xhrSocket: XhrSocket;
 
@@ -83,13 +83,13 @@ export class HttpToMediaSourceTubing extends Tubing {
     return new Set([this._xhrSocket]);
   }
 
-  protected onVoidToWaiting_(cb: TubingStateChangeCallback) {}
+  protected onVoidToWaiting_(cb: FlowStateChangeCallback) {}
 
-  protected onWaitingToVoid_(cb: TubingStateChangeCallback) {}
+  protected onWaitingToVoid_(cb: FlowStateChangeCallback) {}
 
-  protected onWaitingToFlowing_(cb: TubingStateChangeCallback) {}
+  protected onWaitingToFlowing_(cb: FlowStateChangeCallback) {}
 
-  protected onFlowingToWaiting_(cb: TubingStateChangeCallback) {}
+  protected onFlowingToWaiting_(cb: FlowStateChangeCallback) {}
 
   protected onStateChangeAborted_(reason: string) {}
 }

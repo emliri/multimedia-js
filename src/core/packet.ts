@@ -9,6 +9,21 @@ export enum PacketSymbol {
 }
 
 export class Packet {
+
+  /**
+   * See BufferSlice.fromTransferable
+   * @param p
+   */
+  static fromTransferable(p: Packet): Packet {
+    const newPacket: Packet = new Packet(
+      p.data.map((bs) => BufferSlice.fromTransferable(bs)),
+      p.timestamp,
+      p.presentationTimeOffset,
+      p.createdAt
+    );
+    return newPacket;
+  }
+
   static fromArrayBuffer(
     arrayBuffer: ArrayBuffer,
     mimeType?: string,
@@ -84,6 +99,10 @@ export class Packet {
 
   getPresentationTime(): number {
     return this.timestamp + this.presentationTimeOffset;
+  }
+
+  mapArrayBuffers(): ArrayBuffer[] {
+    return  BufferSlice.mapArrayBuffers(this.data);
   }
 
   forEachBufferSlice(

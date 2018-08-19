@@ -1,6 +1,6 @@
 import * as Multimedia from '../../index';
 import { TestCase } from '../test-case';
-import { Tubing, TubingState } from '../../src/core/tubing';
+import { Flow, FlowState } from '../../src/core/flow';
 
 const URLs = [
   "/test-data/193039199_mp4_h264_aac_hd_7.ts",
@@ -9,7 +9,7 @@ const URLs = [
 
 export class Fmp4ToMediaSource extends TestCase {
 
-  private _fmp4ToMediaSource: Tubing;
+  private _fmp4ToMediaSource: Flow;
   private _videoEl: HTMLVideoElement;
   private _mediaSource: MediaSource;
 
@@ -42,8 +42,8 @@ export class Fmp4ToMediaSource extends TestCase {
       console.log('MediaSource opened');
 
       this._fmp4ToMediaSource
-        = new Multimedia.Tubings.HttpToMediaSourceTubing(
-        URLs[0],
+        = new Multimedia.Flows.HttpToMediaSourceFlow(
+        URLs[1],
         this._mediaSource
       );
 
@@ -51,7 +51,7 @@ export class Fmp4ToMediaSource extends TestCase {
   }
 
   run() {
-    this._fmp4ToMediaSource.state = TubingState.WAITING;
-    this._fmp4ToMediaSource.state = TubingState.FLOWING;
+    this._fmp4ToMediaSource.state = FlowState.WAITING;
+    this._fmp4ToMediaSource.state = FlowState.FLOWING;
   }
 }

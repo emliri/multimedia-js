@@ -54,8 +54,29 @@ export class BufferProperties extends PayloadDescriptor {
  */
 export class BufferSlice {
 
+    static mapArrayBuffers(bufferSlices: BufferSlices): ArrayBuffer[] {
+      return bufferSlices.map((bs) => bs.arrayBuffer);
+    }
+
     static fromTypedArray(typedArray: Uint8Array | Uint16Array | Int8Array | Int16Array, props?: BufferProperties) {
       return new BufferSlice(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength, props);
+    }
+
+    /**
+     * Awakes transferable zombies from the dead
+     *
+     * @param bufferSlice A possibly "dead" BufferSlice that has been
+     *                    cloned to be transferred into or out of a Worker
+     *                    and stripped of his methods
+     * @returns A new and alive BufferSlice
+     */
+    static fromTransferable(bufferSlice: BufferSlice) {
+      return new BufferSlice(
+        bufferSlice.arrayBuffer,
+        bufferSlice.offset,
+        bufferSlice.length,
+        bufferSlice.props
+      );
     }
 
     /**

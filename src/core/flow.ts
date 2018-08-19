@@ -1,26 +1,26 @@
 import { Processor } from "./processor";
 import { Socket } from "./socket";
 
-export enum TubingState {
+export enum FlowState {
   VOID = 'void',
   WAITING = 'waiting',
   FLOWING = 'flowing'
 };
 
-export type TubingStateChangeCallback = (previousState: TubingState, newState: TubingState) => void;
+export type FlowStateChangeCallback = (previousState: FlowState, newState: FlowState) => void;
 
 // TODO: create generic set class in objec-ts
-export abstract class Tubing {
+export abstract class Flow {
 
   constructor(
-    public onStateChangePerformed: TubingStateChangeCallback,
+    public onStateChangePerformed: FlowStateChangeCallback,
     public onStateChangeAborted: (reason: string) => void
   ) {}
 
   private _processors: Set<Processor> = new Set();
-  private _state: TubingState = TubingState.VOID;
-  private _pendingState: TubingState | null = null;
-  private _prevState: TubingState | null = null;
+  private _state: FlowState = FlowState.VOID;
+  private _pendingState: FlowState | null = null;
+  private _prevState: FlowState | null = null;
 
   add(...p: Processor[]) {
     p.forEach((proc) => {
@@ -44,35 +44,35 @@ export abstract class Tubing {
     return Array.from(this.getExternalSockets());
   }
 
-  set state(newState: TubingState) {
+  set state(newState: FlowState) {
 
     if (this._pendingState) {
-      throw new Error('TubingState-change still pending: ' + this._pendingState);
+      throw new Error('Flow state-change still pending: ' + this._pendingState);
     }
 
-    const cb: TubingStateChangeCallback = this.onStateChangePerformed_.bind(this);
+    const cb: FlowStateChangeCallback = this.onStateChangePerformed_.bind(this);
 
     const currentState = this._state;
     switch (currentState) {
-    case TubingState.VOID:
-      if (newState !== TubingState.WAITING) {
+    case FlowState.VOID:
+      if (newState !== FlowState.WAITING) {
         fail();
       }
       this.onVoidToWaiting_(cb);
       break;
-    case TubingState.WAITING:
-      if (newState === TubingState.FLOWING) {
+    case FlowState.WAITING:
+      if (newState === FlowState.FLOWING) {
         this._pendingState = newState;
         this.onWaitingToFlowing_(cb);
-      } else if (newState === TubingState.VOID) {
+      } else if (newState === FlowState.VOID) {
         this._pendingState = newState;
         this.onWaitingToVoid_(cb);
       } else {
         fail();
       }
       break;
-    case TubingState.FLOWING:
-      if (newState !== TubingState.WAITING) {
+    case FlowState.FLOWING:
+      if (newState !== FlowState.WAITING) {
         fail();
       }
       this._pendingState = newState;
@@ -81,19 +81,19 @@ export abstract class Tubing {
     }
 
     function fail() {
-      throw new Error(`Can not transition from tubing state ${currentState} to ${newState}`);
+      throw new Error(`Can not transition from flow state ${currentState} to ${newState}`);
     }
   }
 
-  get state(): TubingState {
+  get state(): FlowState {
     return this._state;
   }
 
-  getPendingState(): TubingState | null {
+  getPendingState(): FlowState | null {
     return this._pendingState;
   }
 
-  getPreviousState(): TubingState | null {
+  getPreviousState(): FlowState | null {
     return this._prevState;
   }
 
@@ -114,9 +114,9 @@ export abstract class Tubing {
     this.onStateChangePerformed(this._prevState, this._state);
   }
 
-  protected abstract onVoidToWaiting_(cb: TubingStateChangeCallback);
-  protected abstract onWaitingToVoid_(cb: TubingStateChangeCallback);
-  protected abstract onWaitingToFlowing_(cb: TubingStateChangeCallback);
-  protected abstract onFlowingToWaiting_(cb: TubingStateChangeCallback);
+  protected abstract onVoidToWaiting_(cb: FlowStateChangeCallback);
+  protected abstract onWaitingToVoid_(cb: FlowStateChangeCallback);
+  protected abstract onWaitingToFlowing_(cb: FlowStateChangeCallback);
+  protected abstract onFlowingToWaiting_(cb: FlowStateChangeCallback);
   protected abstract onStateChangeAborted_(reason: string);
 }

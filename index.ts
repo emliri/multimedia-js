@@ -21,16 +21,18 @@ import { H264ParseProcessor } from './src/processors/h264-parse.processor';
 
 import { MP4MuxProcessor } from './src/processors/mp4-mux.processor';
 import { MP4DemuxProcessor } from './src/processors/mp4-demux.processor';
+import { MPEGTSDemuxProcessor } from './src/processors/mpeg-ts-demux.processor'
 
 import { BroadwayProcessor } from './src/processors/broadway.processor';
 
-import { HttpToMediaSourceTubing } from './src/tubings/http-to-media-source.tubing';
+import { HttpToMediaSourceFlow } from './src/flows/http-to-media-source.flow';
 
 export const Processors = {
   H264ParseProcessor,
   MP3ParseProcessor,
   MP4MuxProcessor,
   MP4DemuxProcessor,
+  MPEGTSDemuxProcessor,
   BroadwayProcessor,
   LambdaProcessor
 };
@@ -45,4 +47,4 @@ export const IoSockets = {
   // NodeFsWriteSocket
 }
 
-export const Tubings = { HttpToMediaSourceTubing }
+export const Flows = { HttpToMediaSourceFlow }

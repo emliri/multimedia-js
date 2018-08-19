@@ -22,3 +22,13 @@ export function forEachOwnPropKeyInObject<T>(object: Object, callback: (el: T) =
     }
   }
 }
+
+export function dispatchAsyncTask(func: () => void, timeoutSeconds: number = 0): number {
+  return <any> setTimeout(func, timeoutSeconds * 1000);
+}
+
+export function cancelAsyncTask(id: number): void {
+  clearTimeout(id);
+}
+
+

@@ -40,15 +40,8 @@ export enum LoggerLevels {
 }
 
 export const getLogger = function(category: string, level: number = LoggerLevels.ON): Logger {
-  /*
-  return {
-    get info() { return console.info.bind(window.console, getPrefix('i', category)) },
-    get log() { return console.log.bind(window.console, getPrefix('l', category))},
-    get debug() { return console.debug.bind(window.console, getPrefix('d', category)) },
-    get warn() { return console.warn.bind(window.console, getPrefix('w', category)) },
-    get error() { return console.error.bind(window.console, getPrefix('e', category)) }
-  }
-  */
+  var window = self; // Needed for WebWorker compat
+
   return {
     info: checkLogLevel(level, LoggerLevels.INFO) ? console.info.bind(window['console'], getPrefix('i', category)) : noop,
     log: checkLogLevel(level, LoggerLevels.LOG) ? console.log.bind(window['console'], getPrefix('l', category)) : noop,

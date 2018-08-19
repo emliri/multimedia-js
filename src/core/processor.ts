@@ -1,7 +1,14 @@
 import {SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, Socket} from './socket';
-import {Packet, PacketSymbol} from './packet';
+import {PacketSymbol, Packet} from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 import { EventEmitter } from 'eventemitter3';
+import { WorkerTask } from './worker';
+import { BufferSlice } from './buffer';
+
+//import WorkerLoader from "worker-loader!../base.worker";
+
+// DIRTY :)
+const WORKER_PATH = "/dist/MultimediaWorker.umd.js";
 
 export enum ProcessorEvent {
     ANY_SOCKET_CREATED = 'processor:socket-created',
@@ -22,23 +29,49 @@ export type ProcessorEventData = {
 
 export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
-export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver{
+export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver {
 
-    private inputs_: InputSocket[];
-    private outputs_: OutputSocket[];
+    private inputs_: InputSocket[] = [];
+    private outputs_: OutputSocket[] = [];
+    private worker_: Worker = null;
+
     private onSignal_: SignalHandler;
 
     public enableSymbolProxying: boolean = true;
 
     constructor(onSignal?: SignalHandler) {
         super();
-        this.inputs_ = [];
-        this.outputs_ = [];
         this.onSignal_ = onSignal || null;
+    }
+
+    terminate() {
+      if (this.worker_) {
+        this.worker_.terminate();
+      }
     }
 
     // maybe better call protoSocketDescriptor as in prototype pattern?
     abstract templateSocketDescriptor(socketType: SocketType): SocketDescriptor;
+
+    private getWorker(): Worker {
+      if (!this.worker_) {
+        this.worker_ = new Worker(WORKER_PATH);
+        this.worker_.addEventListener("message", (event) => {
+          this.onWorkerMessage(event);
+        })
+      }
+      return this.worker_;
+    }
+
+    protected onWorkerMessage(event: Event) {
+      console.warn('Processor should implement onWorkerMessage')
+      console.warn('Worker event not handled:', event);
+    }
+
+    protected dispatchWorkerTask(task: WorkerTask) {
+      this.getWorker()
+        .postMessage(task, task.packet.mapArrayBuffers());
+    }
 
     emit(event: ProcessorEvent, data: ProcessorEventData) {
         if (event !== data.event) {
