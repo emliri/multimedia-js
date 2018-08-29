@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "ts-node ./node_modules/.bin/webpack --progress",
+    "build:watch": "ts-node ./node_modules/.bin/webpack --progress --watch",
     "start": "ts-node ./node_modules/.bin/webpack-dev-server --progress",
     "test": "jest"
   },
