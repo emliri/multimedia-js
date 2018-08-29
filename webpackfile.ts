@@ -1,4 +1,4 @@
-import {createWebpackConfig} from '../webpack-config-factory'
+import {createWebpackConfig} from './webpack-config-factory'
 
 const configs = []
 
