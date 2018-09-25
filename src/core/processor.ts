@@ -68,7 +68,12 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       console.warn('Worker event not handled:', event);
     }
 
-    protected dispatchWorkerTask(task: WorkerTask) {
+    protected dispatchWorkerTask(name: string, packet: Packet) {
+      const task: WorkerTask = {
+        workerContext: null,
+        packet,
+        name
+      };
       this.getWorker()
         .postMessage(task, task.packet.mapArrayBuffers());
     }

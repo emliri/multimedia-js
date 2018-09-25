@@ -7,7 +7,7 @@ import {Fmp4Remuxer, Fmp4RemuxerEvent, Fmp4RemuxerConfig,
   Fmp4RemuxerVideoTrack,
   Fmp4RemuxerId3Track,
   Fmp4RemuxerTextTrack
-} from './hlsjs-remux/mp4-remuxer';
+} from './hlsjs-fmp4-mux/mp4-remuxer';
 
 import { BufferSlice } from "../core/buffer";
 
