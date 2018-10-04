@@ -33,25 +33,19 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected onWorkerMessage(event: Event) {
-    log('worker message', event)
+    //log('worker message', event)
 
-    this.out[0].transfer(Packet.fromTransferable((event as any).data.packet));
+    const p = Packet.fromTransferable((event as any).data.packet);
+
+    this.out[0].transfer(p);
   }
 
   /*
   private processPacket_(p: Packet) {
-
-
     p.forEachBufferSlice((bufferSlice) => {
-
-
       const parsedData = Thumbcoil.tsInspector.inspect(bufferSlice.getUint8Array())
-
       Thumbcoil.tsInspector.domify(parsedData)
-
       console.log(parsedData)
-
-
     });
   }
   */
