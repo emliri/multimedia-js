@@ -59,8 +59,8 @@ export class H264ParseProcessor extends Processor {
         length = avcView.getUint32(i);
 
         if (length > avcStream.length) {
-          console.warn('No NALUs found! Forwarding data anyway...');
-          this.out[0].transfer(Packet.fromSlice(bufferSlice));
+          //console.warn('No NALUs found! Forwarding data anyway...');
+          this.out[0].transfer(p);
           break; // no NALUs, but forward data anyway
         }
 
@@ -82,9 +82,10 @@ export class H264ParseProcessor extends Processor {
         naluSlice.props.isKeyframe = (type === NALU.IDR);
 
         this.out[0].transfer(
-          ///*
+          p
+          /*
           Packet.fromSlice(
-            bufferSlice // naluSlice /* <- that would "unframe" the NALU bytes, like this we just pass through after parsing */
+            bufferSlice // naluSlice // <- that would "unframe" the NALU bytes, like this we just pass through after parsing
           )
           //*/
           //Packet.fromArrayBuffer()
