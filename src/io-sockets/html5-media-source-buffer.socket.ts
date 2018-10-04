@@ -19,7 +19,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
 
     this.mediaSourceController = new MediaSourceController(mediaSource);
 
-    this.mediaSourceController.setMediaDuration(60, true); // HACK !!
+    this.mediaSourceController.setMediaDuration(10, true); // HACK !!
 
     if(!this.mediaSourceController.addSourceBufferQueue(mimeType)) {
       throw new Error('Failed to create SourceBuffer for mime-type: ' + mimeType);
@@ -41,7 +41,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
     const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a"); // Or maybe get it from the current document
     link.href = objectUrl;
-    link.download = "buffer.mp4";
+    link.download = `buffer${bufferDownloadCnt++}.mp4`;
     link.innerHTML = "<p>Download buffer</p>";
     document.body.appendChild(link); // Or append it whereever you want
     //*/
@@ -53,4 +53,6 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
     return true;
   }
 }
+
+var bufferDownloadCnt = 0
 

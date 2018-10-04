@@ -10,6 +10,10 @@ import { Packet } from "../core/packet";
 import {forEachOwnPropKeyInObject, dispatchAsyncTask} from "../common-utils"
 import { BufferProperties, BufferSlice } from "../core/buffer";
 
+import {getLogger} from '../logger';
+
+const {log} = getLogger('MPEGTSDemuxProcessor')
+
 export class MPEGTSDemuxProcessor extends Processor {
 
   private _tsDemux = createMpegTSDemuxer();
@@ -29,23 +33,22 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected onWorkerMessage(event: Event) {
+    //log('worker message', event)
 
+    const p = Packet.fromTransferable((event as any).data.packet);
+
+    this.out[0].transfer(p);
   }
 
+  /*
   private processPacket_(p: Packet) {
-
     p.forEachBufferSlice((bufferSlice) => {
-
-      /*
       const parsedData = Thumbcoil.tsInspector.inspect(bufferSlice.getUint8Array())
-
       Thumbcoil.tsInspector.domify(parsedData)
-
       console.log(parsedData)
-      */
-
     });
   }
+  */
 
 
   ///*
@@ -57,10 +60,7 @@ export class MPEGTSDemuxProcessor extends Processor {
 
     //dispatchAsyncTask(this.processPacket_.bind(this, p))
 
-    this.dispatchWorkerTask({
-      name: 'ts-inspect',
-      packet: p
-    });
+    this.dispatchWorkerTask('tsdemuxer', p);
 
     return true;
   }

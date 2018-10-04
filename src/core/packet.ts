@@ -21,6 +21,9 @@ export class Packet {
       p.presentationTimeOffset,
       p.createdAt
     );
+    if (p._symbol > 0) {
+      newPacket.symbol = p._symbol;
+    }
     return newPacket;
   }
 
