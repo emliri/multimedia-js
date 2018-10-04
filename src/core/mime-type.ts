@@ -53,10 +53,14 @@ export enum SampleDepth {
 
 export class PayloadDetails {
     // TBD
+    width: number
+    height: number
 }
 
 export class PayloadDescriptor {
     mimeType: MimeType;
+
+    codec: string = null;
 
     sampleDuration: number;
     sampleDepth: SampleDepth;
@@ -64,7 +68,7 @@ export class PayloadDescriptor {
     dataFormat: PayloadDataFormat;
     dataLayout: PayloadDataLayout;
 
-    private details_: PayloadDetails;
+    details: PayloadDetails = new PayloadDetails();
 
     constructor(mimeType: string, sampleDuration: number = NaN, sampleDepth: number = NaN) {
 
@@ -74,12 +78,6 @@ export class PayloadDescriptor {
 
         this.dataFormat = PayloadDataFormat.UNSPECIFIED;
         this.dataLayout = PayloadDataLayout.UNSPECIFIED;
-
-        this.details_ = new PayloadDetails();
-    }
-
-    details(): PayloadDetails {
-        return this.details_;
     }
 
     getSampleSize(): number {

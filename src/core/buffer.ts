@@ -21,7 +21,7 @@ export class BufferProperties extends PayloadDescriptor {
       public isKeyframe: boolean = false,
       public timestampDelta: number = 0,
       public mediaKey: any = null,
-      public params: { [param: string] : any; } = {}
+      public tags: Set<string> = new Set()
     ) {
         super(mimeType, sampleDuration, sampleDepth);
         this.samplesCount = samplesCount;
