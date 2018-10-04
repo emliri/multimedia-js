@@ -62,8 +62,8 @@ export type Fmp4RemuxerVideoTrack = {
   samples: Fmp4RemuxerSample[]
   inputTimeScale: number
   timescale: number
-  sps: Uint8Array,
-  pps: Uint8Array,
+  sps: Uint8Array[],
+  pps: Uint8Array[],
   codec: string,
   width: number,
   height: number,

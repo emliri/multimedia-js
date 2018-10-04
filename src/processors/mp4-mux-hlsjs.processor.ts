@@ -79,10 +79,12 @@ export class MP4MuxHlsjsProcessor extends Processor {
       //console.log(p.timestamp)
 
       if (bufferSlice.props.isBitstreamHeader) {
+
+        // note: per spec, sps/pps can be several buffers
         if (bufferSlice.props.tags.has('sps')) {
-          this.videoTrack.sps = bufferSlice.getUint8Array();
+          this.videoTrack.sps = [bufferSlice.getUint8Array()];
         } else if (bufferSlice.props.tags.has('pps')) {
-          this.videoTrack.pps = bufferSlice.getUint8Array();
+          this.videoTrack.pps = [bufferSlice.getUint8Array()];
         }
 
         this.videoTrack.width = bufferSlice.props.details.width;
@@ -135,8 +137,8 @@ export class MP4MuxHlsjsProcessor extends Processor {
       }
     case 'frag-parsing-data': {
       const {data1, data2} = data;
-      //this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data1)))
-      //this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data2)))
+      this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data1)))
+      this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data2)))
       break;
       }
     }

@@ -27,7 +27,7 @@ export function processTSDemuxerAppend(task: WorkerTask) {
         bufferSlice.props.mimeType = avcTrack.container;
 
         bufferSlice.props.isKeyframe = sample.key || unit.type === 5; // IDR
-        bufferSlice.props.isBitstreamHeader = unit.type >= 6 && unit.type <= 8; // SEI/SPS/PPS
+        bufferSlice.props.isBitstreamHeader = unit.type >= 7 && unit.type <= 8; // SPS/PPS
 
         bufferSlice.props.details.width = avcTrack.width;
         bufferSlice.props.details.height = avcTrack.height;
