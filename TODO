@@ -1,0 +1,11 @@
+
+- Socket "probes" / "filters"
+
+- Handle async proc / io-socket initialization
+- Handle case like: where MP4-muxer releases codec-info after parsing first bits and MediaSource can only be initialized async
+
+- Apply lint rules / Remove console logs
+
+- Tool for "online" mp4 analysis / diff
+
+- AAC parse-proc (like for h264)
