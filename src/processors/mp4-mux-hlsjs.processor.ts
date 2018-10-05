@@ -21,13 +21,14 @@ const config: Fmp4RemuxerConfig = {
 }
 
 export class MP4MuxHlsjsProcessor extends Processor {
-  private fmp4Remux: Fmp4Remuxer = new Fmp4Remuxer(
+
+  private _fmp4Remux: Fmp4Remuxer = new Fmp4Remuxer(
     this._onFmp4Event.bind(this),
     config,
     {}
   );
 
-  private videoTrack: Fmp4RemuxerVideoTrack = {
+  private _videoTrack: Fmp4RemuxerVideoTrack = {
     duration: 10,
     samples: [],
     inputTimeScale: 90000,
@@ -46,9 +47,11 @@ export class MP4MuxHlsjsProcessor extends Processor {
     id: 1
   };
 
-  private videoTrackPacketIndexCnt: number = 0;
+  private _videoTrackPacketIndex: number = 0;
 
-  private audioTrack: Fmp4RemuxerAudioTrack = {
+  private _audioTrack: Fmp4RemuxerAudioTrack = {
+    id: 2,
+    duration: 10,
     codec: null,
     timescale: 12800,
     samples: [],
@@ -60,6 +63,7 @@ export class MP4MuxHlsjsProcessor extends Processor {
     len: 0,
     nbNalu: 0,
     sequenceNumber: 0,
+    type: 'audio',
     manifestCodec: null
   }
 
@@ -82,28 +86,28 @@ export class MP4MuxHlsjsProcessor extends Processor {
 
         // note: per spec, sps/pps can be several buffers
         if (bufferSlice.props.tags.has('sps')) {
-          this.videoTrack.sps = [bufferSlice.getUint8Array()];
+          this._videoTrack.sps = [bufferSlice.getUint8Array()];
         } else if (bufferSlice.props.tags.has('pps')) {
-          this.videoTrack.pps = [bufferSlice.getUint8Array()];
+          this._videoTrack.pps = [bufferSlice.getUint8Array()];
         }
 
-        this.videoTrack.width = bufferSlice.props.details.width;
-        this.videoTrack.height = bufferSlice.props.details.height;
-        this.videoTrack.codec = bufferSlice.props.codec;
+        this._videoTrack.width = bufferSlice.props.details.width;
+        this._videoTrack.height = bufferSlice.props.details.height;
+        this._videoTrack.codec = bufferSlice.props.codec;
 
         return;
       }
 
-      this.videoTrack.samples.push({
+      this._videoTrack.samples.push({
         pts: p.getPresentationTime(),
         dts: p.timestamp,
         length: 1,
-        id: this.videoTrackPacketIndexCnt,
+        id: this._videoTrackPacketIndex,
         units: [{data: bufferSlice.getUint8Array()}],
         key: bufferSlice.props.isKeyframe
       })
 
-      this.videoTrackPacketIndexCnt++
+      this._videoTrackPacketIndex++
     });
 
     return true;
@@ -116,7 +120,7 @@ export class MP4MuxHlsjsProcessor extends Processor {
   protected handleSymbolicPacket_(symbol: PacketSymbol): boolean {
 
     if (symbol === PacketSymbol.FLUSH) {
-      this.flush();
+      this._flush();
     }
 
     return false;
@@ -131,7 +135,7 @@ export class MP4MuxHlsjsProcessor extends Processor {
       break;
     case 'frag-parsing-init-segment':{
       const {tracks: {video: {initSegment}}} = data;
-      console.log(initSegment)
+      //console.log(initSegment)
       this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(initSegment)))
       break;
       }
@@ -144,11 +148,11 @@ export class MP4MuxHlsjsProcessor extends Processor {
     }
   }
 
-  public flush() {
-    if (this.videoTrackPacketIndexCnt === 0) {
+  private _flush() {
+    if (this._videoTrackPacketIndex === 0) {
       return;
     }
-    log('flushing at packet:', this.videoTrackPacketIndexCnt);
-    this.fmp4Remux.remux(this.audioTrack, this.videoTrack, null, null, 0, true, true);
+    log('flushing at packet:', this._videoTrackPacketIndex);
+    this._fmp4Remux.process(this._audioTrack, this._videoTrack, null, null, 0, true, true);
   }
 }
