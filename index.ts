@@ -19,7 +19,8 @@ import { LambdaProcessor } from './src/processors/lambda.processor';
 import { MP3ParseProcessor } from './src/processors/mp3-parse.processor';
 import { H264ParseProcessor } from './src/processors/h264-parse.processor';
 
-import { MP4MuxProcessor } from './src/processors/mp4-mux.processor';
+import { MP4MuxProcessor } from './src/processors/mp4-mux-mozilla.processor';
+import { MP4MuxHlsjsProcessor } from './src/processors/mp4-mux-hlsjs.processor';
 import { MP4DemuxProcessor } from './src/processors/mp4-demux.processor';
 import { MPEGTSDemuxProcessor } from './src/processors/mpeg-ts-demux.processor'
 
