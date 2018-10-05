@@ -191,7 +191,7 @@ export class MP4MuxProcessor extends Processor {
         log('Got codec init data');
       }
 
-      log('packet timetstamp:', p.timestamp, p.presentationTimeOffset)
+      log('packet timestamp/cto:', p.timestamp, p.presentationTimeOffset)
 
       mp4Muxer.pushPacket(
         VIDEO_PACKET,

@@ -46,7 +46,7 @@ export class ChunkToMediaSource extends TestCase {
 
       this._fmp4ToMediaSource
         = new Multimedia.Flows.HttpToMediaSourceFlow(
-        URLs[0],
+        URLs[1],
         this._mediaSource
       );
 

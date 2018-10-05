@@ -282,8 +282,6 @@ import {
       isKeyframe: boolean = false, cto: number = 0
       ) {
 
-        console.log(timestamp)
-
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._tryGenerateHeader();
       }
