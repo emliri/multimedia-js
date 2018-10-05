@@ -1,3 +1,9 @@
 [submodule "src/ext-mod/inspector.js"]
 	path = src/ext-mod/inspector.js
 	url = git@github.com:tchakabam/inspector.js.git
+[submodule "src/ext-mod/Broadway"]
+	path = src/ext-mod/Broadway
+	url = https://github.com/mbebenita/Broadway
+[submodule "src/ext-mod/mp4box.js"]
+	path = src/ext-mod/mp4box.js
+	url = https://github.com/gpac/mp4box.js
