@@ -31,13 +31,15 @@ export class HttpToMediaSourceFlow extends Flow {
     const mp4MuxHlsjsProc = new MP4MuxHlsjsProcessor();
 
     const xhrSocket = this._xhrSocket = new XhrSocket(url);
-    const mediaSourceSocket: HTML5MediaSourceBufferSocket = new HTML5MediaSourceBufferSocket(mediaSource, 'video/mp4; codecs=avc1.64001f'); // avc1.4d401f
+
+    const mediaSourceSocket: HTML5MediaSourceBufferSocket
+      = new HTML5MediaSourceBufferSocket(mediaSource, 'video/mp4; codecs=avc1.64001f'); // avc1.4d401f
 
     tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
     mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
 
-    //mp4MuxProc.out[0].connect(mediaSourceSocket);
-    mp4MuxHlsjsProc.out[0].connect(mediaSourceSocket);
+    mp4MuxProc.out[0].connect(mediaSourceSocket);
+    //mp4MuxHlsjsProc.out[0].connect(mediaSourceSocket);
 
     if (url.endsWith('.ts')) { // FIXME use mime-type of response
       xhrSocket.connect(tsDemuxProc.in[0]);

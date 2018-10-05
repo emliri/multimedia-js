@@ -2,8 +2,6 @@ import { Processor } from "../core/processor";
 
 import {createMpegTSDemuxer, TSTrack, Frame} from '../ext-mod/inspector.js/src';
 
-//import * as Thumbcoil from '../ext-mod/thumbcoil/dist/thumbcoil'
-
 import { SocketDescriptor, SocketType, InputSocket, OutputSocket } from "../core/socket";
 import { Packet } from "../core/packet";
 
