@@ -39,7 +39,7 @@ export class HttpToMediaSourceFlow extends Flow {
     mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
 
     mp4MuxProc.out[0].connect(mediaSourceSocket);
-    //mp4MuxHlsjsProc.out[0].connect(mediaSourceSocket);
+    mp4MuxHlsjsProc.out[0].connect(mediaSourceSocket);
 
     if (url.endsWith('.ts')) { // FIXME use mime-type of response
       xhrSocket.connect(tsDemuxProc.in[0]);

@@ -1,5 +1,5 @@
-import { Fmp4ToMediaSource } from './fmp4-to-media-source'
+import { ChunkToMediaSource } from './chunk-to-media-source'
 
 export {
-  Fmp4ToMediaSource
+  ChunkToMediaSource
 }
