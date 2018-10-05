@@ -14,9 +14,11 @@ import {
   AVC_VIDEO_CODEC_ID,
   VP6_VIDEO_CODEC_ID
 } from './mozilla-rtmpjs/mp4mux'
-import { isNumber } from '../common-utils';
 
-// import {MP4Writer} from './mp4/mp4-writer'
+import { isNumber } from '../common-utils';
+import { getLogger } from '../logger';
+
+const {log} = getLogger('MP4MuxProcessor');
 
 export enum MP4MuxProcessorSupportedCodecs {
   AVC = 'avc',
@@ -76,7 +78,7 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private initMuxer() {
-    console.log('initMuxer', this.mp4Metadata_)
+    log('initMuxer', this.mp4Metadata_)
 
     const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_)
 
@@ -147,7 +149,7 @@ export class MP4MuxProcessor extends Processor {
       height: height
     };
 
-    console.log('created video track:', videoTrack)
+    log('created video track:', videoTrack)
 
     this.mp4Metadata_.videoTrackId = this.getNextTrackId();
     this.mp4Metadata_.tracks.push(videoTrack);
@@ -155,7 +157,7 @@ export class MP4MuxProcessor extends Processor {
     if (isNumber(duration)) {
       this.mp4Metadata_.duration = duration * VIDEO_TRACK_DEFAULT_TIMESCALE;
 
-      console.log('set duration:', this.mp4Metadata_.duration)
+      log('set duration:', this.mp4Metadata_.duration)
     }
 
     return s;
@@ -186,10 +188,13 @@ export class MP4MuxProcessor extends Processor {
       }
 
       if (bufferSlice.props.isBitstreamHeader) {
-        console.log('Got codec init data');
+        log('Got codec init data');
       }
 
-      mp4Muxer.pushPacket(VIDEO_PACKET,
+      log('packet timetstamp:', p.timestamp, p.presentationTimeOffset)
+
+      mp4Muxer.pushPacket(
+        VIDEO_PACKET,
         data,
         p.timestamp * VIDEO_TRACK_DEFAULT_TIMESCALE,
         true,
@@ -210,7 +215,7 @@ export class MP4MuxProcessor extends Processor {
   protected handleSymbolicPacket_(symbol: PacketSymbol) {
     switch (symbol) {
     case PacketSymbol.EOS:
-      console.log('received EOS');
+      log('received EOS');
       this.flush();
       return false;
     default:
@@ -221,13 +226,13 @@ export class MP4MuxProcessor extends Processor {
   private onMp4MuxerData_(data: Uint8Array) {
     const p: Packet = Packet.fromArrayBuffer(data.buffer)
 
-    console.log('fmp4 data:', p)
+    log('fmp4 data:', p)
 
     this.out[0].transfer(p)
   }
 
   private onMp4MuxerCodecInfo_(codecInfo: string[]) {
-    console.log('codec info:', codecInfo)
+    log('codec info:', codecInfo)
 
     this.lastCodecInfo_ = codecInfo;
   }

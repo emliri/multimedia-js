@@ -1,7 +1,7 @@
 import { XhrSocket } from "../io-sockets/xhr.socket";
 import { MP4DemuxProcessor } from "../processors/mp4-demux.processor";
 import { MPEGTSDemuxProcessor } from "../processors/mpeg-ts-demux.processor";
-import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from "../processors/mp4-mux.processor";
+import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from "../processors/mp4-mux-mozilla.processor";
 import { Flow, FlowState, FlowStateChangeCallback } from "../core/flow";
 import { Socket, OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from "../processors/h264-parse.processor";

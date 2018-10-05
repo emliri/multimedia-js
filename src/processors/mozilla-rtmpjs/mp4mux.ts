@@ -276,8 +276,13 @@ import {
       this.chunkIndex = 0;
     }
 
-    public pushPacket(type: number, data: Uint8Array, timestamp: number,
-      forceRaw: boolean = false, isInitData: boolean = false, isKeyframe: boolean = false, cto: number = 0) {
+    public pushPacket(
+      type: number, data: Uint8Array, timestamp: number,
+      forceRaw: boolean = false, isInitData: boolean = false,
+      isKeyframe: boolean = false, cto: number = 0
+      ) {
+
+        console.log(timestamp)
 
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._tryGenerateHeader();
@@ -302,7 +307,7 @@ import {
               }
               break;
           }
-          this.cachedPackets.push({packet: audioPacket, timestamp: timestamp, trackId: audioTrack.trackId});
+          this.cachedPackets.push({packet: audioPacket, timestamp, trackId: audioTrack.trackId});
           break;
         case VIDEO_PACKET:
           var videoTrack = this.videoTrackState;
@@ -334,7 +339,7 @@ import {
               }
               break;
           }
-          this.cachedPackets.push({packet: videoPacket, timestamp: timestamp, trackId: videoTrack.trackId});
+          this.cachedPackets.push({packet: videoPacket, timestamp, trackId: videoTrack.trackId});
           break;
         default:
           throw new Error('unknown packet type: ' + type);
@@ -556,7 +561,8 @@ import {
           continue;
         }
 
-        //var currentTimestamp = (trackPackets[0].timestamp * trackInfo.timescale / 1000) | 0;
+        // ??? not sure what this was doing but lets keep it around -> var currentTimestamp = (trackPackets[0].timestamp * trackInfo.timescale / 1000) | 0; ???
+
         var tfdt = new TrackFragmentBaseMediaDecodeTimeBox(trackState.cachedDuration);
         var tfhd: TrackFragmentHeaderBox;
         var trun: TrackRunBox;
@@ -594,8 +600,12 @@ import {
               var nextTime = Math.round(samplesProcessed * trackInfo.timescale / trackInfo.framerate);
               var videoFrameDuration = nextTime - lastTime;
               lastTime = nextTime;
-              var compositionTime = Math.round(samplesProcessed * trackInfo.timescale / trackInfo.framerate +
-                                               videoPacket.compositionTime * trackInfo.timescale / 1000);
+
+              var compositionTime = (trackInfo.timescale / trackInfo.framerate) +  videoPacket.compositionTime;
+
+              // ??? not sure what this was doing but lets keep it around -> Math.round(samplesProcessed * trackInfo.timescale / trackInfo.framerate + videoPacket.compositionTime * trackInfo.timescale / 1000);
+
+              var compositionTimeOffset = compositionTime - nextTime;
 
               tdatParts.push(videoPacket.data);
               tdatPosition += videoPacket.data.length;
@@ -603,7 +613,7 @@ import {
                                SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS :
                                (SampleFlags.SAMPLE_DEPENDS_ON_OTHER | SampleFlags.SAMPLE_IS_NOT_SYNC);
               trunSamples.push({duration: videoFrameDuration, size: videoPacket.data.length,
-                                flags: frameFlags, compositionTimeOffset: (compositionTime - nextTime)});
+                                flags: frameFlags, compositionTimeOffset});
             }
             var tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
             tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
