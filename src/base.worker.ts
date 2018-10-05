@@ -28,7 +28,9 @@ const {log} = getLogger(`base-worker-${workerId}`);
     task.workerContext = context;
 
     log(`Processing task "${task.name}" under job-id ${nextJobId} now ...`);
+
     const startTime = performance.now();
+
     switch(task.name) {
     case 'tsdemuxer':
       processTSDemuxerAppend(task);
@@ -36,9 +38,10 @@ const {log} = getLogger(`base-worker-${workerId}`);
     default:
       throw new Error('Unknown task: ' + task.name);
     }
+
     const endTime = performance.now();
 
-    const latencyMs = endTime - startTime
+    const latencyMs = endTime - startTime;
 
     log(`Processed task in ${latencyMs.toFixed(3)} ms, done with job-id ${nextJobId}`)
 
