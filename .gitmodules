@@ -1,6 +1,3 @@
 [submodule "src/ext-mod/inspector.js"]
 	path = src/ext-mod/inspector.js
 	url = git@github.com:tchakabam/inspector.js.git
-[submodule "src/ext-mod/thumbcoil"]
-	path = src/ext-mod/thumbcoil
-	url = git@github.com:tchakabam/thumbcoil.git
