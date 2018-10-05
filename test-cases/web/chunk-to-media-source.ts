@@ -8,7 +8,7 @@ const URLs = [
   '/test-data/mp4/v-0576p-1400k-libx264.mp4'
 ]
 
-const {log} = getLogger('ChunkToMediaSource');
+const {log, error} = getLogger('ChunkToMediaSource');
 
 export class ChunkToMediaSource extends TestCase {
 
@@ -26,14 +26,14 @@ export class ChunkToMediaSource extends TestCase {
     this._videoEl.controls = true;
 
     this._videoEl.addEventListener('error', () => {
-      console.error(this._videoEl.error);
+      error(this._videoEl.error);
     })
 
     this.domMountPoint.appendChild(this._videoEl);
 
     this._mediaSource = new MediaSource();
 
-    console.log('MediaSource created');
+    log('MediaSource created');
 
     this._videoEl.src = URL.createObjectURL(this._mediaSource);
 
@@ -42,7 +42,7 @@ export class ChunkToMediaSource extends TestCase {
         return;
       }
 
-      console.log('MediaSource opened');
+      log('MediaSource opened');
 
       this._fmp4ToMediaSource
         = new Multimedia.Flows.HttpToMediaSourceFlow(
