@@ -19,7 +19,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
 
     this.mediaSourceController = new MediaSourceController(mediaSource);
 
-    this.mediaSourceController.setMediaDuration(10, true); // HACK !!
+    this.mediaSourceController.setMediaDuration(60, true); // HACK !!
 
     if(!this.mediaSourceController.addSourceBufferQueue(mimeType)) {
       throw new Error('Failed to create SourceBuffer for mime-type: ' + mimeType);
@@ -36,18 +36,20 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
 
     this.accuBuffer = concatArrayBuffers(this.accuBuffer, buffer)
 
-    ///*
-    const blob = new Blob([this.accuBuffer], {type: "video/mp4"});
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a"); // Or maybe get it from the current document
-    link.href = objectUrl;
-    link.download = `buffer${bufferDownloadCnt++}.mp4`;
-    link.innerHTML = "<p>Download buffer</p>";
-    document.body.appendChild(link); // Or append it whereever you want
+    ///* This is a nasty debugging hack. We should add a probe/filter to do this
+    if (ENABLE_BUFFER_DOWNLOAD_LINK) {
+      const blob = new Blob([this.accuBuffer], {type: "video/mp4"});
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a"); // Or maybe get it from the current document
+      link.href = objectUrl;
+      link.download = `buffer${bufferDownloadCnt++}.mp4`;
+      link.innerHTML = "<p>Download buffer</p>";
+      document.body.appendChild(link); // Or append it whereever you want
+    }
+
     //*/
 
     this.mediaSourceController.mediaDuration
-
     this.sourceBufferQueue.appendBuffer(buffer, 0);
 
     return true;
@@ -55,4 +57,6 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
 }
 
 var bufferDownloadCnt = 0
+
+var ENABLE_BUFFER_DOWNLOAD_LINK = false;
 
