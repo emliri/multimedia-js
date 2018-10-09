@@ -9,8 +9,6 @@ This will be a (more elaborately conceived) core and base components all written
 
 Featuring: way more format support, more use cases, more performance, more magic + many other goodies. Stay tuned.
 
-(Scroll down to go to previous readme)
-
 <img src="https://media.giphy.com/media/3oEhmM10mIi1dkMfmg/giphy.gif" />
 
 # multimedia.js v2
