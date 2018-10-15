@@ -48,7 +48,7 @@ export const getLogger = function(category: string, level: number = LoggerLevels
     debug: checkLogLevel(level, LoggerLevels.DEBUG) ? console.debug.bind(window['console'], getPrefix('d', category)) : noop,
     warn: checkLogLevel(level, LoggerLevels.WARN) ? console.warn.bind(window['console'], getPrefix('w', category)) : noop,
     error: checkLogLevel(level, LoggerLevels.ERROR) ? console.error.bind(window['console'], getPrefix('e', category)) : noop
-}
+  }
 }
 
 export function makeLogTimestamped(...args): string {

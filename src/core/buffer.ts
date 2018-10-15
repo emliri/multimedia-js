@@ -90,10 +90,24 @@ export class BufferSlice {
       return slice;
     }
 
+    /**
+     * Metatdata
+     */
     props: BufferProperties;
 
+    /**
+     * Underlying memory handle
+     */
     readonly arrayBuffer: ArrayBuffer;
+
+    /**
+     * Offset into original allocated memory space (ArrayBuffer)
+     */
     readonly offset: number;
+
+    /**
+     * Bytes amount / size i.e number of 8-bit characters
+     */
     readonly length: number;
 
     constructor(arrayBuffer: ArrayBuffer,
@@ -111,6 +125,27 @@ export class BufferSlice {
       this.length = length;
 
       this.props = props
+    }
+
+    /**
+     *
+     * @param characterSizeBits
+     * @returns {number} Number of characters needed in a specific encoding (default 8-bit === 1bytes)
+     */
+    size(characterSizeBits: number = 8): number {
+      if (characterSizeBits === 8) {
+        return this.length;
+      }
+      if (characterSizeBits === 16) {
+        return this.length / 2;
+      }
+      if (characterSizeBits === 32) {
+        return this.length / 4;
+      }
+      if (characterSizeBits === 64) {
+        return this.length / 8;
+      }
+      throw new Error('Invalid character bitsize: ' + characterSizeBits)
     }
 
     /**

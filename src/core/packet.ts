@@ -96,6 +96,12 @@ export class Packet {
     this._symbol = symbol;
   }
 
+  getTotalBytes() {
+    return this.data.reduce((accu, buf: BufferSlice) => {
+      return accu + buf.length
+    }, 0);
+  }
+
   isSymbolic(): boolean {
     return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
