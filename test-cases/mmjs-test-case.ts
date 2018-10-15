@@ -1,4 +1,4 @@
-export abstract class TestCase {
+export abstract class MmjsTestCase {
 
   constructor(
     public domMountPoint: HTMLElement
@@ -6,5 +6,5 @@ export abstract class TestCase {
 
   abstract setup(done: () => void);
 
-  abstract setup(done: () => void);
+  abstract run();
 }

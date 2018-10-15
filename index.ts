@@ -28,6 +28,14 @@ import { BroadwayProcessor } from './src/processors/broadway.processor';
 
 import { HttpToMediaSourceFlow } from './src/flows/http-to-media-source.flow';
 
+import * as Utils from './src/common-utils';
+import * as Crypto from './src/common-crypto';
+
+export const Common = {
+  Utils,
+  Crypto
+}
+
 export const Processors = {
   H264ParseProcessor,
   MP3ParseProcessor,

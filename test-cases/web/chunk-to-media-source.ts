@@ -1,5 +1,5 @@
 import * as Multimedia from '../../index';
-import { TestCase } from '../test-case';
+import { MmjsTestCase } from '../mmjs-test-case';
 import { Flow, FlowState } from '../../src/core/flow';
 import { getLogger } from '../../src/logger';
 
@@ -10,15 +10,11 @@ const URLs = [
 
 const {log, error} = getLogger('ChunkToMediaSource');
 
-export class ChunkToMediaSource extends TestCase {
+export class ChunkToMediaSource extends MmjsTestCase {
 
   private _fmp4ToMediaSource: Flow;
   private _videoEl: HTMLVideoElement;
   private _mediaSource: MediaSource;
-
-  constructor(domMountPoint: HTMLElement) {
-    super(domMountPoint);
-  }
 
   setup() {
     this._videoEl = document.createElement('video');
