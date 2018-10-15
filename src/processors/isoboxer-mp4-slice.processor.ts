@@ -7,9 +7,9 @@ import { ISOFile, ISOBox } from './mp4/isoboxer-types';
 
 import {getLogger} from '../logger'
 
-const {log} = getLogger('MP4DemuxProcessor')
+const {log} = getLogger('CodemIsoboxerMP4DemuxProcessor')
 
-export class IsoboxerMP4DemuxProcessor extends Processor {
+export class IsoboxerMP4SliceProcessor extends Processor {
     constructor() {
         super();
         this.createInput()

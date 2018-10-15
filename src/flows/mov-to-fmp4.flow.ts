@@ -1,6 +1,7 @@
 import { Flow, FlowStateChangeCallback } from "../core/flow";
 import { XhrSocket } from "../io-sockets/xhr.socket";
 import { MP4DemuxProcessor } from "../processors/mp4-demux.processor";
+import { IsoboxerMP4DemuxProcessor } from "../processors/isoboxer-mp4-demux.processor";
 
 export class MovToFmp4Flow extends Flow {
 
@@ -16,10 +17,14 @@ export class MovToFmp4Flow extends Flow {
       }
     );
 
+    const isoboxerMp4DemuxProc = new IsoboxerMP4DemuxProcessor();
+
     const mp4DemuxProc = new MP4DemuxProcessor();
     const xhrSocket = this._xhrSocket = new XhrSocket(movUrl);
 
-    xhrSocket.connect(mp4DemuxProc.in[0]);
+    //xhrSocket.connect(mp4DemuxProc.in[0]);
+
+    xhrSocket.connect(isoboxerMp4DemuxProc.in[0]);
   }
 
   protected onVoidToWaiting_(cb: FlowStateChangeCallback) {}
