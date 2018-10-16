@@ -64,6 +64,10 @@ export function parseOptionsFromQueryString(
   query: string = (window as any).location.search,
   validProperties: string[] = null): {[property: string]: string} {
 
+  if (!query) {
+    return {};
+  }
+
   if (!query.startsWith("?")) {
     throw new Error('Malformed query string, should start with a `?`');
   }
