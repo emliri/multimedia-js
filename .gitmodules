@@ -7,3 +7,6 @@
 [submodule "src/ext-mod/mp4box.js"]
 	path = src/ext-mod/mp4box.js
 	url = https://github.com/gpac/mp4box.js
+[submodule "src/ext-mod/codem-isoboxer"]
+	path = src/ext-mod/codem-isoboxer
+	url = git@github.com:madebyhiro/codem-isoboxer.git

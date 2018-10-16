@@ -1,4 +1,6 @@
-const ISOBoxer = require('codem-isoboxer')
+//const ISOBoxer = require('codem-isoboxer')
+
+import * as ISOBoxer from '../../ext-mod/codem-isoboxer/dist/iso_boxer'
 
 import {ISOFile, ISOBox} from './isoboxer-types'
 
