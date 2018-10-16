@@ -7,7 +7,7 @@ import { BufferSlice } from "../core/buffer";
 declare var BroadwayPlayer: any;
 
 // global node-canvas instance, only for testing !
-const { createCanvas } = require('canvas')
+//const { createCanvas } = require('canvas')
 
 var BroadwayPlayer: any = () => {}
 
@@ -26,7 +26,8 @@ BroadwayPlayer.prototype._createBasicCanvasObj = function(options) {
   if (!height) {
     height = this._config.size.height;
   };
-  obj.canvas = createCanvas(); // document.createElement('canvas');
+
+  //obj.canvas = createCanvas(); // document.createElement('canvas');
 
   //console.log(obj.canvas)
 
@@ -51,7 +52,7 @@ export class BroadwayProcessor extends Processor {
     }
   });
 
-  private _canvas = createCanvas(200, 200);
+  //private _canvas = createCanvas(200, 200);
 
   constructor() {
     super();
