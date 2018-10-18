@@ -22,9 +22,9 @@ export class MovToFmp4Flow extends Flow {
     const mp4DemuxProc = new MP4DemuxProcessor();
     const xhrSocket = this._xhrSocket = new XhrSocket(movUrl);
 
-    //xhrSocket.connect(mp4DemuxProc.in[0]);
+    xhrSocket.connect(mp4DemuxProc.in[0]);
 
-    xhrSocket.connect(isoboxerMp4DemuxProc.in[0]);
+    //xhrSocket.connect(isoboxerMp4DemuxProc.in[0]);
   }
 
   protected onVoidToWaiting_(cb: FlowStateChangeCallback) {}
