@@ -4,7 +4,7 @@ import {InputSocket, SocketDescriptor, SocketType, OutputSocket} from '../core/s
 
 import {getLogger} from '../logger'
 
-const {log} = getLogger('MP4DemuxProcessor')
+const {log, warn, error} = getLogger('MP4DemuxProcessor')
 
 import {createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom} from '../ext-mod/inspector.js/src';
 
@@ -68,37 +68,48 @@ export class MP4DemuxProcessor extends Processor {
 
           //log('timescale', track.ge)
 
-          log('defaults', track.getDefaults())
+          log('defaults:', track.getDefaults())
+
+          if (!track.getDefaults()) {
+            warn('no track defaults')
+          }
 
           const output: OutputSocket = this._ensureOutputForTrack(track);
 
-          const avcC = (<AvcC> track.getReferenceAtom());
+          if (track.type === Mp4Track.TYPE_VIDEO) {
+            const avcC = (<AvcC> track.getReferenceAtom());
 
-          const sps: Uint8Array[] = avcC.sps;
-          const pps: Uint8Array[] = avcC.pps;
+            const sps: Uint8Array[] = avcC.sps;
+            const pps: Uint8Array[] = avcC.pps;
 
-          const avcCodecData = avcC.data;
+            const avcCodecData = avcC.data;
 
-          const initProps: BufferProperties = new BufferProperties();
+            const initProps: BufferProperties = new BufferProperties();
 
-          initProps.isBitstreamHeader = true;
+            initProps.isBitstreamHeader = true;
 
-          /*
-          console.log('pushing SPS data')
-          output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(sps[0], initProps)));
-          console.log('pushing PPS data')
-          output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
-          */
+            /*
+            console.log('pushing SPS data')
+            output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(sps[0], initProps)));
+            console.log('pushing PPS data')
+            output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
+            */
 
-          output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(avcCodecData, initProps)));
+            if (!avcCodecData) {
+              warn('no codec data found for video track with id:', track.id);
+              continue;
+            }
 
-          if (avcC.numOfPictureParameterSets > 1 || avcC.numOfSequenceParameterSets > 1) {
-            throw new Error('No support for more than one sps/pps pair');
+            output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(avcCodecData, initProps)));
+
+            if (avcC.numOfPictureParameterSets > 1 || avcC.numOfSequenceParameterSets > 1) {
+              throw new Error('No support for more than one sps/pps pair');
+            }
           }
 
           const props: BufferProperties = new BufferProperties(
             track.mimeType,
-            track.getDefaults().sampleDuration,
+            track.getDefaults() ? track.getDefaults().sampleDuration : 0,
             NaN,
             1
           );
