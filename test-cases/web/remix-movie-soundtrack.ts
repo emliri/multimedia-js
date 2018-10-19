@@ -9,7 +9,7 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
   private _flow: MovToFmp4Flow = null;
 
   setup(done: () => void) {
-    this._flow = new MovToFmp4Flow('/test-data/mp4/ToS-4k-1920.mov');
+    this._flow = new MovToFmp4Flow('/test-data/mp4/v-0576p-1400k-libx264.mov');
 
 
   }
