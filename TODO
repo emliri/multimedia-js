@@ -15,3 +15,5 @@
 - Desynchronize transfer
 
 - Generalize test-case for flows that take URL as entry point
+
+- Also take care of mime-types and 4cc codec strings properly
