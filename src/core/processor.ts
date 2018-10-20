@@ -34,6 +34,9 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     private outputs_: OutputSocket[] = [];
     private worker_: Worker = null;
 
+    // TODO: internalize EE instance to avoid polluting interface (we should only expose on/once/off)
+    // private eventEmitter_: typeof EventEmitter = new EventEmitter();
+
     private onSignal_: SignalHandler;
 
     public enableSymbolProxying: boolean = true;
