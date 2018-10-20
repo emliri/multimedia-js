@@ -6,8 +6,12 @@
 
 - Apply lint rules / Remove console logs
 
+- Filterable logs
+
 - Tool for "online" mp4 analysis / diff
 
 - AAC parse-proc (like for h264)
 
 - Desynchronize transfer
+
+- Generalize test-case for flows that take URL as entry point
