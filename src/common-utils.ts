@@ -1,6 +1,5 @@
 /**
  *
-n
  * @returns true on finite values, false on Infinity
  *          returns false on anything that is not convertible to a number (when not a number type), see isConvertibleToNumber
  */
@@ -10,7 +9,6 @@ export function isNumber (n: number): boolean {
 
 /**
  *
-n
  * @returns true on: empty string, booleans, null, finite number values and +/- Infinity
  *          false on: everything else -> objects, non-empty string, undefined, NaN (obviously)
  */
@@ -20,7 +18,6 @@ export function isConvertibleToNumber (n: any): boolean {
 
 /**
  *
-n
  * @returns a finite number or +/- Infinity (if n was that value)
  * @throws error when value is not convertible to a number
  */
@@ -95,3 +92,54 @@ export function parseOptionsFromQueryString (
 
   return options;
 }
+
+export function arrayBufferToHexdump (buffer: ArrayBuffer): string {
+  return Array.prototype.map.call(new Uint8Array(buffer),
+    x => ('00' + x.toString(16)) // map each by to a a string with base16
+      .slice(-2))
+      .join(' ');
+}
+
+export const MAX_UINT_32 = 4294967296;
+export const MAX_UINT_16 = 65536;
+
+export const readUint16 = (buffer: Uint8Array, offset: number): number => {
+  const val = buffer[offset] << 8 |
+              buffer[offset + 1];
+  return val < 0 ? MAX_UINT_16 + val : val;
+}
+
+export const readUint32 = (buffer: Uint8Array, offset: number): number => {
+  const val = buffer[offset] << 24 |
+              buffer[offset + 1] << 16 |
+              buffer[offset + 2] << 8 |
+              buffer[offset + 3];
+  return val < 0 ? MAX_UINT_32 + val : val;
+}
+
+export const writeUint32 = (buffer: Uint8Array, offset: number, value: number) => {
+  buffer[offset] = value >> 24;
+  buffer[offset+1] = (value >> 16) & 0xff;
+  buffer[offset+2] = (value >> 8) & 0xff;
+  buffer[offset+3] = value & 0xff;
+}
+
+export const utf8CharsToString = (bytes: Uint8Array): string => {
+  return String.fromCharCode.apply(null, bytes)
+}
+
+export const unicodeCharsToString = (hexChars: Uint16Array): string => {
+  return String.fromCharCode.apply(null, hexChars)
+}
+
+export function utf8StringToBuffer(str: string): ArrayBuffer {
+  var buf = new ArrayBuffer(str.length); // 2 bytes for each char
+  var bufView = new Uint8Array(buf);
+  for (var i=0, strLen=str.length; i < strLen; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+  return buf;
+}
+
+
+
