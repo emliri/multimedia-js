@@ -16,20 +16,20 @@
 
 // module RtmpJs.FLV {
 
-  export interface FLVHeader {
+export interface FLVHeader {
     hasAudio: boolean;
     hasVideo: boolean;
     extra: Uint8Array;
   }
 
-  export interface FLVTag {
+export interface FLVTag {
     type: number;
     needPreprocessing: boolean;
     timestamp: number;
     data: Uint8Array;
   }
 
-  export class FLVParser {
+export class FLVParser {
     private state: number = 0;
     private buffer: ArrayBuffer;
     private bufferSize: number;
@@ -40,7 +40,7 @@
     public onClose: () => void;
     public onError: (error) => void;
 
-    public constructor() {
+    public constructor () {
       this.state = 0;
       this.buffer = new ArrayBuffer(1024);
       this.bufferSize = 0;
@@ -51,12 +51,12 @@
       this.onClose = null;
     }
 
-    public push(data: Uint8Array) {
-      var parseBuffer;
+    public push (data: Uint8Array) {
+      let parseBuffer;
       if (this.bufferSize > 0) {
-        var needLength = this.bufferSize + data.length;
+        let needLength = this.bufferSize + data.length;
         if (this.buffer.byteLength < needLength) {
-          var tmp = new Uint8Array(this.buffer, 0, this.bufferSize);
+          let tmp = new Uint8Array(this.buffer, 0, this.bufferSize);
           this.buffer = new ArrayBuffer(needLength);
           parseBuffer = new Uint8Array(this.buffer);
           parseBuffer.set(tmp);
@@ -68,89 +68,89 @@
         parseBuffer = data;
       }
 
-      var parsed = 0, end = parseBuffer.length;
+      let parsed = 0; let end = parseBuffer.length;
       while (parsed < end) {
-        var chunkParsed = 0;
+        let chunkParsed = 0;
         switch (this.state) {
-          case 0:
-            if (parsed + 9 > end) {
-              break;
-            }
-            var headerLength =
+        case 0:
+          if (parsed + 9 > end) {
+            break;
+          }
+          var headerLength =
               (parseBuffer[parsed + 5] << 24) | (parseBuffer[parsed + 6] << 16) |
               (parseBuffer[parsed + 7] << 8) | parseBuffer[parsed + 8];
-            if (headerLength < 9) {
-              this._error('Invalid header length');
-              break;
-            }
-            if (parsed + headerLength > end) {
-              break;
-            }
-            if (parseBuffer[parsed] !== 0x46 /* F */ ||
+          if (headerLength < 9) {
+            this._error('Invalid header length');
+            break;
+          }
+          if (parsed + headerLength > end) {
+            break;
+          }
+          if (parseBuffer[parsed] !== 0x46 /* F */ ||
               parseBuffer[parsed + 1] !== 0x4C /* L */ ||
               parseBuffer[parsed + 2] !== 0x56 /* V */ ||
               parseBuffer[parsed + 3] !== 1 /* version 1 */ ||
               (parseBuffer[parsed + 4] & 0xFA) !== 0) {
-              this._error('Invalid FLV header');
-              break;
-            }
-            var flags = parseBuffer[parsed + 4];
-            var extra = headerLength > 9 ? parseBuffer.subarray(parsed + 9, parsed + headerLength) : null;
-
-            this.onHeader && this.onHeader({
-              hasAudio: !!(flags & 4),
-              hasVideo: !!(flags & 1),
-              extra: extra
-            });
-            this.state = 2;
-            chunkParsed = headerLength;
+            this._error('Invalid FLV header');
             break;
-          case 2:
-            if (parsed + 4 + 11 > end) {
-              break;
-            }
-            var previousTagSize =
+          }
+          var flags = parseBuffer[parsed + 4];
+          var extra = headerLength > 9 ? parseBuffer.subarray(parsed + 9, parsed + headerLength) : null;
+
+          this.onHeader && this.onHeader({
+            hasAudio: !!(flags & 4),
+            hasVideo: !!(flags & 1),
+            extra: extra
+          });
+          this.state = 2;
+          chunkParsed = headerLength;
+          break;
+        case 2:
+          if (parsed + 4 + 11 > end) {
+            break;
+          }
+          var previousTagSize =
               (parseBuffer[parsed + 0] << 24) | (parseBuffer[parsed + 1] << 16) |
               (parseBuffer[parsed + 2] << 8) | parseBuffer[parsed + 3];
-            if (previousTagSize !== this.previousTagSize) {
-              this._error('Invalid PreviousTagSize');
-              break;
-            }
-            var dataSize = (parseBuffer[parsed + 5] << 16) |
-              (parseBuffer[parsed + 6] << 8) | parseBuffer[parsed + 7];
-            var dataOffset = parsed + 4 + 11;
-            if (dataOffset + dataSize > end) {
-              break;
-            }
-            var flags = parseBuffer[parsed + 4];
-            var streamID = (parseBuffer[parsed + 12] << 16) |
-              (parseBuffer[parsed + 13] << 8) | parseBuffer[parsed + 14];
-            if (streamID !== 0 || (flags & 0xC0) !== 0) {
-              this._error('Invalid FLV tag');
-              break;
-            }
-            var dataType = flags & 0x1F;
-            if (dataType !== 8 && dataType !== 9 && dataType !== 18) {
-              this._error('Invalid FLV tag type');
-              break;
-            }
-            var needPreprocessing = !!(flags & 0x20);
-            var timestamp = (parseBuffer[parsed + 8] << 16) |
-              (parseBuffer[parsed + 9] << 8) | parseBuffer[parsed + 10] |
-              (parseBuffer[parseBuffer + 11] << 24) /* signed part */;
-            this.onTag && this.onTag({
-              type: dataType,
-              needPreprocessing: needPreprocessing,
-              timestamp: timestamp,
-              data: parseBuffer.subarray(dataOffset, dataOffset + dataSize)
-            });
-            chunkParsed += 4 + 11 + dataSize;
-            this.previousTagSize = dataSize + 11;
-            this.state = 2;
+          if (previousTagSize !== this.previousTagSize) {
+            this._error('Invalid PreviousTagSize');
             break;
+          }
+          var dataSize = (parseBuffer[parsed + 5] << 16) |
+              (parseBuffer[parsed + 6] << 8) | parseBuffer[parsed + 7];
+          var dataOffset = parsed + 4 + 11;
+          if (dataOffset + dataSize > end) {
+            break;
+          }
+          var flags = parseBuffer[parsed + 4];
+          var streamID = (parseBuffer[parsed + 12] << 16) |
+              (parseBuffer[parsed + 13] << 8) | parseBuffer[parsed + 14];
+          if (streamID !== 0 || (flags & 0xC0) !== 0) {
+            this._error('Invalid FLV tag');
+            break;
+          }
+          var dataType = flags & 0x1F;
+          if (dataType !== 8 && dataType !== 9 && dataType !== 18) {
+            this._error('Invalid FLV tag type');
+            break;
+          }
+          var needPreprocessing = !!(flags & 0x20);
+          var timestamp = (parseBuffer[parsed + 8] << 16) |
+              (parseBuffer[parsed + 9] << 8) | parseBuffer[parsed + 10] |
+              (parseBuffer[parseBuffer + 11] << 24);
+          this.onTag && this.onTag({
+            type: dataType,
+            needPreprocessing: needPreprocessing,
+            timestamp: timestamp,
+            data: parseBuffer.subarray(dataOffset, dataOffset + dataSize)
+          });
+          chunkParsed += 4 + 11 + dataSize;
+          this.previousTagSize = dataSize + 11;
+          this.state = 2;
+          break;
 
-          default:
-            throw new Error('invalid state');
+        default:
+          throw new Error('invalid state');
         }
 
         if (chunkParsed === 0) {
@@ -171,14 +171,13 @@
       }
     }
 
-    private _error(message: string) {
+    private _error (message: string) {
       this.state = -1;
       this.onError && this.onError(message);
     }
 
-    public close() {
+    public close () {
       this.onClose && this.onClose();
     }
-  }
+}
 // }
-

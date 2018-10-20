@@ -1,12 +1,10 @@
-import {Processor} from '../core/processor';
-import {Packet} from '../core/packet';
-import {InputSocket, SocketDescriptor, SocketType, OutputSocket} from '../core/socket';
+import { Processor } from '../core/processor';
+import { Packet } from '../core/packet';
+import { InputSocket, SocketDescriptor, SocketType, OutputSocket } from '../core/socket';
 
-import {getLogger} from '../logger'
+import { getLogger } from '../logger';
 
-const {log, warn, error} = getLogger('MP4DemuxProcessor')
-
-import {createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom} from '../ext-mod/inspector.js/src';
+import { createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom } from '../ext-mod/inspector.js/src';
 
 import { PayloadDescriptor } from '../core/mime-type';
 
@@ -14,25 +12,25 @@ import { Mp4Track } from '../ext-mod/inspector.js/src/demuxer/mp4/mp4-track';
 import { BufferProperties, BufferSlice } from '../core/buffer';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-export class MP4DemuxProcessor extends Processor {
+const { log, warn, error } = getLogger('MP4DemuxProcessor');
 
+export class MP4DemuxProcessor extends Processor {
     private _demuxer: Mp4Demuxer;
 
     private _trackIdToOutputs: { [id: number] : OutputSocket} = {};
 
-    constructor() {
-        super();
-        this.createInput()
+    constructor () {
+      super();
+      this.createInput();
 
-        this._demuxer = createMp4Demuxer();
+      this._demuxer = createMp4Demuxer();
     }
 
-    templateSocketDescriptor(st: SocketType): SocketDescriptor {
-      return new SocketDescriptor()
+    templateSocketDescriptor (st: SocketType): SocketDescriptor {
+      return new SocketDescriptor();
     }
 
-    private _ensureOutputForTrack(track: Track): OutputSocket {
-
+    private _ensureOutputForTrack (track: Track): OutputSocket {
       const payloadDescriptor = new PayloadDescriptor(track.mimeType);
       const sd = new SocketDescriptor([
         payloadDescriptor
@@ -45,10 +43,8 @@ export class MP4DemuxProcessor extends Processor {
       return this._trackIdToOutputs[track.id];
     }
 
-    protected processTransfer_(inS: InputSocket, p: Packet) {
-
+    protected processTransfer_ (inS: InputSocket, p: Packet) {
       p.data.forEach((bufferSlice) => {
-
         this._demuxer.append(bufferSlice.getUint8Array());
         this._demuxer.end();
 
@@ -58,7 +54,7 @@ export class MP4DemuxProcessor extends Processor {
         for (const trackId in tracks) {
           const track: Mp4Track = <Mp4Track> tracks[trackId];
 
-          //track.update();
+          // track.update();
 
           log('mime-type:', track.mimeType, track.id, track.getDuration(), track.type, track.getTimescale());
 
@@ -66,12 +62,12 @@ export class MP4DemuxProcessor extends Processor {
             log('video-track:', track.getResolution());
           }
 
-          //log('timescale', track.ge)
+          // log('timescale', track.ge)
 
-          log('defaults:', track.getDefaults())
+          log('defaults:', track.getDefaults());
 
           if (!track.getDefaults()) {
-            warn('no track defaults')
+            warn('no track defaults');
           }
 
           const output: OutputSocket = this._ensureOutputForTrack(track);
@@ -118,8 +114,7 @@ export class MP4DemuxProcessor extends Processor {
           props.timestampDelta = 0;
 
           track.getFrames().forEach((frame: Frame) => {
-
-            //log('frame:', frame.frameType, frame.bytesOffset, frame.size, frame.getDecodingTimeUs(), frame.getPresentationTimeUs());
+            // log('frame:', frame.frameType, frame.bytesOffset, frame.size, frame.getDecodingTimeUs(), frame.getPresentationTimeUs());
 
             const frameSlice = bufferSlice.unwrap(
               frame.bytesOffset,
@@ -127,7 +122,7 @@ export class MP4DemuxProcessor extends Processor {
               props
             );
 
-            //console.log(frame.size);
+            // console.log(frame.size);
 
             const p: Packet = Packet.fromSlice(frameSlice);
 
@@ -135,16 +130,15 @@ export class MP4DemuxProcessor extends Processor {
             p.timestamp = frame.getDecodingTimestampInSeconds();
             p.presentationTimeOffset = frame.getPresentationTimestampInSeconds() - frame.getDecodingTimestampInSeconds();
 
-            //console.log(p)
+            // console.log(p)
 
-            //console.log(frame.bytesOffset, frame.size);
+            // console.log(frame.bytesOffset, frame.size);
 
-            output.transfer(p)
-          })
+            output.transfer(p);
+          });
         }
+      });
 
-      })
-
-      return true
+      return true;
     }
 }

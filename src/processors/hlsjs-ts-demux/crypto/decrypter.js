@@ -27,7 +27,6 @@ class Decrypter {
   decrypt (data, key, iv, callback) {
     if (this.disableWebCrypto && this.config.enableSoftwareAES) {
       if (this.logEnabled) {
-
         this.logEnabled = false;
       }
       let decryptor = this.decryptor;
@@ -39,7 +38,6 @@ class Decrypter {
       callback(decryptor.decrypt(data, 0, iv, this.removePKCS7Padding));
     } else {
       if (this.logEnabled) {
-
         this.logEnabled = false;
       }
       const subtle = this.subtle;
@@ -74,7 +72,7 @@ class Decrypter {
       this.decrypt(data, key, iv, callback);
     } else {
       logger.error(`decrypting error : ${err.message}`);
-      console.error({fatal: true, reason: err.message });
+      console.error({ fatal: true, reason: err.message });
     }
   }
 

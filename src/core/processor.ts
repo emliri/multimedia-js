@@ -1,14 +1,14 @@
-import {SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, Socket} from './socket';
-import {PacketSymbol, Packet} from './packet';
+import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, Socket } from './socket';
+import { PacketSymbol, Packet } from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 import { EventEmitter } from 'eventemitter3';
 import { WorkerTask } from './worker';
 import { BufferSlice } from './buffer';
 
-//import WorkerLoader from "worker-loader!../base.worker";
+// import WorkerLoader from "worker-loader!../base.worker";
 
 // DIRTY :)
-const WORKER_PATH = "/dist/MultimediaWorker.umd.js";
+const WORKER_PATH = '/dist/MultimediaWorker.umd.js';
 
 export enum ProcessorEvent {
     ANY_SOCKET_CREATED = 'processor:socket-created',
@@ -25,12 +25,11 @@ export type ProcessorEventData = {
     symbol?: PacketSymbol,
     packet?: Packet,
     signal?: Signal
-}
+};
 
 export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
 export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver {
-
     private inputs_: InputSocket[] = [];
     private outputs_: OutputSocket[] = [];
     private worker_: Worker = null;
@@ -39,12 +38,12 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     public enableSymbolProxying: boolean = true;
 
-    constructor(onSignal?: SignalHandler) {
-        super();
-        this.onSignal_ = onSignal || null;
+    constructor (onSignal?: SignalHandler) {
+      super();
+      this.onSignal_ = onSignal || null;
     }
 
-    terminate() {
+    terminate () {
       if (this.worker_) {
         this.worker_.terminate();
       }
@@ -53,22 +52,22 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     // maybe better call protoSocketDescriptor as in prototype pattern?
     abstract templateSocketDescriptor(socketType: SocketType): SocketDescriptor;
 
-    private getWorker(): Worker {
+    private getWorker (): Worker {
       if (!this.worker_) {
         this.worker_ = new Worker(WORKER_PATH);
-        this.worker_.addEventListener("message", (event) => {
+        this.worker_.addEventListener('message', (event) => {
           this.onWorkerMessage(event);
-        })
+        });
       }
       return this.worker_;
     }
 
-    protected onWorkerMessage(event: Event) {
-      console.warn('Processor should implement onWorkerMessage')
+    protected onWorkerMessage (event: Event) {
+      console.warn('Processor should implement onWorkerMessage');
       console.warn('Worker event not handled:', event);
     }
 
-    protected dispatchWorkerTask(name: string, packet: Packet) {
+    protected dispatchWorkerTask (name: string, packet: Packet) {
       const task: WorkerTask = {
         workerContext: null,
         packet,
@@ -78,182 +77,182 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
         .postMessage(task, task.packet.mapArrayBuffers());
     }
 
-    emit(event: ProcessorEvent, data: ProcessorEventData) {
-        if (event !== data.event) {
-            throw new Error("Event emitted must be identic the one carried in event data");
-        }
-        return super.emit(event, data);
+    emit (event: ProcessorEvent, data: ProcessorEventData) {
+      if (event !== data.event) {
+        throw new Error('Event emitted must be identic the one carried in event data');
+      }
+      return super.emit(event, data);
     }
 
-    on(event: ProcessorEvent, handler: ProcessorEventHandler) {
-        super.on(event, handler);
-        return this;
+    on (event: ProcessorEvent, handler: ProcessorEventHandler) {
+      super.on(event, handler);
+      return this;
     }
 
-    once(event: ProcessorEvent, handler: ProcessorEventHandler) {
+    once (event: ProcessorEvent, handler: ProcessorEventHandler) {
       super.once(event, handler);
       return this;
     }
 
-    off(event: ProcessorEvent, handler: ProcessorEventHandler) {
+    off (event: ProcessorEvent, handler: ProcessorEventHandler) {
       super.off(event, handler);
       return this;
     }
 
-    getOwnSockets(): Set<Socket> {
-        return new Set(Array.prototype.concat(this.inputs_, this.outputs_));
+    getOwnSockets (): Set<Socket> {
+      return new Set(Array.prototype.concat(this.inputs_, this.outputs_));
     }
 
-    cast(signal: Signal): SignalReceiverCastResult {
-        return this.onSignalCast_(signal).then((result) => {
-            if(result) {
-                return Promise.resolve(true);
-            } else {
-                if (signal.isDirectionDown()) {
-                    return signal.emit(this.out);
-                } else if (signal.isDirectionUp()) {
-                    return signal.emit(this.in);
-                } else {
-                    return Promise.resolve(false);
-                }
-            }
-        })
-    }
-
-    /**
-     * Returns a copy of internal array, safe to manipulate
-     * @returns {InputSocket[]}
-     */
-    inputs() {
-        return this.inputs_.slice();
+    cast (signal: Signal): SignalReceiverCastResult {
+      return this.onSignalCast_(signal).then((result) => {
+        if (result) {
+          return Promise.resolve(true);
+        } else {
+          if (signal.isDirectionDown()) {
+            return signal.emit(this.out);
+          } else if (signal.isDirectionUp()) {
+            return signal.emit(this.in);
+          } else {
+            return Promise.resolve(false);
+          }
+        }
+      });
     }
 
     /**
      * Returns a copy of internal array, safe to manipulate
-     * @returns {OutputSocket[]}
+    {InputSocket[]}
      */
-    outputs() {
-        return this.outputs_.slice();
+    inputs () {
+      return this.inputs_.slice();
+    }
+
+    /**
+     * Returns a copy of internal array, safe to manipulate
+    {OutputSocket[]}
+     */
+    outputs () {
+      return this.outputs_.slice();
     }
 
     /**
      * Read-only internal array ref
-     * @type {InputSocket[]}
+    {InputSocket[]}
      */
-    get in(): InputSocket[] {
-        return this.inputs_
+    get in (): InputSocket[] {
+      return this.inputs_;
     }
 
     /**
      * Read-only internal array ref
-     * @type {OutputSocket[]}
+    {OutputSocket[]}
      */
-    get out(): OutputSocket[] {
-        return this.outputs_
+    get out (): OutputSocket[] {
+      return this.outputs_;
     }
 
     /**
      * Adds a new input socket with the given descriptor (or from default template)
-     * @param {SocketDescriptor} sd optional
+    {SocketDescriptor} sd optional
      */
-    createInput(sd?: SocketDescriptor): InputSocket {
-        const s = new InputSocket((p: Packet) => {
-            return this.onReceiveFromInput_(s, p);
-        }, this.wrapTemplateSocketDescriptor_(SocketType.INPUT));
-        this.inputs_.push(s);
-        this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
-          processor: this,
-          event: ProcessorEvent.ANY_SOCKET_CREATED,
-          socket: s
-        });
-        this.emit(ProcessorEvent.INPUT_SOCKET_CREATED, {
-          processor: this,
-          event: ProcessorEvent.INPUT_SOCKET_CREATED,
-          socket: s
-        });
-        return s;
+    createInput (sd?: SocketDescriptor): InputSocket {
+      const s = new InputSocket((p: Packet) => {
+        return this.onReceiveFromInput_(s, p);
+      }, this.wrapTemplateSocketDescriptor_(SocketType.INPUT));
+      this.inputs_.push(s);
+      this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
+        processor: this,
+        event: ProcessorEvent.ANY_SOCKET_CREATED,
+        socket: s
+      });
+      this.emit(ProcessorEvent.INPUT_SOCKET_CREATED, {
+        processor: this,
+        event: ProcessorEvent.INPUT_SOCKET_CREATED,
+        socket: s
+      });
+      return s;
     }
 
     /**
      * Adds a new output socket with the given descriptor (or from default template)
-     * @param {SocketDescriptor} sd optional
+    {SocketDescriptor} sd optional
      */
-    createOutput(sd?: SocketDescriptor): OutputSocket {
-        const s = new OutputSocket(this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
-        this.outputs_.push(s);
-        this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
-          processor: this,
-          event: ProcessorEvent.ANY_SOCKET_CREATED,
-          socket: s
-        });
-        this.emit(ProcessorEvent.OUTPUT_SOCKET_CREATED, {
-          processor: this,
-          event: ProcessorEvent.OUTPUT_SOCKET_CREATED,
-          socket: s
-        });
-        return s;
+    createOutput (sd?: SocketDescriptor): OutputSocket {
+      const s = new OutputSocket(this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
+      this.outputs_.push(s);
+      this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
+        processor: this,
+        event: ProcessorEvent.ANY_SOCKET_CREATED,
+        socket: s
+      });
+      this.emit(ProcessorEvent.OUTPUT_SOCKET_CREATED, {
+        processor: this,
+        event: ProcessorEvent.OUTPUT_SOCKET_CREATED,
+        socket: s
+      });
+      return s;
     }
 
     /**
-     * @param p
+    p
      * @returns True when packet was forwarded
      */
-    private onSymbolicPacketReceived_(p: Packet): boolean {
-        this.emit(ProcessorEvent.SYMBOLIC_PACKET, {
-          processor: this,
-          event: ProcessorEvent.SYMBOLIC_PACKET,
-          symbol: p.symbol,
-          packet: p
-        });
-        const proxy = this.handleSymbolicPacket_(p.symbol);
-        if (proxy && this.enableSymbolProxying) {
-          this.transferPacketToAllOutputs_(p);
-          return true;
-        }
-        return false;
+    private onSymbolicPacketReceived_ (p: Packet): boolean {
+      this.emit(ProcessorEvent.SYMBOLIC_PACKET, {
+        processor: this,
+        event: ProcessorEvent.SYMBOLIC_PACKET,
+        symbol: p.symbol,
+        packet: p
+      });
+      const proxy = this.handleSymbolicPacket_(p.symbol);
+      if (proxy && this.enableSymbolProxying) {
+        this.transferPacketToAllOutputs_(p);
+        return true;
+      }
+      return false;
     }
 
     /**
-     * @param p packet to transfer to all outputs
+    p packet to transfer to all outputs
      */
-    private transferPacketToAllOutputs_(p: Packet) {
-        this.out.forEach((socket) => {
-          socket.transfer(p);
-        })
+    private transferPacketToAllOutputs_ (p: Packet) {
+      this.out.forEach((socket) => {
+        socket.transfer(p);
+      });
     }
 
-    private onReceiveFromInput_(inS: InputSocket, p: Packet): boolean {
-        if(p.isSymbolic()
-            && this.onSymbolicPacketReceived_(p)) {
-          return true; // when packet was forwarded we don't pass it on for processing
-        }
+    private onReceiveFromInput_ (inS: InputSocket, p: Packet): boolean {
+      if (p.isSymbolic() &&
+            this.onSymbolicPacketReceived_(p)) {
+        return true; // when packet was forwarded we don't pass it on for processing
+      }
 
-        let result = false
-        try {
-          result = this.processTransfer_(inS, p);
-        } catch(err) {
-          console.error(`There was a fatal error processing a packet: ${err.message}. Stacktrace:`)
-          console.log(err)
-        }
-        return result
+      let result = false;
+      try {
+        result = this.processTransfer_(inS, p);
+      } catch (err) {
+        console.error(`There was a fatal error processing a packet: ${err.message}. Stacktrace:`);
+        console.log(err);
+      }
+      return result;
     }
 
-    private wrapTemplateSocketDescriptor_(type: SocketType, sd?: SocketDescriptor): SocketDescriptor {
-        return (sd || this.templateSocketDescriptor(type));
+    private wrapTemplateSocketDescriptor_ (type: SocketType, sd?: SocketDescriptor): SocketDescriptor {
+      return (sd || this.templateSocketDescriptor(type));
     }
 
-    private onSignalCast_(signal: Signal): SignalReceiverCastResult {
-        this.emit(ProcessorEvent.SIGNAL, {
-          processor: this,
-          event: ProcessorEvent.SIGNAL,
-          signal
-        });
+    private onSignalCast_ (signal: Signal): SignalReceiverCastResult {
+      this.emit(ProcessorEvent.SIGNAL, {
+        processor: this,
+        event: ProcessorEvent.SIGNAL,
+        signal
+      });
 
-        if (this.onSignal_) {
-          return this.onSignal_(signal);
-        } else {
-          return Promise.resolve(false);
-        }
+      if (this.onSignal_) {
+        return this.onSignal_(signal);
+      } else {
+        return Promise.resolve(false);
+      }
     }
 
     /**
@@ -272,19 +271,18 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * it is possible by disabling proxying (return false here in an override of this method)
      * as in this case these packets will be passed into `processTransfer_`.
      *
-     * @param symbol
+    symbol
      * @returns True if the symbolic packet should be proxied
      */
-    protected handleSymbolicPacket_(symbol: PacketSymbol): boolean {
+    protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
       return symbol !== PacketSymbol.VOID;
     }
 
     /**
      * Called when a packet is received on an input socket.
      * Returns true when packet was handled correctly in some way.
-     * @param inS
-     * @param p
+    inS
+    p
      */
     protected abstract processTransfer_(inS: InputSocket, p: Packet): boolean;
-
 }

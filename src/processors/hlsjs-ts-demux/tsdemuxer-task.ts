@@ -1,23 +1,19 @@
-import { Packet, PacketSymbol } from "../../core/packet";
-import { BufferSlice } from "../../core/buffer";
-import { getLogger } from "../../logger";
+import { Packet, PacketSymbol } from '../../core/packet';
+import { BufferSlice } from '../../core/buffer';
+import { getLogger } from '../../logger';
 
-import { WorkerTask, postMessage } from "../../core/worker";
+import { WorkerTask, postMessage } from '../../core/worker';
 
-import {TSDemuxer} from '../../processors/hlsjs-ts-demux/tsdemuxer';
+import { TSDemuxer } from '../../processors/hlsjs-ts-demux/tsdemuxer';
 
-export function processTSDemuxerAppend(task: WorkerTask) {
-
+export function processTSDemuxerAppend (task: WorkerTask) {
   const demuxer = new TSDemuxer((audioTrack, avcTrack, id3Track, txtTrack, timeOffset, contiguous, accurateTimeOffset) => {
-
     console.log(audioTrack, avcTrack);
 
     avcTrack.samples.forEach((sample) => {
-
-      //console.log(sample);
+      // console.log(sample);
 
       sample.units.forEach((unit: {data: Uint8Array, type: number}) => {
-
         const bufferSlice = new BufferSlice(
           unit.data.buffer.slice(0),
           unit.data.byteOffset,
@@ -38,23 +34,23 @@ export function processTSDemuxerAppend(task: WorkerTask) {
           bufferSlice.props.tags.add('sei');
         } else if (unit.type === 7) {
           bufferSlice.props.tags.add('sps');
-        } else if(unit.type === 8) {
+        } else if (unit.type === 8) {
           bufferSlice.props.tags.add('pps');
         }
 
         const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
-        //console.log(packet.timestamp)
+        // console.log(packet.timestamp)
 
         postMessage(task.workerContext, {
           packet
-        })
-      })
-    })
+        });
+      });
+    });
 
     postMessage(task.workerContext, {
       packet: Packet.fromSymbol(PacketSymbol.FLUSH)
-    })
+    });
 
     return void 0;
   });
@@ -65,5 +61,5 @@ export function processTSDemuxerAppend(task: WorkerTask) {
 
   p.forEachBufferSlice((bufferSlice) => {
     demuxer.append(bufferSlice.getUint8Array(), 0, true, 0);
-  })
+  });
 }

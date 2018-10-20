@@ -3,33 +3,44 @@
  */
 
 export function getAudioConfig (data, offset, audioCodec) {
-  let adtsObjectType, // :int
-    adtsSampleingIndex, // :int
-    adtsExtensionSampleingIndex, // :int
-    adtsChanelConfig, // :int
-    config,
-    userAgent = navigator.userAgent.toLowerCase(),
-    manifestCodec = audioCodec,
-    adtsSampleingRates = [
-      96000, 88200,
-      64000, 48000,
-      44100, 32000,
-      24000, 22050,
-      16000, 12000,
-      11025, 8000,
-      7350];
+  let adtsObjectType;
+  // :int
+
+  let adtsSampleingIndex;
+  // :int
+
+  let adtsExtensionSampleingIndex;
+  // :int
+
+  let adtsChanelConfig;
+  // :int
+
+  let config;
+
+  let userAgent = navigator.userAgent.toLowerCase();
+
+  let manifestCodec = audioCodec;
+
+  let adtsSampleingRates = [
+    96000, 88200,
+    64000, 48000,
+    44100, 32000,
+    24000, 22050,
+    16000, 12000,
+    11025, 8000,
+    7350];
   // byte 2
   adtsObjectType = ((data[offset + 2] & 0xC0) >>> 6) + 1;
   adtsSampleingIndex = ((data[offset + 2] & 0x3C) >>> 2);
   if (adtsSampleingIndex > adtsSampleingRates.length - 1) {
-    //observer.trigger(Event.ERROR, { type: ErrorType.MEDIA_ERROR, details: ErrorDetail.FRAG_PARSING_ERROR, fatal: true, reason: `invalid ADTS sampling index:${adtsSampleingIndex}` });
+    // observer.trigger(Event.ERROR, { type: ErrorType.MEDIA_ERROR, details: ErrorDetail.FRAG_PARSING_ERROR, fatal: true, reason: `invalid ADTS sampling index:${adtsSampleingIndex}` });
     console.error('Error in ADTS data');
     return;
   }
   adtsChanelConfig = ((data[offset + 2] & 0x01) << 2);
   // byte 3
   adtsChanelConfig |= ((data[offset + 3] & 0xC0) >>> 6);
-  //logger.log(`manifest codec:${audioCodec},ADTS data:type:${adtsObjectType},sampleingIndex:${adtsSampleingIndex}[${adtsSampleingRates[adtsSampleingIndex]}Hz],channelConfig:${adtsChanelConfig}`);
+  // logger.log(`manifest codec:${audioCodec},ADTS data:type:${adtsObjectType},sampleingIndex:${adtsSampleingIndex}[${adtsSampleingRates[adtsSampleingIndex]}Hz],channelConfig:${adtsChanelConfig}`);
   // firefox: freq less than 24kHz = AAC SBR (HE-AAC)
   if (/firefox/i.test(userAgent)) {
     if (adtsSampleingIndex >= 6) {
@@ -180,7 +191,7 @@ export function initTrackConfig (track, data, offset, audioCodec) {
     track.channelCount = config.channelCount;
     track.codec = config.codec;
     track.manifestCodec = config.manifestCodec;
-    //logger.log(`parsed codec:${track.codec},rate:${config.samplerate},nb channel:${config.channelCount}`);
+    // logger.log(`parsed codec:${track.codec},rate:${config.samplerate},nb channel:${config.channelCount}`);
   }
 }
 
@@ -189,7 +200,7 @@ export function getFrameDuration (samplerate) {
 }
 
 export function parseFrameHeader (data, offset, pts, frameIndex, frameDuration) {
-  let headerLength, frameLength, stamp;
+  let headerLength; let frameLength; let stamp;
   let length = data.length;
 
   // The protection skip bit tells us if we have 2 bytes of CRC data at the end of the ADTS header

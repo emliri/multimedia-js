@@ -1,10 +1,10 @@
-import {PayloadDescriptor} from './mime-type';
-import {Packet, PacketReceiveCallback} from './packet';
+import { PayloadDescriptor } from './mime-type';
+import { Packet, PacketReceiveCallback } from './packet';
 
-import {getLogger, makeLogTimestamped, LoggerLevels} from '../logger'
+import { getLogger, makeLogTimestamped, LoggerLevels } from '../logger';
 import { Signal, SignalHandler, SignalReceiver, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 
-const {log} = getLogger('Socket', LoggerLevels.OFF)
+const { log } = getLogger('Socket', LoggerLevels.OFF);
 
 export enum SocketType {
     INPUT,
@@ -14,16 +14,16 @@ export enum SocketType {
 export class SocketState {
     transferring: boolean;
 
-    constructor() {
-        this.transferring = false;
+    constructor () {
+      this.transferring = false;
     }
-};
+}
 
 export class SocketDescriptor {
     payloads: PayloadDescriptor[];
 
-    constructor(payloads?: PayloadDescriptor[]) {
-        this.payloads = payloads || [];
+    constructor (payloads?: PayloadDescriptor[]) {
+      this.payloads = payloads || [];
     }
 }
 
@@ -40,33 +40,33 @@ export abstract class Socket implements SignalReceiver {
 
     protected owner: SocketOwner = null;
 
-    constructor(type: SocketType, descriptor: SocketDescriptor) {
-        this.type_ = type;
-        this.descriptor_ = descriptor;
-        this.state_ = new SocketState();
+    constructor (type: SocketType, descriptor: SocketDescriptor) {
+      this.type_ = type;
+      this.descriptor_ = descriptor;
+      this.state_ = new SocketState();
     }
 
-    type(): SocketType {
-        return this.type_;
+    type (): SocketType {
+      return this.type_;
     }
 
-    payloads(): PayloadDescriptor[] {
-        return this.descriptor_.payloads;
+    payloads (): PayloadDescriptor[] {
+      return this.descriptor_.payloads;
     }
 
     /**
      * Read transferring flag of socket state.
      */
-    isTransferring(): boolean {
-        return this.state_.transferring;
+    isTransferring (): boolean {
+      return this.state_.transferring;
     }
 
     /**
      * For subclasses only. Set the transfering flag of the socket state.
-     * @param b
+    b
      */
-    protected setTransferring_(b: boolean) {
-        this.state_.transferring = b;
+    protected setTransferring_ (b: boolean) {
+      this.state_.transferring = b;
     }
 
     /**
@@ -75,7 +75,7 @@ export abstract class Socket implements SignalReceiver {
      * Return `false` value may indicate that the socket is not peered
      * and thus no effective transfer took place, or that the data processing handler
      * is not set in some other way, or an error was thrown when processing.
-     * @param p
+    p
      */
     abstract transfer(p: Packet): boolean;
 
@@ -98,49 +98,48 @@ export abstract class Socket implements SignalReceiver {
      * This is a detail that is implemeneted by the i/o sockets (and can be opted-in when implementing
      * from abstract socket).
      *
-     * @param signal
+    signal
      */
-    cast(signal: Signal): SignalReceiverCastResult {
+    cast (signal: Signal): SignalReceiverCastResult {
       if (this.signalHandler_) {
         return this.signalHandler_(signal);
       }
     }
 
-    setSignalHandler(signalHandler: SignalHandler) {
+    setSignalHandler (signalHandler: SignalHandler) {
       this.signalHandler_ = signalHandler;
     }
 
-    setOwner(owner: SocketOwner) {
+    setOwner (owner: SocketOwner) {
       this.owner = owner;
     }
 
-    getOwner(): SocketOwner {
+    getOwner (): SocketOwner {
       return this.owner;
     }
 }
 
 export class InputSocket extends Socket {
-
     private onReceive_: PacketReceiveCallback;
 
-    constructor(onReceive: PacketReceiveCallback, descriptor: SocketDescriptor) {
-        super(SocketType.INPUT, descriptor);
-        this.onReceive_ = onReceive;
+    constructor (onReceive: PacketReceiveCallback, descriptor: SocketDescriptor) {
+      super(SocketType.INPUT, descriptor);
+      this.onReceive_ = onReceive;
     }
 
-    transfer(p: Packet): boolean {
-        this.setTransferring_(true);
-        const b = this.onReceive_(p);
-        this.setTransferring_(false);
-        return b;
+    transfer (p: Packet): boolean {
+      this.setTransferring_(true);
+      const b = this.onReceive_(p);
+      this.setTransferring_(false);
+      return b;
     }
 
     /**
      * Overloads Socket cast method and also casts signal to owner as well as calling
      * super class cast, which call handler.
-     * @param s
+    s
      */
-    cast(s: Signal): SignalReceiverCastResult {
+    cast (s: Signal): SignalReceiverCastResult {
       return collectSignalReceiverCastResults([
         this.owner.cast(s),
         super.cast(s)
@@ -149,23 +148,20 @@ export class InputSocket extends Socket {
 }
 
 export class OutputSocket extends Socket {
-
     private peers_: Socket[];
 
-    constructor(descriptor: SocketDescriptor) {
+    constructor (descriptor: SocketDescriptor) {
       super(SocketType.OUTPUT, descriptor);
       this.peers_ = [];
     }
 
-    transfer(p: Packet): boolean {
-
-      log(makeLogTimestamped('OutputSocket.transfer packet'))
+    transfer (p: Packet): boolean {
+      log(makeLogTimestamped('OutputSocket.transfer packet'));
 
       let b: boolean;
       this.setTransferring_(true);
       this.peers_.forEach((s) => {
-
-        log('call transfer on peer socket')
+        log('call transfer on peer socket');
 
         b = s.transfer(p);
         this.onPacketTransferred_(s, b);
@@ -176,10 +172,10 @@ export class OutputSocket extends Socket {
 
     /**
      *
-     * @param {Socket} s Socket to whiche this socket transfers data to.
-     * @returns {OutputSocket} This socket.
+    {Socket} s Socket to whiche this socket transfers data to.
+    {OutputSocket} This socket.
      */
-    connect(s: Socket) {
+    connect (s: Socket) {
       if (!s) {
         throw new Error('Socket connect called with ' + s);
       }
@@ -194,21 +190,21 @@ export class OutputSocket extends Socket {
       return this;
     }
 
-    disconnect(s: Socket) {
+    disconnect (s: Socket) {
       const index = this.peers_.indexOf(s);
       if (index < 0) {
-        throw new Error('Socket can not be disconnected as its not connected')
+        throw new Error('Socket can not be disconnected as its not connected');
       }
       this.peers_.splice(index, 1);
       return this;
     }
 
-    isConnectedTo(s: Socket) {
+    isConnectedTo (s: Socket) {
       const index = this.peers_.indexOf(s);
       return index >= 0;
     }
 
-    getPeerSockets() {
+    getPeerSockets () {
       return this.peers_;
     }
 
@@ -221,9 +217,9 @@ export class OutputSocket extends Socket {
      *
      * Also calls the super-class implementation and collects results together.
      *
-     * @param signal
+    signal
      */
-    cast(signal: Signal): SignalReceiverCastResult {
+    cast (signal: Signal): SignalReceiverCastResult {
       let peersOrOwner: SignalReceiverCastResult;
       if (signal.isDirectionDown()) {
         peersOrOwner = signal.emit(this.peers_);
@@ -244,10 +240,10 @@ export class OutputSocket extends Socket {
      * When it travels down, we don't need to do anything and return a
      * negative result (since we did not handle the signal)
      *
-     * @param peerSocket
-     * @param signal
+    peerSocket
+    signal
      */
-    private _onPeerSignalCast(peerSocket: Socket, signal: Signal): SignalReceiverCastResult {
+    private _onPeerSignalCast (peerSocket: Socket, signal: Signal): SignalReceiverCastResult {
       if (signal.isDirectionUp()) {
         return this.owner.cast(signal);
       } else {
@@ -255,8 +251,8 @@ export class OutputSocket extends Socket {
       }
     }
 
-    private onPacketTransferred_(peerSocket: Socket, peerTransferReturnVal: boolean) {
-      switch(peerSocket.type()) {
+    private onPacketTransferred_ (peerSocket: Socket, peerTransferReturnVal: boolean) {
+      switch (peerSocket.type()) {
       case SocketType.INPUT:
         this.onPacketTransferredToPeerInput_(peerTransferReturnVal);
         break;
@@ -266,9 +262,9 @@ export class OutputSocket extends Socket {
       }
     }
 
-    private onPacketTransferredToPeerInput_(peerTransferReturnVal: boolean) {}
+    private onPacketTransferredToPeerInput_ (peerTransferReturnVal: boolean) {}
 
-    private onPacketTransferredToPeerOutput_(peerTransferReturnVal: boolean) {}
+    private onPacketTransferredToPeerOutput_ (peerTransferReturnVal: boolean) {}
 }
 
 export abstract class SeekableOutputSocket extends OutputSocket {

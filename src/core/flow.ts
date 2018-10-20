@@ -1,18 +1,17 @@
-import { Processor } from "./processor";
-import { Socket } from "./socket";
+import { Processor } from './processor';
+import { Socket } from './socket';
 
 export enum FlowState {
   VOID = 'void',
   WAITING = 'waiting',
   FLOWING = 'flowing'
-};
+}
 
 export type FlowStateChangeCallback = (previousState: FlowState, newState: FlowState) => void;
 
 // TODO: create generic set class in objec-ts
 export abstract class Flow {
-
-  constructor(
+  constructor (
     public onStateChangePerformed: FlowStateChangeCallback,
     public onStateChangeAborted: (reason: string) => void
   ) {}
@@ -22,30 +21,29 @@ export abstract class Flow {
   private _pendingState: FlowState | null = null;
   private _prevState: FlowState | null = null;
 
-  add(...p: Processor[]) {
+  add (...p: Processor[]) {
     p.forEach((proc) => {
       this._processors.add(proc);
-    })
+    });
   }
 
-  remove(...p: Processor[]) {
+  remove (...p: Processor[]) {
     p.forEach((proc) => {
       if (!this._processors.delete(proc)) {
         throw new Error('Set delete method returned false');
       }
-    })
+    });
   }
 
-  get procList(): Processor[] {
+  get procList (): Processor[] {
     return Array.from(this._processors);
   }
 
-  get extSockets(): Socket[] {
+  get extSockets (): Socket[] {
     return Array.from(this.getExternalSockets());
   }
 
-  set state(newState: FlowState) {
-
+  set state (newState: FlowState) {
     if (this._pendingState) {
       throw new Error('Flow state-change still pending: ' + this._pendingState);
     }
@@ -80,34 +78,34 @@ export abstract class Flow {
       break;
     }
 
-    function fail() {
+    function fail () {
       throw new Error(`Can not transition from flow state ${currentState} to ${newState}`);
     }
   }
 
-  get state(): FlowState {
+  get state (): FlowState {
     return this._state;
   }
 
-  getPendingState(): FlowState | null {
+  getPendingState (): FlowState | null {
     return this._pendingState;
   }
 
-  getPreviousState(): FlowState | null {
+  getPreviousState (): FlowState | null {
     return this._prevState;
   }
 
-  abortPendingStateChange(reason: string) {
+  abortPendingStateChange (reason: string) {
     this.onStateChangeAborted_(reason);
     this._pendingState = null;
     this.onStateChangeAborted(reason);
   }
 
-  getExternalSockets(): Set<Socket> {
+  getExternalSockets (): Set<Socket> {
     return new Set();
   }
 
-  private onStateChangePerformed_(newState) {
+  private onStateChangePerformed_ (newState) {
     this._prevState = this._state;
     this._state = newState;
     this._pendingState = null;

@@ -23,8 +23,8 @@ export const UNKNOWN_MIMETYPE = 'unknown/*';
  *
  */
 
-export function appendCodecsToMimeType(mimeType: MimeType, codec: string[]): string {
-  return mimeType
+export function appendCodecsToMimeType (mimeType: MimeType, codec: string[]): string {
+  return mimeType;
 }
 
 export enum PayloadDataFormat {
@@ -70,21 +70,20 @@ export class PayloadDescriptor {
 
     details: PayloadDetails = new PayloadDetails();
 
-    constructor(mimeType: string, sampleDuration: number = NaN, sampleDepth: number = NaN) {
+    constructor (mimeType: string, sampleDuration: number = NaN, sampleDepth: number = NaN) {
+      this.mimeType = mimeType;
+      this.sampleDuration = sampleDuration;
+      this.sampleDepth = sampleDepth;
 
-        this.mimeType = mimeType;
-        this.sampleDuration = sampleDuration;
-        this.sampleDepth = sampleDepth;
-
-        this.dataFormat = PayloadDataFormat.UNSPECIFIED;
-        this.dataLayout = PayloadDataLayout.UNSPECIFIED;
+      this.dataFormat = PayloadDataFormat.UNSPECIFIED;
+      this.dataLayout = PayloadDataLayout.UNSPECIFIED;
     }
 
-    getSampleSize(): number {
-        return this.sampleDepth / 8;
+    getSampleSize (): number {
+      return this.sampleDepth / 8;
     }
 
-    getSamplingRate(): number {
-        return (1 / this.sampleDuration);
+    getSamplingRate (): number {
+      return (1 / this.sampleDuration);
     }
 }

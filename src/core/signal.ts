@@ -69,12 +69,12 @@
  */
 
 export enum SignalDirection {
-  UP =   -1, // should be passed up data direction
+  UP = -1, // should be passed up data direction
   DOWN = +1, // should be passed down data direction
-  ZERO =  0  // no propagation
+  ZERO = 0 // no propagation
 }
 
-export type SignalReceiverCastResult = Promise<boolean>;;
+export type SignalReceiverCastResult = Promise<boolean>;
 
 export type SignalHandler = (sig: Signal) => SignalReceiverCastResult;
 
@@ -82,44 +82,43 @@ export interface SignalReceiver {
   cast(signal: Signal): SignalReceiverCastResult;
 }
 
-export function collectSignalReceiverCastResults(results: SignalReceiverCastResult[]): SignalReceiverCastResult {
+export function collectSignalReceiverCastResults (results: SignalReceiverCastResult[]): SignalReceiverCastResult {
   if (results.length === 0) {
     return Promise.resolve(false);
   }
   return Promise.all(results).then((results) => {
     return results.some((res) => res === true);
-  })
+  });
 }
 
 export class Signal {
-  constructor(
+  constructor (
     private _direction: SignalDirection
   ) {}
 
-  direction(): SignalDirection {
+  direction (): SignalDirection {
     return this._direction;
   }
 
-  isDirectionUp() {
+  isDirectionUp () {
     return this._direction === SignalDirection.UP;
   }
 
-  isDirectionDown() {
+  isDirectionDown () {
     return this._direction === SignalDirection.DOWN;
   }
 
-  isDirectionZero() {
+  isDirectionZero () {
     return this._direction === SignalDirection.ZERO;
   }
 
   /**
    * Broadcast method
-   * @param receivers
+  receivers
    */
-  emit(receivers: SignalReceiver[]): SignalReceiverCastResult {
+  emit (receivers: SignalReceiver[]): SignalReceiverCastResult {
     return collectSignalReceiverCastResults(
       receivers.map((receiver: SignalReceiver) => receiver.cast(this))
     );
   }
 }
-

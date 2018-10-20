@@ -1,8 +1,8 @@
-import {Processor} from '../core/processor';
-import {Packet} from '../core/packet';
-import {InputSocket, SocketDescriptor, SocketType} from '../core/socket';
+import { Processor } from '../core/processor';
+import { Packet } from '../core/packet';
+import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
-import {CommonMimeTypes} from '../core/mime-type'
+import { CommonMimeTypes } from '../core/mime-type';
 
 import { BufferSlice, BufferProperties } from '../core/buffer';
 
@@ -13,83 +13,79 @@ import { H264Parser } from './h264/h264';
 import { NALU } from './h264/nalu';
 
 export class H264ParseProcessor extends Processor {
-
-  //private h264Reader: H264Reader;
+  // private h264Reader: H264Reader;
 
   private h264Parser: H264Parser = new H264Parser();
 
-  constructor() {
-    super()
-    this.createInput()
-    this.createOutput()
+  constructor () {
+    super();
+    this.createInput();
+    this.createOutput();
   }
 
-  templateSocketDescriptor(st: SocketType): SocketDescriptor {
-    return new SocketDescriptor()
+  templateSocketDescriptor (st: SocketType): SocketDescriptor {
+    return new SocketDescriptor();
   }
 
-  protected processTransfer_(inS: InputSocket, p: Packet) {
-
+  protected processTransfer_ (inS: InputSocket, p: Packet) {
     p.forEachBufferSlice(
       this._onBufferSlice.bind(this, p),
-      //this._onProcessingError,
+      // this._onProcessingError,
       null,
-      this)
+      this);
 
-    return true
+    return true;
   }
 
-  private _onProcessingError(bufferSlice: BufferSlice, err: Error): boolean {
-    console.error('H264Parse error:', err)
+  private _onProcessingError (bufferSlice: BufferSlice, err: Error): boolean {
+    console.error('H264Parse error:', err);
 
     return false;
-
   }
 
-  private _onBufferSlice(p: Packet, bufferSlice: BufferSlice) {
+  private _onBufferSlice (p: Packet, bufferSlice: BufferSlice) {
     const avcStream = bufferSlice.getUint8Array();
     const avcView = bufferSlice.getDataView();
 
     let length;
 
-    //console.log('got buffer of length:', avcStream.length)
+    // console.log('got buffer of length:', avcStream.length)
 
     for (let i = 0; i < avcStream.length; i += length) {
+      length = avcView.getUint32(i);
 
-        length = avcView.getUint32(i);
+      if (length > avcStream.length) {
+        // console.warn('No NALUs found! Forwarding data anyway...');
+        this.out[0].transfer(p);
+        break; // no NALUs, but forward data anyway
+      }
 
-        if (length > avcStream.length) {
-          //console.warn('No NALUs found! Forwarding data anyway...');
-          this.out[0].transfer(p);
-          break; // no NALUs, but forward data anyway
-        }
+      i += 4;
 
-        i += 4;
+      const naluSlice = bufferSlice.unwrap(i, length);
+      const naluBytes = naluSlice.getUint8Array();
+      const nalu = new NALU(naluBytes);
 
-        const naluSlice = bufferSlice.unwrap(i, length);
-        const naluBytes = naluSlice.getUint8Array();
-        const nalu = new NALU(naluBytes);
+      const type = nalu.type();
 
-        const type = nalu.type();
+      // console.log(naluBytes.byteLength)
+      // console.log(nalu.toString())
 
-        //console.log(naluBytes.byteLength)
-        //console.log(nalu.toString())
+      if (type === NALU.IDR || type === NALU.SPS || type === NALU.PPS) {
+        console.log(nalu.toString(), p.timestamp);
+      }
 
-        if (type === NALU.IDR || type === NALU.SPS || type === NALU.PPS) {
-          console.log(nalu.toString(), p.timestamp);
-        }
+      naluSlice.props.isKeyframe = (type === NALU.IDR);
 
-        naluSlice.props.isKeyframe = (type === NALU.IDR);
-
-        this.out[0].transfer(
-          p
-          /*
+      this.out[0].transfer(
+        p
+        /*
           Packet.fromSlice(
             bufferSlice // naluSlice // <- that would "unframe" the NALU bytes, like this we just pass through after parsing
           )
-          //*/
-          //Packet.fromArrayBuffer()
-        )
+          // */
+        // Packet.fromArrayBuffer()
+      );
     }
   }
 }

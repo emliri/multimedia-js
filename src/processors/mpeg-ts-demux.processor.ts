@@ -1,19 +1,18 @@
-import { Processor } from "../core/processor";
+import { Processor } from '../core/processor';
 
-import {createMpegTSDemuxer, TSTrack, Frame} from '../ext-mod/inspector.js/src';
+import { createMpegTSDemuxer, TSTrack, Frame } from '../ext-mod/inspector.js/src';
 
-import { SocketDescriptor, SocketType, InputSocket, OutputSocket } from "../core/socket";
-import { Packet } from "../core/packet";
+import { SocketDescriptor, SocketType, InputSocket, OutputSocket } from '../core/socket';
+import { Packet } from '../core/packet';
 
-import {forEachOwnPropKeyInObject, dispatchAsyncTask} from "../common-utils"
-import { BufferProperties, BufferSlice } from "../core/buffer";
+import { forEachOwnPropKeyInObject, dispatchAsyncTask } from '../common-utils';
+import { BufferProperties, BufferSlice } from '../core/buffer';
 
-import {getLogger} from '../logger';
+import { getLogger } from '../logger';
 
-const {log} = getLogger('MPEGTSDemuxProcessor')
+const { log } = getLogger('MPEGTSDemuxProcessor');
 
 export class MPEGTSDemuxProcessor extends Processor {
-
   private _tsDemux = createMpegTSDemuxer();
 
   private _onCreateOutput: (out: OutputSocket) => void;
@@ -21,17 +20,17 @@ export class MPEGTSDemuxProcessor extends Processor {
   private _haveAudio: boolean = false;
   private _haveVideo: boolean = false;
 
-  constructor() {
+  constructor () {
     super();
-    this.createInput()
+    this.createInput();
   }
 
-  templateSocketDescriptor(socketType: SocketType): SocketDescriptor {
-    return new SocketDescriptor()
+  templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
+    return new SocketDescriptor();
   }
 
-  protected onWorkerMessage(event: Event) {
-    //log('worker message', event)
+  protected onWorkerMessage (event: Event) {
+    // log('worker message', event)
 
     const p = Packet.fromTransferable((event as any).data.packet);
 
@@ -48,22 +47,20 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
   */
 
-
-  ///*
-  protected processTransfer_(inS: InputSocket, p: Packet) {
-
+  /// *
+  protected processTransfer_ (inS: InputSocket, p: Packet) {
     if (this.out.length === 0) {
       this.createOutput();
     }
 
-    //dispatchAsyncTask(this.processPacket_.bind(this, p))
+    // dispatchAsyncTask(this.processPacket_.bind(this, p))
 
     this.dispatchWorkerTask('tsdemuxer', p);
 
     return true;
   }
 
-  //*/
+  //* /
 
   // Using inspector.js - FIXME: need to write copies of ES NALUs
   /*
@@ -127,6 +124,5 @@ export class MPEGTSDemuxProcessor extends Processor {
 
     return true;
   }
-  //*/
-
+  // */
 }

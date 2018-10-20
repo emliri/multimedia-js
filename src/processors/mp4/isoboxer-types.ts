@@ -1,6 +1,6 @@
 export type ISOFileCursor = {
   offset: number
-}
+};
 
 export type ISOBox = {
   size: number,
@@ -17,7 +17,7 @@ export type ISOBox = {
   write: () => number
   append: (box: ISOBox, pos: number) => void
   getLength: () => number
-}
+};
 
 export type ISOFile = {
   boxes: ISOBox[]
@@ -29,4 +29,4 @@ export type ISOFile = {
   parse: () => ISOFile
   write: () => ArrayBuffer
   append: (box: ISOBox, pos: number) => void
-}
+};

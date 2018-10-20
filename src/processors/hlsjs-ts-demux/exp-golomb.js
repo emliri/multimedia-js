@@ -16,11 +16,15 @@ class ExpGolomb {
   // ():void
   loadWord () {
     let
-      data = this.data,
-      bytesAvailable = this.bytesAvailable,
-      position = data.byteLength - bytesAvailable,
-      workingBytes = new Uint8Array(4),
-      availableBytes = Math.min(4, bytesAvailable);
+      data = this.data;
+
+    let bytesAvailable = this.bytesAvailable;
+
+    let position = data.byteLength - bytesAvailable;
+
+    let workingBytes = new Uint8Array(4);
+
+    let availableBytes = Math.min(4, bytesAvailable);
     if (availableBytes === 0) {
       throw new Error('no bytes available');
     }
@@ -52,8 +56,10 @@ class ExpGolomb {
   // (size:int):uint
   readBits (size) {
     let
-      bits = Math.min(this.bitsAvailable, size), // :uint
-      valu = this.word >>> (32 - bits); // :uint
+      bits = Math.min(this.bitsAvailable, size);
+    // :uint
+
+    let valu = this.word >>> (32 - bits); // :uint
     if (size > 32) {
       console.error('Cannot read more than 32 bits at a time');
     }
@@ -140,15 +146,18 @@ class ExpGolomb {
    * Advance the ExpGolomb decoder past a scaling list. The scaling
    * list is optionally transmitted as part of a sequence parameter
    * set and is not relevant to transmuxing.
-   * @param count {number} the number of entries in this scaling list
+  count {number} the number of entries in this scaling list
    * @see Recommendation ITU-T H.264, Section 7.3.2.1.1.1
    */
   skipScalingList (count) {
     let
-      lastScale = 8,
-      nextScale = 8,
-      j,
-      deltaScale;
+      lastScale = 8;
+
+    let nextScale = 8;
+
+    let j;
+
+    let deltaScale;
     for (j = 0; j < count; j++) {
       if (nextScale !== 0) {
         deltaScale = this.readEG();
@@ -162,31 +171,48 @@ class ExpGolomb {
    * Read a sequence parameter set and return some interesting video
    * properties. A sequence parameter set is the H264 metadata that
    * describes the properties of upcoming video frames.
-   * @param data {Uint8Array} the bytes of a sequence parameter set
-   * @return {object} an object with configuration parsed from the
+  data {Uint8Array} the bytes of a sequence parameter set
+  {object} an object with configuration parsed from the
    * sequence parameter set, including the dimensions of the
    * associated video frames.
    */
   readSPS () {
     let
-      frameCropLeftOffset = 0,
-      frameCropRightOffset = 0,
-      frameCropTopOffset = 0,
-      frameCropBottomOffset = 0,
-      profileIdc, profileCompat, levelIdc,
-      numRefFramesInPicOrderCntCycle, picWidthInMbsMinus1,
-      picHeightInMapUnitsMinus1,
-      frameMbsOnlyFlag,
-      scalingListCount,
-      i,
-      readUByte = this.readUByte.bind(this),
-      readBits = this.readBits.bind(this),
-      readUEG = this.readUEG.bind(this),
-      readBoolean = this.readBoolean.bind(this),
-      skipBits = this.skipBits.bind(this),
-      skipEG = this.skipEG.bind(this),
-      skipUEG = this.skipUEG.bind(this),
-      skipScalingList = this.skipScalingList.bind(this);
+      frameCropLeftOffset = 0;
+
+    let frameCropRightOffset = 0;
+
+    let frameCropTopOffset = 0;
+
+    let frameCropBottomOffset = 0;
+
+    let profileIdc; let profileCompat; let levelIdc;
+
+    let numRefFramesInPicOrderCntCycle; let picWidthInMbsMinus1;
+
+    let picHeightInMapUnitsMinus1;
+
+    let frameMbsOnlyFlag;
+
+    let scalingListCount;
+
+    let i;
+
+    let readUByte = this.readUByte.bind(this);
+
+    let readBits = this.readBits.bind(this);
+
+    let readUEG = this.readUEG.bind(this);
+
+    let readBoolean = this.readBoolean.bind(this);
+
+    let skipBits = this.skipBits.bind(this);
+
+    let skipEG = this.skipEG.bind(this);
+
+    let skipUEG = this.skipUEG.bind(this);
+
+    let skipScalingList = this.skipScalingList.bind(this);
 
     readUByte();
     profileIdc = readUByte(); // profile_idc

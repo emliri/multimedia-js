@@ -1,27 +1,26 @@
-import { Processor } from "../core/processor";
-import { InputSocket, SocketDescriptor, SocketType } from "../core/socket";
-import { Packet, PacketSymbol } from "../core/packet";
+import { Processor } from '../core/processor';
+import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
+import { Packet, PacketSymbol } from '../core/packet';
 
-import {Fmp4Remuxer, Fmp4RemuxerEvent, Fmp4RemuxerConfig,
+import { Fmp4Remuxer, Fmp4RemuxerEvent, Fmp4RemuxerConfig,
   Fmp4RemuxerAudioTrack,
   Fmp4RemuxerVideoTrack,
   Fmp4RemuxerId3Track,
   Fmp4RemuxerTextTrack
 } from './hlsjs-fmp4-mux/mp4-remuxer';
 
-import { BufferSlice } from "../core/buffer";
-import { getLogger } from "../logger";
+import { BufferSlice } from '../core/buffer';
+import { getLogger } from '../logger';
 
-const {log} = getLogger('MP4MuxHlsjsProcessor');
+const { log } = getLogger('MP4MuxHlsjsProcessor');
 
 const config: Fmp4RemuxerConfig = {
   maxBufferHole: 1.5,
   maxAudioFramesDrift: 2,
   stretchShortVideoTrack: false
-}
+};
 
 export class MP4MuxHlsjsProcessor extends Processor {
-
   private _fmp4Remux: Fmp4Remuxer = new Fmp4Remuxer(
     this._onFmp4Event.bind(this),
     config,
@@ -67,23 +66,20 @@ export class MP4MuxHlsjsProcessor extends Processor {
     manifestCodec: null
   }
 
-  constructor() {
+  constructor () {
     super();
     this.createOutput();
   }
 
-  templateSocketDescriptor(st: SocketType): SocketDescriptor {
-    return new SocketDescriptor()
+  templateSocketDescriptor (st: SocketType): SocketDescriptor {
+    return new SocketDescriptor();
   }
 
-  protected processTransfer_(inS: InputSocket, p: Packet) {
-
+  protected processTransfer_ (inS: InputSocket, p: Packet) {
     p.forEachBufferSlice((bufferSlice: BufferSlice) => {
-
-      //console.log(p.timestamp)
+      // console.log(p.timestamp)
 
       if (bufferSlice.props.isBitstreamHeader) {
-
         // note: per spec, sps/pps can be several buffers
         if (bufferSlice.props.tags.has('sps')) {
           this._videoTrack.sps = [bufferSlice.getUint8Array()];
@@ -103,11 +99,11 @@ export class MP4MuxHlsjsProcessor extends Processor {
         dts: p.timestamp,
         length: 1,
         id: this._videoTrackPacketIndex,
-        units: [{data: bufferSlice.getUint8Array()}],
+        units: [{ data: bufferSlice.getUint8Array() }],
         key: bufferSlice.props.isKeyframe
-      })
+      });
 
-      this._videoTrackPacketIndex++
+      this._videoTrackPacketIndex++;
     });
 
     return true;
@@ -115,40 +111,39 @@ export class MP4MuxHlsjsProcessor extends Processor {
 
   /**
    * @override
-   * @param symbol
+  symbol
    */
-  protected handleSymbolicPacket_(symbol: PacketSymbol): boolean {
-
+  protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
     if (symbol === PacketSymbol.FLUSH) {
       this._flush();
     }
 
     return false;
-    //return super.handleSymbolicPacket_(symbol);
+    // return super.handleSymbolicPacket_(symbol);
   }
 
-  private _onFmp4Event(event: Fmp4RemuxerEvent, data: any) {
+  private _onFmp4Event (event: Fmp4RemuxerEvent, data: any) {
     log('fmp4remux event >', event, data);
 
-    switch(event) {
+    switch (event) {
     case 'init-pts-found':
       break;
-    case 'frag-parsing-init-segment':{
-      const {tracks: {video: {initSegment}}} = data;
-      //console.log(initSegment)
-      this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(initSegment)))
+    case 'frag-parsing-init-segment': {
+      const { tracks: { video: { initSegment } } } = data;
+      // console.log(initSegment)
+      this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(initSegment)));
       break;
-      }
+    }
     case 'frag-parsing-data': {
-      const {data1, data2} = data;
-      this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data1)))
-      this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data2)))
+      const { data1, data2 } = data;
+      this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data1)));
+      this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data2)));
       break;
-      }
+    }
     }
   }
 
-  private _flush() {
+  private _flush () {
     if (this._videoTrackPacketIndex === 0) {
       return;
     }

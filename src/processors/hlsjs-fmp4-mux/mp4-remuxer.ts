@@ -7,13 +7,13 @@ import MP4 from './mp4-generator';
 
 import { getLogger } from '../../logger';
 
-const {log, warn, debug} = getLogger('Fmp4Remuxer');
+const { log, warn, debug } = getLogger('Fmp4Remuxer');
 
 const logger = {
   warn,
   log,
   trace: debug
-}
+};
 
 // 10 seconds
 const MAX_SILENT_FRAME_DURATION = 10 * 1000;
@@ -33,7 +33,7 @@ const Event = Fmp4RemuxerEvent;
 
 export type Fmp4RemuxerNALU = {
   data: Uint8Array
-}
+};
 
 export type Fmp4RemuxerSample = {
   pts: number
@@ -42,7 +42,7 @@ export type Fmp4RemuxerSample = {
   id: number,
   units: Fmp4RemuxerNALU[]
   key: boolean
-}
+};
 
 export type Fmp4RemuxerTrack = {
   type: 'audio' | 'video'
@@ -53,7 +53,7 @@ export type Fmp4RemuxerTrack = {
   inputTimeScale: number
   sequenceNumber: number
   samples: Fmp4RemuxerSample[]
-}
+};
 
 export type Fmp4RemuxerAudioTrack = Fmp4RemuxerTrack & {
   manifestCodec: string
@@ -64,7 +64,7 @@ export type Fmp4RemuxerAudioTrack = Fmp4RemuxerTrack & {
 
   len: number
   nbNalu: number
-}
+};
 
 export type Fmp4RemuxerVideoTrack = Fmp4RemuxerTrack & {
   sps: Uint8Array[]
@@ -76,15 +76,15 @@ export type Fmp4RemuxerVideoTrack = Fmp4RemuxerTrack & {
 
   len: number
   nbNalu: number
-}
+};
 
 export type Fmp4RemuxerId3Track = {
   samples: Fmp4RemuxerSample[]
-}
+};
 
 export type Fmp4RemuxerTextTrack = {
   samples: Fmp4RemuxerSample[]
-}
+};
 
 export type Fmp4RemuxerEventHandler = (event: Fmp4RemuxerEvent, data?) => void;
 
@@ -92,7 +92,7 @@ export type Fmp4RemuxerConfig = {
   maxBufferHole: number
   maxAudioFramesDrift: number,
   stretchShortVideoTrack: boolean
-}
+};
 
 export type Fmp4RemuxerTypesSupported = {
   [key: string]: boolean
@@ -104,7 +104,6 @@ class Fmp4RemuxerTrackState {
 }
 
 export class Fmp4Remuxer {
-
   private readonly _config: Fmp4RemuxerConfig;
   private readonly _typeSupported: Fmp4RemuxerTypesSupported;
   private readonly _isSafari: boolean;
@@ -119,14 +118,13 @@ export class Fmp4Remuxer {
   private _initDTS: number = 0;
 
   constructor (onEvent: Fmp4RemuxerEventHandler, config: Fmp4RemuxerConfig,
-      typeSupported: Fmp4RemuxerTypesSupported = {}) {
-
+    typeSupported: Fmp4RemuxerTypesSupported = {}) {
     this._observer = {
       trigger: (event: Fmp4RemuxerEvent, data?: any) => {
-        logger.log('event:', event, data)
+        logger.log('event:', event, data);
         onEvent(event, data);
       }
-    }
+    };
 
     this._config = config;
     this._typeSupported = typeSupported;
@@ -136,14 +134,14 @@ export class Fmp4Remuxer {
   destroy () {}
 
   process (
-        audioTrack: Fmp4RemuxerAudioTrack,
-        videoTrack: Fmp4RemuxerVideoTrack,
-        id3Track: Fmp4RemuxerId3Track | null,
-        textTrack: Fmp4RemuxerTextTrack | null,
-        timeOffset: number,
-        contiguous: boolean,
-        accurateTimeOffset: boolean
-      ) {
+    audioTrack: Fmp4RemuxerAudioTrack,
+    videoTrack: Fmp4RemuxerVideoTrack,
+    id3Track: Fmp4RemuxerId3Track | null,
+    textTrack: Fmp4RemuxerTextTrack | null,
+    timeOffset: number,
+    contiguous: boolean,
+    accurateTimeOffset: boolean
+  ) {
     // generate Init Segment if needed
     if (!this._initSegmentGenerated) {
       this._generateInitSegment(audioTrack, videoTrack, timeOffset);
@@ -190,7 +188,6 @@ export class Fmp4Remuxer {
           this._remuxVideo(videoTrack, videoTimeOffset, contiguous, audioTrackLength, accurateTimeOffset);
         }
       } else {
-
         logger.log('nb AVC samples:' + videoTrack.samples.length);
 
         if (nbVideoSamples) {
@@ -218,17 +215,25 @@ export class Fmp4Remuxer {
   }
 
   private _generateInitSegment (audioTrack: Fmp4RemuxerAudioTrack, videoTrack: Fmp4RemuxerVideoTrack, timeOffset: number) {
+    let observer = this._observer;
 
-    let observer = this._observer,
-      audioSamples = audioTrack.samples,
-      videoSamples = videoTrack.samples,
-      typeSupported = this._typeSupported,
-      container = 'audio/mp4',
-      tracks: Fmp4RemuxerTrackState = new Fmp4RemuxerTrackState(),
-      data = { tracks: tracks },
-      computePTSDTS = (this._initPTS === undefined),
-      initPTS,
-      initDTS;
+    let audioSamples = audioTrack.samples;
+
+    let videoSamples = videoTrack.samples;
+
+    let typeSupported = this._typeSupported;
+
+    let container = 'audio/mp4';
+
+    let tracks: Fmp4RemuxerTrackState = new Fmp4RemuxerTrackState();
+
+    let data = { tracks: tracks };
+
+    let computePTSDTS = (this._initPTS === undefined);
+
+    let initPTS;
+
+    let initDTS;
 
     if (computePTSDTS) {
       initPTS = initDTS = Infinity;
@@ -298,19 +303,29 @@ export class Fmp4Remuxer {
 
   private _remuxVideo (track: Fmp4RemuxerVideoTrack,
     timeOffset: number, contiguous: boolean, audioTrackLength: number, accurateTimeOffset: boolean) {
+    let offset = 8;
 
-    let offset = 8,
-      timeScale = track.timescale,
-      mp4SampleDuration,
-      mdat, moof,
-      firstPTS, firstDTS,
-      nextDTS,
-      lastPTS, lastDTS,
-      inputSamples = track.samples,
-      outputSamples = [],
-      nbSamples = inputSamples.length,
-      ptsNormalize = this._normalizePts,
-      initDTS = this._initDTS;
+    let timeScale = track.timescale;
+
+    let mp4SampleDuration;
+
+    let mdat; let moof;
+
+    let firstPTS; let firstDTS;
+
+    let nextDTS;
+
+    let lastPTS; let lastDTS;
+
+    let inputSamples = track.samples;
+
+    let outputSamples = [];
+
+    let nbSamples = inputSamples.length;
+
+    let ptsNormalize = this._normalizePts;
+
+    let initDTS = this._initDTS;
 
     // for (let i = 0; i < track.samples.length; i++) {
     //   let avcSample = track.samples[i];
@@ -414,10 +429,10 @@ export class Fmp4Remuxer {
       mp4SampleDuration = Math.round((lastDTS - firstDTS) / (inputSamples.length - 1));
     }
 
-    let nbNalu = 0, naluLen = 0;
+    let nbNalu = 0; let naluLen = 0;
     for (let i = 0; i < nbSamples; i++) {
       // compute total/avc sample length and nb of NAL units
-      let sample = inputSamples[i], units = sample.units, nbUnits = units.length, sampleLen = 0;
+      let sample = inputSamples[i]; let units = sample.units; let nbUnits = units.length; let sampleLen = 0;
       for (let j = 0; j < nbUnits; j++) {
         sampleLen += units[j].data.length;
       }
@@ -453,15 +468,20 @@ export class Fmp4Remuxer {
     mdat.set((<any> MP4).types.mdat, 4);
 
     for (let i = 0; i < nbSamples; i++) {
-      let avcSample = inputSamples[i],
-        avcSampleUnits = avcSample.units,
-        mp4SampleLength = 0,
-        compositionTimeOffset;
+      let avcSample = inputSamples[i];
+
+      let avcSampleUnits = avcSample.units;
+
+      let mp4SampleLength = 0;
+
+      let compositionTimeOffset;
       // convert NALU bitstream to MP4 format (prepend NALU with size field)
       for (let j = 0, nbUnits = avcSampleUnits.length; j < nbUnits; j++) {
-        let unit = avcSampleUnits[j],
-          unitData = unit.data,
-          unitDataLen = unit.data.byteLength;
+        let unit = avcSampleUnits[j];
+
+        let unitData = unit.data;
+
+        let unitDataLen = unit.data.byteLength;
         view.setUint32(offset, unitDataLen);
         offset += 4;
         mdat.set(unitData, offset);
@@ -474,17 +494,20 @@ export class Fmp4Remuxer {
         if (i < nbSamples - 1) {
           mp4SampleDuration = inputSamples[i + 1].dts - avcSample.dts;
         } else {
-          let config = this._config,
-            lastFrameDuration = avcSample.dts - inputSamples[i > 0 ? i - 1 : i].dts;
+          let config = this._config;
+
+          let lastFrameDuration = avcSample.dts - inputSamples[i > 0 ? i - 1 : i].dts;
           if (config.stretchShortVideoTrack) {
             // In some cases, a segment's audio track duration may exceed the video track duration.
             // Since we've already remuxed audio, and we know how long the audio track is, we look to
             // see if the delta to the next segment is longer than maxBufferHole.
             // If so, playback would potentially get stuck, so we artificially inflate
             // the duration of the last frame to minimize any potential gap between segments.
-            let maxBufferHole = config.maxBufferHole,
-              gapTolerance = Math.floor(maxBufferHole * timeScale),
-              deltaToFrameEnd = (audioTrackLength ? firstPTS + audioTrackLength * timeScale : this._nextAudioPts) - avcSample.pts;
+            let maxBufferHole = config.maxBufferHole;
+
+            let gapTolerance = Math.floor(maxBufferHole * timeScale);
+
+            let deltaToFrameEnd = (audioTrackLength ? firstPTS + audioTrackLength * timeScale : this._nextAudioPts) - avcSample.pts;
             if (deltaToFrameEnd > gapTolerance) {
               // We subtract lastFrameDuration from deltaToFrameEnd to try to prevent any video
               // frame overlap. maxBufferHole should be >> lastFrameDuration anyway.
@@ -557,23 +580,37 @@ export class Fmp4Remuxer {
   }
 
   private _remuxAudio (track: Fmp4RemuxerAudioTrack, timeOffset: number, contiguous: boolean, accurateTimeOffset?) {
-    const inputTimeScale = track.inputTimeScale,
-      mp4timeScale = track.timescale,
-      scaleFactor = inputTimeScale / mp4timeScale,
-      mp4SampleDuration = track.isAAC ? 1024 : 1152,
-      inputSampleDuration = mp4SampleDuration * scaleFactor,
-      ptsNormalize = this._normalizePts,
-      initDTS = this._initDTS,
-      rawMPEG = !track.isAAC && this._typeSupported.mpeg;
+    const inputTimeScale = track.inputTimeScale;
 
-    let offset,
-      mp4Sample,
-      fillFrame,
-      mdat, moof,
-      firstPTS, lastPTS,
-      inputSamples = track.samples,
-      outputSamples = [],
-      nextAudioPts = this._nextAudioPts;
+    const mp4timeScale = track.timescale;
+
+    const scaleFactor = inputTimeScale / mp4timeScale;
+
+    const mp4SampleDuration = track.isAAC ? 1024 : 1152;
+
+    const inputSampleDuration = mp4SampleDuration * scaleFactor;
+
+    const ptsNormalize = this._normalizePts;
+
+    const initDTS = this._initDTS;
+
+    const rawMPEG = !track.isAAC && this._typeSupported.mpeg;
+
+    let offset;
+
+    let mp4Sample;
+
+    let fillFrame;
+
+    let mdat; let moof;
+
+    let firstPTS; let lastPTS;
+
+    let inputSamples = track.samples;
+
+    let outputSamples = [];
+
+    let nextAudioPts = this._nextAudioPts;
 
     // for audio samples, also consider consecutive fragments as being contiguous (even if a level switch occurs),
     // for sake of clarity:
@@ -625,7 +662,7 @@ export class Fmp4Remuxer {
       const maxAudioFramesDrift = this._config.maxAudioFramesDrift;
       for (let i = 0, nextPts = nextAudioPts; i < inputSamples.length;) {
         // First, let's see how far off this frame is from where we expect it to be
-        var sample = inputSamples[i], delta;
+        let sample = inputSamples[i]; var delta;
         let pts = sample.pts;
         delta = pts - nextPts;
 
@@ -660,7 +697,7 @@ export class Fmp4Remuxer {
               length: 1,
               id: 0,
               key: null
-             });
+            });
             track.len += fillFrame.length;
             nextPts += inputSampleDuration;
             i++;
@@ -691,8 +728,9 @@ export class Fmp4Remuxer {
       if (lastPTS !== undefined) {
         mp4Sample.duration = Math.round((pts - lastPTS) / scaleFactor);
       } else {
-        let delta = Math.round(1000 * (pts - nextAudioPts) / inputTimeScale),
-          numMissingFrames = 0;
+        let delta = Math.round(1000 * (pts - nextAudioPts) / inputTimeScale);
+
+        let numMissingFrames = 0;
         // if fragment are contiguous, detect hole/overlapping between fragments
         // contiguous fragments are consecutive fragments from same quality level (same level, new SN = old SN + 1)
         if (contiguous && track.isAAC) {
@@ -825,23 +863,33 @@ export class Fmp4Remuxer {
   }
 
   private _remuxEmptyAudio (track, timeOffset, contiguous, videoData) {
-    let inputTimeScale = track.inputTimeScale,
-      mp4timeScale = track.samplerate ? track.samplerate : inputTimeScale,
-      scaleFactor = inputTimeScale / mp4timeScale,
-      nextAudioPts = this._nextAudioPts,
+    let inputTimeScale = track.inputTimeScale;
 
-      // sync with video's timestamp
-      startDTS = (nextAudioPts !== undefined ? nextAudioPts : videoData.startDTS * inputTimeScale) + this._initDTS,
-      endDTS = videoData.endDTS * inputTimeScale + this._initDTS,
-      // one sample's duration value
-      sampleDuration = 1024,
-      frameDuration = scaleFactor * sampleDuration,
+    let mp4timeScale = track.samplerate ? track.samplerate : inputTimeScale;
 
-      // samples count of this segment's duration
-      nbSamples = Math.ceil((endDTS - startDTS) / frameDuration),
+    let scaleFactor = inputTimeScale / mp4timeScale;
 
-      // silent frame
-      silentFrame = AAC.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+    let nextAudioPts = this._nextAudioPts;
+
+    // sync with video's timestamp
+
+    let startDTS = (nextAudioPts !== undefined ? nextAudioPts : videoData.startDTS * inputTimeScale) + this._initDTS;
+
+    let endDTS = videoData.endDTS * inputTimeScale + this._initDTS;
+
+    // one sample's duration value
+
+    let sampleDuration = 1024;
+
+    let frameDuration = scaleFactor * sampleDuration;
+
+    // samples count of this segment's duration
+
+    let nbSamples = Math.ceil((endDTS - startDTS) / frameDuration);
+
+    // silent frame
+
+    let silentFrame = AAC.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
 
     logger.warn('remux empty Audio');
     // Can't remux if we can't generate a silent frame...
@@ -862,7 +910,7 @@ export class Fmp4Remuxer {
   }
 
   private _remuxID3 (track, timeOffset) {
-    let length = track.samples.length, sample;
+    let length = track.samples.length; let sample;
     const inputTimeScale = track.inputTimeScale;
     const initPTS = this._initPTS;
     const initDTS = this._initDTS;
@@ -889,7 +937,7 @@ export class Fmp4Remuxer {
       return (a.pts - b.pts);
     });
 
-    let length = track.samples.length, sample;
+    let length = track.samples.length; let sample;
     const inputTimeScale = track.inputTimeScale;
     const initPTS = this._initPTS;
     // consume samples
@@ -932,4 +980,3 @@ export class Fmp4Remuxer {
     return value;
   }
 }
-

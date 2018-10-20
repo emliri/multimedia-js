@@ -16,7 +16,7 @@ import SampleAesDecrypter from './sample-aes';
 
 // import Hex from '../utils/hex';
 
-const {log, warn} = self.console;
+const { log, warn } = self.console;
 
 // We are using fixed track IDs for driving the MP4 remuxer
 // instead of following the TS PIDs.
@@ -35,7 +35,7 @@ const RemuxerTrackIdConfig = {
 
 export type TSDemuxerConfig = {
   forceKeyFrameOnDiscontinuity: boolean
-}
+};
 
 export type TSDemuxerCallback = (audioTrack, avcTrack, id3Track, txtTrack, timeOffset, contiguous, accurateTimeOffset) => {};
 
@@ -65,7 +65,7 @@ export class TSDemuxer {
   _initPTS: any;
   _initDTS: any;
 
-  constructor (onDemux: TSDemuxerCallback, config: Partial<TSDemuxerConfig> = {}, typeSupported: {mpeg: boolean, mp3: boolean} = {mpeg: true, mp3: true}) {
+  constructor (onDemux: TSDemuxerCallback, config: Partial<TSDemuxerConfig> = {}, typeSupported: {mpeg: boolean, mp3: boolean} = { mpeg: true, mp3: true }) {
     this.config = config;
     this.typeSupported = typeSupported;
     this.onDemux = onDemux;
@@ -111,9 +111,9 @@ export class TSDemuxer {
   /**
    * Creates a track model internal to demuxer used to drive remuxing input
    *
-   * @param {string} type 'audio' | 'video' | 'id3' | 'text'
-   * @param {number} duration
-   * @return {object} TSDemuxer's internal track model
+  {string} type 'audio' | 'video' | 'id3' | 'text'
+  {number} duration
+  {object} TSDemuxer's internal track model
    */
   static createTrack (type, duration) {
     return {
@@ -135,9 +135,9 @@ export class TSDemuxer {
    * Initializes a new init segment on the demuxer. Needed for discontinuities/track-switches (or at stream start)
    * Resets all internal track instances of the demuxer.
    *
-   * @param {string} audioCodec
-   * @param {string} videoCodec
-   * @param {number} duration (in TS timescale = 90kHz)
+  {string} audioCodec
+  {string} videoCodec
+  {number} duration (in TS timescale = 90kHz)
    */
   reset (duration: number = 0) {
     this.pmtParsed = false;
@@ -163,27 +163,45 @@ export class TSDemuxer {
 
   // feed incoming data to the front of the parsing pipeline
   append (data, timeOffset, contiguous, accurateTimeOffset) {
-    let start, len = data.length, stt, pid, atf, offset, pes,
-      unknownPIDs = false;
+    let start; let len = data.length; let stt; let pid; let atf; let offset; let pes;
+
+    let unknownPIDs = false;
     this.contiguous = contiguous;
-    let pmtParsed = this.pmtParsed,
-      avcTrack = this._avcTrack,
-      audioTrack = this._audioTrack,
-      id3Track = this._id3Track,
-      avcId = avcTrack.pid,
-      audioId = audioTrack.pid,
-      id3Id = id3Track.pid,
-      pmtId = this._pmtId,
-      avcData = avcTrack.pesData,
-      audioData = audioTrack.pesData,
-      id3Data = id3Track.pesData,
-      parsePAT = this._parsePAT,
-      parsePMT = this._parsePMT,
-      parsePES = this._parsePES,
-      parseAVCPES = this._parseAVCPES.bind(this),
-      parseAACPES = this._parseAACPES.bind(this),
-      parseMPEGPES = this._parseMPEGPES.bind(this),
-      parseID3PES = this._parseID3PES.bind(this);
+    let pmtParsed = this.pmtParsed;
+
+    let avcTrack = this._avcTrack;
+
+    let audioTrack = this._audioTrack;
+
+    let id3Track = this._id3Track;
+
+    let avcId = avcTrack.pid;
+
+    let audioId = audioTrack.pid;
+
+    let id3Id = id3Track.pid;
+
+    let pmtId = this._pmtId;
+
+    let avcData = avcTrack.pesData;
+
+    let audioData = audioTrack.pesData;
+
+    let id3Data = id3Track.pesData;
+
+    let parsePAT = this._parsePAT;
+
+    let parsePMT = this._parsePMT;
+
+    let parsePES = this._parsePES;
+
+    let parseAVCPES = this._parseAVCPES.bind(this);
+
+    let parseAACPES = this._parseAACPES.bind(this);
+
+    let parseMPEGPES = this._parseMPEGPES.bind(this);
+
+    let parseID3PES = this._parseID3PES.bind(this);
 
     const syncOffset = TSDemuxer._syncOffset(data);
 
@@ -377,7 +395,7 @@ export class TSDemuxer {
   }
 
   _parsePMT (data, offset, mpegSupported, isSampleAes) {
-    let sectionLength, tableEnd, programInfoLength, pid, result = { audio: -1, avc: -1, id3: -1, isAAC: true };
+    let sectionLength; let tableEnd; let programInfoLength; let pid; let result = { audio: -1, avc: -1, id3: -1, isAAC: true };
     sectionLength = (data[offset + 1] & 0x0f) << 8 | data[offset + 2];
     tableEnd = offset + 3 + sectionLength - 4;
     // to determine where the table is, we have to figure out how
@@ -458,7 +476,7 @@ export class TSDemuxer {
   }
 
   _parsePES (stream) {
-    let i = 0, frag, pesFlags, pesPrefix, pesLen, pesHdrLen, pesData, pesPts, pesDts, payloadStartOffset, data = stream.data;
+    let i = 0; let frag; let pesFlags; let pesPrefix; let pesLen; let pesHdrLen; let pesData; let pesPts; let pesDts; let payloadStartOffset; let data = stream.data;
     // safety check
     if (!stream || stream.size === 0) {
       return null;
@@ -579,18 +597,27 @@ export class TSDemuxer {
 
   _parseAVCPES (pes, last) {
     // log('parse new PES');
-    let track = this._avcTrack,
-      units = this._parseAVCNALu(pes.data),
-      debug = true,
-      expGolombDecoder,
-      avcSample = this.avcSample,
-      push,
-      spsfound = false,
-      i,
-      pushAccesUnit = this.pushAccesUnit.bind(this),
-      createAVCSample = function (key, pts, dts, debug) {
-        return { key: key, pts: pts, dts: dts, units: [], debug: debug };
-      };
+    let track = this._avcTrack;
+
+    let units = this._parseAVCNALu(pes.data);
+
+    let debug = true;
+
+    let expGolombDecoder;
+
+    let avcSample = this.avcSample;
+
+    let push;
+
+    let spsfound = false;
+
+    let i;
+
+    let pushAccesUnit = this.pushAccesUnit.bind(this);
+
+    let createAVCSample = function (key, pts, dts, debug) {
+      return { key: key, pts: pts, dts: dts, units: [], debug: debug };
+    };
     // free pes.data to save up some memory
     pes.data = null;
 
@@ -813,10 +840,10 @@ export class TSDemuxer {
   }
 
   _getLastNalUnit () {
-    let avcSample = this.avcSample, lastUnit;
+    let avcSample = this.avcSample; let lastUnit;
     // try to fallback to previous sample if current one is empty
     if (!avcSample || avcSample.units.length === 0) {
-      let track = this._avcTrack, samples = track.samples;
+      let track = this._avcTrack; let samples = track.samples;
       avcSample = samples[samples.length - 1];
     }
     if (avcSample) {
@@ -827,8 +854,8 @@ export class TSDemuxer {
   }
 
   _parseAVCNALu (array) {
-    let i = 0, len = array.byteLength, value, overflow, track = this._avcTrack, state = track.naluState || 0, lastState = state;
-    let units = [], unit, unitType, lastUnitStart = -1, lastUnitType;
+    let i = 0; let len = array.byteLength; let value; let overflow; let track = this._avcTrack; let state = track.naluState || 0; let lastState = state;
+    let units = []; let unit; let unitType; let lastUnitStart = -1; let lastUnitType;
     // log('PES:' + Hex.hexDump(array));
 
     if (state === -1) {
@@ -925,10 +952,13 @@ export class TSDemuxer {
    * remove Emulation Prevention bytes from a RBSP
    */
   discardEPB (data) {
-    let length = data.byteLength,
-      EPBPositions = [],
-      i = 1,
-      newLength, newData;
+    let length = data.byteLength;
+
+    let EPBPositions = [];
+
+    let i = 1;
+
+    let newLength; let newData;
 
     // Find all `Emulation Prevention Bytes`
     while (i < length - 2) {
@@ -966,13 +996,19 @@ export class TSDemuxer {
   }
 
   _parseAACPES (pes) {
-    let track = this._audioTrack,
-      data = pes.data,
-      pts = pes.pts,
-      startOffset = 0,
-      aacOverFlow = this.aacOverFlow,
-      aacLastPTS = this.aacLastPTS,
-      frameDuration, frameIndex, offset, stamp, len;
+    let track = this._audioTrack;
+
+    let data = pes.data;
+
+    let pts = pes.pts;
+
+    let startOffset = 0;
+
+    let aacOverFlow = this.aacOverFlow;
+
+    let aacLastPTS = this.aacLastPTS;
+
+    let frameDuration; let frameIndex; let offset; let stamp; let len;
     if (aacOverFlow) {
       let tmp = new Uint8Array(aacOverFlow.byteLength + data.byteLength);
       tmp.set(aacOverFlow, 0);
@@ -988,7 +1024,7 @@ export class TSDemuxer {
     }
     // if ADTS header does not start straight from the beginning of the PES payload, raise an error
     if (offset) {
-      let reason, fatal;
+      let reason; let fatal;
       if (offset < len - 1) {
         reason = `AAC PES did not start with ADTS header,offset:${offset}`;
         fatal = false;

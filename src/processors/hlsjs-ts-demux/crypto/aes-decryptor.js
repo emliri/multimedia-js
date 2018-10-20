@@ -203,11 +203,11 @@ class AESDecryptor {
     let inputInt32 = new Int32Array(inputArrayBuffer);
     let outputInt32 = new Int32Array(inputInt32.length);
 
-    let t0, t1, t2, t3;
-    let s0, s1, s2, s3;
-    let inputWords0, inputWords1, inputWords2, inputWords3;
+    let t0; let t1; let t2; let t3;
+    let s0; let s1; let s2; let s3;
+    let inputWords0; let inputWords1; let inputWords2; let inputWords3;
 
-    let ksRow, i;
+    let ksRow; let i;
     let swapWord = this.networkToHostOrderSwap;
 
     while (offset < inputInt32.length) {

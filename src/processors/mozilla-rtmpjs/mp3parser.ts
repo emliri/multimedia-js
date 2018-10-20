@@ -16,16 +16,16 @@
 
 // module RtmpJs.MP3 {
 
-  var BitratesMap = [
-    32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,
-    32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384,
-    32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,
-    32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256,
-    8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
+let BitratesMap = [
+  32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,
+  32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384,
+  32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,
+  32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256,
+  8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
 
-  var SamplingRateMap = [44100, 48000, 32000, 22050, 24000, 16000, 11025, 12000, 8000];
+let SamplingRateMap = [44100, 48000, 32000, 22050, 24000, 16000, 11025, 12000, 8000];
 
-  export class MP3Parser {
+export class MP3Parser {
     private buffer: Uint8Array;
     private bufferSize: number;
 
@@ -33,17 +33,17 @@
     public onFrame: (data: Uint8Array) => void;
     public onClose: () => void;
 
-    constructor() {
+    constructor () {
       this.buffer = null;
       this.bufferSize = 0;
     }
 
-    public push(data: Uint8Array) {
-      var length;
+    public push (data: Uint8Array) {
+      let length;
       if (this.bufferSize > 0) {
-        var needBuffer = data.length + this.bufferSize;
+        let needBuffer = data.length + this.bufferSize;
         if (!this.buffer || this.buffer.length < needBuffer) {
-          var newBuffer = new Uint8Array(needBuffer);
+          let newBuffer = new Uint8Array(needBuffer);
           if (this.bufferSize > 0) {
             newBuffer.set(this.buffer.subarray(0, this.bufferSize));
           }
@@ -57,14 +57,14 @@
         length = data.length;
       }
 
-      var offset = 0;
-      var parsed;
+      let offset = 0;
+      let parsed;
       while (offset < length &&
              (parsed = this._parse(data, offset, length)) > 0) {
         offset += parsed;
       }
 
-      var tail = length - offset;
+      let tail = length - offset;
       if (tail > 0) {
         if (!this.buffer || this.buffer.length < tail) {
           this.buffer = new Uint8Array(data.subarray(offset, length));
@@ -75,7 +75,7 @@
       this.bufferSize = tail;
     }
 
-    private _parse(data: Uint8Array, start: number, end: number): number  {
+    private _parse (data: Uint8Array, start: number, end: number): number {
       if (start + 2 > end) {
         return -1; // we need at least 2 bytes to detect sync pattern
       }
@@ -85,20 +85,20 @@
         if (start + 24 > end) { // we need at least 24 bytes for full frame
           return -1;
         }
-        var headerB = (data[start + 1] >> 3) & 3;
-        var headerC = (data[start + 1] >> 1) & 3;
-        var headerE = (data[start + 2] >> 4) & 15;
-        var headerF = (data[start + 2] >> 2) & 3;
-        var headerG = !!(data[start + 2] & 2);
+        let headerB = (data[start + 1] >> 3) & 3;
+        let headerC = (data[start + 1] >> 1) & 3;
+        let headerE = (data[start + 2] >> 4) & 15;
+        let headerF = (data[start + 2] >> 2) & 3;
+        let headerG = !!(data[start + 2] & 2);
         if (headerB !== 1 && headerE !== 0 && headerE !== 15 && headerF !== 3) {
-          var columnInBitrates = headerB === 3 ? (3 - headerC) : (headerC === 3 ? 3 : 4);
-          var bitRate = BitratesMap[columnInBitrates * 14 + headerE - 1] * 1000;
-          var columnInSampleRates = headerB === 3 ? 0 : headerB === 2 ? 1 : 2;
-          var sampleRate = SamplingRateMap[columnInSampleRates * 3 + headerF];
-          var padding = headerG ? 1 : 0;
-          var frameLength = headerC === 3 ?
-            ((headerB === 3 ? 12 : 6) * bitRate / sampleRate + padding) << 2 :
-            ((headerB === 3 ? 144 : 72) * bitRate / sampleRate + padding) | 0;
+          let columnInBitrates = headerB === 3 ? (3 - headerC) : (headerC === 3 ? 3 : 4);
+          let bitRate = BitratesMap[columnInBitrates * 14 + headerE - 1] * 1000;
+          let columnInSampleRates = headerB === 3 ? 0 : headerB === 2 ? 1 : 2;
+          let sampleRate = SamplingRateMap[columnInSampleRates * 3 + headerF];
+          let padding = headerG ? 1 : 0;
+          let frameLength = headerC === 3
+            ? ((headerB === 3 ? 12 : 6) * bitRate / sampleRate + padding) << 2
+            : ((headerB === 3 ? 144 : 72) * bitRate / sampleRate + padding) | 0;
           if (start + frameLength > end) {
             return -1;
           }
@@ -110,7 +110,7 @@
       }
 
       // noise or ID3, trying to skip
-      var offset = start + 2;
+      let offset = start + 2;
       while (offset < end) {
         if (data[offset - 1] === 0xFF && (data[offset] & 0xE0) === 0xE0) {
           // sync pattern is found
@@ -124,7 +124,7 @@
       return -1;
     }
 
-    public close() {
+    public close () {
       if (this.bufferSize > 0) {
         if (this.onNoise) {
           this.onNoise(this.buffer.subarray(0, this.bufferSize));
@@ -137,5 +137,5 @@
         this.onClose();
       }
     }
-  }
+}
 // }

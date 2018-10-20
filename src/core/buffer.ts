@@ -1,4 +1,4 @@
-import {PayloadDescriptor, UNKNOWN_MIMETYPE} from './mime-type';
+import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './mime-type';
 
 /**
  * @class
@@ -11,25 +11,24 @@ import {PayloadDescriptor, UNKNOWN_MIMETYPE} from './mime-type';
  *
  */
 export class BufferProperties extends PayloadDescriptor {
-
-    constructor(
-      mimeType = UNKNOWN_MIMETYPE,
-      sampleDuration = NaN,
-      sampleDepth = NaN,
+  constructor (
+    mimeType = UNKNOWN_MIMETYPE,
+    sampleDuration = NaN,
+    sampleDepth = NaN,
       public samplesCount: number = 0,
       public isBitstreamHeader: boolean = false,
       public isKeyframe: boolean = false,
       public timestampDelta: number = 0,
       public mediaKey: any = null,
       public tags: Set<string> = new Set()
-    ) {
-        super(mimeType, sampleDuration, sampleDepth);
-        this.samplesCount = samplesCount;
-    }
+  ) {
+    super(mimeType, sampleDuration, sampleDepth);
+    this.samplesCount = samplesCount;
+  }
 
-    getTotalDuration() {
-        return this.sampleDuration * this.samplesCount;
-    }
+  getTotalDuration () {
+    return this.sampleDuration * this.samplesCount;
+  }
 }
 
 /**
@@ -53,42 +52,41 @@ export class BufferProperties extends PayloadDescriptor {
  *
  */
 export class BufferSlice {
+  static mapArrayBuffers (bufferSlices: BufferSlices): ArrayBuffer[] {
+    return bufferSlices.map((bs) => bs.arrayBuffer);
+  }
 
-    static mapArrayBuffers(bufferSlices: BufferSlices): ArrayBuffer[] {
-      return bufferSlices.map((bs) => bs.arrayBuffer);
-    }
+  static fromTypedArray (typedArray: Uint8Array | Uint16Array | Int8Array | Int16Array, props?: BufferProperties) {
+    return new BufferSlice(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength, props);
+  }
 
-    static fromTypedArray(typedArray: Uint8Array | Uint16Array | Int8Array | Int16Array, props?: BufferProperties) {
-      return new BufferSlice(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength, props);
-    }
-
-    /**
+  /**
      * Awakes transferable zombies from the dead
      *
-     * @param bufferSlice A possibly "dead" BufferSlice that has been
+  bufferSlice A possibly "dead" BufferSlice that has been
      *                    cloned to be transferred into or out of a Worker
      *                    and stripped of his methods
      * @returns A new and alive BufferSlice
      */
-    static fromTransferable(bufferSlice: BufferSlice) {
-      return new BufferSlice(
-        bufferSlice.arrayBuffer,
-        bufferSlice.offset,
-        bufferSlice.length,
-        bufferSlice.props
-      );
-    }
+  static fromTransferable (bufferSlice: BufferSlice) {
+    return new BufferSlice(
+      bufferSlice.arrayBuffer,
+      bufferSlice.offset,
+      bufferSlice.length,
+      bufferSlice.props
+    );
+  }
 
-    /**
-     * @param original existing BufferSlice representing a data window into an existing ArrayBuffer
+  /**
+  original existing BufferSlice representing a data window into an existing ArrayBuffer
      * @returns a new slice with a newly allocated underlying ArrayBuffer that is a copy of the original slice window data
      */
-    static copy(original: BufferSlice): BufferSlice {
-      const thiz = original;
-      const slice = new BufferSlice(thiz.arrayBuffer.slice(thiz.offset, thiz.offset + this.length));
-      slice.props = thiz.props;
-      return slice;
-    }
+  static copy (original: BufferSlice): BufferSlice {
+    const thiz = original;
+    const slice = new BufferSlice(thiz.arrayBuffer.slice(thiz.offset, thiz.offset + this.length));
+    slice.props = thiz.props;
+    return slice;
+  }
 
     /**
      * Metatdata
@@ -110,29 +108,28 @@ export class BufferSlice {
      */
     readonly length: number;
 
-    constructor(arrayBuffer: ArrayBuffer,
-        offset: number = 0,
-        length: number = arrayBuffer.byteLength,
-        props: BufferProperties = new BufferProperties()) {
-
+    constructor (arrayBuffer: ArrayBuffer,
+      offset: number = 0,
+      length: number = arrayBuffer.byteLength,
+      props: BufferProperties = new BufferProperties()) {
       this.arrayBuffer = arrayBuffer;
 
-      if(offset < 0 || length < 0) {
-          throw new Error('Illegal parameters for BufferSlice window');
+      if (offset < 0 || length < 0) {
+        throw new Error('Illegal parameters for BufferSlice window');
       }
 
       this.offset = offset;
       this.length = length;
 
-      this.props = props
+      this.props = props;
     }
 
     /**
      *
-     * @param characterSizeBits
-     * @returns {number} Number of characters needed in a specific encoding (default 8-bit === 1bytes)
+    characterSizeBits
+    {number} Number of characters needed in a specific encoding (default 8-bit === 1bytes)
      */
-    size(characterSizeBits: number = 8): number {
+    size (characterSizeBits: number = 8): number {
       if (characterSizeBits === 8) {
         return this.length;
       }
@@ -145,7 +142,7 @@ export class BufferSlice {
       if (characterSizeBits === 64) {
         return this.length / 8;
       }
-      throw new Error('Invalid character bitsize: ' + characterSizeBits)
+      throw new Error('Invalid character bitsize: ' + characterSizeBits);
     }
 
     /**
@@ -161,16 +158,15 @@ export class BufferSlice {
      *
      * Optionally new properties can be passed directly here.
      *
-     * @param offset
-     * @param length
-     * @param props
+    offset
+    length
+    props
      * @returns new BufferSlice
      */
-    unwrap(
-        offset: number,
-        length?: number,
-        props?: BufferProperties): BufferSlice {
-
+    unwrap (
+      offset: number,
+      length?: number,
+      props?: BufferProperties): BufferSlice {
       if (isNaN(offset)) {
         throw new Error('data bytes offset must be a number');
       }
@@ -190,19 +186,19 @@ export class BufferSlice {
     }
 
     /**
-     * @param offsetIncrement Amount of bytes to move front of window forward
+    offsetIncrement Amount of bytes to move front of window forward
      * @see unwrap called internally, same limitations apply
      * @returns new BufferSlice
      */
-    shrinkFront(offsetIncrement: number) {
+    shrinkFront (offsetIncrement: number) {
       return this.unwrap(this.offset + offsetIncrement, this.length - offsetIncrement);
     }
 
     /**
-     * @param lengthReduction Amount of bytes to move back of window in retreat
+    lengthReduction Amount of bytes to move back of window in retreat
      * @returns new BufferSlice
      */
-    shrinkBack(lengthReduction: number) {
+    shrinkBack (lengthReduction: number) {
       return this.unwrap(this.offset, this.length - lengthReduction);
     }
 
@@ -211,7 +207,7 @@ export class BufferSlice {
      *
      * @see BufferSlice.copy (static method)
      */
-    copy(): BufferSlice {
+    copy (): BufferSlice {
       return BufferSlice.copy(this);
     }
 
@@ -220,10 +216,10 @@ export class BufferSlice {
      *
      * This should be the default method to pass the data slice into nested components for processing.
      *
-     * @param offset
-     * @param length
+    offset
+    length
      */
-    getUint8Array(): Uint8Array {
+    getUint8Array (): Uint8Array {
       return new Uint8Array(this.arrayBuffer, this.offset, this.length);
     }
 
@@ -233,10 +229,10 @@ export class BufferSlice {
      *
      * This should be the default method to pass the data slice into nested components for deep-analysis or manipulation.
      *
-     * @param offset
-     * @param length
+    offset
+    length
      */
-    getDataView(): DataView {
+    getDataView (): DataView {
       return new DataView(this.arrayBuffer, this.offset, this.length);
     }
 
@@ -248,12 +244,12 @@ export class BufferSlice {
      *
      * This might only work on Node.js or browser envs that have a Buffer constructor.
      *
-     * @param offset
-     * @param length
+    offset
+    length
      */
-    getBuffer(): Buffer {
+    getBuffer (): Buffer {
       if (!Buffer) {
-        throw new Error('`Buffer` is not supported as built-in class')
+        throw new Error('`Buffer` is not supported as built-in class');
       }
       return Buffer.from(this.arrayBuffer, this.offset, this.length);
     }

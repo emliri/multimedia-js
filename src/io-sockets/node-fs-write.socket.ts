@@ -1,8 +1,8 @@
-import {InputSocket, SocketDescriptor} from '../core/socket'
+import { InputSocket, SocketDescriptor } from '../core/socket';
 import { Packet } from '../core/packet';
 
-const fs = require('fs')
-const path = require('path')
+const fs = require('fs');
+const path = require('path');
 
 /**
  * @see https://nodejs.org/api/fs.html#fs_file_system_flags
@@ -19,17 +19,16 @@ export type WritableFileStreamOptions = {
   start?: number
 };
 
-export function createBasicWritableFileStreamOptions(
-    append: boolean = true,
-    isBinary: boolean = true,
-    startBytesOffset: number = 0,
-    failIfPathExists: boolean = false): WritableFileStreamOptions {
-
+export function createBasicWritableFileStreamOptions (
+  append: boolean = true,
+  isBinary: boolean = true,
+  startBytesOffset: number = 0,
+  failIfPathExists: boolean = false): WritableFileStreamOptions {
   const options = {
     flags: append ? 'a' : 'w',
     start: startBytesOffset,
     encoding: isBinary ? 'binary' : 'utf-8' // other less common encodings may be set explicitly after options created
-  }
+  };
   if (failIfPathExists) {
     options.flags += 'x';
   }
@@ -38,17 +37,17 @@ export function createBasicWritableFileStreamOptions(
 
 /**
  *
- * @param {fs.WritableStream} ws
+{fs.WritableStream} ws
  */
-export function createPacketHandler(ws: any): ((p: Packet) => boolean) {
+export function createPacketHandler (ws: any): ((p: Packet) => boolean) {
   return (p: Packet) => {
     p.data.forEach((bs) => {
       ws.write(bs.getBuffer(), () => {
-        console.log('buffer written to file')
-      })
-    })
-    return true
-  }
+        console.log('buffer written to file');
+      });
+    });
+    return true;
+  };
 }
 
 export class NodeFsWriteSocket extends InputSocket {
@@ -57,7 +56,7 @@ export class NodeFsWriteSocket extends InputSocket {
    */
   private stream: any; // Nodejs WritableStream
 
-  constructor(filePath: string, options?: WritableFileStreamOptions) {
+  constructor (filePath: string, options?: WritableFileStreamOptions) {
     const ws = fs.createWriteStream(path.resolve(filePath), options);
     super(createPacketHandler(ws), new SocketDescriptor());
     this.stream = ws;

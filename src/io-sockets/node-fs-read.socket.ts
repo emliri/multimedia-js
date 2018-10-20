@@ -1,8 +1,8 @@
-import {SeekableOutputSocket, OutputSocket, SocketDescriptor} from '../core/socket'
+import { SeekableOutputSocket, OutputSocket, SocketDescriptor } from '../core/socket';
 import { Packet } from '../core/packet';
 
-const fs = require('fs')
-const path = require('path')
+const fs = require('fs');
+const path = require('path');
 
 /**
  * @see https://nodejs.org/api/fs.html#fs_file_system_flags
@@ -29,8 +29,8 @@ export class NodeFsReadSocket extends SeekableOutputSocket {
   private options: ReadableFileStreamOptions = null;
   private absFilePath: string = null;
 
-  constructor(filePath: string, options?: ReadableFileStreamOptions) {
-    super(new SocketDescriptor())
+  constructor (filePath: string, options?: ReadableFileStreamOptions) {
+    super(new SocketDescriptor());
 
     this.options = options;
     this.absFilePath = path.resolve(filePath);
@@ -38,11 +38,11 @@ export class NodeFsReadSocket extends SeekableOutputSocket {
     this._seekStreamToRange(this.options.start, this.options.end);
   }
 
-  seek(start: number = 0, end?: number): boolean {
+  seek (start: number = 0, end?: number): boolean {
     return this._seekStreamToRange(this.options.start, this.options.end);
   }
 
-  private _onReadable() {
+  private _onReadable () {
     console.log('data readable');
 
     // see https://nodejs.org/api/stream.html#stream_readable_readablelength
@@ -54,7 +54,7 @@ export class NodeFsReadSocket extends SeekableOutputSocket {
     // for no obvious benefit.
   }
 
-  private _drainPoll() {
+  private _drainPoll () {
     let data: Buffer;
     // advantage of this approach is that we can eventually
     // try to consume a fixed buffer size if we would want to without having
@@ -65,27 +65,27 @@ export class NodeFsReadSocket extends SeekableOutputSocket {
     }
   }
 
-  private _onOpen() {
+  private _onOpen () {
     console.log('fd open');
   }
 
-  private _onClose() {
+  private _onClose () {
     console.log('fd open');
   }
 
-  private _onEos() {
+  private _onEos () {
     console.log('EOS');
   }
 
-  private _onReady() {
+  private _onReady () {
     console.log('readstream ready');
   }
 
-  private _onError() {
-    console.log('error')
+  private _onError () {
+    console.log('error');
   }
 
-  private _seekStreamToRange(start: number = 0, end?: number): boolean {
+  private _seekStreamToRange (start: number = 0, end?: number): boolean {
     if (this.stream) {
       this.stream.destroy();
     }
@@ -95,7 +95,7 @@ export class NodeFsReadSocket extends SeekableOutputSocket {
 
     try {
       this.stream = fs.createReadStream(this.absFilePath, this.options);
-    } catch(err) {
+    } catch (err) {
       console.error(err.message);
       this.stream = null;
       return false;
@@ -111,5 +111,4 @@ export class NodeFsReadSocket extends SeekableOutputSocket {
 
     return true;
   }
-
 }

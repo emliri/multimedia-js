@@ -6,18 +6,26 @@
   "scripts": {
     "build": "ts-node ./node_modules/.bin/webpack --progress",
     "build:watch": "ts-node ./node_modules/.bin/webpack --progress --watch",
+    "lint": "eslint index.ts src --ext .ts --ext .js",
     "start": "ts-node ./node_modules/.bin/webpack-dev-server --progress",
     "test": "jest"
   },
   "keywords": [],
   "repository": "github.com/tchakabam/multimedia.js.git",
-  "author": "Stephan Hesse <tchakabam@gmail.com>",
-  "license": "LGPL",
+  "author": "Stephan Hesse <tchakabam@gmail.com>, <stephan@emliri.com>",
+  "license": "LGPL, Copyright (c) 2016, 2017, 2018 Stephan Hesse, Emliri",
   "dependencies": {
     "uuid": "^3.3.2"
   },
   "devDependencies": {
     "@types/jest": "^21.1.5",
+    "eslint": "^5.7.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^7.0.1",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "eslint-plugin-typescript": "^0.12.0",
     "jest": "^23.1.0",
     "should": "^13.1.3",
     "ts-jest": "^21.2.1",

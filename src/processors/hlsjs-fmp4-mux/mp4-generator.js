@@ -142,11 +142,15 @@ class MP4 {
 
   static box (type) {
     let
-      payload = Array.prototype.slice.call(arguments, 1),
-      size = 8,
-      i = payload.length,
-      len = i,
-      result;
+      payload = Array.prototype.slice.call(arguments, 1);
+
+    let size = 8;
+
+    let i = payload.length;
+
+    let len = i;
+
+    let result;
     // calculate the total size we need to allocate
     while (i--) {
       size += payload[i].byteLength;
@@ -228,12 +232,13 @@ class MP4 {
     return MP4.box(MP4.types.moof, MP4.mfhd(sn), MP4.traf(track, baseMediaDecodeTime));
   }
   /**
- * @param tracks... (optional) {array} the tracks associated with this movie
+  tracks... (optional) {array} the tracks associated with this movie
  */
   static moov (tracks) {
     let
-      i = tracks.length,
-      boxes = [];
+      i = tracks.length;
+
+    let boxes = [];
 
     while (i--) {
       boxes[i] = MP4.trak(tracks[i]);
@@ -244,8 +249,9 @@ class MP4 {
 
   static mvex (tracks) {
     let
-      i = tracks.length,
-      boxes = [];
+      i = tracks.length;
+
+    let boxes = [];
 
     while (i--) {
       boxes[i] = MP4.trex(tracks[i]);
@@ -303,10 +309,13 @@ class MP4 {
 
   static sdtp (track) {
     let
-      samples = track.samples || [],
-      bytes = new Uint8Array(4 + samples.length),
-      flags,
-      i;
+      samples = track.samples || [];
+
+    let bytes = new Uint8Array(4 + samples.length);
+
+    let flags;
+
+    let i;
     // leave the full box header (4 bytes) all zero
     // write the sample table
     for (i = 0; i < samples.length; i++) {
@@ -324,7 +333,7 @@ class MP4 {
   }
 
   static avc1 (track) {
-    let sps = [], pps = [], i, data, len;
+    let sps = []; let pps = []; let i; let data; let len;
     // assemble the SPSs
 
     for (i = 0; i < track.sps.length; i++) {
@@ -348,19 +357,24 @@ class MP4 {
     }
 
     let avcc = MP4.box(MP4.types.avcC, new Uint8Array([
-        0x01, // version
-        sps[3], // profile
-        sps[4], // profile compat
-        sps[5], // level
-        0xfc | 3, // lengthSizeMinusOne, hard-coded to 4 bytes
-        0xE0 | track.sps.length // 3bit reserved (111) + numOfSequenceParameterSets
-      ].concat(sps).concat([
-        track.pps.length // numOfPictureParameterSets
-      ]).concat(pps))), // "PPS"
-      width = track.width,
-      height = track.height,
-      hSpacing = track.pixelRatio[0],
-      vSpacing = track.pixelRatio[1];
+      0x01, // version
+      sps[3], // profile
+      sps[4], // profile compat
+      sps[5], // level
+      0xfc | 3, // lengthSizeMinusOne, hard-coded to 4 bytes
+      0xE0 | track.sps.length // 3bit reserved (111) + numOfSequenceParameterSets
+    ].concat(sps).concat([
+      track.pps.length // numOfPictureParameterSets
+    ]).concat(pps)));
+    // "PPS"
+
+    let width = track.width;
+
+    let height = track.height;
+
+    let hSpacing = track.pixelRatio[0];
+
+    let vSpacing = track.pixelRatio[1];
 
     return MP4.box(MP4.types.avc1, new Uint8Array([
       0x00, 0x00, 0x00, // reserved
@@ -476,12 +490,17 @@ class MP4 {
   }
 
   static tkhd (track) {
-    let id = track.id,
-      duration = track.duration * track.timescale,
-      width = track.width,
-      height = track.height,
-      upperWordDuration = Math.floor(duration / (UINT32_MAX + 1)),
-      lowerWordDuration = Math.floor(duration % (UINT32_MAX + 1));
+    let id = track.id;
+
+    let duration = track.duration * track.timescale;
+
+    let width = track.width;
+
+    let height = track.height;
+
+    let upperWordDuration = Math.floor(duration / (UINT32_MAX + 1));
+
+    let lowerWordDuration = Math.floor(duration % (UINT32_MAX + 1));
     return MP4.box(MP4.types.tkhd, new Uint8Array([
       0x01, // version 1
       0x00, 0x00, 0x07, // flags
@@ -525,10 +544,13 @@ class MP4 {
   }
 
   static traf (track, baseMediaDecodeTime) {
-    let sampleDependencyTable = MP4.sdtp(track),
-      id = track.id,
-      upperWordBaseMediaDecodeTime = Math.floor(baseMediaDecodeTime / (UINT32_MAX + 1)),
-      lowerWordBaseMediaDecodeTime = Math.floor(baseMediaDecodeTime % (UINT32_MAX + 1));
+    let sampleDependencyTable = MP4.sdtp(track);
+
+    let id = track.id;
+
+    let upperWordBaseMediaDecodeTime = Math.floor(baseMediaDecodeTime / (UINT32_MAX + 1));
+
+    let lowerWordBaseMediaDecodeTime = Math.floor(baseMediaDecodeTime % (UINT32_MAX + 1));
     return MP4.box(MP4.types.traf,
       MP4.box(MP4.types.tfhd, new Uint8Array([
         0x00, // version 0
@@ -563,8 +585,8 @@ class MP4 {
 
   /**
    * Generate a track box.
-   * @param track {object} a track definition
-   * @return {Uint8Array} the track box
+  track {object} a track definition
+  {Uint8Array} the track box
    */
   static trak (track) {
     track.duration = track.duration || 0xffffffff;
@@ -588,11 +610,15 @@ class MP4 {
   }
 
   static trun (track, offset) {
-    let samples = track.samples || [],
-      len = samples.length,
-      arraylen = 12 + (16 * len),
-      array = new Uint8Array(arraylen),
-      i, sample, duration, size, flags, cts;
+    let samples = track.samples || [];
+
+    let len = samples.length;
+
+    let arraylen = 12 + (16 * len);
+
+    let array = new Uint8Array(arraylen);
+
+    let i; let sample; let duration; let size; let flags; let cts;
     offset += 8 + arraylen;
     array.set([
       0x00, // version 0
@@ -642,7 +668,7 @@ class MP4 {
       MP4.init();
     }
 
-    let movie = MP4.moov(tracks), result;
+    let movie = MP4.moov(tracks); let result;
     result = new Uint8Array(MP4.FTYP.byteLength + movie.byteLength);
     result.set(MP4.FTYP);
     result.set(movie, MP4.FTYP.byteLength);

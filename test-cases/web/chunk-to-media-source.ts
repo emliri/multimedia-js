@@ -18,9 +18,7 @@ export class ChunkToMediaSource extends MmjsTestCase {
 
   setup() {
     this._videoEl = document.createElement('video');
-
     this._videoEl.controls = true;
-
     this._videoEl.addEventListener('error', () => {
       error(this._videoEl.error);
     })

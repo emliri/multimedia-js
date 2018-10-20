@@ -22,7 +22,7 @@ import { H264ParseProcessor } from './src/processors/h264-parse.processor';
 import { MP4MuxProcessor } from './src/processors/mp4-mux-mozilla.processor';
 import { MP4MuxHlsjsProcessor } from './src/processors/mp4-mux-hlsjs.processor';
 import { MP4DemuxProcessor } from './src/processors/mp4-demux.processor';
-import { MPEGTSDemuxProcessor } from './src/processors/mpeg-ts-demux.processor'
+import { MPEGTSDemuxProcessor } from './src/processors/mpeg-ts-demux.processor';
 
 import { BroadwayProcessor } from './src/processors/broadway.processor';
 
@@ -31,29 +31,30 @@ import { HttpToMediaSourceFlow } from './src/flows/http-to-media-source.flow';
 import * as Utils from './src/common-utils';
 import * as Crypto from './src/common-crypto';
 
+import { XhrSocket } from './src/io-sockets/xhr.socket';
+import { NodeFsWriteSocket } from './src/io-sockets/node-fs-write.socket';
+import { NodeFsReadSocket } from './src/io-sockets/node-fs-read.socket';
+
 export const Common = {
   Utils,
   Crypto
-}
+};
 
 export const Processors = {
   H264ParseProcessor,
   MP3ParseProcessor,
   MP4MuxProcessor,
+  MP4MuxHlsjsProcessor,
   MP4DemuxProcessor,
   MPEGTSDemuxProcessor,
   BroadwayProcessor,
   LambdaProcessor
 };
 
-import { XhrSocket } from './src/io-sockets/xhr.socket';
-import { NodeFsWriteSocket } from './src/io-sockets/node-fs-write.socket';
-import { NodeFsReadSocket } from './src/io-sockets/node-fs-read.socket';
-
 export const IoSockets = {
-  XhrSocket,
+  XhrSocket
   // NodeFsReadSocket,
   // NodeFsWriteSocket
-}
+};
 
-export const Flows = { HttpToMediaSourceFlow }
+export const Flows = { HttpToMediaSourceFlow };

@@ -1,10 +1,10 @@
-import {EventEmitter} from 'eventemitter3'
+import { EventEmitter } from 'eventemitter3';
 
 import {
   SourceBufferQueue,
   SourceBufferQueueUpdateCallback,
   SourceBufferQueueUpdateCallbackData
-} from './source-buffer-queue'
+} from './source-buffer-queue';
 
 export enum MediaSourceControllerEvents {
   MEDIA_CLOCK_UPDATED = 'media-clock-updated',
@@ -13,126 +13,120 @@ export enum MediaSourceControllerEvents {
 }
 
 export class MediaSourceController extends EventEmitter {
-
   private mediaSource_: MediaSource
   private sourceBufferQueues_: SourceBufferQueue[]
   private mediaDuration_: number
   private mediaClockTime_: number
   private mediaClockLastUpdateTime_: number
 
-  constructor(mediaSource?: MediaSource) {
-    super()
+  constructor (mediaSource?: MediaSource) {
+    super();
 
     if (!(mediaSource || MediaSource)) {
       throw new Error('Need global default MediaSource constructor or injected interface instance');
     }
 
     if (!mediaSource) {
-      mediaSource = new MediaSource()
+      mediaSource = new MediaSource();
     }
 
-    this.mediaSource_ = mediaSource
-    this.sourceBufferQueues_ = []
-    this.mediaDuration_ = null
-    this.mediaClockTime_ = null
-    this.mediaClockLastUpdateTime_ = null
+    this.mediaSource_ = mediaSource;
+    this.sourceBufferQueues_ = [];
+    this.mediaDuration_ = null;
+    this.mediaClockTime_ = null;
+    this.mediaClockLastUpdateTime_ = null;
   }
 
-  get mediaDuration() {
-    return this.mediaDuration_
+  get mediaDuration () {
+    return this.mediaDuration_;
   }
 
-  get mediaClockTime() {
-    return this.mediaClockTime_
+  get mediaClockTime () {
+    return this.mediaClockTime_;
   }
 
-  get mediaSource() {
-    return this.mediaSource_
+  get mediaSource () {
+    return this.mediaSource_;
   }
 
-  get sourceBufferQueues() {
-    return this.sourceBufferQueues_
+  get sourceBufferQueues () {
+    return this.sourceBufferQueues_;
   }
 
-  addSourceBufferQueue(mimeType: string) {
+  addSourceBufferQueue (mimeType: string) {
     if (!MediaSource.isTypeSupported(mimeType)) {
-      console.error('MediaSource not supporting:', mimeType)
-      return false
+      console.error('MediaSource not supporting:', mimeType);
+      return false;
     }
 
     if (this.mediaSource.readyState !== 'open') {
-      console.error('MediaSource not open!')
+      console.error('MediaSource not open!');
       return false;
     }
 
     try {
-
       const sbQueue = new SourceBufferQueue(this.mediaSource, mimeType, null,
         (sbQueue, eventData) => {
-          this.onSourceBufferQueueUpdateCb_(sbQueue, eventData)
-      });
+          this.onSourceBufferQueueUpdateCb_(sbQueue, eventData);
+        });
 
-      //sbQueue.setModeSequential(true);
+      // sbQueue.setModeSequential(true);
 
       this.sourceBufferQueues_.push(sbQueue);
-
-    } catch(err) {
-      console.error(err)
-      return false
+    } catch (err) {
+      console.error(err);
+      return false;
     }
-    return true
+    return true;
   }
 
-  getSourceBufferQueuesByMimeType(mimeType) {
+  getSourceBufferQueuesByMimeType (mimeType) {
     return this.sourceBufferQueues_.filter((sbQ) => {
-      return sbQ.mimeType === mimeType
-    })
+      return sbQ.mimeType === mimeType;
+    });
   }
 
-  getBufferedTimeRanges(mediaOffset) {
+  getBufferedTimeRanges (mediaOffset) {
     return this.sourceBufferQueues_.map((sbQ) => {
-      return sbQ.getBufferedTimeranges(mediaOffset)
-    })
+      return sbQ.getBufferedTimeranges(mediaOffset);
+    });
   }
 
-  getBufferedTimeRangesFromMediaPosition() {
+  getBufferedTimeRangesFromMediaPosition () {
     return this.sourceBufferQueues_.map((sbQ) => {
-      return sbQ.getBufferedTimeranges(this.mediaClockTime)
-    })
+      return sbQ.getBufferedTimeranges(this.mediaClockTime);
+    });
   }
 
-  updateMediaClockTime(clockTime) {
-
-    const now = Date.now()
-    const wallClockDelta = now - this.mediaClockLastUpdateTime_
-    const mediaTimeDelta = clockTime - this.mediaClockTime_
-    const isForwardProgress = mediaTimeDelta > 0
+  updateMediaClockTime (clockTime) {
+    const now = Date.now();
+    const wallClockDelta = now - this.mediaClockLastUpdateTime_;
+    const mediaTimeDelta = clockTime - this.mediaClockTime_;
+    const isForwardProgress = mediaTimeDelta > 0;
     if (this.mediaClockTime_ !== clockTime) {
-      this.mediaClockTime_ = clockTime
-      this.mediaClockLastUpdateTime_ = now
-      this.emit(MediaSourceControllerEvents.MEDIA_CLOCK_UPDATED, clockTime)
+      this.mediaClockTime_ = clockTime;
+      this.mediaClockLastUpdateTime_ = now;
+      this.emit(MediaSourceControllerEvents.MEDIA_CLOCK_UPDATED, clockTime);
 
       // detect discontinuities/jitter in playback here
-
     } else {
-      this.emit(MediaSourceControllerEvents.MEDIA_STALLED, clockTime)
+      this.emit(MediaSourceControllerEvents.MEDIA_STALLED, clockTime);
     }
   }
 
-  setMediaDuration(duration, forceImmediateUpdate: boolean = false) {
+  setMediaDuration (duration, forceImmediateUpdate: boolean = false) {
     if (this.mediaDuration_ !== duration) {
-      this.mediaDuration_ = duration
+      this.mediaDuration_ = duration;
 
       if (forceImmediateUpdate) {
         this.mediaSource.duration = duration; // TODO: async update
       }
 
-      this.emit(MediaSourceControllerEvents.MEDIA_DURATION_CHANGED, duration)
+      this.emit(MediaSourceControllerEvents.MEDIA_DURATION_CHANGED, duration);
     }
   }
 
-  onSourceBufferQueueUpdateCb_(SourceBufferQueue, SourceBufferQueueUpdateCallbackData) {
+  onSourceBufferQueueUpdateCb_ (SourceBufferQueue, SourceBufferQueueUpdateCallbackData) {
     // TODO
   }
-
 }

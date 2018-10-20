@@ -4,9 +4,9 @@
 class ID3 {
   /**
    * Returns true if an ID3 header can be found at offset in data
-   * @param {Uint8Array} data - The data to search in
-   * @param {number} offset - The offset at which to start searching
-   * @return {boolean} - True if an ID3 header is found
+  {Uint8Array} data - The data to search in
+  {number} offset - The offset at which to start searching
+  {boolean} - True if an ID3 header is found
    */
   static isHeader (data, offset) {
     /*
@@ -40,9 +40,9 @@ class ID3 {
 
   /**
    * Returns true if an ID3 footer can be found at offset in data
-   * @param {Uint8Array} data - The data to search in
-   * @param {number} offset - The offset at which to start searching
-   * @return {boolean} - True if an ID3 footer is found
+  {Uint8Array} data - The data to search in
+  {number} offset - The offset at which to start searching
+  {boolean} - True if an ID3 footer is found
    */
   static isFooter (data, offset) {
     /*
@@ -66,9 +66,9 @@ class ID3 {
 
   /**
    * Returns any adjacent ID3 tags found in data starting at offset, as one block of data
-   * @param {Uint8Array} data - The data to search in
-   * @param {number} offset - The offset at which to start searching
-   * @return {Uint8Array} - The block of data containing any ID3 tags found
+  {Uint8Array} data - The data to search in
+  {number} offset - The offset at which to start searching
+  {Uint8Array} - The block of data containing any ID3 tags found
    */
   static getID3Data (data, offset) {
     const front = offset;
@@ -107,8 +107,8 @@ class ID3 {
 
   /**
    * Searches for the Elementary Stream timestamp found in the ID3 data chunk
-   * @param {Uint8Array} data - Block of data containing one or more ID3 tags
-   * @return {number} - The timestamp
+  {Uint8Array} data - Block of data containing one or more ID3 tags
+  {number} - The timestamp
    */
   static getTimeStamp (data) {
     const frames = ID3.getID3Frames(data);
@@ -124,7 +124,7 @@ class ID3 {
 
   /**
    * Returns true if the ID3 frame is an Elementary Stream timestamp frame
-   * @param {ID3 frame} frame
+  {ID3 frame} frame
    */
   static isTimeStampFrame (frame) {
     return (frame && frame.key === 'PRIV' && frame.info === 'com.apple.streaming.transportStreamTimestamp');
@@ -147,8 +147,8 @@ class ID3 {
 
   /**
    * Returns an array of ID3 frames found in all the ID3 tags in the id3Data
-   * @param {Uint8Array} id3Data - The ID3 data containing one or more ID3 tags
-   * @return {ID3 frame[]} - Array of ID3 frame objects
+  {Uint8Array} id3Data - The ID3 data containing one or more ID3 tags
+  {ID3 frame[]} - Array of ID3 frame objects
    */
   static getID3Frames (id3Data) {
     let offset = 0;
