@@ -7,8 +7,14 @@ export function isValidMimeTypeString(mimeType: string) {
 }
 */
 
+/**
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types
+ *
+ */
+
 export enum CommonMimeTypes {
   AUDIO_MP3 = 'audio/mpeg',
+  AUDIO_AAC = 'audio/aac',
   AUDIO_OPUS = 'audio/opus',
   VIDEO_MP4 = 'video/mp4',
   VIDEO_AVC = 'video/avc',
@@ -17,7 +23,7 @@ export enum CommonMimeTypes {
 
 export const UNKNOWN_MIMETYPE = 'unknown/*';
 
-// TODO: parse & validate mime-types
+// TODO: parse & validate mime-types and codec strings
 /**
  * @see https://en.wikipedia.org/wiki/Media_type
  *

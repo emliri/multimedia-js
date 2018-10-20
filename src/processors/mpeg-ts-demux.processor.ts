@@ -30,7 +30,7 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected onWorkerMessage (event: Event) {
-    log('worker message', event)
+    //log('worker message', event)
 
     const p = Packet.fromTransferable((event as any).data.packet);
 

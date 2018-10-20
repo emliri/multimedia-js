@@ -5,6 +5,7 @@ import { getLogger } from '../../logger';
 
 import { WorkerTask, postMessage } from '../../core/worker';
 import { TSDemuxer } from '../../processors/hlsjs-ts-demux/tsdemuxer';
+import { CommonMimeTypes } from '../../core/mime-type';
 
 const {log} = getLogger('TSDemuxerTask');
 
@@ -29,6 +30,14 @@ export function processTSDemuxerAppend (task: WorkerTask) {
         unit.buffer.slice(0),
         unit.byteOffset,
         unit.byteLength);
+
+      bufferSlice.props.codec = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
+      bufferSlice.props.mimeType = audioTrack.container;
+
+      /*
+      bufferSlice.props.isKeyframe = true;
+      bufferSlice.props.isBitstreamHeader = true;
+      */
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
@@ -67,8 +76,6 @@ export function processTSDemuxerAppend (task: WorkerTask) {
         }
 
         const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
-
-        // console.log(packet.timestamp)
 
         postMessage(task.workerContext, {
           packet
