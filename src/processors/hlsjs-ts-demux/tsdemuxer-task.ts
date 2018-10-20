@@ -1,16 +1,42 @@
 import { Packet, PacketSymbol } from '../../core/packet';
 import { BufferSlice } from '../../core/buffer';
+
 import { getLogger } from '../../logger';
 
 import { WorkerTask, postMessage } from '../../core/worker';
-
 import { TSDemuxer } from '../../processors/hlsjs-ts-demux/tsdemuxer';
+
+const {log} = getLogger('TSDemuxerTask');
 
 export function processTSDemuxerAppend (task: WorkerTask) {
 
-  const demuxer = new TSDemuxer((audioTrack, avcTrack, id3Track, txtTrack, timeOffset, contiguous, accurateTimeOffset) => {
+  const demuxer = new TSDemuxer((
+    audioTrack,
+    avcTrack,
+    id3Track,
+    txtTrack,
+    timeOffset,
+    contiguous,
+    accurateTimeOffset) => {
 
-    console.log(audioTrack, avcTrack);
+    log(audioTrack, avcTrack);
+
+    audioTrack.samples.forEach((sample) => {
+
+      const unit = sample.unit;
+
+      const bufferSlice = new BufferSlice(
+        unit.buffer.slice(0),
+        unit.byteOffset,
+        unit.byteLength);
+
+      const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
+
+      postMessage(task.workerContext, {
+        packet
+      });
+
+    });
 
     avcTrack.samples.forEach((sample) => {
       // console.log(sample);
@@ -47,6 +73,7 @@ export function processTSDemuxerAppend (task: WorkerTask) {
         postMessage(task.workerContext, {
           packet
         });
+
       });
     });
 

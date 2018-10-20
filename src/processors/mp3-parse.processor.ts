@@ -6,6 +6,9 @@ import { CommonMimeTypes } from '../core/mime-type';
 
 import { MP3Parser, MP3ParserResult } from './mp3/mp3-parser';
 import { BufferSlice, BufferProperties } from '../core/buffer';
+import { getLogger } from '../ext-mod/inspector.js/src/utils/logger';
+
+const {log, error} = getLogger('MP3ParseProcessor');
 
 export class MP3ParseProcessor extends Processor {
   constructor () {
@@ -28,15 +31,17 @@ export class MP3ParseProcessor extends Processor {
   }
 
   private _onProcessingError (bufferSlice: BufferSlice, err: Error) {
-    console.error('MP3Parse error:', err);
+    error('MP3Parse error:', err);
 
     return true;
   }
 
   private _onBufferSlice (bufferSlice: BufferSlice) {
-    // console.log('onBufferSlice');
+    //log('onBufferSlice');
 
     const res: MP3ParserResult = MP3Parser.parse(bufferSlice.getUint8Array());
+
+    log('parsed mp3 data:', res)
 
     res.mp3Frames.forEach((frame) => {
       const p: Packet = Packet.fromArrayBuffer(
