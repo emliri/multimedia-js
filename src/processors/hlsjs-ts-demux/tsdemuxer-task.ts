@@ -7,7 +7,9 @@ import { WorkerTask, postMessage } from '../../core/worker';
 import { TSDemuxer } from '../../processors/hlsjs-ts-demux/tsdemuxer';
 
 export function processTSDemuxerAppend (task: WorkerTask) {
+
   const demuxer = new TSDemuxer((audioTrack, avcTrack, id3Track, txtTrack, timeOffset, contiguous, accurateTimeOffset) => {
+
     console.log(audioTrack, avcTrack);
 
     avcTrack.samples.forEach((sample) => {

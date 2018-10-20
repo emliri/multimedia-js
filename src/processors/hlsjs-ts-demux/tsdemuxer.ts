@@ -14,9 +14,11 @@ import MpegAudio from './mpegaudio';
 import ExpGolomb from './exp-golomb';
 import SampleAesDecrypter from './sample-aes';
 
+import { getLogger } from '../../logger';
+
 // import Hex from '../utils/hex';
 
-const { log, warn } = self.console;
+const { log, warn, error } = getLogger('TSDemuxer');
 
 // We are using fixed track IDs for driving the MP4 remuxer
 // instead of following the TS PIDs.
@@ -40,48 +42,9 @@ export type TSDemuxerConfig = {
 export type TSDemuxerCallback = (audioTrack, avcTrack, id3Track, txtTrack, timeOffset, contiguous, accurateTimeOffset) => {};
 
 export class TSDemuxer {
-  config: any;
-  typeSupported: {mpeg: boolean, mp3: boolean};
-  onDemux: TSDemuxerCallback;
-  sampleAes: any;
-  observer: any;
-  pmtParsed: boolean;
-  _pmtId: number;
-  /*
-  _avcTrack: { container: string; data?:[]; pesData?: []; type: any; id: any; pid: number; inputTimeScale: number; sequenceNumber: number; samples: any[]; len: number; dropped: number; isAAC: boolean; duration: any; };
-  _audioTrack: { container: string; data?:[];  samplerate?: number; pesData?: []; type: any; id: any; pid: number; inputTimeScale: number; sequenceNumber: number; samples: any[]; len: number; dropped: number; isAAC: boolean; duration: any; };
-  _id3Track: { container: string; data?:[];  pesData?: []; type: any; id: any; pid: number; inputTimeScale: number; sequenceNumber: number; samples: any[]; len: number; dropped: number; isAAC: boolean; duration: any; };
-  _txtTrack: { container: string; data?:[];  pesData?: []; type: any; id: any; pid: number; inputTimeScale: number; sequenceNumber: number; samples: any[]; len: number; dropped: number; isAAC: boolean; duration: any; };
-  */
- _avcTrack: any;
- _audioTrack: any;
- _id3Track: any;
- _txtTrack: any;
-  aacOverFlow: any;
-  aacLastPTS: any;
-  avcSample: any;
-  _duration: any;
-  contiguous: any;
-  _initPTS: any;
-  _initDTS: any;
 
-  constructor (onDemux: TSDemuxerCallback, config: Partial<TSDemuxerConfig> = {}, typeSupported: {mpeg: boolean, mp3: boolean} = { mpeg: true, mp3: true }) {
-    this.config = config;
-    this.typeSupported = typeSupported;
-    this.onDemux = onDemux;
-    this.sampleAes = null;
-  }
-
-  setDecryptData (decryptdata) {
-    if ((decryptdata != null) && (decryptdata.key != null) && (decryptdata.method === 'SAMPLE-AES')) {
-      this.sampleAes = new SampleAesDecrypter(this.observer, this.config, decryptdata, this.discardEPB);
-    } else {
-      this.sampleAes = null;
-    }
-  }
-
-  static probe (data) {
-    const syncOffset = TSDemuxer._syncOffset(data);
+  static probe (data): boolean {
+    const syncOffset = TSDemuxer.findSyncOffset(data);
     if (syncOffset < 0) {
       return false;
     } else {
@@ -93,13 +56,17 @@ export class TSDemuxer {
     }
   }
 
-  static _syncOffset (data) {
-    // scan 1000 first bytes
-    const scanwindow = Math.min(1000, data.length - 3 * 188);
+  static findSyncOffset (data): number {
+
+    // scan 4096 first bytes
+    const scanwindow = Math.min(4096, data.length - 3 * 188);
     let i = 0;
     while (i < scanwindow) {
       // a TS fragment should contain at least 3 TS packets, a PAT, a PMT, and one PID, each starting with 0x47
       if (data[i] === 0x47 && data[i + 188] === 0x47 && data[i + 2 * 188] === 0x47) {
+        if (i > 0) {
+          log('sync-offset at ')
+        }
         return i;
       } else {
         i++;
@@ -115,7 +82,7 @@ export class TSDemuxer {
   {number} duration
   {object} TSDemuxer's internal track model
    */
-  static createTrack (type, duration) {
+  private static _createTrack (type, duration) {
     return {
       container: type === 'video' || type === 'audio' ? 'video/mp2t' : undefined,
       type,
@@ -131,6 +98,40 @@ export class TSDemuxer {
     };
   }
 
+  config: any;
+  typeSupported: {mpeg: boolean, mp3: boolean};
+  onDemux: TSDemuxerCallback;
+  sampleAes: any;
+  observer: any;
+  pmtParsed: boolean;
+  _pmtId: number;
+  _avcTrack: any;
+  _audioTrack: any;
+  _id3Track: any;
+  _txtTrack: any;
+  aacOverFlow: any;
+  aacLastPTS: any;
+  avcSample: any;
+  _duration: any;
+  contiguous: any;
+  _initPTS: any;
+  _initDTS: any;
+
+  constructor (onDemux: TSDemuxerCallback, config: Partial<TSDemuxerConfig> = {}, typeSupported: {mpeg: boolean, mp3: boolean} = { mpeg: true, mp3: true }) {
+    this.config = config;
+    this.typeSupported = typeSupported;
+    this.onDemux = onDemux;
+    this.sampleAes = null;
+  }
+
+  setDecryptionInfo (decryptdata) {
+    if ((decryptdata != null) && (decryptdata.key != null) && (decryptdata.method === 'SAMPLE-AES')) {
+      this.sampleAes = new SampleAesDecrypter(this.observer, this.config, decryptdata, this.discardEPB);
+    } else {
+      this.sampleAes = null;
+    }
+  }
+
   /**
    * Initializes a new init segment on the demuxer. Needed for discontinuities/track-switches (or at stream start)
    * Resets all internal track instances of the demuxer.
@@ -143,10 +144,10 @@ export class TSDemuxer {
     this.pmtParsed = false;
     this._pmtId = -1;
 
-    this._avcTrack = TSDemuxer.createTrack('video', duration);
-    this._audioTrack = TSDemuxer.createTrack('audio', duration);
-    this._id3Track = TSDemuxer.createTrack('id3', duration);
-    this._txtTrack = TSDemuxer.createTrack('text', duration);
+    this._avcTrack = TSDemuxer._createTrack('video', duration);
+    this._audioTrack = TSDemuxer._createTrack('audio', duration);
+    this._id3Track = TSDemuxer._createTrack('id3', duration);
+    this._txtTrack = TSDemuxer._createTrack('text', duration);
 
     // flush any partial content
     this.aacOverFlow = null;
@@ -155,171 +156,171 @@ export class TSDemuxer {
     this._duration = duration;
   }
 
-  /**
-   *
-   * @override
-   */
-  resetTimeStamp () {}
-
   // feed incoming data to the front of the parsing pipeline
   append (data, timeOffset, contiguous, accurateTimeOffset) {
-    let start; let len = data.length; let stt; let pid; let atf; let offset; let pes;
+
+    let start = 0;
+    let len = data.length;
+    let stt;
+    let pid;
+    let atf;
+    let offset;
+    let pes;
 
     let unknownPIDs = false;
-    this.contiguous = contiguous;
     let pmtParsed = this.pmtParsed;
 
     let avcTrack = this._avcTrack;
-
     let audioTrack = this._audioTrack;
-
     let id3Track = this._id3Track;
 
     let avcId = avcTrack.pid;
-
     let audioId = audioTrack.pid;
-
     let id3Id = id3Track.pid;
-
     let pmtId = this._pmtId;
 
     let avcData = avcTrack.pesData;
-
     let audioData = audioTrack.pesData;
-
     let id3Data = id3Track.pesData;
 
     let parsePAT = this._parsePAT;
-
     let parsePMT = this._parsePMT;
-
     let parsePES = this._parsePES;
-
     let parseAVCPES = this._parseAVCPES.bind(this);
-
     let parseAACPES = this._parseAACPES.bind(this);
-
     let parseMPEGPES = this._parseMPEGPES.bind(this);
-
     let parseID3PES = this._parseID3PES.bind(this);
 
-    const syncOffset = TSDemuxer._syncOffset(data);
+    this.contiguous = contiguous;
+
+    const syncOffset = TSDemuxer.findSyncOffset(data);
+
+    if (syncOffset < 0) {
+      throw new Error('No ts-packet found in stream');
+    }
 
     // don't parse last TS packet if incomplete
     len -= (len + syncOffset) % 188;
 
     // loop through TS packets
     for (start = syncOffset; start < len; start += 188) {
-      if (data[start] === 0x47) {
-        stt = !!(data[start + 1] & 0x40);
-        // pid is a 13-bit field starting at the last bit of TS[1]
-        pid = ((data[start + 1] & 0x1f) << 8) + data[start + 2];
-        atf = (data[start + 3] & 0x30) >> 4;
-        // if an adaption field is present, its length is specified by the fifth byte of the TS packet header.
-        if (atf > 1) {
-          offset = start + 5 + data[start + 4];
-          // continue if there is only adaptation field
-          if (offset === (start + 188)) {
-            continue;
+
+      if (data[start] !== 0x47) { // try to skip until next sync-byte
+        for (let i = start; i < len; i++) {
+          if (data[i] === 0x47) {
+            warn(`Skipped ${i - start} bytes in stream to find next TS package`);
+            start = i;
+            break;
           }
-        } else {
-          offset = start + 4;
         }
-        switch (pid) {
-        case avcId:
-          if (stt) {
-            if (avcData && (pes = parsePES(avcData)) && pes.pts !== undefined) {
-              parseAVCPES(pes, false);
-            }
+      }
 
-            avcData = { data: [], size: 0 };
-          }
-          if (avcData) {
-            avcData.data.push(data.subarray(offset, start + 188));
-            avcData.size += start + 188 - offset;
-          }
-          break;
-        case audioId:
-          if (stt) {
-            if (audioData && (pes = parsePES(audioData)) && pes.pts !== undefined) {
-              if (audioTrack.isAAC) {
-                parseAACPES(pes);
-              } else {
-                parseMPEGPES(pes);
-              }
-            }
-            audioData = { data: [], size: 0 };
-          }
-          if (audioData) {
-            audioData.data.push(data.subarray(offset, start + 188));
-            audioData.size += start + 188 - offset;
-          }
-          break;
-        case id3Id:
-          if (stt) {
-            if (id3Data && (pes = parsePES(id3Data)) && pes.pts !== undefined) {
-              parseID3PES(pes);
-            }
-
-            id3Data = { data: [], size: 0 };
-          }
-          if (id3Data) {
-            id3Data.data.push(data.subarray(offset, start + 188));
-            id3Data.size += start + 188 - offset;
-          }
-          break;
-        case 0:
-          if (stt) {
-            offset += data[offset] + 1;
-          }
-
-          pmtId = this._pmtId = parsePAT(data, offset);
-          break;
-        case pmtId:
-          if (stt) {
-            offset += data[offset] + 1;
-          }
-
-          let parsedPIDs = parsePMT(data, offset, this.typeSupported.mpeg === true || this.typeSupported.mp3 === true, this.sampleAes != null);
-
-          // only update track id if track PID found while parsing PMT
-          // this is to avoid resetting the PID to -1 in case
-          // track PID transiently disappears from the stream
-          // this could happen in case of transient missing audio samples for example
-          // NOTE this is only the PID of the track as found in TS,
-          // but we are not using this for MP4 track IDs.
-          avcId = parsedPIDs.avc;
-          if (avcId > 0) {
-            avcTrack.pid = avcId;
-          }
-
-          audioId = parsedPIDs.audio;
-          if (audioId > 0) {
-            audioTrack.pid = audioId;
-            audioTrack.isAAC = parsedPIDs.isAAC;
-          }
-          id3Id = parsedPIDs.id3;
-          if (id3Id > 0) {
-            id3Track.pid = id3Id;
-          }
-
-          if (unknownPIDs && !pmtParsed) {
-            log('reparse from beginning');
-            unknownPIDs = false;
-            // we set it to -188, the += 188 in the for loop will reset start to 0
-            start = syncOffset - 188;
-          }
-          pmtParsed = this.pmtParsed = true;
-          break;
-        case 17:
-        case 0x1fff:
-          break;
-        default:
-          unknownPIDs = true;
-          break;
+      stt = !!(data[start + 1] & 0x40);
+      // pid is a 13-bit field starting at the last bit of TS[1]
+      pid = ((data[start + 1] & 0x1f) << 8) + data[start + 2];
+      atf = (data[start + 3] & 0x30) >> 4;
+      // if an adaption field is present, its length is specified by the fifth byte of the TS packet header.
+      if (atf > 1) {
+        offset = start + 5 + data[start + 4];
+        // continue if there is only adaptation field
+        if (offset === (start + 188)) {
+          continue;
         }
       } else {
-        console.error({ fatal: false, reason: 'TS packet did not start with 0x47' });
+        offset = start + 4;
+      }
+      switch (pid) {
+      case avcId:
+        if (stt) {
+          if (avcData && (pes = parsePES(avcData)) && pes.pts !== undefined) {
+            parseAVCPES(pes, false);
+          }
+
+          avcData = { data: [], size: 0 };
+        }
+        if (avcData) {
+          avcData.data.push(data.subarray(offset, start + 188));
+          avcData.size += start + 188 - offset;
+        }
+        break;
+      case audioId:
+        if (stt) {
+          if (audioData && (pes = parsePES(audioData)) && pes.pts !== undefined) {
+            if (audioTrack.isAAC) {
+              parseAACPES(pes);
+            } else {
+              parseMPEGPES(pes);
+            }
+          }
+          audioData = { data: [], size: 0 };
+        }
+        if (audioData) {
+          audioData.data.push(data.subarray(offset, start + 188));
+          audioData.size += start + 188 - offset;
+        }
+        break;
+      case id3Id:
+        if (stt) {
+          if (id3Data && (pes = parsePES(id3Data)) && pes.pts !== undefined) {
+            parseID3PES(pes);
+          }
+
+          id3Data = { data: [], size: 0 };
+        }
+        if (id3Data) {
+          id3Data.data.push(data.subarray(offset, start + 188));
+          id3Data.size += start + 188 - offset;
+        }
+        break;
+      case 0:
+        if (stt) {
+          offset += data[offset] + 1;
+        }
+
+        pmtId = this._pmtId = parsePAT(data, offset);
+        break;
+      case pmtId:
+        if (stt) {
+          offset += data[offset] + 1;
+        }
+
+        let parsedPIDs = parsePMT(data, offset, this.typeSupported.mpeg || this.typeSupported.mp3, this.sampleAes != null);
+
+        // only update track id if track PID found while parsing PMT
+        // this is to avoid resetting the PID to -1 in case
+        // track PID transiently disappears from the stream
+        // this could happen in case of transient missing audio samples for example
+        // NOTE this is only the PID of the track as found in TS,
+        // but we are not using this for MP4 track IDs.
+        avcId = parsedPIDs.avc;
+        if (avcId > 0) {
+          avcTrack.pid = avcId;
+        }
+
+        audioId = parsedPIDs.audio;
+        if (audioId > 0) {
+          audioTrack.pid = audioId;
+          audioTrack.isAAC = parsedPIDs.isAAC;
+        }
+        id3Id = parsedPIDs.id3;
+        if (id3Id > 0) {
+          id3Track.pid = id3Id;
+        }
+
+        if (unknownPIDs && !pmtParsed) {
+          log('reparse from beginning');
+          unknownPIDs = false;
+          // we set it to -188, the += 188 in the for loop will reset start to 0
+          start = syncOffset - 188;
+        }
+        pmtParsed = this.pmtParsed = true;
+        break;
+      case 17:
+      case 0x1fff:
+        break;
+      default:
+        unknownPIDs = true;
+        break;
       }
     }
     // try to parse last PES packets
@@ -1033,7 +1034,7 @@ export class TSDemuxer {
         fatal = true;
       }
       warn(`parsing error:${reason}`);
-      console.error({ fatal: fatal, reason: reason });
+      error({ fatal: fatal, reason: reason });
       if (fatal) {
         return;
       }
