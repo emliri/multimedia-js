@@ -14,6 +14,7 @@ for (var caseName in MultimediaTestCasesWeb) {
 function setupTestCase(i) {
   if (i >= testCases.length) {
     console.error('Bad test-case index:', i);
+    window.alert('Query a valid test case please.');
     return;
   }
   console.log('Calling setup for test-case index:', i)
