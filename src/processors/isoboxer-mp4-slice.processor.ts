@@ -2,8 +2,8 @@ import { Processor } from '../core/processor';
 import { Packet } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
-import { IB_MP4Parser } from './mp4/isoboxer-mp4-parser';
-import { ISOFile, ISOBox } from './mp4/isoboxer-types';
+import { IB_MP4Parser } from './isoboxer/isoboxer-mp4-parser';
+import { ISOFile } from './isoboxer/isoboxer-types';
 
 import { getLogger } from '../logger';
 

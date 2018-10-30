@@ -57,7 +57,6 @@ export class TSDemuxer {
   }
 
   static findSyncOffset (data): number {
-
     // scan 4096 first bytes
     const scanwindow = Math.min(4096, data.length - 3 * 188);
     let i = 0;
@@ -65,7 +64,7 @@ export class TSDemuxer {
       // a TS fragment should contain at least 3 TS packets, a PAT, a PMT, and one PID, each starting with 0x47
       if (data[i] === 0x47 && data[i + 188] === 0x47 && data[i + 2 * 188] === 0x47) {
         if (i > 0) {
-          log('sync-offset at ')
+          log('sync-offset at:', i)
         }
         return i;
       } else {
