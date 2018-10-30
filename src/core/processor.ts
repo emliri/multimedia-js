@@ -3,11 +3,13 @@ import { PacketSymbol, Packet } from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 import { EventEmitter } from 'eventemitter3';
 import { WorkerTask } from './worker';
-import { BufferSlice } from './buffer';
+import { getLogger } from '../logger';
+
+const {debug, error} = getLogger("Processor");
 
 // import WorkerLoader from "worker-loader!../base.worker";
 
-// DIRTY :)
+// HACK: DIRTY-way worker loading :)
 const WORKER_PATH = '/dist/MultimediaWorker.umd.js';
 
 export enum ProcessorEvent {
@@ -124,7 +126,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     /**
      * Returns a copy of internal array, safe to manipulate
-    {InputSocket[]}
+     * {InputSocket[]}
      */
     inputs () {
       return this.inputs_.slice();
@@ -132,7 +134,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     /**
      * Returns a copy of internal array, safe to manipulate
-    {OutputSocket[]}
+     * {OutputSocket[]}
      */
     outputs () {
       return this.outputs_.slice();
@@ -140,7 +142,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     /**
      * Read-only internal array ref
-    {InputSocket[]}
+     * {InputSocket[]}
      */
     get in (): InputSocket[] {
       return this.inputs_;
@@ -148,7 +150,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     /**
      * Read-only internal array ref
-    {OutputSocket[]}
+     * {OutputSocket[]}
      */
     get out (): OutputSocket[] {
       return this.outputs_;
@@ -156,7 +158,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     /**
      * Adds a new input socket with the given descriptor (or from default template)
-    {SocketDescriptor} sd optional
+     * {SocketDescriptor} sd optional
      */
     createInput (sd?: SocketDescriptor): InputSocket {
       const s = new InputSocket((p: Packet) => {
@@ -178,7 +180,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     /**
      * Adds a new output socket with the given descriptor (or from default template)
-    {SocketDescriptor} sd optional
+     * {SocketDescriptor} sd optional
      */
     createOutput (sd?: SocketDescriptor): OutputSocket {
       const s = new OutputSocket(this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
@@ -197,7 +199,6 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     }
 
     /**
-    p
      * @returns True when packet was forwarded
      */
     private onSymbolicPacketReceived_ (p: Packet): boolean {
@@ -216,7 +217,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     }
 
     /**
-    p packet to transfer to all outputs
+     * p packet to transfer to all outputs
      */
     private transferPacketToAllOutputs_ (p: Packet) {
       this.out.forEach((socket) => {
@@ -234,8 +235,8 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       try {
         result = this.processTransfer_(inS, p);
       } catch (err) {
-        console.error(`There was a fatal error processing a packet: ${err.message}. Stacktrace:`);
-        console.log(err);
+        error(`There was a fatal error processing a packet: ${err.message}. Stacktrace:`);
+        debug(err);
       }
       return result;
     }
@@ -274,7 +275,6 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * it is possible by disabling proxying (return false here in an override of this method)
      * as in this case these packets will be passed into `processTransfer_`.
      *
-    symbol
      * @returns True if the symbolic packet should be proxied
      */
     protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
@@ -284,8 +284,6 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     /**
      * Called when a packet is received on an input socket.
      * Returns true when packet was handled correctly in some way.
-    inS
-    p
      */
     protected abstract processTransfer_(inS: InputSocket, p: Packet): boolean;
 }

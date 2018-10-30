@@ -3,8 +3,9 @@ import { Packet, PacketReceiveCallback } from './packet';
 
 import { getLogger, makeLogTimestamped, LoggerLevels } from '../logger';
 import { Signal, SignalHandler, SignalReceiver, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
+import { throws } from 'assert';
 
-const { log } = getLogger('Socket', LoggerLevels.OFF);
+const { log, error } = getLogger('Socket', LoggerLevels.OFF);
 
 export enum SocketType {
     INPUT,
@@ -37,6 +38,9 @@ export abstract class Socket implements SignalReceiver {
     private state_: SocketState;
     private descriptor_: SocketDescriptor;
     private signalHandler_: SignalHandler = null;
+    private isReady_: boolean = false;
+    private isReadyArmed_: boolean = false;
+    private resolveDisposed_;
 
     protected owner: SocketOwner = null;
 
@@ -44,6 +48,11 @@ export abstract class Socket implements SignalReceiver {
       this.type_ = type;
       this.descriptor_ = descriptor;
       this.state_ = new SocketState();
+
+    }
+
+    dispose() {
+
     }
 
     type (): SocketType {
@@ -62,8 +71,63 @@ export abstract class Socket implements SignalReceiver {
     }
 
     /**
+     * A utility method to manage the readyness state synchroneously.
+     * For every socket-instance we are then retrieving the whenReady promise
+     * *once* and tracking the ready-state through it.
+     */
+    isReady(): boolean {
+      if (!this.isReadyArmed_) {
+        this.whenReady().then(() => {
+          this.isReady_ = true;
+        }).catch((e: Error) => {
+          error('caught error on readyness-promise:', e);
+        });
+        this.isReadyArmed_ = true;
+      }
+      return this.isReady_;
+    }
+
+    /**
+     * MAY be implemented by subclasses to indicate async I/O resource initialization readyness
+     * when applicable (for example for file-system or MediaSource socket).
+     *
+     * The default implementation works for any socket impl that is ready "in-sync" with the constructor
+     * as it returns an already resolve promise.
+     *
+     * Further specification constraints:
+     *
+     * 1) When the readyness-promise hasn't been resolved yet, the socket MAY crash
+     * when it gets transferred data or signals cast.
+     *
+     * 2) The socket MUST be connectable upon creation however.
+     * Ideally, a pipeline (or the respective branch) should first make sure that all it's I/O sockets are
+     * "ready" before enabling any data-flow.
+     *
+     * 3) Socket implemention SHOULD never buffer/queue-up any data in the integration layer,
+     * as it is a task that processors are more suited to do and that is independent of socket.
+     *
+     * 4) Queuing data in proc while downstream sockets become ready MAY be the best solution in certain
+     * cases of pipeline restructering.
+     *
+     * 5) I/O "reading" output-sockets MAY become ready async and not cause further harm by not implementing `whenReady` method.
+     *
+     * 6) A socket MUST never go back to something "not ready" when it was ready once.
+     *
+     * FIXME: implement "dispose" method
+     *
+     */
+    whenReady(): Promise<void> {
+      return Promise.resolve();
+    }
+
+    /*
+    whenDisposed(): Promise<void> {
+      return Promise.resolve();
+    }
+    */
+
+    /**
      * For subclasses only. Set the transfering flag of the socket state.
-    b
      */
     protected setTransferring_ (b: boolean) {
       this.state_.transferring = b;
@@ -75,7 +139,6 @@ export abstract class Socket implements SignalReceiver {
      * Return `false` value may indicate that the socket is not peered
      * and thus no effective transfer took place, or that the data processing handler
      * is not set in some other way, or an error was thrown when processing.
-    p
      */
     abstract transfer(p: Packet): boolean;
 
@@ -98,7 +161,6 @@ export abstract class Socket implements SignalReceiver {
      * This is a detail that is implemeneted by the i/o sockets (and can be opted-in when implementing
      * from abstract socket).
      *
-    signal
      */
     cast (signal: Signal): SignalReceiverCastResult {
       if (this.signalHandler_) {
@@ -137,7 +199,6 @@ export class InputSocket extends Socket {
     /**
      * Overloads Socket cast method and also casts signal to owner as well as calling
      * super class cast, which call handler.
-    s
      */
     cast (s: Signal): SignalReceiverCastResult {
       return collectSignalReceiverCastResults([
@@ -171,9 +232,7 @@ export class OutputSocket extends Socket {
     }
 
     /**
-     *
-    {Socket} s Socket to whiche this socket transfers data to.
-    {OutputSocket} This socket.
+     * {Socket} Another socket to which this socket transfers data ownership to.
      */
     connect (s: Socket) {
       if (!s) {
@@ -216,8 +275,6 @@ export class OutputSocket extends Socket {
      * All other cases (zero or up direction), broadcast to owner.
      *
      * Also calls the super-class implementation and collects results together.
-     *
-    signal
      */
     cast (signal: Signal): SignalReceiverCastResult {
       let peersOrOwner: SignalReceiverCastResult;
@@ -240,8 +297,6 @@ export class OutputSocket extends Socket {
      * When it travels down, we don't need to do anything and return a
      * negative result (since we did not handle the signal)
      *
-    peerSocket
-    signal
      */
     private _onPeerSignalCast (peerSocket: Socket, signal: Signal): SignalReceiverCastResult {
       if (signal.isDirectionUp()) {

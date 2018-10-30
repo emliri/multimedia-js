@@ -12,6 +12,10 @@ import { BitReader } from '../ext-mod/inspector.js/src/utils/bit-reader';
 import { H264Parser } from './h264/h264';
 import { NALU } from './h264/nalu';
 
+import { getLogger } from '../logger';
+
+const {log, error} = getLogger("H264ParseProcessor");
+
 export class H264ParseProcessor extends Processor {
   // private h264Reader: H264Reader;
 
@@ -30,15 +34,14 @@ export class H264ParseProcessor extends Processor {
   protected processTransfer_ (inS: InputSocket, p: Packet) {
     p.forEachBufferSlice(
       this._onBufferSlice.bind(this, p),
-      // this._onProcessingError,
-      null,
+      this._onProcessingError.bind(this),
       this);
 
     return true;
   }
 
   private _onProcessingError (bufferSlice: BufferSlice, err: Error): boolean {
-    console.error('H264Parse error:', err);
+    error('H264Parse error:', err);
 
     return false;
   }
@@ -72,7 +75,7 @@ export class H264ParseProcessor extends Processor {
       // console.log(nalu.toString())
 
       if (type === NALU.IDR || type === NALU.SPS || type === NALU.PPS) {
-        console.log(nalu.toString(), p.timestamp);
+        log(nalu.toString(), p.timestamp);
       }
 
       naluSlice.props.isKeyframe = (type === NALU.IDR);

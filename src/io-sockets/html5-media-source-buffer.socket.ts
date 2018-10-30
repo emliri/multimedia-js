@@ -7,36 +7,61 @@ import { getLogger } from '../logger';
 
 const { log } = getLogger('HTML5MediaSourceBufferSocket');
 
+const MEDIA_SOURCE_OPEN_FAILURE_TIMEOUT_MS = 4000;
+
 export class HTML5MediaSourceBufferSocket extends InputSocket {
+
   private mediaSourceController: MediaSourceController;
   private sourceBufferQueue: SourceBufferQueue;
   private accuBuffer: ArrayBuffer = null;
 
+  private _readyPromise: Promise<void>;
+
   constructor (mediaSource: MediaSource, mimeType: string) {
     super((p: Packet) => this.onPacketReceived(p), new SocketDescriptor());
 
-    if (mediaSource.readyState !== 'open') {
-      throw new Error('MediaSource not open!');
-    }
+    this._readyPromise = new Promise((resolve, reject) => {
 
-    this.mediaSourceController = new MediaSourceController(mediaSource);
+      if (mediaSource.readyState === 'open') {
+        resolve();
+      } else {
 
-    this.mediaSourceController.setMediaDuration(60, true); // HACK !!
+        const mediaSourceFailureTimeout = setTimeout(() => {
+          reject("MediaSource open-failure timeout");
+        }, MEDIA_SOURCE_OPEN_FAILURE_TIMEOUT_MS);
 
-    if (!this.mediaSourceController.addSourceBufferQueue(mimeType)) {
-      throw new Error('Failed to create SourceBuffer for mime-type: ' + mimeType);
-    }
+        mediaSource.addEventListener('sourceopen', () => {
+          clearTimeout(mediaSourceFailureTimeout);
+          resolve();
+        });
+      }
+    });
 
-    this.sourceBufferQueue = this.mediaSourceController.sourceBufferQueues[0];
+    this._readyPromise.then(() => {
+
+      this.mediaSourceController = new MediaSourceController(mediaSource);
+      this.mediaSourceController.setMediaDuration(60, true); // HACK !!
+
+      if (!this.mediaSourceController.addSourceBufferQueue(mimeType)) {
+        throw new Error('Failed to create SourceBuffer for mime-type: ' + mimeType);
+      }
+
+      this.sourceBufferQueue = this.mediaSourceController.sourceBufferQueues[0];
+    })
 
     // log(this.sourceBufferQueue)
     // log(mediaSource, this.mediaSourceController)
+  }
+
+  whenReady(): Promise<void> {
+    return this._readyPromise;
   }
 
   private onPacketReceived (p: Packet): boolean {
     const buffer = p.data[0].arrayBuffer;
 
     /// * This is a nasty debugging hack. We should add a probe/filter to do this
+    //
     if (ENABLE_BUFFER_DOWNLOAD_LINK) {
       this.accuBuffer = concatArrayBuffers(this.accuBuffer, buffer);
       const blob = new Blob([this.accuBuffer], { type: 'video/mp4' });

@@ -4,9 +4,7 @@ import { Packet, PacketSymbol } from '../core/packet';
 
 import { Fmp4Remuxer, Fmp4RemuxerEvent, Fmp4RemuxerConfig,
   Fmp4RemuxerAudioTrack,
-  Fmp4RemuxerVideoTrack,
-  Fmp4RemuxerId3Track,
-  Fmp4RemuxerTextTrack
+  Fmp4RemuxerVideoTrack
 } from './hlsjs-fmp4-mux/mp4-remuxer';
 
 import { BufferSlice } from '../core/buffer';

@@ -31,20 +31,14 @@ export class ChunkToMediaSource extends MmjsTestCase {
 
     this._videoEl.src = URL.createObjectURL(this._mediaSource);
 
-    this._mediaSource.addEventListener('sourceopen', () => {
-      if (this._fmp4ToMediaSource) {
-        return;
-      }
+    log('MediaSource opened');
 
-      log('MediaSource opened');
+    this._fmp4ToMediaSource
+      = new Multimedia.Flows.HttpToMediaSourceFlow(
+      URLs[1],
+      this._mediaSource
+    );
 
-      this._fmp4ToMediaSource
-        = new Multimedia.Flows.HttpToMediaSourceFlow(
-        URLs[1],
-        this._mediaSource
-      );
-
-    });
   }
 
   run() {

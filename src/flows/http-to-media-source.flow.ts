@@ -2,12 +2,15 @@ import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { MPEGTSDemuxProcessor } from '../processors/mpeg-ts-demux.processor';
 import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from '../processors/mp4-mux-mozilla.processor';
-import { Flow, FlowState, FlowStateChangeCallback } from '../core/flow';
+import { Flow, FlowStateChangeCallback } from '../core/flow';
 import { Socket, OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { MP4MuxHlsjsProcessor } from '../processors/mp4-mux-hlsjs.processor';
+import { getLogger } from '../logger';
+
+const {log} = getLogger("HttpToMediaSourceFlow");
 
 export class HttpToMediaSourceFlow extends Flow {
   private _xhrSocket: XhrSocket;
@@ -15,10 +18,10 @@ export class HttpToMediaSourceFlow extends Flow {
   constructor (url: string, mediaSource: MediaSource) {
     super(
       (prevState, newState) => {
-        console.log('previous state:', prevState, 'new state:', newState);
+        log('previous state:', prevState, 'new state:', newState);
       },
       (reason) => {
-        console.log('state change aborted. reason:', reason);
+        log('state change aborted. reason:', reason);
       }
     );
 
@@ -30,8 +33,8 @@ export class HttpToMediaSourceFlow extends Flow {
 
     const xhrSocket = this._xhrSocket = new XhrSocket(url);
 
-    const mediaSourceSocket: HTML5MediaSourceBufferSocket =
-      new HTML5MediaSourceBufferSocket(mediaSource, 'video/mp4; codecs=avc1.64001f'); // avc1.4d401f
+    const mediaSourceSocket: HTML5MediaSourceBufferSocket
+      = new HTML5MediaSourceBufferSocket(mediaSource, 'video/mp4; codecs=avc1.64001f'); // avc1.4d401f
 
     tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
     mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
@@ -50,7 +53,7 @@ export class HttpToMediaSourceFlow extends Flow {
     function onDemuxOutputCreated (data: ProcessorEventData) {
       const demuxOutputSocket = <OutputSocket> data.socket;
 
-      console.log('demuxer output created');
+      log('demuxer output created');
 
       let muxerInputSocket;
 
