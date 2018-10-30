@@ -27,7 +27,7 @@ export function createWebpackConfig(options) {
   console.log('Resolved build path:', buildPath)
 
   const baseConfig = {
-    devtool: options.debug && !env.release ? 'inline-source-map' : 'source-map',
+    devtool: 'source-map',
     entry: options.entrySrc,
     externals: options.externals,
     output: {
