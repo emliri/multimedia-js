@@ -22,6 +22,7 @@ export function processTSDemuxerAppend (task: WorkerTask) {
 
     log(audioTrack, avcTrack);
 
+    /*
     audioTrack.samples.forEach((sample) => {
 
       const unit = sample.unit;
@@ -34,10 +35,6 @@ export function processTSDemuxerAppend (task: WorkerTask) {
       bufferSlice.props.codec = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
       bufferSlice.props.mimeType = audioTrack.container;
 
-      /*
-      bufferSlice.props.isKeyframe = true;
-      bufferSlice.props.isBitstreamHeader = true;
-      */
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
@@ -46,6 +43,7 @@ export function processTSDemuxerAppend (task: WorkerTask) {
       });
 
     });
+    */
 
     avcTrack.samples.forEach((sample) => {
       // console.log(sample);

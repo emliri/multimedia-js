@@ -14,7 +14,7 @@ import { NALU } from './h264/nalu';
 
 import { getLogger } from '../logger';
 
-const {log, error} = getLogger("H264ParseProcessor");
+const {log, warn, error} = getLogger("H264ParseProcessor");
 
 export class H264ParseProcessor extends Processor {
   // private h264Reader: H264Reader;
@@ -58,7 +58,7 @@ export class H264ParseProcessor extends Processor {
       length = avcView.getUint32(i);
 
       if (length > avcStream.length) {
-        // console.warn('No NALUs found! Forwarding data anyway...');
+        //warn('No NALUs found! Forwarding data anyway...');
         this.out[0].transfer(p);
         break; // no NALUs, but forward data anyway
       }

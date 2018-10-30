@@ -6,7 +6,7 @@ import { getLogger } from '../../src/logger';
 const URLs = [
   "/test-data/193039199_mp4_h264_aac_hd_7.ts",
   '/test-data/mp4/v-0576p-1400k-libx264.mp4'
-]
+];
 
 const {log, error} = getLogger('ChunkToMediaSource');
 
@@ -35,7 +35,7 @@ export class ChunkToMediaSource extends MmjsTestCase {
 
     this._fmp4ToMediaSource
       = new Multimedia.Flows.HttpToMediaSourceFlow(
-      URLs[1],
+      URLs[0],
       this._mediaSource
     );
 
