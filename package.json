@@ -1,7 +1,7 @@
 {
   "name": "multimedia",
-  "version": "0.8.0",
-  "description": "Multimedia streaming framework for browser and node  ",
+  "version": "1.0.0",
+  "description": "Multimedia streaming framework for browser and node",
   "main": "index.js",
   "scripts": {
     "build": "ts-node ./node_modules/.bin/webpack --progress",
@@ -20,6 +20,8 @@
   },
   "devDependencies": {
     "@types/jest": "^21.1.5",
+    "@types/node": "^10.12.0",
+    "@types/webpack": "^4.4.17",
     "eslint": "^5.7.0",
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.14.0",
