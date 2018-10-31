@@ -80,6 +80,7 @@ export class Packet {
 
   private _symbol: PacketSymbol = PacketSymbol.VOID;
   private _timescale: number = 1;
+  private _hasDefaultBufferProps: boolean = true;
 
   constructor (
     public data: BufferSlices = [],
@@ -98,6 +99,23 @@ export class Packet {
     }
     this._symbol = symbol;
   }
+
+  get defaultPayloadInfo (): BufferProperties {
+    if (!this.hasDefaultPayloadInfo) {
+      throw new Error('packet has no default payload description');
+    }
+    return this.data[0] ? this.data[0].props : null;
+  }
+
+  get hasDefaultPayloadInfo(): boolean {
+    return this._hasDefaultBufferProps;
+  }
+
+  /*
+  isPayloadInfoConsistent(): boolean {
+    throw new Error('not implemented');
+  }
+  */
 
   getTotalBytes () {
     return this.data.reduce((accu, buf: BufferSlice) => {
