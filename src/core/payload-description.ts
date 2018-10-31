@@ -31,23 +31,28 @@ export const UNKNOWN_MIMETYPE = 'unknown/*';
  *
  */
 
-export function appendCodecsToMimeType (mimeType: MimeType, codec: string[]): string {
-  return mimeType;
+/**
+ *
+ * @param mimeType
+ * @param codec
+ * @returns example: 'video/mp4; codecs=avc1.64001f'
+ * // TODO: for several codecs in one container
+ */
+export function appendCodecToMimeType (mimeType: MimeType, codec: string): string {
+  return mimeType + '; codecs=' + codec;
 }
 
 export class PayloadDescriptor {
+  elementaryStreamId: number = NaN;
 
-  elementaryStreamId: number;
-
-  mimeType: MimeType;
-
+  mimeType: MimeType = null;
   codec: string = null;
 
-  sampleDuration: number;
-  sampleDepth: SampleDepth;
+  sampleDuration: number = NaN;
+  sampleDepth: SampleBitDepth = SampleBitDepth.UNSPECIFIED;
 
-  dataFormat: PayloadDataFormat;
-  dataLayout: PayloadDataLayout;
+  dataFormat: PayloadDataFormat = PayloadDataFormat.UNSPECIFIED;
+  dataLayout: PayloadDataLayout = PayloadDataLayout.UNSPECIFIED;
 
   details: PayloadDetails = new PayloadDetails();
 
@@ -61,6 +66,10 @@ export class PayloadDescriptor {
     this.dataLayout = PayloadDataLayout.UNSPECIFIED;
   }
 
+  getFullMimeType() {
+    return appendCodecToMimeType(this.mimeType, this.codec);
+  }
+
   getSampleSize (): number {
     return this.sampleDepth / 8;
   }
@@ -71,13 +80,22 @@ export class PayloadDescriptor {
 }
 
 export class PayloadDetails {
-  // TBD
-  width: number
-  height: number
+  // video
+  width: number = 0
+  height: number = 0
 
-  codecConfigurationData: Uint8Array | number[]
+  // color-domains/channels
+
+  // audio
+  channelCount: number = 0
+  codecConfigurationData: Uint8Array | number[] = null
+
+  // text
+  // ...
+
+  // time-vs-frequency domains
+  // ...
 }
-
 
 export class PayloadCodec {
   static isAvc(codec: string) {
@@ -94,27 +112,27 @@ export class PayloadCodec {
 }
 
 export enum PayloadDataFormat {
-    UNSPECIFIED,
-    S_LE,
-    S_BE,
-    U_LE,
-    U_BE
+  UNSPECIFIED,
+  S_LE,
+  S_BE,
+  U_LE,
+  U_BE
 }
 
 export enum PayloadDataLayout {
-    UNSPECIFIED,
-    INTERLEAVED,
-    PROGRESSIVE
+  UNSPECIFIED,
+  INTERLEAVED,
+  PROGRESSIVE
 }
 
-export enum SampleDepth {
-    UNSPECIFIED = 0,
-    VARIABLE = Infinity,
-    FOUR = 4,
-    EIGHT = 8,
-    TWELVE = 12,
-    SIXTEEN = 16,
-    THIRTYTWO = 32
+export enum SampleBitDepth {
+  UNSPECIFIED = NaN,
+  VARIABLE = 0,
+  FOUR = 4,
+  EIGHT = 8,
+  TWELVE = 12,
+  SIXTEEN = 16,
+  THIRTYTWO = 32
 }
 
 
