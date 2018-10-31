@@ -21,15 +21,35 @@ export class SocketState {
   }
 }
 
+export type SocketTemplateGenerator = (st: SocketType) => SocketDescriptor;
+
 export class SocketDescriptor {
   static fromMimeType(mimeType: string): SocketDescriptor {
-    return new SocketDescriptor([new PayloadDescriptor(mimeType)]);
+    return SocketDescriptor.fromMimeTypes(mimeType);
   }
 
-  payloads: PayloadDescriptor[];
+  static fromMimeTypes(...mimeTypes: string[]): SocketDescriptor {
+    return new SocketDescriptor(mimeTypes.map((mimeType) => new PayloadDescriptor(mimeType)));
+  }
+
+  static createTemplateGenerator(
+    inputSd: SocketDescriptor, outputSd: SocketDescriptor): SocketTemplateGenerator {
+    return ((st: SocketType) => {
+      switch(st) {
+      case SocketType.INPUT: return inputSd;
+      case SocketType.OUTPUT: return outputSd;
+      }
+    });
+  }
+
+  readonly payloads: PayloadDescriptor[];
 
   constructor (payloads?: PayloadDescriptor[]) {
     this.payloads = payloads || [];
+  }
+
+  isVoid(): boolean {
+    return this.payloads.length === 0;
   }
 }
 

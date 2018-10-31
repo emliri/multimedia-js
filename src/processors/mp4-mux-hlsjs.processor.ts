@@ -1,5 +1,5 @@
 import { Processor } from '../core/processor';
-import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
+import { InputSocket, SocketDescriptor, SocketType, SocketTemplateGenerator } from '../core/socket';
 import { Packet, PacketSymbol } from '../core/packet';
 
 import {
@@ -7,12 +7,15 @@ import {
   Fmp4RemuxerEvent,
   Fmp4RemuxerConfig,
   Fmp4RemuxerAudioTrack,
-  Fmp4RemuxerVideoTrack
+  Fmp4RemuxerVideoTrack,
+  Fmp4RemuxerTrackState,
+  Fmp4RemuxerPayloadSegmentData
 } from './hlsjs-fmp4-mux/mp4-remuxer';
 
 import { BufferSlice } from '../core/buffer';
 import { getLogger } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
+import { Socket } from 'dgram';
 
 const { log } = getLogger('MP4MuxHlsjsProcessor');
 
@@ -22,14 +25,21 @@ const config: Fmp4RemuxerConfig = {
   stretchShortVideoTrack: false
 };
 
+const getSocketDescriptor: SocketTemplateGenerator =
+  SocketDescriptor.createTemplateGenerator(
+      SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac'), // valid inputs
+      SocketDescriptor.fromMimeTypes('audio/mp4', 'video/mp4')); // possible output
+
 export class MP4MuxHlsjsProcessor extends Processor {
+
   private _fmp4Remux: Fmp4Remuxer = new Fmp4Remuxer(
     this._onFmp4Event.bind(this),
-    config,
-    {}
+    config
   );
 
   private _videoTrack: Fmp4RemuxerVideoTrack = {
+    type: 'video',
+    id: 1,
     duration: 10,
     samples: [],
     inputTimeScale: 90000,
@@ -40,20 +50,15 @@ export class MP4MuxHlsjsProcessor extends Processor {
     width: 0,
     height: 0,
     dropped: 0,
-    len: 0,
-    nbNalu: 0,
     sequenceNumber: 1,
-    type: 'video',
     pixelRatio: [1, 1],
-    id: 1
+
+    len: 0,
+    nbNalu: 0
   };
 
-  private _videoTrackPacketIndex: number = 0;
-  private _audioTrackPacketIndex: number = 0;
-
-  private _flushSymbolCnt: number = 0;
-
   private _audioTrack: Fmp4RemuxerAudioTrack = {
+    type: 'audio',
     id: 2,
     duration: 10,
     codec: null,
@@ -64,12 +69,17 @@ export class MP4MuxHlsjsProcessor extends Processor {
     isAAC: true,
     channelCount: 2,
     inputTimeScale: 90000,
-    len: 0,
-    nbNalu: 0,
     sequenceNumber: 0,
-    type: 'audio',
-    manifestCodec: null
+    manifestCodec: null,
+
+    len: 0,
+    nbNalu: 0
   }
+
+  private _videoTrackPacketIndex: number = 0;
+  private _audioTrackPacketIndex: number = 0;
+
+  private _flushSymbolCnt: number = 0;
 
   constructor () {
     super();
@@ -77,7 +87,7 @@ export class MP4MuxHlsjsProcessor extends Processor {
   }
 
   templateSocketDescriptor (st: SocketType): SocketDescriptor {
-    return new SocketDescriptor();
+    return getSocketDescriptor(st);
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet) {
@@ -168,31 +178,38 @@ export class MP4MuxHlsjsProcessor extends Processor {
     // return super.handleSymbolicPacket_(symbol);
   }
 
-  private _onFmp4Event (event: Fmp4RemuxerEvent, data: any) {
-    log('fmp4remux event >', event, data);
-
+  private _onFmp4Event (event: Fmp4RemuxerEvent, data) {
     switch (event) {
-    case Fmp4RemuxerEvent.INIT_PTS_FOUND:
+    case Fmp4RemuxerEvent.GOT_INIT_PTS_VALUE:
       break;
-    case Fmp4RemuxerEvent.FRAG_PARSING_INIT_SEGMENT: {
+    case Fmp4RemuxerEvent.WROTE_INIT_SEGMENT: {
+      const tracks: Fmp4RemuxerTrackState = data.tracks;
 
-      const {tracks: { audio, video }} = data;
-
-      if (audio) {
+      if (tracks.audio) {
+        log('got init data for a new audio track')
         //this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(audio.initSegment)));
       }
 
-      if (video) {
-        this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(video.initSegment)));
+      if (tracks.video) {
+        log('got init data for a new video track')
+
+        const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.video.initSegment);
+        bs.props.mimeType = tracks.video.container
+
+        const p: Packet = Packet.fromSlice(bs);
+        this.out[0].transfer(p);
       }
 
       break;
     }
-    case Fmp4RemuxerEvent.FRAG_PARSING_DATA: {
-      const { data1, data2 } = data;
+    case Fmp4RemuxerEvent.WROTE_PAYLOAD_SEGMENT: {
+      const payloadSegmentData: Fmp4RemuxerPayloadSegmentData = data;
+
+      log('got mp4 fragment-data with payload-type:', payloadSegmentData.type);
+
       if (data.type === 'video') {
-        this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data1)));
-        this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(data2)));
+        this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(payloadSegmentData.moof)));
+        this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(payloadSegmentData.mdat)));
       }
       else if (data.type === 'audio') {
 

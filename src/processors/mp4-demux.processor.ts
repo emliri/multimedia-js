@@ -28,7 +28,7 @@ export class MP4DemuxProcessor extends Processor {
     }
 
     templateSocketDescriptor (st: SocketType): SocketDescriptor {
-      return new SocketDescriptor();
+      return SocketDescriptor.fromMimeType('video/mp4');
     }
 
     private _ensureOutputForTrack (track: Track): OutputSocket {
