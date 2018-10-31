@@ -80,11 +80,15 @@ export class PayloadDetails {
 
 export class PayloadCodec {
   static isAvc(codec: string) {
-    return codec.startsWith('avc1.');
+    return codec.startsWith('avc1');
   }
 
   static isAac(codec: string) {
-    return codec.startsWith('mp4a.');
+    return codec.startsWith('mp4a');
+  }
+
+  static isMp3(codec: string) {
+    return codec.startsWith('mp3a');
   }
 }
 

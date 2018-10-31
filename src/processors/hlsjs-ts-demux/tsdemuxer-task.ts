@@ -32,7 +32,7 @@ export function processTSDemuxerAppend (task: WorkerTask) {
         unit.byteOffset,
         unit.byteLength);
 
-      bufferSlice.props.codec = audioTrack.codec;
+      bufferSlice.props.codec = audioTrack.isAAC ? audioTrack.codec : 'mp3a'; // FIXME
       bufferSlice.props.mimeType = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
       bufferSlice.props.elementaryStreamId = audioTrack.pid;
 
