@@ -4,7 +4,7 @@ import { makeUUID_v1 } from './common-crypto';
 
 import { getLogger } from './logger';
 
-import { processTSDemuxerAppend } from './processors/hlsjs-ts-demux/tsdemuxer-task';
+import { processTSDemuxerAppend } from './processors/hlsjs-ts-demux/ts-demuxer-task';
 
 const context: Worker = self as any;
 const workerId = makeUUID_v1();
