@@ -44,11 +44,15 @@ export class Packet {
 
   static fromSlice (bufferSlice: BufferSlice, timestamp?: number, pto?: number): Packet {
     const p = new Packet([], timestamp, pto);
-
     p.data.push(
       bufferSlice
     );
+    return p;
+  }
 
+  static fromSlices(timestamp: number, pto: number, ...bufferSlices: BufferSlice[]): Packet {
+    const p = new Packet([], timestamp, pto);
+    Array.prototype.push.apply(p.data, bufferSlices);
     return p;
   }
 
