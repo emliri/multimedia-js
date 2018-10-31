@@ -23,3 +23,7 @@
 - Also take care of mime-types and 4cc codec strings properly
 
 - Fix Worker/Task scaffold
+
+- Seperate compile of procs and core
+
+- Essentialize/Cleanup Hlsjs-parser/muxer-parts
