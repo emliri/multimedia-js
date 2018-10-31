@@ -16,6 +16,7 @@
   "author": "Stephan Hesse <tchakabam@gmail.com>, <stephan@emliri.com>",
   "license": "LGPL, Copyright (c) 2016, 2017, 2018 Stephan Hesse, Emliri",
   "dependencies": {
+    "bowser": "^1.9.4",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
