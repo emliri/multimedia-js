@@ -5,6 +5,9 @@
 const UINT32_MAX = Math.pow(2, 32) - 1;
 
 export class MP4Generator {
+
+  //static types: {[boxType: string]: any}
+
   static init () {
     MP4Generator.types = {
       avc1: [], // codingname

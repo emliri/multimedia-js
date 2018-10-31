@@ -6,6 +6,7 @@ import {AACUtils} from './aac-utils';
 import {MP4Generator} from './mp4-generator';
 
 import { getLogger } from '../../logger';
+import { isBrowserBrand, BrowserBrandname } from '../../browser-utils';
 
 const { log, warn, debug } = getLogger('Fmp4Remuxer');
 
@@ -19,13 +20,13 @@ const logger = {
 const MAX_SILENT_FRAME_DURATION = 10 * 1000;
 
 export enum Fmp4RemuxerEvent {
-  FRAG_PARSED = 'frag-parsed',
-  FRAG_PARSING_INIT_SEGMENT = 'frag-parsing-init-segment',
-  FRAG_PARSING_DATA = 'frag-parsing-data',
-  FRAG_PARSING_METADATA = 'frag-parsing-metadata',
-  FRAG_PARSING_USERDATA = 'frag-parsing-userdata',
-  INIT_PTS_FOUND = 'init-pts-found',
-  ERROR = 'error'
+  PARSING_DONE,
+  WROTE_INIT_SEGMENT,
+  WROTE_PAYLOAD_SEGMENT,
+  GOT_METADATA,
+  GOT_USER_DATA,
+  GOT_INIT_PTS_VALUE,
+  FAILURE
 }
 
 // local short-hand
@@ -44,8 +45,10 @@ export type Fmp4RemuxerSample = {
   key: boolean
 };
 
+export type Fmp4RemuxerTrackType = 'audio' | 'video' | 'subtitles';
+
 export type Fmp4RemuxerTrack = {
-  type: 'audio' | 'video'
+  type: Fmp4RemuxerTrackType
   id: number
   duration: number
   codec: string
@@ -61,6 +64,9 @@ export type Fmp4RemuxerAudioTrack = Fmp4RemuxerTrack & {
   samplerate: number
   isAAC: boolean
   channelCount: number
+
+  // FIXME: needs to be written to externally
+  // should be private
   len: number
   nbNalu: number
 };
@@ -73,6 +79,7 @@ export type Fmp4RemuxerVideoTrack = Fmp4RemuxerTrack & {
   dropped: number
   pixelRatio: [number, number]
 
+  // should be private
   len: number
   nbNalu: number
 };
@@ -97,9 +104,38 @@ export type Fmp4RemuxerTypesSupported = {
   [key: string]: boolean
 };
 
-class Fmp4RemuxerTrackState {
-  public audio: any;
-  public video: any;
+export type Fmp4RemuxerTrackState = {
+  audio: {
+    codec: string
+    container: string
+    initSegment: Uint8Array
+    metadata: {
+      channelCount: number
+    }
+  }
+  video: {
+    codec: string
+    container: string
+    initSegment: Uint8Array
+    metadata: {
+      width: number
+      height: number
+    }
+  }
+}
+
+export type Fmp4RemuxerPayloadSegmentData = {
+  type: Fmp4RemuxerTrackType,
+  startPTS: number
+  endPTS: number
+  startDTS: number
+  endDTS: number
+  hasAudio: boolean,
+  hasVideo: boolean,
+  moof: Uint8Array
+  mdat: Uint8Array
+  nb: number
+  dropped?: number
 }
 
 export class Fmp4Remuxer {
@@ -116,8 +152,13 @@ export class Fmp4Remuxer {
   private _initPTS: number = 0;
   private _initDTS: number = 0;
 
-  constructor (onEvent: Fmp4RemuxerEventHandler, config: Fmp4RemuxerConfig,
-    typeSupported: Fmp4RemuxerTypesSupported = {}) {
+  constructor (
+    onEvent: Fmp4RemuxerEventHandler,
+    config: Fmp4RemuxerConfig,
+    typeSupported: Fmp4RemuxerTypesSupported = {}
+    )
+  {
+
     this._observer = {
       trigger: (event: Fmp4RemuxerEvent, data?: any) => {
         logger.log('event:', event, data);
@@ -127,7 +168,7 @@ export class Fmp4Remuxer {
 
     this._config = config;
     this._typeSupported = typeSupported;
-    this._isSafari = navigator.userAgent && !navigator.userAgent.match('CriOS');
+    this._isSafari = isBrowserBrand(BrowserBrandname.SAFARI);
   }
 
   destroy () {}
@@ -210,7 +251,7 @@ export class Fmp4Remuxer {
     }
 
     // notify end of parsing
-    this._observer.trigger(Event.FRAG_PARSED);
+    this._observer.trigger(Event.PARSING_DONE);
   }
 
   private _generateInitSegment (audioTrack: Fmp4RemuxerAudioTrack, videoTrack: Fmp4RemuxerVideoTrack, timeOffset: number) {
@@ -224,7 +265,7 @@ export class Fmp4Remuxer {
 
     let container = 'audio/mp4';
 
-    let tracks: Fmp4RemuxerTrackState = new Fmp4RemuxerTrackState();
+    let tracks: Partial<Fmp4RemuxerTrackState> = {};
 
     let data = { tracks: tracks };
 
@@ -284,19 +325,19 @@ export class Fmp4Remuxer {
       if (computePTSDTS) {
         initPTS = Math.min(initPTS, videoSamples[0].pts - inputTimeScale * timeOffset);
         initDTS = Math.min(initDTS, videoSamples[0].dts - inputTimeScale * timeOffset);
-        this._observer.trigger(Event.INIT_PTS_FOUND, { initPTS: initPTS });
+        this._observer.trigger(Event.GOT_INIT_PTS_VALUE, { initPTS: initPTS });
       }
     }
 
     if (Object.keys(tracks).length) {
-      observer.trigger(Event.FRAG_PARSING_INIT_SEGMENT, data);
+      observer.trigger(Event.WROTE_INIT_SEGMENT, data);
       this._initSegmentGenerated = true;
       if (computePTSDTS) {
         this._initPTS = initPTS;
         this._initDTS = initDTS;
       }
     } else {
-      observer.trigger(Event.ERROR, { fatal: false, reason: 'no audio/video samples found' });
+      observer.trigger(Event.FAILURE, { fatal: false, reason: 'no audio/video samples found' });
     }
   }
 
@@ -461,7 +502,7 @@ export class Fmp4Remuxer {
     try {
       mdat = new Uint8Array(mdatSize);
     } catch (err) {
-      this._observer.trigger(Event.ERROR, { fatal: false, bytes: mdatSize, reason: `fail allocating video mdat ${mdatSize}` });
+      this._observer.trigger(Event.FAILURE, { fatal: false, bytes: mdatSize, reason: `fail allocating video mdat ${mdatSize}` });
       return;
     }
 
@@ -564,9 +605,9 @@ export class Fmp4Remuxer {
     moof = MP4Generator.moof(track.sequenceNumber++, firstDTS, track);
     track.samples = [];
 
-    let data = {
-      data1: moof,
-      data2: mdat,
+    const data: Fmp4RemuxerPayloadSegmentData = {
+      moof,
+      mdat,
       startPTS: firstPTS / timeScale,
       endPTS: (lastPTS + mp4SampleDuration) / timeScale,
       startDTS: firstDTS / timeScale,
@@ -577,7 +618,7 @@ export class Fmp4Remuxer {
       nb: outputSamples.length,
       dropped: dropped
     };
-    this._observer.trigger(Event.FRAG_PARSING_DATA, data);
+    this._observer.trigger(Event.WROTE_PAYLOAD_SEGMENT, data);
     return data;
   }
 
@@ -687,7 +728,7 @@ export class Fmp4Remuxer {
           logger.warn(`Injecting ${missing} audio frame @ ${(nextPts / inputTimeScale).toFixed(3)}s due to ${Math.round(1000 * delta / inputTimeScale)} ms gap.`);
           for (let j = 0; j < missing; j++) {
             let newStamp = Math.max(nextPts, 0);
-            fillFrame = AACUtils.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+            fillFrame = AACUtils.allocNewSilentFrame(track.manifestCodec || track.codec, track.channelCount);
             if (!fillFrame) {
               logger.log('Unable to get silent frame for given audio codec; duplicating last frame instead.');
               fillFrame = sample.units[0].data.subarray(0);
@@ -725,7 +766,9 @@ export class Fmp4Remuxer {
       let audioSample = inputSamples[j];
       let unit = audioSample.units[0].data;
       let pts = audioSample.pts;
-      logger.log(`Audio PTS: ${Math.round(pts)}`);
+
+      //logger.log(`Audio PTS: ${Math.round(pts)}`);
+
       // if not first sample
       if (lastPTS !== undefined) {
         mp4Sample.duration = Math.round((pts - lastPTS) / scaleFactor);
@@ -742,7 +785,7 @@ export class Fmp4Remuxer {
               numMissingFrames = Math.round((pts - nextAudioPts) / inputSampleDuration);
               logger.log(`${delta} ms hole between AAC samples detected,filling it`);
               if (numMissingFrames > 0) {
-                fillFrame = AACUtils.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+                fillFrame = AACUtils.allocNewSilentFrame(track.manifestCodec || track.codec, track.channelCount);
                 if (!fillFrame) {
                   fillFrame = unit.subarray(0);
                 }
@@ -772,7 +815,7 @@ export class Fmp4Remuxer {
           try {
             mdat = new Uint8Array(mdatSize);
           } catch (err) {
-            this._observer.trigger(Event.ERROR, { fatal: false, bytes: mdatSize, reason: `fail allocating audio mdat ${mdatSize}` });
+            this._observer.trigger(Event.FAILURE, { fatal: false, bytes: mdatSize, reason: `fail allocating audio mdat ${mdatSize}` });
             return;
           }
           if (!rawMPEG) {
@@ -786,7 +829,7 @@ export class Fmp4Remuxer {
         }
 
         for (let i = 0; i < numMissingFrames; i++) {
-          fillFrame = AACUtils.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+          fillFrame = AACUtils.allocNewSilentFrame(track.manifestCodec || track.codec, track.channelCount);
           if (!fillFrame) {
             logger.log('Unable to get silent frame for given audio codec; duplicating this frame instead.');
             fillFrame = unit.subarray(0);
@@ -857,9 +900,9 @@ export class Fmp4Remuxer {
       track.samples = [];
       const start = firstPTS / inputTimeScale;
       const end = nextAudioPts / inputTimeScale;
-      const audioData = {
-        data1: moof,
-        data2: mdat,
+      const audioData: Fmp4RemuxerPayloadSegmentData = {
+        moof,
+        mdat,
         startPTS: start,
         endPTS: end,
         startDTS: start,
@@ -869,7 +912,7 @@ export class Fmp4Remuxer {
         hasVideo: false,
         nb: nbSamples
       };
-      this._observer.trigger(Event.FRAG_PARSING_DATA, audioData);
+      this._observer.trigger(Event.WROTE_PAYLOAD_SEGMENT, audioData);
       return audioData;
     }
     return null;
@@ -902,7 +945,7 @@ export class Fmp4Remuxer {
 
     // silent frame
 
-    let silentFrame = AACUtils.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+    let silentFrame = AACUtils.allocNewSilentFrame(track.manifestCodec || track.codec, track.channelCount);
 
     logger.warn('remux empty Audio');
     // Can't remux if we can't generate a silent frame...
@@ -936,7 +979,7 @@ export class Fmp4Remuxer {
         sample.pts = ((sample.pts - initPTS) / inputTimeScale);
         sample.dts = ((sample.dts - initDTS) / inputTimeScale);
       }
-      this._observer.trigger(Event.FRAG_PARSING_METADATA, {
+      this._observer.trigger(Event.GOT_METADATA, {
         samples: track.samples
       });
     }
@@ -961,7 +1004,7 @@ export class Fmp4Remuxer {
         // using this._initPTS and this._initDTS to calculate relative time
         sample.pts = ((sample.pts - initPTS) / inputTimeScale);
       }
-      this._observer.trigger(Event.FRAG_PARSING_USERDATA, {
+      this._observer.trigger(Event.GOT_USER_DATA, {
         samples: track.samples
       });
     }

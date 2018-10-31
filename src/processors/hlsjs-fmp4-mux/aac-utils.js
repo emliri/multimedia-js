@@ -1,5 +1,5 @@
 export class AACUtils {
-  static getSilentFrame (codec, channelCount) {
+  static allocNewSilentFrame (codec, channelCount) {
     switch (codec) {
     case 'mp4a.40.2':
       if (channelCount === 1) {

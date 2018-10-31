@@ -10,7 +10,7 @@
 */
 
 import * as ADTS from './adts-utils';
-import MpegAudio from './mpegaudio-parser';
+import MpegAudio from './mpeg-audio-parser';
 import ExpGolomb from './exp-golomb-reader';
 import SampleAesDecrypter from './sample-aes-decrypter';
 
