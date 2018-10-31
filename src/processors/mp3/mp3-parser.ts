@@ -3,7 +3,6 @@
  */
 import { ID3Parser } from './id3-parser';
 import { MPEGAudioParser, MPEGAudioFrame } from './mpeg-audio-parser';
-import { TIMEOUT } from 'dns';
 
 export const ID3_TIMESCALE = 90;
 
