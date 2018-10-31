@@ -19,27 +19,25 @@ export type SourceBufferQueueUpdateCallbackData = {
 export type SourceBufferQueueUpdateCallback = (SourceBufferQueue, SourceBufferQueueUpdateCallbackData) => void;
 
 export class SourceBufferQueue {
-  private mimeType_: string;
-  private updateStartedTime_: number;
-  private queue_: SourceBufferQueueItem[];
 
-  private bufferedBytesCount_: number;
-  private sourceBuffer_: SourceBuffer;
-  private initialMode_: string;
-  private onUpdate_: SourceBufferQueueUpdateCallback
-  private bufferMap_: any[];
+  private updateStartedTime_: number = null;
+  private queue_: SourceBufferQueueItem[] = [];
+
+  private bufferedBytesCount_: number = 0;
+  private sourceBuffer_: SourceBuffer = null;
+  private initialMode_: string = null;
+
+  //private bufferMap_: any[];
 
   constructor (
     mediaSource: MediaSource,
-    mimeType: string,
+    private mimeType_: string,
     trackDefaults = null,
-    onUpdate?: SourceBufferQueueUpdateCallback) {
-    this.mimeType_ = mimeType;
-    this.updateStartedTime_ = null;
-    this.queue_ = [];
-    this.bufferMap_ = [];
-    this.bufferedBytesCount_ = 0;
-    this.sourceBuffer_ = mediaSource.addSourceBuffer(mimeType);
+    private onUpdate_: SourceBufferQueueUpdateCallback = (() => {})) {
+
+    //this.bufferMap_ = [];
+
+    this.sourceBuffer_ = mediaSource.addSourceBuffer(mimeType_);
     this.initialMode_ = this.sourceBuffer_.mode;
 
     log('SourceBuffer created with initial mode:', this.initialMode_);
@@ -48,7 +46,7 @@ export class SourceBufferQueue {
       throw new Error('trackDefaults arg not supported (yet) except null');
       // this.sourceBuffer_.trackDefaults = trackDefaults
     }
-    this.onUpdate_ = onUpdate || (() => {});
+
     this.sourceBuffer_.addEventListener('updatestart', this.onUpdateStart_.bind(this));
     this.sourceBuffer_.addEventListener('updateend', this.onUpdateEnd_.bind(this));
   }
@@ -176,6 +174,7 @@ export class SourceBufferQueue {
     this.flush();
   }
 
+  /*
   private incrBufferedBytesCnt_ (bytes) {
     this.bufferedBytesCount_ += bytes;
   }
@@ -183,6 +182,7 @@ export class SourceBufferQueue {
   private decBufferedBytesCnt_ (bytes) {
     this.bufferedBytesCount_ -= bytes;
   }
+  */
 
   private tryRunQueueOnce_ () {
     if (this.isUpdating()) {
@@ -200,19 +200,19 @@ export class SourceBufferQueue {
 
     switch (method) {
     case 'appendBuffer':
-
-      console.log('appending to source-buffer:', item);
-
+      log('appending', this.mimeType ,'buffer of', item.arrayBuffer.byteLength, 'bytes');
       this.sourceBuffer_[method](arrayBuffer);
 
       // this.incrBufferedBytesCnt_(arrayBuffer.bytesLength);
       // TODO: we need to parse the MP4 here to know what duration it is
+
       break;
     case 'remove':
+      log('pruning', this.mimeType, 'buffer on time-interval', start, '-', end)
       this.sourceBuffer_[method](start, end);
       break;
     case 'drop':
-      console.log('dropping source-buffer data...');
+      log('dropping all', this.mimeType, 'source-buffer data...');
       this.drop(false);
       break;
     }
@@ -225,7 +225,7 @@ export class SourceBufferQueue {
     };
     this.updateStartedTime_ = null;
 
-    log('onUpdateEnd_', callbackData);
+    log('done updating', this.mimeType, 'source-buffer, took', callbackData.updateTimeMs, 'ms');
 
     this.onUpdate_(this, callbackData);
 
@@ -233,7 +233,7 @@ export class SourceBufferQueue {
   }
 
   private onUpdateStart_ () {
-    console.log('onUpdateStart_');
+    //log('onUpdateStart_');
 
     if (this.updateStartedTime_ !== null) {
       throw new Error('updateStartedTime_ should be null');

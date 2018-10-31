@@ -80,7 +80,11 @@ export class MediaSourceController extends EventEmitter {
     return true;
   }
 
-  getSourceBufferQueuesByMimeType (mimeType) {
+  hasSourceBufferQueuesForMimeType(mimeType: string): boolean {
+    return !!this.getSourceBufferQueuesByMimeType(mimeType).length
+  }
+
+  getSourceBufferQueuesByMimeType (mimeType): SourceBufferQueue[] {
     return this.sourceBufferQueues_.filter((sbQ) => {
       return sbQ.mimeType === mimeType;
     });

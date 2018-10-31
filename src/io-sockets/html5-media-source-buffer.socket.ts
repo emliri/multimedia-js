@@ -1,29 +1,30 @@
 import { InputSocket, SocketDescriptor } from '../core/socket';
 import { Packet } from '../core/packet';
 import { MediaSourceController } from './html5-media-source/media-source-controller';
-import { SourceBufferQueue } from './html5-media-source/source-buffer-queue';
 import { concatArrayBuffers } from '../common-utils';
 import { getLogger } from '../logger';
+import { appendCodecToMimeType } from '../core/payload-description';
 
-const { log } = getLogger('HTML5MediaSourceBufferSocket');
+const { log, warn, error } = getLogger('HTML5MediaSourceBufferSocket');
 
 const MEDIA_SOURCE_OPEN_FAILURE_TIMEOUT_MS = 4000;
 
 export class HTML5MediaSourceBufferSocket extends InputSocket {
 
   private mediaSourceController: MediaSourceController;
-  private sourceBufferQueue: SourceBufferQueue;
   private accuBuffer: ArrayBuffer = null;
 
   private _readyPromise: Promise<void>;
 
-  constructor (mediaSource: MediaSource, mimeType: string) {
-    super((p: Packet) => this.onPacketReceived(p), new SocketDescriptor());
+  constructor (mediaSource: MediaSource, defaultFullMimetype?: string) {
+    super((p: Packet) => this._onPacketReceived(p), new SocketDescriptor());
 
     this._readyPromise = new Promise((resolve, reject) => {
 
       if (mediaSource.readyState === 'open') {
+
         resolve();
+
       } else {
 
         const mediaSourceFailureTimeout = setTimeout(() => {
@@ -34,6 +35,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
           clearTimeout(mediaSourceFailureTimeout);
           resolve();
         });
+
       }
     });
 
@@ -42,43 +44,76 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
       this.mediaSourceController = new MediaSourceController(mediaSource);
       this.mediaSourceController.setMediaDuration(60, true); // HACK !!
 
-      if (!this.mediaSourceController.addSourceBufferQueue(mimeType)) {
-        throw new Error('Failed to create SourceBuffer for mime-type: ' + mimeType);
+      if (defaultFullMimetype) {
+        this._enableOneSourceBufferForFullMimetype(defaultFullMimetype);
       }
 
-      this.sourceBufferQueue = this.mediaSourceController.sourceBufferQueues[0];
     })
 
-    // log(this.sourceBufferQueue)
-    // log(mediaSource, this.mediaSourceController)
   }
 
   whenReady(): Promise<void> {
     return this._readyPromise;
   }
 
-  private onPacketReceived (p: Packet): boolean {
-    const buffer = p.data[0].arrayBuffer;
-
-    /// * This is a nasty debugging hack. We should add a probe/filter to do this
-    //
-    if (ENABLE_BUFFER_DOWNLOAD_LINK) {
-      this.accuBuffer = concatArrayBuffers(this.accuBuffer, buffer);
-      const blob = new Blob([this.accuBuffer], { type: 'video/mp4' });
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a'); // Or maybe get it from the current document
-      link.href = objectUrl;
-      link.download = `buffer${bufferDownloadCnt++}.mp4`;
-      link.innerHTML = '<p>Download buffer</p>';
-      document.body.appendChild(link); // Or append it whereever you want
+  private _enableOneSourceBufferForFullMimetype(fullMimeType: string): boolean {
+    if (this.mediaSourceController.hasSourceBufferQueuesForMimeType(fullMimeType)) {
+      return false;
     }
-    //* /
 
-    this.mediaSourceController.mediaDuration;
-    this.sourceBufferQueue.appendBuffer(buffer, 0);
+    if (!MediaSource.isTypeSupported(fullMimeType)) {
+      error('MSE API says requested mime-type is not supported, aborting');
+    }
+
+    log('attempting to create an MSE source-buffer for fully-qualified mime-type:', fullMimeType)
+
+    if (!this.mediaSourceController.addSourceBufferQueue(fullMimeType)) {
+      throw new Error('Failed to create SourceBuffer for mime-type: ' + fullMimeType);
+    }
 
     return true;
   }
+
+  private _onPacketReceived (p: Packet): boolean {
+
+    const defaultBufferProps = p.data[0].props;
+
+    const fullMimeType = appendCodecToMimeType(defaultBufferProps.mimeType, defaultBufferProps.codec);
+
+    log('received packet with fully-qualified mime-type:', fullMimeType)
+
+    this._enableOneSourceBufferForFullMimetype(fullMimeType);
+
+    p.forEachBufferSlice((bs) => {
+
+      const buffer = bs.arrayBuffer;
+
+      const sourceBufferQueue = this.mediaSourceController.getSourceBufferQueuesByMimeType(fullMimeType)[0];
+      if (!sourceBufferQueue) {
+        warn('must previously have created surce-buffer for mime-type: ' + fullMimeType);
+        warn('ignoring one packet received');
+        return;
+      }
+      sourceBufferQueue.appendBuffer(buffer, 0);
+
+      /// * This is a nasty debugging hack. We should add a probe/filter to do this
+      /*//
+      if (ENABLE_BUFFER_DOWNLOAD_LINK) {
+        this.accuBuffer = concatArrayBuffers(this.accuBuffer, buffer);
+        const blob = new Blob([this.accuBuffer], { type: 'video/mp4' });
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a'); // Or maybe get it from the current document
+        link.href = objectUrl;
+        link.download = `buffer${bufferDownloadCnt++}.mp4`;
+        link.innerHTML = '<p>Download buffer</p>';
+        document.body.appendChild(link); // Or append it whereever you want
+      }
+      //*/
+    })
+
+    return true;
+  }
+
 }
 
 var bufferDownloadCnt = 0;
