@@ -38,7 +38,7 @@ export class HttpToMediaSourceFlow extends Flow {
     const xhrSocket = this._xhrSocket = new XhrSocket(url);
 
     const mediaSourceSocket: HTML5MediaSourceBufferSocket
-      = new HTML5MediaSourceBufferSocket(mediaSource, 'video/mp4; codecs=avc1.64001f'); // avc1.4d401f
+      = new HTML5MediaSourceBufferSocket(mediaSource); // avc1.4d401f
 
     const onDemuxOutputCreated = (data: ProcessorEventData) => {
       const demuxOutputSocket = <OutputSocket> data.socket;
@@ -65,14 +65,18 @@ export class HttpToMediaSourceFlow extends Flow {
       } else if (data.processor === tsDemuxProc) {
 
         if (!this._haveVideo && PayloadCodec.isAvc(payloadDescriptor.codec)) {
+
           this._haveVideo = true;
           muxerInputSocket = mp4MuxHlsjsProc.createInput();
           h264ParseProc.out[0].connect(muxerInputSocket);
           demuxOutputSocket.connect(h264ParseProc.in[0]);
+
         } else if (!this._haveAudio && PayloadCodec.isAac(payloadDescriptor.codec)) {
+
           this._haveAudio = true;
           muxerInputSocket = mp4MuxHlsjsProc.createInput();
           demuxOutputSocket.connect(muxerInputSocket);
+
         }
       }
 

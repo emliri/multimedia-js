@@ -6,7 +6,6 @@ import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from '../processors/m
 import { ProcessorEvent, ProcessorEventHandler, ProcessorEventData } from '../core/processor';
 import { OutputSocket } from '../core/socket';
 import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
-//import { IsoboxerMP4DemuxProcessor } from '../processors/isoboxer-mp4-demux.processor';
 
 export class MovToFmp4Flow extends Flow {
 
