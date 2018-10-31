@@ -1,6 +1,3 @@
-/**
- *
- */
 
 import {AACUtils} from './aac-utils';
 import {MP4Generator} from './mp4-generator';
@@ -125,17 +122,18 @@ export type Fmp4RemuxerTrackState = {
 }
 
 export type Fmp4RemuxerPayloadSegmentData = {
-  type: Fmp4RemuxerTrackType,
+  payloadType: Fmp4RemuxerTrackType,
+  codec: string
   startPTS: number
   endPTS: number
   startDTS: number
   endDTS: number
   hasAudio: boolean,
   hasVideo: boolean,
-  moof: Uint8Array
-  mdat: Uint8Array
-  nb: number
-  dropped?: number
+  fragmentHeader: Uint8Array
+  fragmentData: Uint8Array
+  nbOfSamples: number
+  nbOfDroppedSamples?: number
 }
 
 export class Fmp4Remuxer {
@@ -161,7 +159,7 @@ export class Fmp4Remuxer {
 
     this._observer = {
       trigger: (event: Fmp4RemuxerEvent, data?: any) => {
-        logger.log('event:', event, data);
+        //logger.log('event:', event, data);
         onEvent(event, data);
       }
     };
@@ -590,7 +588,7 @@ export class Fmp4Remuxer {
     }
     // next AVC sample DTS should be equal to last sample DTS + last sample duration (in PES timescale)
     this._nextAvcDts = lastDTS + mp4SampleDuration;
-    let dropped = track.dropped;
+    let nbOfDroppedSamples = track.dropped;
     track.len = 0;
     track.nbNalu = 0;
     track.dropped = 0;
@@ -606,17 +604,18 @@ export class Fmp4Remuxer {
     track.samples = [];
 
     const data: Fmp4RemuxerPayloadSegmentData = {
-      moof,
-      mdat,
+      payloadType: 'video',
+      codec: track.codec,
       startPTS: firstPTS / timeScale,
       endPTS: (lastPTS + mp4SampleDuration) / timeScale,
       startDTS: firstDTS / timeScale,
       endDTS: this._nextAvcDts / timeScale,
-      type: 'video',
       hasAudio: false,
       hasVideo: true,
-      nb: outputSamples.length,
-      dropped: dropped
+      nbOfSamples: outputSamples.length,
+      nbOfDroppedSamples,
+      fragmentHeader: moof,
+      fragmentData: mdat
     };
     this._observer.trigger(Event.WROTE_PAYLOAD_SEGMENT, data);
     return data;
@@ -645,7 +644,7 @@ export class Fmp4Remuxer {
 
     let fillFrame;
 
-    let mdat; let moof;
+    let fragmentData; let fragmentHeader;
 
     let firstPTS; let lastPTS;
 
@@ -813,15 +812,15 @@ export class Fmp4Remuxer {
           let mdatSize = rawMPEG ? track.len : track.len + 8;
           offset = rawMPEG ? 0 : 8;
           try {
-            mdat = new Uint8Array(mdatSize);
+            fragmentData = new Uint8Array(mdatSize);
           } catch (err) {
             this._observer.trigger(Event.FAILURE, { fatal: false, bytes: mdatSize, reason: `fail allocating audio mdat ${mdatSize}` });
             return;
           }
           if (!rawMPEG) {
-            const view = new DataView(mdat.buffer);
+            const view = new DataView(fragmentData.buffer);
             view.setUint32(0, mdatSize);
-            mdat.set((<any> MP4Generator).types.mdat, 4);
+            fragmentData.set((<any> MP4Generator).types.mdat, 4);
           }
         } else {
           // no audio samples
@@ -834,7 +833,7 @@ export class Fmp4Remuxer {
             logger.log('Unable to get silent frame for given audio codec; duplicating this frame instead.');
             fillFrame = unit.subarray(0);
           }
-          mdat.set(fillFrame, offset);
+          fragmentData.set(fillFrame, offset);
           offset += fillFrame.byteLength;
           mp4Sample = {
             size: fillFrame.byteLength,
@@ -852,7 +851,7 @@ export class Fmp4Remuxer {
         }
       }
 
-      mdat.set(unit, offset);
+      fragmentData.set(unit, offset);
 
       let unitLen = unit.byteLength;
 
@@ -892,25 +891,26 @@ export class Fmp4Remuxer {
       track.len = 0;
       track.samples = outputSamples;
       if (rawMPEG) {
-        moof = new Uint8Array(0);
+        fragmentHeader = new Uint8Array(0);
       } else {
-        moof = MP4Generator.moof(track.sequenceNumber++, firstPTS / scaleFactor, track);
+        fragmentHeader = MP4Generator.moof(track.sequenceNumber++, firstPTS / scaleFactor, track);
       }
 
       track.samples = [];
       const start = firstPTS / inputTimeScale;
       const end = nextAudioPts / inputTimeScale;
       const audioData: Fmp4RemuxerPayloadSegmentData = {
-        moof,
-        mdat,
+        payloadType: 'audio',
+        codec: track.codec,
         startPTS: start,
         endPTS: end,
         startDTS: start,
         endDTS: end,
-        type: 'audio',
         hasAudio: true,
         hasVideo: false,
-        nb: nbSamples
+        nbOfSamples: nbSamples,
+        fragmentHeader,
+        fragmentData
       };
       this._observer.trigger(Event.WROTE_PAYLOAD_SEGMENT, audioData);
       return audioData;

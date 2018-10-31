@@ -12,7 +12,7 @@ import {
   Fmp4RemuxerPayloadSegmentData
 } from './hlsjs-fmp4-mux/mp4-remuxer';
 
-import { BufferSlice } from '../core/buffer';
+import { BufferSlice, BufferProperties } from '../core/buffer';
 import { getLogger } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
 import { Socket } from 'dgram';
@@ -187,16 +187,30 @@ export class MP4MuxHlsjsProcessor extends Processor {
 
       if (tracks.audio) {
         log('got init data for a new audio track')
-        //this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(audio.initSegment)));
+
+        const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.audio.initSegment);
+        bs.props.mimeType = tracks.audio.container;
+        bs.props.codec = tracks.audio.codec;
+        bs.props.details.channelCount = tracks.audio.metadata.channelCount;
+
+        const p: Packet = Packet.fromSlice(bs);
+        p.timestamp = 0;
+
+        this.out[0].transfer(p);
       }
 
       if (tracks.video) {
         log('got init data for a new video track')
 
         const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.video.initSegment);
-        bs.props.mimeType = tracks.video.container
+        bs.props.mimeType = tracks.video.container;
+        bs.props.codec = tracks.video.codec;
+        bs.props.details.width = tracks.video.metadata.width;
+        bs.props.details.height = tracks.video.metadata.height;
 
         const p: Packet = Packet.fromSlice(bs);
+        p.timestamp = 0;
+
         this.out[0].transfer(p);
       }
 
@@ -205,15 +219,19 @@ export class MP4MuxHlsjsProcessor extends Processor {
     case Fmp4RemuxerEvent.WROTE_PAYLOAD_SEGMENT: {
       const payloadSegmentData: Fmp4RemuxerPayloadSegmentData = data;
 
-      log('got mp4 fragment-data with payload-type:', payloadSegmentData.type);
+      log('got mp4 fragment-data with payload-type:', payloadSegmentData.payloadType);
 
-      if (data.type === 'video') {
-        this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(payloadSegmentData.moof)));
-        this.out[0].transfer(Packet.fromSlice(BufferSlice.fromTypedArray(payloadSegmentData.mdat)));
-      }
-      else if (data.type === 'audio') {
+      const props: BufferProperties = new BufferProperties(payloadSegmentData.payloadType + '/mp4');
 
-      }
+      props.codec = payloadSegmentData.codec;
+      props.samplesCount = payloadSegmentData.nbOfSamples;
+
+      const moof: BufferSlice = BufferSlice.fromTypedArray(payloadSegmentData.fragmentHeader, props);
+      const mdat: BufferSlice = BufferSlice.fromTypedArray(payloadSegmentData.fragmentData, props);
+
+      const p: Packet = Packet.fromSlices(0, 0, moof, mdat);
+
+      this.out[0].transfer(p);
       break;
     }
     }
