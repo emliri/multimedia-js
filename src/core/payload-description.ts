@@ -52,7 +52,8 @@ export class PayloadDescriptor {
   details: PayloadDetails = new PayloadDetails();
 
   constructor (mimeType: string, sampleDuration: number = NaN, sampleDepth: number = NaN) {
-    this.mimeType = mimeType;
+    this.mimeType = mimeType.toLowerCase();
+
     this.sampleDuration = sampleDuration;
     this.sampleDepth = sampleDepth;
 
