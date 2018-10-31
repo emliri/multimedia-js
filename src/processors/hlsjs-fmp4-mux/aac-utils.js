@@ -1,8 +1,4 @@
-/**
- *  AAC helper
- */
-
-class AAC {
+export class AACUtils {
   static getSilentFrame (codec, channelCount) {
     switch (codec) {
     case 'mp4a.40.2':
@@ -39,4 +35,3 @@ class AAC {
   }
 }
 
-export default AAC;

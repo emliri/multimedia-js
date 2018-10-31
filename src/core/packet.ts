@@ -75,6 +75,7 @@ export class Packet {
   }
 
   private _symbol: PacketSymbol = PacketSymbol.VOID;
+  private _timescale: number = 1;
 
   constructor (
     public data: BufferSlices = [],
@@ -104,8 +105,28 @@ export class Packet {
     return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
 
-  getPresentationTime (): number {
+  getPresentationTimestamp (): number {
     return this.timestamp + this.presentationTimeOffset;
+  }
+
+  getDecodingTimestamp (): number {
+    return this.timestamp;
+  }
+
+  setTimescale(timescale: number) {
+    this._timescale = timescale;
+  }
+
+  getTimescale(): number {
+    return this._timescale;
+  }
+
+  getNormalizedPts(): number {
+    return this.getPresentationTimestamp() / this.getTimescale();
+  }
+
+  getNormalizedDts() {
+    return this.getDecodingTimestamp() / this.getTimescale();
   }
 
   mapArrayBuffers (): ArrayBuffer[] {

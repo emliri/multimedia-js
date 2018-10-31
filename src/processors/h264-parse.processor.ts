@@ -2,12 +2,14 @@ import { Processor } from '../core/processor';
 import { Packet } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
-import { CommonMimeTypes } from '../core/mime-type';
+import { CommonMimeTypes } from '../core/payload-description';
 
 import { BufferSlice, BufferProperties } from '../core/buffer';
 
+/*
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
 import { BitReader } from '../ext-mod/inspector.js/src/utils/bit-reader';
+*/
 
 import { H264Parser } from './h264/h264';
 import { NALU } from './h264/nalu';

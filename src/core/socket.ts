@@ -1,9 +1,10 @@
-import { PayloadDescriptor } from './mime-type';
+import { PayloadDescriptor } from './payload-description';
 import { Packet, PacketReceiveCallback } from './packet';
 
 import { getLogger, makeLogTimestamped, LoggerLevels } from '../logger';
 import { Signal, SignalHandler, SignalReceiver, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
-import { throws } from 'assert';
+import { throws, rejects } from 'assert';
+import { dispatchAsyncTask } from '../common-utils';
 
 const { log, error } = getLogger('Socket', LoggerLevels.OFF);
 
@@ -134,13 +135,31 @@ export abstract class Socket implements SignalReceiver {
     }
 
     /**
+     * Wraps transferSync in an async call and returns a promise
+     * @param p
+     */
+    transfer (p: Packet): Promise<boolean> {
+      return new Promise((resolve, reject) => {
+        dispatchAsyncTask(() => {
+          try {
+            resolve(this.transferSync(p));
+          } catch(e) {
+            reject(e);
+          }
+        });
+      });
+    }
+
+    /**
      * Transfer the partial ownership of a Packet to this Socket.
+     *
+     * Implemented by the subclass in a "sync" manner.
      *
      * Return `false` value may indicate that the socket is not peered
      * and thus no effective transfer took place, or that the data processing handler
      * is not set in some other way, or an error was thrown when processing.
      */
-    abstract transfer(p: Packet): boolean;
+    abstract transferSync(p: Packet): boolean;
 
     /**
      * Passes the signal to the handler.
@@ -189,7 +208,7 @@ export class InputSocket extends Socket {
       this.onReceive_ = onReceive;
     }
 
-    transfer (p: Packet): boolean {
+    transferSync (p: Packet): boolean {
       this.setTransferring_(true);
       const b = this.onReceive_(p);
       this.setTransferring_(false);
@@ -216,15 +235,14 @@ export class OutputSocket extends Socket {
       this.peers_ = [];
     }
 
-    transfer (p: Packet): boolean {
+    transferSync (p: Packet): boolean {
       log(makeLogTimestamped('OutputSocket.transfer packet'));
 
       let b: boolean;
       this.setTransferring_(true);
       this.peers_.forEach((s) => {
         log('call transfer on peer socket');
-
-        b = s.transfer(p);
+        b = s.transferSync(p);
         this.onPacketTransferred_(s, b);
       });
       this.setTransferring_(false);

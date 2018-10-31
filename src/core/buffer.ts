@@ -1,4 +1,4 @@
-import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './mime-type';
+import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './payload-description';
 
 /**
  * @class

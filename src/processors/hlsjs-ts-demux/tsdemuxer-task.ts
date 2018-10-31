@@ -1,11 +1,11 @@
+import { WorkerTask, postMessage } from '../../core/worker';
+import { CommonMimeTypes } from '../../core/payload-description';
 import { Packet, PacketSymbol } from '../../core/packet';
 import { BufferSlice } from '../../core/buffer';
 
 import { getLogger } from '../../logger';
 
-import { WorkerTask, postMessage } from '../../core/worker';
-import { TSDemuxer } from '../../processors/hlsjs-ts-demux/tsdemuxer';
-import { CommonMimeTypes } from '../../core/mime-type';
+import { TSDemuxer } from './tsdemuxer';
 
 const {log} = getLogger('TSDemuxerTask');
 
@@ -22,7 +22,7 @@ export function processTSDemuxerAppend (task: WorkerTask) {
 
     log(audioTrack, avcTrack);
 
-    /*
+    ///*
     audioTrack.samples.forEach((sample) => {
 
       const unit = sample.unit;
@@ -32,9 +32,11 @@ export function processTSDemuxerAppend (task: WorkerTask) {
         unit.byteOffset,
         unit.byteLength);
 
-      bufferSlice.props.codec = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
-      bufferSlice.props.mimeType = audioTrack.container;
+      bufferSlice.props.codec = audioTrack.codec;
+      bufferSlice.props.mimeType = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
+      bufferSlice.props.elementaryStreamId = audioTrack.pid;
 
+      bufferSlice.props.details.codecConfigurationData = audioTrack.config;
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
@@ -43,7 +45,7 @@ export function processTSDemuxerAppend (task: WorkerTask) {
       });
 
     });
-    */
+    //*/
 
     avcTrack.samples.forEach((sample) => {
       // console.log(sample);
@@ -55,7 +57,8 @@ export function processTSDemuxerAppend (task: WorkerTask) {
           unit.data.byteLength);
 
         bufferSlice.props.codec = avcTrack.codec;
-        bufferSlice.props.mimeType = avcTrack.container;
+        bufferSlice.props.mimeType = CommonMimeTypes.VIDEO_AVC;
+        bufferSlice.props.elementaryStreamId = avcTrack.pid;
 
         bufferSlice.props.isKeyframe = sample.key || unit.type === 5; // IDR
         bufferSlice.props.isBitstreamHeader = unit.type >= 7 && unit.type <= 8; // SPS/PPS

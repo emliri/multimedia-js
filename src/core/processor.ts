@@ -163,7 +163,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     createInput (sd?: SocketDescriptor): InputSocket {
       const s = new InputSocket((p: Packet) => {
         return this.onReceiveFromInput_(s, p);
-      }, this.wrapTemplateSocketDescriptor_(SocketType.INPUT));
+      }, sd || this.wrapTemplateSocketDescriptor_(SocketType.INPUT));
       this.inputs_.push(s);
       this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
         processor: this,
@@ -183,7 +183,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * {SocketDescriptor} sd optional
      */
     createOutput (sd?: SocketDescriptor): OutputSocket {
-      const s = new OutputSocket(this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
+      const s = new OutputSocket(sd || this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
       this.outputs_.push(s);
       this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
         processor: this,

@@ -596,12 +596,13 @@ export class TSDemuxer {
   }
 
   _parseAVCPES (pes, last) {
+
+    const debug = false;
+
     // log('parse new PES');
     let track = this._avcTrack;
 
     let units = this._parseAVCNALu(pes.data);
-
-    let debug = true;
 
     let expGolombDecoder;
 

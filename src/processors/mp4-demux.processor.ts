@@ -6,7 +6,7 @@ import { getLogger } from '../logger';
 
 import { createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom } from '../ext-mod/inspector.js/src';
 
-import { PayloadDescriptor } from '../core/mime-type';
+import { PayloadDescriptor } from '../core/payload-description';
 
 import { Mp4Track } from '../ext-mod/inspector.js/src/demuxer/mp4/mp4-track';
 import { BufferProperties, BufferSlice } from '../core/buffer';

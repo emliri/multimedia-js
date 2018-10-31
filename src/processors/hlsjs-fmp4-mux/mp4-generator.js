@@ -4,9 +4,9 @@
 
 const UINT32_MAX = Math.pow(2, 32) - 1;
 
-class MP4 {
+export class MP4Generator {
   static init () {
-    MP4.types = {
+    MP4Generator.types = {
       avc1: [], // codingname
       avcC: [],
       btrt: [],
@@ -46,9 +46,9 @@ class MP4 {
     };
 
     let i;
-    for (i in MP4.types) {
-      if (MP4.types.hasOwnProperty(i)) {
-        MP4.types[i] = [
+    for (i in MP4Generator.types) {
+      if (MP4Generator.types.hasOwnProperty(i)) {
+        MP4Generator.types[i] = [
           i.charCodeAt(0),
           i.charCodeAt(1),
           i.charCodeAt(2),
@@ -83,7 +83,7 @@ class MP4 {
       0x64, 0x6c, 0x65, 0x72, 0x00 // name: 'SoundHandler'
     ]);
 
-    MP4.HDLR_TYPES = {
+    MP4Generator.HDLR_TYPES = {
       'video': videoHdlr,
       'audio': audioHdlr
     };
@@ -104,15 +104,15 @@ class MP4 {
       0x00, 0x00, 0x00, 0x00 // entry_count
     ]);
 
-    MP4.STTS = MP4.STSC = MP4.STCO = stco;
+    MP4Generator.STTS = MP4Generator.STSC = MP4Generator.STCO = stco;
 
-    MP4.STSZ = new Uint8Array([
+    MP4Generator.STSZ = new Uint8Array([
       0x00, // version
       0x00, 0x00, 0x00, // flags
       0x00, 0x00, 0x00, 0x00, // sample_size
       0x00, 0x00, 0x00, 0x00 // sample_count
     ]);
-    MP4.VMHD = new Uint8Array([
+    MP4Generator.VMHD = new Uint8Array([
       0x00, // version
       0x00, 0x00, 0x01, // flags
       0x00, 0x00, // graphicsmode
@@ -120,14 +120,14 @@ class MP4 {
       0x00, 0x00,
       0x00, 0x00 // opcolor
     ]);
-    MP4.SMHD = new Uint8Array([
+    MP4Generator.SMHD = new Uint8Array([
       0x00, // version
       0x00, 0x00, 0x00, // flags
       0x00, 0x00, // balance
       0x00, 0x00 // reserved
     ]);
 
-    MP4.STSD = new Uint8Array([
+    MP4Generator.STSD = new Uint8Array([
       0x00, // version 0
       0x00, 0x00, 0x00, // flags
       0x00, 0x00, 0x00, 0x01]);// entry_count
@@ -136,8 +136,8 @@ class MP4 {
     let avc1Brand = new Uint8Array([97, 118, 99, 49]); // avc1
     let minorVersion = new Uint8Array([0, 0, 0, 1]);
 
-    MP4.FTYP = MP4.box(MP4.types.ftyp, majorBrand, minorVersion, majorBrand, avc1Brand);
-    MP4.DINF = MP4.box(MP4.types.dinf, MP4.box(MP4.types.dref, dref));
+    MP4Generator.FTYP = MP4Generator.box(MP4Generator.types.ftyp, majorBrand, minorVersion, majorBrand, avc1Brand);
+    MP4Generator.DINF = MP4Generator.box(MP4Generator.types.dinf, MP4Generator.box(MP4Generator.types.dref, dref));
   }
 
   static box (type) {
@@ -172,18 +172,18 @@ class MP4 {
   }
 
   static hdlr (type) {
-    return MP4.box(MP4.types.hdlr, MP4.HDLR_TYPES[type]);
+    return MP4Generator.box(MP4Generator.types.hdlr, MP4Generator.HDLR_TYPES[type]);
   }
 
   static mdat (data) {
-    return MP4.box(MP4.types.mdat, data);
+    return MP4Generator.box(MP4Generator.types.mdat, data);
   }
 
   static mdhd (timescale, duration) {
     duration *= timescale;
     const upperWordDuration = Math.floor(duration / (UINT32_MAX + 1));
     const lowerWordDuration = Math.floor(duration % (UINT32_MAX + 1));
-    return MP4.box(MP4.types.mdhd, new Uint8Array([
+    return MP4Generator.box(MP4Generator.types.mdhd, new Uint8Array([
       0x01, // version 1
       0x00, 0x00, 0x00, // flags
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, // creation_time
@@ -206,11 +206,11 @@ class MP4 {
   }
 
   static mdia (track) {
-    return MP4.box(MP4.types.mdia, MP4.mdhd(track.timescale, track.duration), MP4.hdlr(track.type), MP4.minf(track));
+    return MP4Generator.box(MP4Generator.types.mdia, MP4Generator.mdhd(track.timescale, track.duration), MP4Generator.hdlr(track.type), MP4Generator.minf(track));
   }
 
   static mfhd (sequenceNumber) {
-    return MP4.box(MP4.types.mfhd, new Uint8Array([
+    return MP4Generator.box(MP4Generator.types.mfhd, new Uint8Array([
       0x00,
       0x00, 0x00, 0x00, // flags
       (sequenceNumber >> 24),
@@ -222,14 +222,14 @@ class MP4 {
 
   static minf (track) {
     if (track.type === 'audio') {
-      return MP4.box(MP4.types.minf, MP4.box(MP4.types.smhd, MP4.SMHD), MP4.DINF, MP4.stbl(track));
+      return MP4Generator.box(MP4Generator.types.minf, MP4Generator.box(MP4Generator.types.smhd, MP4Generator.SMHD), MP4Generator.DINF, MP4Generator.stbl(track));
     } else {
-      return MP4.box(MP4.types.minf, MP4.box(MP4.types.vmhd, MP4.VMHD), MP4.DINF, MP4.stbl(track));
+      return MP4Generator.box(MP4Generator.types.minf, MP4Generator.box(MP4Generator.types.vmhd, MP4Generator.VMHD), MP4Generator.DINF, MP4Generator.stbl(track));
     }
   }
 
   static moof (sn, baseMediaDecodeTime, track) {
-    return MP4.box(MP4.types.moof, MP4.mfhd(sn), MP4.traf(track, baseMediaDecodeTime));
+    return MP4Generator.box(MP4Generator.types.moof, MP4Generator.mfhd(sn), MP4Generator.traf(track, baseMediaDecodeTime));
   }
   /**
   tracks... (optional) {array} the tracks associated with this movie
@@ -241,10 +241,10 @@ class MP4 {
     let boxes = [];
 
     while (i--) {
-      boxes[i] = MP4.trak(tracks[i]);
+      boxes[i] = MP4Generator.trak(tracks[i]);
     }
 
-    return MP4.box.apply(null, [MP4.types.moov, MP4.mvhd(tracks[0].timescale, tracks[0].duration)].concat(boxes).concat(MP4.mvex(tracks)));
+    return MP4Generator.box.apply(null, [MP4Generator.types.moov, MP4Generator.mvhd(tracks[0].timescale, tracks[0].duration)].concat(boxes).concat(MP4Generator.mvex(tracks)));
   }
 
   static mvex (tracks) {
@@ -254,10 +254,10 @@ class MP4 {
     let boxes = [];
 
     while (i--) {
-      boxes[i] = MP4.trex(tracks[i]);
+      boxes[i] = MP4Generator.trex(tracks[i]);
     }
 
-    return MP4.box.apply(null, [MP4.types.mvex].concat(boxes));
+    return MP4Generator.box.apply(null, [MP4Generator.types.mvex].concat(boxes));
   }
 
   static mvhd (timescale, duration) {
@@ -304,7 +304,7 @@ class MP4 {
         0x00, 0x00, 0x00, 0x00, // pre_defined
         0xff, 0xff, 0xff, 0xff // next_track_ID
       ]);
-    return MP4.box(MP4.types.mvhd, bytes);
+    return MP4Generator.box(MP4Generator.types.mvhd, bytes);
   }
 
   static sdtp (track) {
@@ -325,11 +325,11 @@ class MP4 {
         (flags.hasRedundancy);
     }
 
-    return MP4.box(MP4.types.sdtp, bytes);
+    return MP4Generator.box(MP4Generator.types.sdtp, bytes);
   }
 
   static stbl (track) {
-    return MP4.box(MP4.types.stbl, MP4.stsd(track), MP4.box(MP4.types.stts, MP4.STTS), MP4.box(MP4.types.stsc, MP4.STSC), MP4.box(MP4.types.stsz, MP4.STSZ), MP4.box(MP4.types.stco, MP4.STCO));
+    return MP4Generator.box(MP4Generator.types.stbl, MP4Generator.stsd(track), MP4Generator.box(MP4Generator.types.stts, MP4Generator.STTS), MP4Generator.box(MP4Generator.types.stsc, MP4Generator.STSC), MP4Generator.box(MP4Generator.types.stsz, MP4Generator.STSZ), MP4Generator.box(MP4Generator.types.stco, MP4Generator.STCO));
   }
 
   static avc1 (track) {
@@ -356,7 +356,7 @@ class MP4 {
       pps = pps.concat(Array.prototype.slice.call(data));
     }
 
-    let avcc = MP4.box(MP4.types.avcC, new Uint8Array([
+    let avcc = MP4Generator.box(MP4Generator.types.avcC, new Uint8Array([
       0x01, // version
       sps[3], // profile
       sps[4], // profile compat
@@ -376,7 +376,7 @@ class MP4 {
 
     let vSpacing = track.pixelRatio[1];
 
-    return MP4.box(MP4.types.avc1, new Uint8Array([
+    return MP4Generator.box(MP4Generator.types.avc1, new Uint8Array([
       0x00, 0x00, 0x00, // reserved
       0x00, 0x00, 0x00, // reserved
       0x00, 0x01, // data_reference_index
@@ -405,11 +405,11 @@ class MP4 {
       0x00, 0x18, // depth = 24
       0x11, 0x11]), // pre_defined = -1
     avcc,
-    MP4.box(MP4.types.btrt, new Uint8Array([
+    MP4Generator.box(MP4Generator.types.btrt, new Uint8Array([
       0x00, 0x1c, 0x9c, 0x80, // bufferSizeDB
       0x00, 0x2d, 0xc6, 0xc0, // maxBitrate
       0x00, 0x2d, 0xc6, 0xc0])), // avgBitrate
-    MP4.box(MP4.types.pasp, new Uint8Array([
+    MP4Generator.box(MP4Generator.types.pasp, new Uint8Array([
       (hSpacing >> 24), // hSpacing
       (hSpacing >> 16) & 0xFF,
       (hSpacing >> 8) & 0xFF,
@@ -446,7 +446,7 @@ class MP4 {
 
   static mp4a (track) {
     let samplerate = track.samplerate;
-    return MP4.box(MP4.types.mp4a, new Uint8Array([
+    return MP4Generator.box(MP4Generator.types.mp4a, new Uint8Array([
       0x00, 0x00, 0x00, // reserved
       0x00, 0x00, 0x00, // reserved
       0x00, 0x01, // data_reference_index
@@ -458,12 +458,12 @@ class MP4 {
       (samplerate >> 8) & 0xFF,
       samplerate & 0xff, //
       0x00, 0x00]),
-    MP4.box(MP4.types.esds, MP4.esds(track)));
+    MP4Generator.box(MP4Generator.types.esds, MP4Generator.esds(track)));
   }
 
   static mp3 (track) {
     let samplerate = track.samplerate;
-    return MP4.box(MP4.types['.mp3'], new Uint8Array([
+    return MP4Generator.box(MP4Generator.types['.mp3'], new Uint8Array([
       0x00, 0x00, 0x00, // reserved
       0x00, 0x00, 0x00, // reserved
       0x00, 0x01, // data_reference_index
@@ -480,12 +480,12 @@ class MP4 {
   static stsd (track) {
     if (track.type === 'audio') {
       if (!track.isAAC && track.codec === 'mp3') {
-        return MP4.box(MP4.types.stsd, MP4.STSD, MP4.mp3(track));
+        return MP4Generator.box(MP4Generator.types.stsd, MP4Generator.STSD, MP4Generator.mp3(track));
       }
 
-      return MP4.box(MP4.types.stsd, MP4.STSD, MP4.mp4a(track));
+      return MP4Generator.box(MP4Generator.types.stsd, MP4Generator.STSD, MP4Generator.mp4a(track));
     } else {
-      return MP4.box(MP4.types.stsd, MP4.STSD, MP4.avc1(track));
+      return MP4Generator.box(MP4Generator.types.stsd, MP4Generator.STSD, MP4Generator.avc1(track));
     }
   }
 
@@ -501,7 +501,7 @@ class MP4 {
     let upperWordDuration = Math.floor(duration / (UINT32_MAX + 1));
 
     let lowerWordDuration = Math.floor(duration % (UINT32_MAX + 1));
-    return MP4.box(MP4.types.tkhd, new Uint8Array([
+    return MP4Generator.box(MP4Generator.types.tkhd, new Uint8Array([
       0x01, // version 1
       0x00, 0x00, 0x07, // flags
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, // creation_time
@@ -544,15 +544,15 @@ class MP4 {
   }
 
   static traf (track, baseMediaDecodeTime) {
-    let sampleDependencyTable = MP4.sdtp(track);
+    let sampleDependencyTable = MP4Generator.sdtp(track);
 
     let id = track.id;
 
     let upperWordBaseMediaDecodeTime = Math.floor(baseMediaDecodeTime / (UINT32_MAX + 1));
 
     let lowerWordBaseMediaDecodeTime = Math.floor(baseMediaDecodeTime % (UINT32_MAX + 1));
-    return MP4.box(MP4.types.traf,
-      MP4.box(MP4.types.tfhd, new Uint8Array([
+    return MP4Generator.box(MP4Generator.types.traf,
+      MP4Generator.box(MP4Generator.types.tfhd, new Uint8Array([
         0x00, // version 0
         0x00, 0x00, 0x00, // flags
         (id >> 24),
@@ -560,7 +560,7 @@ class MP4 {
         (id >> 8) & 0XFF,
         (id & 0xFF) // track_ID
       ])),
-      MP4.box(MP4.types.tfdt, new Uint8Array([
+      MP4Generator.box(MP4Generator.types.tfdt, new Uint8Array([
         0x01, // version 1
         0x00, 0x00, 0x00, // flags
         (upperWordBaseMediaDecodeTime >> 24),
@@ -572,7 +572,7 @@ class MP4 {
         (lowerWordBaseMediaDecodeTime >> 8) & 0XFF,
         (lowerWordBaseMediaDecodeTime & 0xFF)
       ])),
-      MP4.trun(track,
+      MP4Generator.trun(track,
         sampleDependencyTable.length +
                     16 + // tfhd
                     20 + // tfdt
@@ -590,12 +590,12 @@ class MP4 {
    */
   static trak (track) {
     track.duration = track.duration || 0xffffffff;
-    return MP4.box(MP4.types.trak, MP4.tkhd(track), MP4.mdia(track));
+    return MP4Generator.box(MP4Generator.types.trak, MP4Generator.tkhd(track), MP4Generator.mdia(track));
   }
 
   static trex (track) {
     let id = track.id;
-    return MP4.box(MP4.types.trex, new Uint8Array([
+    return MP4Generator.box(MP4Generator.types.trex, new Uint8Array([
       0x00, // version 0
       0x00, 0x00, 0x00, // flags
       (id >> 24),
@@ -660,20 +660,18 @@ class MP4 {
         cts & 0xFF // sample_composition_time_offset
       ], 12 + 16 * i);
     }
-    return MP4.box(MP4.types.trun, array);
+    return MP4Generator.box(MP4Generator.types.trun, array);
   }
 
   static initSegment (tracks) {
-    if (!MP4.types) {
-      MP4.init();
+    if (!MP4Generator.types) {
+      MP4Generator.init();
     }
 
-    let movie = MP4.moov(tracks); let result;
-    result = new Uint8Array(MP4.FTYP.byteLength + movie.byteLength);
-    result.set(MP4.FTYP);
-    result.set(movie, MP4.FTYP.byteLength);
+    let movie = MP4Generator.moov(tracks); let result;
+    result = new Uint8Array(MP4Generator.FTYP.byteLength + movie.byteLength);
+    result.set(MP4Generator.FTYP);
+    result.set(movie, MP4Generator.FTYP.byteLength);
     return result;
   }
 }
-
-export default MP4;

@@ -2,7 +2,7 @@ import { Processor } from '../core/processor';
 import { Packet } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
-import { CommonMimeTypes } from '../core/mime-type';
+import { CommonMimeTypes } from '../core/payload-description';
 
 import { MP3Parser, MP3ParserResult } from './mp3/mp3-parser';
 import { BufferSlice, BufferProperties } from '../core/buffer';

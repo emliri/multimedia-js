@@ -2,8 +2,8 @@
  *
  */
 
-import AAC from './aac-helper';
-import MP4 from './mp4-generator';
+import {AACUtils} from './aac-utils';
+import {MP4Generator} from './mp4-generator';
 
 import { getLogger } from '../../logger';
 
@@ -57,11 +57,10 @@ export type Fmp4RemuxerTrack = {
 
 export type Fmp4RemuxerAudioTrack = Fmp4RemuxerTrack & {
   manifestCodec: string
-  config: any
+  config: number[]
   samplerate: number
   isAAC: boolean
   channelCount: number
-
   len: number
   nbNalu: number
 };
@@ -257,7 +256,7 @@ export class Fmp4Remuxer {
       tracks.audio = {
         container: container,
         codec: audioTrack.codec,
-        initSegment: !audioTrack.isAAC && typeSupported.mpeg ? new Uint8Array(0) : MP4.initSegment([audioTrack]),
+        initSegment: !audioTrack.isAAC && typeSupported.mpeg ? new Uint8Array(0) : MP4Generator.initSegment([audioTrack]),
         metadata: {
           channelCount: audioTrack.channelCount
         }
@@ -276,7 +275,7 @@ export class Fmp4Remuxer {
       tracks.video = {
         container: 'video/mp4',
         codec: videoTrack.codec,
-        initSegment: MP4.initSegment([videoTrack]),
+        initSegment: MP4Generator.initSegment([videoTrack]),
         metadata: {
           width: videoTrack.width,
           height: videoTrack.height
@@ -303,6 +302,7 @@ export class Fmp4Remuxer {
 
   private _remuxVideo (track: Fmp4RemuxerVideoTrack,
     timeOffset: number, contiguous: boolean, audioTrackLength: number, accurateTimeOffset: boolean) {
+
     let offset = 8;
 
     let timeScale = track.timescale;
@@ -381,6 +381,7 @@ export class Fmp4Remuxer {
       return deltadts || (deltapts || (a.id - b.id));
     });
 
+    /*
     // handle broken streams with PTS < DTS, tolerance up 200ms (18000 in 90kHz timescale)
     let PTSDTSshift = inputSamples.reduce((prev, curr) => Math.max(Math.min(prev, curr.pts - curr.dts), -18000), 0);
     if (PTSDTSshift < 0) {
@@ -389,6 +390,7 @@ export class Fmp4Remuxer {
         inputSamples[i].dts += PTSDTSshift;
       }
     }
+    */
 
     // compute first DTS and last DTS, normalize them against reference value
     let sample = inputSamples[0];
@@ -401,9 +403,9 @@ export class Fmp4Remuxer {
     if (contiguous) {
       if (delta) {
         if (delta > 1) {
-          logger.log(`AVC:${delta} ms hole between fragments detected,filling it`);
+          logger.log(`AVC: ${delta} ms hole between fragments detected,filling it`);
         } else if (delta < -1) {
-          logger.log(`AVC:${(-delta)} ms overlapping between fragments detected`);
+          logger.log(`AVC: ${(-delta)} ms overlapping between fragments detected`);
         }
 
         // remove hole/gap : set DTS to next expected DTS
@@ -412,7 +414,7 @@ export class Fmp4Remuxer {
         // offset PTS as well, ensure that PTS is smaller or equal than new DTS
         firstPTS = Math.max(firstPTS - delta, nextAvcDts);
         inputSamples[0].pts = firstPTS;
-        logger.log(`Video/PTS/DTS adjusted: ${Math.round(firstPTS / 90)}/${Math.round(firstDTS / 90)},delta:${delta} ms`);
+        logger.log(`Video PTS/DTS adjusted: ${Math.round(firstPTS / 90)}/${Math.round(firstDTS / 90)},delta:${delta} ms`);
       }
     }
     nextDTS = firstDTS;
@@ -465,7 +467,7 @@ export class Fmp4Remuxer {
 
     let view = new DataView(mdat.buffer);
     view.setUint32(0, mdatSize);
-    mdat.set((<any> MP4).types.mdat, 4);
+    mdat.set((<any> MP4Generator).types.mdat, 4);
 
     for (let i = 0; i < nbSamples; i++) {
       let avcSample = inputSamples[i];
@@ -559,7 +561,7 @@ export class Fmp4Remuxer {
       flags.isNonSync = 0;
     }
     track.samples = outputSamples;
-    moof = MP4.moof(track.sequenceNumber++, firstDTS, track);
+    moof = MP4Generator.moof(track.sequenceNumber++, firstDTS, track);
     track.samples = [];
 
     let data = {
@@ -685,7 +687,7 @@ export class Fmp4Remuxer {
           logger.warn(`Injecting ${missing} audio frame @ ${(nextPts / inputTimeScale).toFixed(3)}s due to ${Math.round(1000 * delta / inputTimeScale)} ms gap.`);
           for (let j = 0; j < missing; j++) {
             let newStamp = Math.max(nextPts, 0);
-            fillFrame = AAC.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+            fillFrame = AACUtils.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
             if (!fillFrame) {
               logger.log('Unable to get silent frame for given audio codec; duplicating last frame instead.');
               fillFrame = sample.units[0].data.subarray(0);
@@ -723,7 +725,7 @@ export class Fmp4Remuxer {
       let audioSample = inputSamples[j];
       let unit = audioSample.units[0].data;
       let pts = audioSample.pts;
-      // logger.log(`Audio/PTS:${Math.round(pts/90)}`);
+      logger.log(`Audio PTS: ${Math.round(pts)}`);
       // if not first sample
       if (lastPTS !== undefined) {
         mp4Sample.duration = Math.round((pts - lastPTS) / scaleFactor);
@@ -740,7 +742,7 @@ export class Fmp4Remuxer {
               numMissingFrames = Math.round((pts - nextAudioPts) / inputSampleDuration);
               logger.log(`${delta} ms hole between AAC samples detected,filling it`);
               if (numMissingFrames > 0) {
-                fillFrame = AAC.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+                fillFrame = AACUtils.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
                 if (!fillFrame) {
                   fillFrame = unit.subarray(0);
                 }
@@ -760,9 +762,11 @@ export class Fmp4Remuxer {
         }
         // remember first PTS of our audioSamples
         firstPTS = pts;
+
         if (track.len > 0) {
           /* concatenate the audio data and construct the mdat in place
             (need 8 more bytes to fill length and mdat type) */
+
           let mdatSize = rawMPEG ? track.len : track.len + 8;
           offset = rawMPEG ? 0 : 8;
           try {
@@ -774,14 +778,15 @@ export class Fmp4Remuxer {
           if (!rawMPEG) {
             const view = new DataView(mdat.buffer);
             view.setUint32(0, mdatSize);
-            mdat.set((<any> MP4).types.mdat, 4);
+            mdat.set((<any> MP4Generator).types.mdat, 4);
           }
         } else {
           // no audio samples
           return;
         }
+
         for (let i = 0; i < numMissingFrames; i++) {
-          fillFrame = AAC.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+          fillFrame = AACUtils.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
           if (!fillFrame) {
             logger.log('Unable to get silent frame for given audio codec; duplicating this frame instead.');
             fillFrame = unit.subarray(0);
@@ -803,10 +808,13 @@ export class Fmp4Remuxer {
           outputSamples.push(mp4Sample);
         }
       }
+
       mdat.set(unit, offset);
+
       let unitLen = unit.byteLength;
+
       offset += unitLen;
-      // console.log('PTS/DTS/initDTS/normPTS/normDTS/relative PTS : ${audioSample.pts}/${audioSample.dts}/${initDTS}/${ptsnorm}/${dtsnorm}/${(audioSample.pts/4294967296).toFixed(3)}');
+
       mp4Sample = {
         size: unitLen,
         cts: 0,
@@ -819,17 +827,22 @@ export class Fmp4Remuxer {
           dependsOn: 1
         }
       };
+
       outputSamples.push(mp4Sample);
       lastPTS = pts;
     }
+
     let lastSampleDuration = 0;
     let nbSamples = outputSamples.length;
+
     // set last sample duration as being identical to previous sample
     if (nbSamples >= 2) {
       lastSampleDuration = outputSamples[nbSamples - 2].duration;
       mp4Sample.duration = lastSampleDuration;
     }
+
     if (nbSamples) {
+
       // next audio sample PTS should be equal to last sample PTS + duration
       this._nextAudioPts = nextAudioPts = lastPTS + scaleFactor * lastSampleDuration;
       // logger.log('Audio/PTS/PTSend:' + audioSample.pts.toFixed(0) + '/' + this.nextAacDts.toFixed(0));
@@ -838,7 +851,7 @@ export class Fmp4Remuxer {
       if (rawMPEG) {
         moof = new Uint8Array(0);
       } else {
-        moof = MP4.moof(track.sequenceNumber++, firstPTS / scaleFactor, track);
+        moof = MP4Generator.moof(track.sequenceNumber++, firstPTS / scaleFactor, track);
       }
 
       track.samples = [];
@@ -889,7 +902,7 @@ export class Fmp4Remuxer {
 
     // silent frame
 
-    let silentFrame = AAC.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
+    let silentFrame = AACUtils.getSilentFrame(track.manifestCodec || track.codec, track.channelCount);
 
     logger.warn('remux empty Audio');
     // Can't remux if we can't generate a silent frame...
