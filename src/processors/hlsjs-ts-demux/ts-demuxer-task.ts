@@ -5,7 +5,7 @@ import { BufferSlice } from '../../core/buffer';
 
 import { getLogger } from '../../logger';
 
-import { TSDemuxer } from './tsdemuxer';
+import { TSDemuxer } from './ts-demuxer';
 
 const {log} = getLogger('TSDemuxerTask');
 
@@ -18,11 +18,11 @@ export function processTSDemuxerAppend (task: WorkerTask) {
     txtTrack,
     timeOffset,
     contiguous,
-    accurateTimeOffset) => {
+    accurateTimeOffset
+    ) => {
 
     log(audioTrack, avcTrack);
 
-    ///*
     audioTrack.samples.forEach((sample) => {
 
       const unit = sample.unit;
@@ -45,10 +45,8 @@ export function processTSDemuxerAppend (task: WorkerTask) {
       });
 
     });
-    //*/
 
     avcTrack.samples.forEach((sample) => {
-      // console.log(sample);
 
       sample.units.forEach((unit: {data: Uint8Array, type: number}) => {
         const bufferSlice = new BufferSlice(
