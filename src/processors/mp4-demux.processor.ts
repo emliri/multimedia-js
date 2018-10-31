@@ -1,6 +1,6 @@
 import { Processor } from '../core/processor';
 import { Packet } from '../core/packet';
-import { InputSocket, SocketDescriptor, SocketType, OutputSocket } from '../core/socket';
+import { InputSocket, SocketDescriptor, SocketType, OutputSocket, SocketTemplateGenerator } from '../core/socket';
 
 import { getLogger } from '../logger';
 
@@ -15,6 +15,12 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { log, warn, error } = getLogger('MP4DemuxProcessor');
 
+const getSocketDescriptor: SocketTemplateGenerator =
+  SocketDescriptor.createTemplateGenerator(
+      SocketDescriptor.fromMimeTypes('audio/mp4', 'video/mp4'), // valid inputs
+      SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac') // output
+      );
+
 export class MP4DemuxProcessor extends Processor {
     private _demuxer: Mp4Demuxer;
 
@@ -28,7 +34,7 @@ export class MP4DemuxProcessor extends Processor {
     }
 
     templateSocketDescriptor (st: SocketType): SocketDescriptor {
-      return SocketDescriptor.fromMimeType('video/mp4');
+      return getSocketDescriptor(st);
     }
 
     private _ensureOutputForTrack (track: Track): OutputSocket {

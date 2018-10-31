@@ -1,8 +1,6 @@
 import { Processor } from '../core/processor';
 
-//import { createMpegTSDemuxer, TSTrack, Frame } from '../ext-mod/inspector.js/src';
-
-import { SocketDescriptor, SocketType, InputSocket, OutputSocket } from '../core/socket';
+import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplateGenerator } from '../core/socket';
 import { Packet } from '../core/packet';
 
 import { getLogger } from '../logger';
@@ -10,10 +8,15 @@ import { PayloadDescriptor, PayloadCodec } from '../core/payload-description';
 
 const { log } = getLogger('MPEGTSDemuxProcessor');
 
+const getSocketDescriptor: SocketTemplateGenerator =
+  SocketDescriptor.createTemplateGenerator(
+      SocketDescriptor.fromMimeTypes('video/mp2t'), // valid inputs
+      SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
+      );
+
 export class MPEGTSDemuxProcessor extends Processor {
 
   private _programMap: {[pid: number]: OutputSocket} = {};
-
   private _haveAudio: boolean = false;
   private _haveVideo: boolean = false;
 
@@ -23,11 +26,10 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
-    return new SocketDescriptor();
+    return getSocketDescriptor(socketType);
   }
 
   protected onWorkerMessage (event: Event) {
-    //log('worker message', event)
 
     const p = Packet.fromTransferable((event as any).data.packet);
 
@@ -67,8 +69,6 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet) {
-
-    // dispatchAsyncTask(this.processPacket_.bind(this, p))
 
     this.dispatchWorkerTask('tsdemuxer', p);
 
