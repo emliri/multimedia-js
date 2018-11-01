@@ -19,8 +19,6 @@ export class MovToFmp4Flow extends Flow {
       }
     );
 
-    //const isoboxerMp4DemuxProc = new IsoboxerMP4DemuxProcessor();
-
     const h264ParseProc = new H264ParseProcessor();
     const mp4MuxProc = new MP4MuxProcessor();
     const mp4DemuxProc = new MP4DemuxProcessor();
@@ -38,13 +36,17 @@ export class MovToFmp4Flow extends Flow {
 
         (<OutputSocket> eventData.socket).connect(h264ParseProc.in[0]);
 
-        const muxerInput = mp4MuxProc.addVideoTrack(
+        /*
+        const muxerInput = mp4MuxProc._addVideoTrack(
           MP4MuxProcessorSupportedCodecs.AVC,
           // FIXME: get actual infos here from demuxer packets
           25, // fps
           768, 576, // resolution
           60 // duration
         );
+        */
+
+        const muxerInput = mp4MuxProc.createInput()
 
         h264ParseProc.out[0].connect(muxerInput);
       });
