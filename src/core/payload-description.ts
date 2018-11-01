@@ -43,7 +43,7 @@ export function appendCodecToMimeType (mimeType: MimeType, codec: string): strin
 }
 
 export class PayloadDescriptor {
-  elementaryStreamId: number = NaN;
+  elementaryStreamId: number = NaN; // FIXME: make this a string
 
   mimeType: MimeType = null;
   codec: string = null;
