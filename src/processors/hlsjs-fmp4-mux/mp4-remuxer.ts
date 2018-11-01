@@ -317,7 +317,7 @@ export class Fmp4Remuxer {
         initPTS = Math.min(initPTS, videoSamples[0].pts - inputTimeScale * timeOffset);
         initDTS = Math.min(initDTS, videoSamples[0].dts - inputTimeScale * timeOffset);
 
-        this._observer.trigger(Event.GOT_INIT_PTS_VALUE, { initPTS: initPTS });
+        this._observer.trigger(Event.GOT_INIT_PTS_VALUE, initPTS);
       }
     }
 
@@ -329,7 +329,7 @@ export class Fmp4Remuxer {
         this._initDts = initDTS;
       }
     } else {
-      observer.trigger(Event.FAILURE, { fatal: false, reason: 'no audio/video samples found' });
+      observer.trigger(Event.FAILURE, 'no audio/video samples found');
     }
   }
 
@@ -488,7 +488,7 @@ export class Fmp4Remuxer {
     try {
       mdat = new Uint8Array(mdatSize);
     } catch (err) {
-      this._observer.trigger(Event.FAILURE, { fatal: false, bytes: mdatSize, reason: `fail allocating video mdat ${mdatSize}` });
+      this._observer.trigger(Event.FAILURE, `failed to allocate video mdat of ${mdatSize} bytes`);
       return;
     }
 
@@ -794,7 +794,7 @@ export class Fmp4Remuxer {
           try {
             fragmentData = new Uint8Array(mdatSize);
           } catch (err) {
-            this._observer.trigger(Event.FAILURE, { fatal: false, bytes: mdatSize, reason: `fail allocating audio mdat ${mdatSize}` });
+            this._observer.trigger(Event.FAILURE, `failed to allocate audio mdat of ${mdatSize} bytes`);
             return;
           }
           if (!rawMPEG) {
