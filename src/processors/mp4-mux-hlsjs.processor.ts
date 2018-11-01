@@ -15,7 +15,7 @@ import {
 import { BufferSlice, BufferProperties } from '../core/buffer';
 import { getLogger } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
-import { Socket } from 'dgram';
+import { dispatchAsyncTask } from '../common-utils';
 
 const { log } = getLogger('MP4MuxHlsjsProcessor');
 
@@ -50,7 +50,7 @@ export class MP4MuxHlsjsProcessor extends Processor {
     width: 0,
     height: 0,
     dropped: 0,
-    sequenceNumber: 1,
+    sequenceNumber: 0,
     pixelRatio: [1, 1],
 
     len: 0,
@@ -81,6 +81,11 @@ export class MP4MuxHlsjsProcessor extends Processor {
 
   private _flushSymbolCnt: number = 0;
 
+  private _audioDtsShiftCompensation: number = 0;
+
+  private _firstVideoDts: number = null;
+  private _firstAudioDts: number = null;
+
   constructor () {
     super();
     this.createOutput();
@@ -110,7 +115,14 @@ export class MP4MuxHlsjsProcessor extends Processor {
           this._videoTrack.height = bufferSlice.props.details.height;
           this._videoTrack.codec = bufferSlice.props.codec;
 
+          // outside of setting codec/metadata on our track model
+          // we don't need to do anything with this
           return;
+        }
+
+        if (this._firstVideoDts === null) {
+          log('first video dts:', p.getNormalizedDts(), p.presentationTimeOffset)
+          this._firstVideoDts = p.timestamp;
         }
 
         this._videoTrack.samples.push({
@@ -129,9 +141,16 @@ export class MP4MuxHlsjsProcessor extends Processor {
 
         //log(p, bufferSlice);
 
+        // FIXME: we are resetting this on every sample, once would be enough
+        //
         this._audioTrack.codec = codec;
         this._audioTrack.manifestCodec = codec;
         this._audioTrack.config = <number[]> bufferSlice.props.details.codecConfigurationData;
+
+        if (this._firstAudioDts === null) {
+          log('first audio dts:', p.getNormalizedDts(), p.presentationTimeOffset)
+          this._firstAudioDts = p.timestamp;
+        }
 
         this._audioTrack.samples.push({
           pts: p.getPresentationTimestamp(),
@@ -180,60 +199,67 @@ export class MP4MuxHlsjsProcessor extends Processor {
 
   private _onFmp4Event (event: Fmp4RemuxerEvent, data) {
     switch (event) {
-    case Fmp4RemuxerEvent.GOT_INIT_PTS_VALUE:
-      break;
-    case Fmp4RemuxerEvent.WROTE_INIT_SEGMENT: {
-      const tracks: Fmp4RemuxerTrackState = data.tracks;
+      case Fmp4RemuxerEvent.GOT_INIT_PTS_VALUE:
+        log('got init-pts value:', data)
+        break;
+      case Fmp4RemuxerEvent.WROTE_INIT_SEGMENT: {
+        const tracks: Fmp4RemuxerTrackState = data.tracks;
 
-      if (tracks.audio) {
-        log('got init data for a new audio track')
+        if (tracks.audio) {
+          log('got init data for a new audio track')
 
-        const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.audio.initSegment);
-        bs.props.mimeType = tracks.audio.container;
-        bs.props.codec = tracks.audio.codec;
-        bs.props.details.channelCount = tracks.audio.metadata.channelCount;
+          const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.audio.initSegment);
+          bs.props.mimeType = tracks.audio.container;
+          bs.props.codec = tracks.audio.codec;
+          bs.props.details.channelCount = tracks.audio.metadata.channelCount;
 
-        const p: Packet = Packet.fromSlice(bs);
-        p.timestamp = 0;
+          const p: Packet = Packet.fromSlice(bs);
+          p.timestamp = 0;
+
+          log('transferring init-data mp4 audio packet of', p.getTotalBytes(), 'bytes');
+
+          this.out[0].transfer(p);
+        }
+
+        if (tracks.video) {
+          log('got init data for a new video track')
+
+          const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.video.initSegment);
+          bs.props.mimeType = tracks.video.container;
+          bs.props.codec = tracks.video.codec;
+          bs.props.details.width = tracks.video.metadata.width;
+          bs.props.details.height = tracks.video.metadata.height;
+
+          const p: Packet = Packet.fromSlice(bs);
+          p.timestamp = 0;
+
+          log('transferring init-data mp4 video packet of', p.getTotalBytes(), 'bytes');
+
+          this.out[0].transfer(p);
+        }
+
+        break;
+      }
+      case Fmp4RemuxerEvent.WROTE_PAYLOAD_SEGMENT: {
+        const payloadData: Fmp4RemuxerPayloadSegmentData = data;
+
+        log('got mp4 fragment-data with payload-type:', payloadData.payloadType);
+
+        const props: BufferProperties = new BufferProperties(payloadData.payloadType + '/mp4');
+
+        props.codec = payloadData.codec;
+        props.samplesCount = payloadData.nbOfSamples;
+
+        const moof: BufferSlice = BufferSlice.fromTypedArray(payloadData.fragmentHeader, props);
+        const mdat: BufferSlice = BufferSlice.fromTypedArray(payloadData.fragmentData, props);
+
+        const p: Packet = Packet.fromSlices(0, 0, moof, mdat);
+
+        log('transferring payload-data mp4 packet of', p.getTotalBytes(), 'bytes, type:', payloadData.payloadType);
 
         this.out[0].transfer(p);
+        break;
       }
-
-      if (tracks.video) {
-        log('got init data for a new video track')
-
-        const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.video.initSegment);
-        bs.props.mimeType = tracks.video.container;
-        bs.props.codec = tracks.video.codec;
-        bs.props.details.width = tracks.video.metadata.width;
-        bs.props.details.height = tracks.video.metadata.height;
-
-        const p: Packet = Packet.fromSlice(bs);
-        p.timestamp = 0;
-
-        this.out[0].transfer(p);
-      }
-
-      break;
-    }
-    case Fmp4RemuxerEvent.WROTE_PAYLOAD_SEGMENT: {
-      const payloadSegmentData: Fmp4RemuxerPayloadSegmentData = data;
-
-      log('got mp4 fragment-data with payload-type:', payloadSegmentData.payloadType);
-
-      const props: BufferProperties = new BufferProperties(payloadSegmentData.payloadType + '/mp4');
-
-      props.codec = payloadSegmentData.codec;
-      props.samplesCount = payloadSegmentData.nbOfSamples;
-
-      const moof: BufferSlice = BufferSlice.fromTypedArray(payloadSegmentData.fragmentHeader, props);
-      const mdat: BufferSlice = BufferSlice.fromTypedArray(payloadSegmentData.fragmentData, props);
-
-      const p: Packet = Packet.fromSlices(0, 0, moof, mdat);
-
-      this.out[0].transfer(p);
-      break;
-    }
     }
   }
 
@@ -242,6 +268,7 @@ export class MP4MuxHlsjsProcessor extends Processor {
       return;
     }
     log('flushing at a/v packets:', this._videoTrackPacketIndex, this._audioTrackPacketIndex);
-    this._fmp4Remux.process(this._audioTrack, this._videoTrack, null, null, 0, true, true);
+
+    dispatchAsyncTask(() => this._fmp4Remux.process(this._audioTrack, this._videoTrack, null, null, 0, true, true));
   }
 }
