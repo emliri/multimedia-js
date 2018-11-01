@@ -8,6 +8,8 @@ export enum PacketSymbol {
   EOS
 }
 
+export type PacketReceiveCallback = ((p: Packet) => boolean);
+
 export class Packet {
   /**
    * See BufferSlice.fromTransferable
@@ -81,13 +83,21 @@ export class Packet {
   private _symbol: PacketSymbol = PacketSymbol.VOID;
   private _timescale: number = 1;
   private _hasDefaultBufferProps: boolean = true;
+  private _timeOffset: number = 0;
 
   constructor (
     public data: BufferSlices = [],
     public timestamp: number = 0,
     public presentationTimeOffset: number = 0,
-    public createdAt: Date = new Date()
-  ) {}
+    public createdAt: Date = new Date(),
+    public readonly synchronizationId: number = null
+  ) {
+
+    if (synchronizationId !== null && !Number.isSafeInteger(synchronizationId)) {
+      throw new Error('Synchronization-id must be a safe integer value');
+    }
+
+  }
 
   get symbol (): PacketSymbol {
     return this._symbol;
@@ -128,11 +138,11 @@ export class Packet {
   }
 
   getPresentationTimestamp (): number {
-    return this.timestamp + this.presentationTimeOffset;
+    return this._timeOffset + this.timestamp + this.presentationTimeOffset;
   }
 
   getDecodingTimestamp (): number {
-    return this.timestamp;
+    return this._timeOffset + this.timestamp;
   }
 
   setTimescale(timescale: number) {
@@ -141,6 +151,14 @@ export class Packet {
 
   getTimescale(): number {
     return this._timescale;
+  }
+
+  setTimestampOffset(tOffset: number) {
+    this._timeOffset = tOffset;
+  }
+
+  getTimestampOffset(): number {
+    return this._timeOffset;
   }
 
   getNormalizedPts(): number {
@@ -188,5 +206,3 @@ export class Packet {
     });
   }
 }
-
-export type PacketReceiveCallback = ((p: Packet) => boolean);
