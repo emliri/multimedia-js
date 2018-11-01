@@ -13,8 +13,8 @@ const logger = {
   trace: debug
 };
 
-// 10 seconds
-const MAX_SILENT_FRAME_DURATION = 10 * 1000;
+// FIXME: make this config
+const MAX_SILENT_FRAME_DURATION = 10 * 1000; // millis
 
 export enum Fmp4RemuxerEvent {
   PARSING_DONE,
@@ -137,13 +137,13 @@ export type Fmp4RemuxerPayloadSegmentData = {
 }
 
 export class Fmp4Remuxer {
+
   private readonly _observer: {
     trigger: Fmp4RemuxerEventHandler
   };
-
   private readonly _config: Fmp4RemuxerConfig;
   private readonly _typeSupported: Fmp4RemuxerTypesSupported;
-  private readonly _isSafari: boolean;
+  private readonly _isSafari = isBrowserBrand(BrowserBrandname.SAFARI);
 
   private _initSegmentGenerated: boolean = false;
   private _nextAudioPts: number = 0;
@@ -157,17 +157,14 @@ export class Fmp4Remuxer {
     typeSupported: Fmp4RemuxerTypesSupported = {}
     )
   {
-
     this._observer = {
       trigger: (event: Fmp4RemuxerEvent, data?: any) => {
         //logger.log('event:', event, data);
         onEvent(event, data);
       }
     };
-
     this._config = config;
     this._typeSupported = typeSupported;
-    this._isSafari = isBrowserBrand(BrowserBrandname.SAFARI);
   }
 
   destroy () {}
@@ -201,6 +198,7 @@ export class Fmp4Remuxer {
         audioTimeOffset += Math.max(0, audiovideoDeltaDts);
         videoTimeOffset += Math.max(0, -audiovideoDeltaDts);
       }
+
       // Purposefully remuxing audio before video, so that remuxVideo can use nextAudioPts, which is
       // calculated in remuxAudio.
 
@@ -212,8 +210,9 @@ export class Fmp4Remuxer {
           logger.warn('regenerate InitSegment as audio detected');
           this._generateInitSegment(audioTrack, videoTrack, timeOffset);
         }
+
         let audioData = this._remuxAudio(audioTrack, audioTimeOffset, contiguous, accurateTimeOffset);
-        // logger.log('nb AVC samples:' + videoTrack.samples.length);
+
         if (nbVideoSamples) {
           let audioTrackLength;
           if (audioData) {
@@ -945,7 +944,9 @@ export class Fmp4Remuxer {
   }
 
   private _remuxID3 (track, timeOffset) {
-    let length = track.samples.length; let sample;
+    let length = track.samples.length;
+    let sample;
+
     const inputTimeScale = track.inputTimeScale;
     const initPTS = this._initPts;
     const initDTS = this._initDts;
