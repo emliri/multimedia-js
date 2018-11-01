@@ -84,7 +84,7 @@ export function processTSDemuxerAppend (task: WorkerTask) {
     });
 
     postMessage(task.workerContext, {
-      packet: Packet.fromSymbol(PacketSymbol.FLUSH)
+      packet: Packet.newFlush()
     });
 
     return void 0;

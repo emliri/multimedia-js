@@ -32,6 +32,7 @@ export class SocketDescriptor {
     return new SocketDescriptor(mimeTypes.map((mimeType) => new PayloadDescriptor(mimeType)));
   }
 
+  // TODO: also allow to directly bind this to proc templateSocketDescriptor method on construction
   static createTemplateGenerator(
     inputSd: SocketDescriptor, outputSd: SocketDescriptor): SocketTemplateGenerator {
     return ((st: SocketType) => {
