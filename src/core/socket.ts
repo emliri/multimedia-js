@@ -81,6 +81,10 @@ export abstract class Socket implements SignalReceiver {
     return this.type_;
   }
 
+  payload(index: number = 0): PayloadDescriptor {
+    return this.descriptor_.payloads[index];
+  }
+
   payloads (): PayloadDescriptor[] {
     return this.descriptor_.payloads;
   }
