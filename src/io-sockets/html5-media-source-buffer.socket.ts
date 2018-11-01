@@ -76,8 +76,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
 
   private _onPacketReceived (p: Packet): boolean {
 
-    const defaultBufferProps = p.data[0].props;
-
+    const defaultBufferProps = p.defaultPayloadInfo;
     const fullMimeType = appendCodecToMimeType(defaultBufferProps.mimeType, defaultBufferProps.codec);
 
     log('received packet with fully-qualified mime-type:', fullMimeType)

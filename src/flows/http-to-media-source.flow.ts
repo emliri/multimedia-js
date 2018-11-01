@@ -47,10 +47,11 @@ export class HttpToMediaSourceFlow extends Flow {
 
       let muxerInputSocket;
 
-      const payloadDescriptor = demuxOutputSocket.payloads()[0];
-
+      const payloadDescriptor = demuxOutputSocket.payload();
 
       if (data.processor === mp4DemuxProc) {
+
+        // FIXME: internalize this and have track props come from payload description
         muxerInputSocket = mp4MuxProc.addVideoTrack(
           MP4MuxProcessorSupportedCodecs.AVC,
           25, // fps
@@ -64,14 +65,16 @@ export class HttpToMediaSourceFlow extends Flow {
 
       } else if (data.processor === tsDemuxProc) {
 
-        if (!this._haveVideo && PayloadCodec.isAvc(payloadDescriptor.codec)) {
+        if (!this._haveVideo
+            && PayloadCodec.isAvc(payloadDescriptor.codec)) {
 
           this._haveVideo = true;
           muxerInputSocket = mp4MuxHlsjsProc.createInput();
           h264ParseProc.out[0].connect(muxerInputSocket);
           demuxOutputSocket.connect(h264ParseProc.in[0]);
 
-        } else if (!this._haveAudio && PayloadCodec.isAac(payloadDescriptor.codec)) {
+        } else if (!this._haveAudio
+            && PayloadCodec.isAac(payloadDescriptor.codec)) {
 
           this._haveAudio = true;
           muxerInputSocket = mp4MuxHlsjsProc.createInput();
