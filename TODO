@@ -27,3 +27,7 @@
 - Seperate compile of procs and core
 
 - Essentialize/Cleanup Hlsjs-parser/muxer-parts
+
+- "Seal" processor (no more sockets added/removed)
+
+- "Block" sockets data flow
