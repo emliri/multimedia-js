@@ -18,7 +18,7 @@ import {
 import { isNumber } from '../common-utils';
 import { getLogger } from '../logger';
 
-const { log } = getLogger('MP4MuxProcessor');
+const { log, warn } = getLogger('MP4MuxProcessor(Moz)');
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -62,13 +62,18 @@ export class MP4MuxProcessor extends Processor {
 
   private mp4Muxer_: MP4Mux = null;
   private mp4Metadata_: MP4Metadata = null;
-  private closed_: boolean = false;
+  private _hasBeenClosed: boolean = false;
   private keyFramePushed_: boolean = false;
   private lastCodecInfo_: string[] = [];
 
+  private videoPacketQueue_: Packet[] = [];
+  private audioPacketQueue_: Packet[] = [];
+
   constructor () {
     super();
+
     this.createOutput();
+
     this._initMP4Metadata();
 
     this.on(ProcessorEvent.INPUT_SOCKET_CREATED,
@@ -76,22 +81,72 @@ export class MP4MuxProcessor extends Processor {
   }
 
   templateSocketDescriptor (st: SocketType): SocketDescriptor {
-    return getSocketDescriptor(st);
+    return getSocketDescriptor(st)
   }
 
-  protected processTransfer_ (inS: InputSocket, p: Packet): boolean {
+  protected processTransfer_ (inputSocket: InputSocket, p: Packet, inputIndex: number): boolean {
+
+    if (!p.defaultPayloadInfo) {
+      warn('no default payload info:', p);
+      return false;
+    }
+
+    if (p.defaultPayloadInfo.isAudio()) {
+
+      this.audioPacketQueue_.push(p);
+
+      if (this.mp4Metadata_.tracks[inputIndex]) {
+        return true;
+      }
+
+      // FIXME: get actual infos here from input packets
+      this._addAudioTrack(
+        MP4MuxProcessorSupportedCodecs.AAC,
+        44100,
+        2,
+        'und',
+        60
+      )
+
+      return true;
+    }
+
+    if (p.defaultPayloadInfo.isVideo()) {
+
+      this.videoPacketQueue_.push(p);
+
+      if (this.mp4Metadata_.tracks[inputIndex]) {
+        return true;
+      }
+
+      this._addVideoTrack(
+        MP4MuxProcessorSupportedCodecs.AVC,
+        // FIXME: get actual infos here from input packets
+        25, // fps
+        768, 576, // resolution
+        60 // duration
+      );
+
+      return true;
+    }
+
     return true;
   }
 
-  protected handleSymbolicPacket_ (symbol: PacketSymbol) {
+  protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
     switch (symbol) {
+    case PacketSymbol.RESUME:
+      log('resume symbol received, closing state');
+      this._close();
+      break;
     case PacketSymbol.EOS:
-      log('received EOS');
+      log('received EOS, flushing');
       this._flush();
-      return false;
     default:
-      super.handleSymbolicPacket_(symbol);
+      break;
     }
+
+    return super.handleSymbolicPacket_(symbol);
   }
 
   private _processVideoPacket(p: Packet) {
@@ -100,12 +155,8 @@ export class MP4MuxProcessor extends Processor {
       const mp4Muxer = this.mp4Muxer_;
       const data = bufferSlice.getUint8Array();
 
-      if (this.keyFramePushed_ && bufferSlice.props.isKeyframe) {
-        this._flush();
-      }
-
       if (bufferSlice.props.isBitstreamHeader) {
-        log('Got codec init data');
+        log('got codec init data');
       }
 
       log('packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
@@ -128,13 +179,11 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _onInputCreated(eventData: ProcessorEventData) {
-
     log('input socket created');
-
   }
 
   private _initMP4Metadata () {
-    const mp4Metadata: MP4Metadata = this.mp4Metadata_ = {
+    this.mp4Metadata_ = {
       tracks: [],
       duration: 0,
       audioTrackId: NaN,
@@ -143,37 +192,46 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _initMuxer () {
-    log('initMuxer', this.mp4Metadata_);
+    log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_);
 
     const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_);
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
 
-    this.closed_ = true;
+    this._hasBeenClosed = true;
   }
 
   private _getNextTrackId (): number {
     return (this.mp4Metadata_.tracks.length + 1);
   }
 
-  private _isClosed (): boolean {
-    return this.closed_;
-  }
-
   private _close () {
-    if (!this._isClosed()) {
+    log('closing state');
+    if (!this._hasBeenClosed) {
       this._initMuxer();
     }
+
+    log('processing video packet queue');
+
+    this.videoPacketQueue_.forEach((packet: Packet) => {
+      this._processVideoPacket(packet);
+    });
+    this.videoPacketQueue_ = [];
+  }
+
+  private _flush () {
+    log('flush called');
+    this._close();
+    log('will flush internal muxer engine');
+    this.mp4Muxer_.flush();
   }
 
   private _addAudioTrack (audioCodec: MP4MuxProcessorSupportedCodecs,
-    sampleRate?: number, numChannels?: number, language?: string, duration?: number): InputSocket {
+    sampleRate?: number, numChannels?: number, language?: string, duration?: number): MP4Track {
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec);
     }
-
-    const s = this.createInput();
 
     let audioTrack: MP4Track = {
       duration: isNumber(duration) ? duration : -1,
@@ -189,17 +247,15 @@ export class MP4MuxProcessor extends Processor {
     this.mp4Metadata_.audioTrackId = this._getNextTrackId();
     this.mp4Metadata_.tracks.push(audioTrack);
 
-    return s;
+    return audioTrack;
   }
 
   private _addVideoTrack (
     videoCodec: MP4MuxProcessorSupportedCodecs,
-    frameRate: number, width: number, height: number, duration?: number): InputSocket {
+    frameRate: number, width: number, height: number, duration?: number): MP4Track {
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec);
     }
-
-    const s = this.createInput();
 
     let videoTrack: MP4Track = {
       duration: isNumber(duration) ? duration * VIDEO_TRACK_DEFAULT_TIMESCALE : -1,
@@ -223,20 +279,12 @@ export class MP4MuxProcessor extends Processor {
       log('set duration:', this.mp4Metadata_.duration);
     }
 
-    return s;
-  }
+    return videoTrack;
 
-  private _getCodecInfo (): string[] {
-    return this.lastCodecInfo_;
-  }
-
-  private _flush () {
-    this._close();
-    this.mp4Muxer_.flush();
   }
 
   private onMp4MuxerData_ (data: Uint8Array) {
-    const p: Packet = Packet.fromArrayBuffer(data.buffer);
+    const p: Packet = Packet.fromArrayBuffer(data.buffer, 'video/mp4; codecs=avc1.64001f');
 
     log('fmp4 data:', p);
 

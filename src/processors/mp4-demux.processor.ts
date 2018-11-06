@@ -81,17 +81,17 @@ export class MP4DemuxProcessor extends Processor {
 
           if (track.type === Mp4Track.TYPE_VIDEO) {
             const avcC = (<AvcC> track.getReferenceAtom());
-
-            const sps: Uint8Array[] = avcC.sps;
-            const pps: Uint8Array[] = avcC.pps;
-
             const avcCodecData = avcC.data;
 
-            const initProps: BufferProperties = new BufferProperties();
+            const initProps: BufferProperties = new BufferProperties(track.mimeType);
 
             initProps.isBitstreamHeader = true;
 
+            log('flagged packet as bitstream header')
+
             /*
+            const sps: Uint8Array[] = avcC.sps;
+            const pps: Uint8Array[] = avcC.pps;
             console.log('pushing SPS data')
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(sps[0], initProps)));
             console.log('pushing PPS data')

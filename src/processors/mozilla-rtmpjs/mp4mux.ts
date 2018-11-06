@@ -139,16 +139,16 @@ export enum VideoPacketType {
     END = 2,
   }
 
-  interface VideoPacket {
-    frameType: VideoFrameType;
-    codecId: number;
-    codecDescription: string;
-    data: Uint8Array;
-    packetType: VideoPacketType;
-    compositionTime: number;
-    horizontalOffset?: number;
-    verticalOffset?: number;
-  }
+interface VideoPacket {
+  frameType: VideoFrameType;
+  codecId: number;
+  codecDescription: string;
+  data: Uint8Array;
+  packetType: VideoPacketType;
+  compositionTime: number;
+  horizontalOffset?: number;
+  verticalOffset?: number;
+}
 
 export function parseVideodata (data: Uint8Array): VideoPacket {
   let i = 0;
@@ -242,7 +242,7 @@ export class MP4Mux {
     private chunkIndex: number;
 
     oncodecinfo: (codecs: string[]) => void = function (codecs: string[]) {
-      //
+      throw new Error('MP4Mux.oncodecdata is not set');
     };
 
     ondata: (data) => void = function (data) {

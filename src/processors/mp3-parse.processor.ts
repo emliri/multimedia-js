@@ -47,6 +47,7 @@ export class MP3ParseProcessor extends Processor {
       const p: Packet = Packet.fromArrayBuffer(
         frame.data.buffer,
         CommonMimeTypes.AUDIO_MP3,
+        'mp3a',
         frame.frameDuration
       );
 

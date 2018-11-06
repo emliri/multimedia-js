@@ -81,8 +81,6 @@ export class MP4MuxHlsjsProcessor extends Processor {
 
   private _flushSymbolCnt: number = 0;
 
-  private _audioDtsShiftCompensation: number = 0;
-
   private _firstVideoDts: number = null;
   private _firstAudioDts: number = null;
 

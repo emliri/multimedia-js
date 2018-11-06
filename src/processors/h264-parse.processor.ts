@@ -60,9 +60,9 @@ export class H264ParseProcessor extends Processor {
       length = avcView.getUint32(i);
 
       if (length > avcStream.length) {
-        //warn('No NALUs found! Forwarding data anyway...');
+        warn('no NALUs found in this packet! Forwarding and ignoring:', p);
         this.out[0].transfer(p);
-        break; // no NALUs, but forward data anyway
+        break;
       }
 
       i += 4;
