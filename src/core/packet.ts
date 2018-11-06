@@ -1,19 +1,28 @@
 import { BufferSlices, BufferSlice, BufferProperties } from './buffer';
 
+/**
+ * Symbols are passed into sockets and thus processors to convey in-band
+ * information on the stream of packets.
+ */
 export enum PacketSymbol {
-  VOID,
-  INIT,
-  GAP,
-  FLUSH,
-  EOS
+  VOID = 0,           // void: a placeholder
+  WAIT = 1,           // further data received should not be processed (or transferred)
+  WAIT_BUT_Q = 2,     // further data received may be processed but must be queued until transferred (wait for resume)
+  RESUME = 3,         // further data received should be processed now and pipelined
+  FLUSH = 4,          // data received before should now be flushed (meaning it should be transferred when already processed)
+  GAP = 5,            // a time-plane discontinuity in this sync-id domain will arrive after this (this may also mean a lack of data for present processing)
+  EOS = 6,            // no more data will be transferred after this
+  DROP = 7,           // data received before (already processed or not) should be dropped (and thus not transferred)
+  DROP_Q = 8,         // data received before that was queued (not yet processed) should be dropped
+  SYNC = 9            // after this, a new packet sync-id may appear (the symbolic packet SHOULD carry its value already)
 }
 
 export type PacketReceiveCallback = ((p: Packet) => boolean);
 
 export class Packet {
+
   /**
    * See BufferSlice.fromTransferable
-  p
    */
   static fromTransferable (p: Packet): Packet {
     const newPacket: Packet = new Packet(
@@ -31,10 +40,13 @@ export class Packet {
   static fromArrayBuffer (
     arrayBuffer: ArrayBuffer,
     mimeType?: string,
+    codec?: string,
     sampleDuration?: number,
     samplesCount?: number): Packet {
-    const p = new Packet();
+
     const bufferProps = new BufferProperties(mimeType, sampleDuration, samplesCount);
+
+    bufferProps.codec = codec;
 
     return Packet.fromSlice(new BufferSlice(
       arrayBuffer,
@@ -76,8 +88,8 @@ export class Packet {
     return Packet.fromSymbol(PacketSymbol.GAP);
   }
 
-  static newInit () {
-    return Packet.fromSymbol(PacketSymbol.INIT);
+  static newResume () {
+    return Packet.fromSymbol(PacketSymbol.RESUME);
   }
 
   private _symbol: PacketSymbol = PacketSymbol.VOID;
@@ -110,6 +122,7 @@ export class Packet {
     this._symbol = symbol;
   }
 
+  // TODO: allow to inject default payload as well from the packet
   get defaultPayloadInfo (): BufferProperties {
     if (!this.hasDefaultPayloadInfo) {
       throw new Error('packet has no default payload description');
@@ -117,6 +130,7 @@ export class Packet {
     return this.data[0] ? this.data[0].props : null;
   }
 
+  // TODO: check if other buffers have other infos etc..
   get hasDefaultPayloadInfo(): boolean {
     return this._hasDefaultBufferProps;
   }

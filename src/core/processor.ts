@@ -1,4 +1,4 @@
-import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, Socket } from './socket';
+import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, Socket, SocketTemplateGenerator } from './socket';
 import { PacketSymbol, Packet } from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 import { EventEmitter } from 'eventemitter3';
@@ -39,13 +39,13 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     // TODO: internalize EE instance to avoid polluting interface (we should only expose on/once/off)
     // private eventEmitter_: typeof EventEmitter = new EventEmitter();
 
-    private onSignal_: SignalHandler;
-
     public enableSymbolProxying: boolean = true;
 
-    constructor (onSignal?: SignalHandler) {
+    constructor (
+      private onSignal_: SignalHandler = null,
+      private socketTemplate_: SocketTemplateGenerator = null
+      ) {
       super();
-      this.onSignal_ = onSignal || null;
     }
 
     terminate () {
@@ -55,31 +55,8 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     }
 
     // maybe better call protoSocketDescriptor as in prototype pattern?
-    abstract templateSocketDescriptor(socketType: SocketType): SocketDescriptor;
-
-    private getWorker (): Worker {
-      if (!this.worker_) {
-        this.worker_ = new Worker(WORKER_PATH);
-        this.worker_.addEventListener('message', (event) => {
-          this.onWorkerMessage(event);
-        });
-      }
-      return this.worker_;
-    }
-
-    protected onWorkerMessage (event: Event) {
-      console.warn('Processor should implement onWorkerMessage');
-      console.warn('Worker event not handled:', event);
-    }
-
-    protected dispatchWorkerTask (name: string, packet: Packet) {
-      const task: WorkerTask = {
-        workerContext: null,
-        packet,
-        name
-      };
-      this.getWorker()
-        .postMessage(task, task.packet.mapArrayBuffers());
+    templateSocketDescriptor(socketType: SocketType): SocketDescriptor {
+      return this.socketTemplate_(socketType);
     }
 
     emit (event: ProcessorEvent, data: ProcessorEventData) {
@@ -161,8 +138,9 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * {SocketDescriptor} sd optional
      */
     createInput (sd?: SocketDescriptor): InputSocket {
+      const inputIndex: number = this.inputs_.length;
       const s = new InputSocket((p: Packet) => {
-        return this.onReceiveFromInput_(s, p);
+        return this.onReceiveFromInput_(s, p, inputIndex);
       }, sd || this.wrapTemplateSocketDescriptor_(SocketType.INPUT));
       this.inputs_.push(s);
       this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
@@ -198,6 +176,16 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       return s;
     }
 
+    private getWorker (): Worker {
+      if (!this.worker_) {
+        this.worker_ = new Worker(WORKER_PATH);
+        this.worker_.addEventListener('message', (event) => {
+          this.onWorkerMessage(event);
+        });
+      }
+      return this.worker_;
+    }
+
     /**
      * @returns True when packet was forwarded
      */
@@ -225,7 +213,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       });
     }
 
-    private onReceiveFromInput_ (inS: InputSocket, p: Packet): boolean {
+    private onReceiveFromInput_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
       if (p.isSymbolic() &&
             this.onSymbolicPacketReceived_(p)) {
         return true; // when packet was forwarded we don't pass it on for processing
@@ -233,7 +221,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
       let result = false;
       try {
-        result = this.processTransfer_(inS, p);
+        result = this.processTransfer_(inS, p, inputIndex);
       } catch (err) {
         error(`There was a fatal error processing a packet: ${err.message}. Stacktrace:`);
         debug(err);
@@ -257,6 +245,21 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       } else {
         return Promise.resolve(false);
       }
+    }
+
+    protected onWorkerMessage (event: Event) {
+      console.warn('Processor should implement onWorkerMessage');
+      console.warn('Worker event not handled:', event);
+    }
+
+    protected dispatchWorkerTask (name: string, packet: Packet) {
+      const task: WorkerTask = {
+        workerContext: null,
+        packet,
+        name
+      };
+      this.getWorker()
+        .postMessage(task, task.packet.mapArrayBuffers());
     }
 
     /**
@@ -285,5 +288,5 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * Called when a packet is received on an input socket.
      * Returns true when packet was handled correctly in some way.
      */
-    protected abstract processTransfer_(inS: InputSocket, p: Packet): boolean;
+    protected abstract processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean;
 }

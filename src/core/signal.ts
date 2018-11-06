@@ -114,7 +114,6 @@ export class Signal {
 
   /**
    * Broadcast method
-  receivers
    */
   emit (receivers: SignalReceiver[]): SignalReceiverCastResult {
     return collectSignalReceiverCastResults(

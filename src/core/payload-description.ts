@@ -23,6 +23,13 @@ export enum CommonMimeTypes {
   VIDEO_AAC = 'video/aac'
 }
 
+export enum MimetypePrefix {
+  AUDIO = 'audio',
+  VIDEO = 'video',
+  TEXT = 'text',
+  APPLICATION = 'application'
+}
+
 export const UNKNOWN_MIMETYPE = 'unknown/*';
 
 // TODO: parse & validate mime-types and codec strings
@@ -38,8 +45,12 @@ export const UNKNOWN_MIMETYPE = 'unknown/*';
  * @returns example: 'video/mp4; codecs=avc1.64001f'
  * // TODO: for several codecs in one container
  */
-export function appendCodecToMimeType (mimeType: MimeType, codec: string): string {
+function appendCodecToMimeType (mimeType: MimeType, codec: string): string {
   return mimeType + '; codecs=' + codec;
+}
+
+function doesMimetypeHaveCodec(mimeType: string): boolean {
+  return mimeType.indexOf('codecs=') >= 0;
 }
 
 export class PayloadDescriptor {
@@ -66,8 +77,20 @@ export class PayloadDescriptor {
     this.dataLayout = PayloadDataLayout.UNSPECIFIED;
   }
 
-  getFullMimeType() {
+  // TODO: put mime-type specific stuff in child object that specializes on mime-types?
+
+  getFullMimeType(): string {
+    if (!this.codec) {
+      return this.mimeType;
+    }
+    if (doesMimetypeHaveCodec(this.mimeType)) { // FIXME: we should maybe rather throw here
+      return this.mimeType;
+    }
     return appendCodecToMimeType(this.mimeType, this.codec);
+  }
+
+  hasCodec(): boolean {
+    return !!this.codec;
   }
 
   getSampleSize (): number {
@@ -76,6 +99,38 @@ export class PayloadDescriptor {
 
   getSamplingRate (): number {
     return (1 / this.sampleDuration);
+  }
+
+  isAudio() {
+    return this.mimeType.startsWith('audio/');
+  }
+
+  isVideo() {
+    return this.mimeType.startsWith('video/');
+  }
+
+  isText() {
+    return this.mimeType.startsWith('text/');
+  }
+
+  isImage() {
+    return this.mimeType.startsWith('image/');
+  }
+
+  isApplicationSpecific() {
+    return this.mimeType.startsWith('application/');
+  }
+
+  isFont() {
+    return this.mimeType.startsWith('font/');
+  }
+
+  isJson() {
+    return this.mimeType === ('application/json');
+  }
+
+  isXml() {
+    return this.mimeType === ('application/xml');
   }
 }
 
