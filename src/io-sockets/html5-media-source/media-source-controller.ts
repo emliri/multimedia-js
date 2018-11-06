@@ -6,6 +6,10 @@ import {
   SourceBufferQueueUpdateCallbackData
 } from './source-buffer-queue';
 
+import {getLogger} from '../../logger';
+
+const {error} = getLogger('MediaSourceController');
+
 export enum MediaSourceControllerEvents {
   MEDIA_CLOCK_UPDATED = 'media-clock-updated',
   MEDIA_DURATION_CHANGED = 'media-duration-changed',
@@ -55,12 +59,12 @@ export class MediaSourceController extends EventEmitter {
 
   addSourceBufferQueue (mimeType: string) {
     if (!MediaSource.isTypeSupported(mimeType)) {
-      console.error('MediaSource not supporting:', mimeType);
+      error('MediaSource not supporting:', mimeType);
       return false;
     }
 
     if (this.mediaSource.readyState !== 'open') {
-      console.error('MediaSource not open!');
+      error('MediaSource not open!');
       return false;
     }
 
@@ -74,7 +78,7 @@ export class MediaSourceController extends EventEmitter {
 
       this.sourceBufferQueues_.push(sbQueue);
     } catch (err) {
-      console.error(err);
+      error(err);
       return false;
     }
     return true;
