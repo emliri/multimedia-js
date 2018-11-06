@@ -2,6 +2,9 @@ import { SeekableOutputSocket, OutputSocket, SocketDescriptor } from '../core/so
 
 import { XHR, XHRCallbackFunction, XHRState, XHRMethod, XHRResponseType } from './xhr/xhr';
 import { Packet } from '../core/packet';
+import { getLogger } from '../logger';
+
+const {log, warn, error} = getLogger("XhrSocket");
 
 export class XhrSocket extends SeekableOutputSocket {
   private _xhr: XHR = null;
@@ -22,7 +25,9 @@ export class XhrSocket extends SeekableOutputSocket {
     }
 
     if (xhr.xhrState === XHRState.DONE) {
+      log('got data for url:', this._xhr.responseURL)
       this.transfer(Packet.fromArrayBuffer(<ArrayBuffer> xhr.responseData));
+      log('transferring EOS symbol');
       // EOS
       this.transfer(Packet.newEos());
     }
