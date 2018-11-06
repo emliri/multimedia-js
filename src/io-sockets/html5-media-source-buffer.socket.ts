@@ -3,7 +3,6 @@ import { Packet } from '../core/packet';
 import { MediaSourceController } from './html5-media-source/media-source-controller';
 import { concatArrayBuffers } from '../common-utils';
 import { getLogger } from '../logger';
-import { appendCodecToMimeType } from '../core/payload-description';
 
 const { log, warn, error } = getLogger('HTML5MediaSourceBufferSocket');
 
@@ -48,7 +47,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
         this._enableOneSourceBufferForFullMimetype(defaultFullMimetype);
       }
 
-    })
+    });
 
   }
 
@@ -62,7 +61,8 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
     }
 
     if (!MediaSource.isTypeSupported(fullMimeType)) {
-      error('MSE API says requested mime-type is not supported, aborting');
+      error(`MSE API says requested mime-type (${fullMimeType}) is not supported, aborting.`);
+      return false;
     }
 
     log('attempting to create an MSE source-buffer for fully-qualified mime-type:', fullMimeType)
@@ -77,7 +77,20 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
   private _onPacketReceived (p: Packet): boolean {
 
     const defaultBufferProps = p.defaultPayloadInfo;
-    const fullMimeType = appendCodecToMimeType(defaultBufferProps.mimeType, defaultBufferProps.codec);
+
+    // TODO: add default handling for this in base-class for easing impl these kind of subclasses
+    if (p.isSymbolic()) {
+      log('got symbolic packet:', p.symbol);
+      return true;
+    }
+
+    // TODO: have socket probe check this
+    if (!defaultBufferProps) {
+      warn('no default buffer props:', p);
+      return;
+    }
+
+    const fullMimeType = defaultBufferProps.getFullMimeType();
 
     log('received packet with fully-qualified mime-type:', fullMimeType)
 
@@ -96,7 +109,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
       sourceBufferQueue.appendBuffer(buffer, 0);
 
       /// * This is a nasty debugging hack. We should add a probe/filter to do this
-      /*//
+      //
       if (ENABLE_BUFFER_DOWNLOAD_LINK) {
         this.accuBuffer = concatArrayBuffers(this.accuBuffer, buffer);
         const blob = new Blob([this.accuBuffer], { type: 'video/mp4' });
@@ -116,4 +129,4 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
 }
 
 var bufferDownloadCnt = 0;
-var ENABLE_BUFFER_DOWNLOAD_LINK = false;
+var ENABLE_BUFFER_DOWNLOAD_LINK = true;
