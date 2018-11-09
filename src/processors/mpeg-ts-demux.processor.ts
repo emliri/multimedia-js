@@ -38,11 +38,11 @@ export class MPEGTSDemuxProcessor extends Processor {
       return;
     }
 
-    this.processDemuxerOutputPacket(p);
+    this._processDemuxerOutputPacket(p);
 
   }
 
-  private processDemuxerOutputPacket(p: Packet) {
+  private _processDemuxerOutputPacket(p: Packet) {
 
     const bs = p.data[0];
 
@@ -55,10 +55,10 @@ export class MPEGTSDemuxProcessor extends Processor {
     // set mpeg-ts timescale of 90000khz
     p.setTimescale(90000);
 
-    this.getOutput(bs.props).transfer(p);
+    this._getOutputForPayload(bs.props).transfer(p);
   }
 
-  private getOutput(payloadDescriptor: PayloadDescriptor): OutputSocket {
+  private _getOutputForPayload(payloadDescriptor: PayloadDescriptor): OutputSocket {
     const pid = payloadDescriptor.elementaryStreamId;
     if (this._programMap[pid]) {
       return this._programMap[pid];
