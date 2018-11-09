@@ -56,7 +56,7 @@ export class BufferSlice {
     return bufferSlices.map((bs) => bs.arrayBuffer);
   }
 
-  static fromTypedArray (typedArray: Uint8Array | Uint16Array | Int8Array | Int16Array, props?: BufferProperties) {
+  static fromTypedArray (typedArray: ArrayBufferView, props?: BufferProperties) {
     return new BufferSlice(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength, props);
   }
 
