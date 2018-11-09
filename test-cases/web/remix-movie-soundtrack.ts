@@ -17,7 +17,11 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
     videoEl.src = URL.createObjectURL(mediaSource);
 
-    this._flow = new MovToFmp4Flow('/test-data/mp4/v-0576p-1400k-libx264.mov', mediaSource);
+    this._flow = new MovToFmp4Flow(
+      '/test-data/mp4/v-0576p-1400k-libx264.mov',
+      '/test-data/mp3/shalafon.mp3',
+      //'/test-data/mp3/212438__pcfstnk__ubahn.mp3',
+      mediaSource);
 
     this.domMountPoint.appendChild(videoEl);
   }
