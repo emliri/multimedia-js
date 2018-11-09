@@ -28,17 +28,70 @@ export function toNumber (n: any): number {
   throw new Error('Value does not convert to number: ' + n);
 }
 
+/**
+ * Copies source data into a previously allocated destination buffer (see memcpy)
+ */
+export function copyArrayBuffer(
+  src: ArrayBuffer, dest: ArrayBuffer,
+  length: number = src.byteLength,
+  srcOffset: number = 0, destOffset: number = 0) {
+
+  if (srcOffset + length >= src.byteLength) {
+    throw new Error(`Source buffer is too small for copy target of ${length} bytes at offset ${srcOffset}`);
+  }
+
+  if (destOffset + length >= dest.byteLength) {
+    throw new Error(`Destination buffer is too small for copy target of ${length} bytes to offset at ${destOffset}`);
+  }
+
+  const destView = new Uint8Array(dest);
+  const srcView = new Uint8Array(src, srcOffset, length);
+  destView.set(srcView, destOffset);
+}
+
+/**
+ * Copies all data from one buffer into a new one, optionnally with offset and size arguments
+ * @param buffer
+ * @param begin
+ * @param end
+ */
+export function copyToNewArrayBuffer(buffer: ArrayBuffer, offset: number = 0, size?: number): ArrayBuffer {
+  if (offset >= buffer.byteLength || offset + size >= buffer.byteLength) {
+    throw new Error(`Offset or size are out of array-buffer bounds: ${offset}/${size}`);
+  }
+  return buffer.slice(offset, offset + size - 1);
+}
+
+/**
+ * Copies only the window that the view points to into a new buffer
+ * @param typedArray
+ */
+export function allocAndCopyTypedArraySlice(typedArray: ArrayBufferView): ArrayBuffer {
+  return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
+}
+
+/**
+ * Concatenates two existing buffers into a newly allocated third one
+ * @param buffer1
+ * @param buffer2
+ */
 export function concatArrayBuffers (buffer1: ArrayBuffer, buffer2: ArrayBuffer): ArrayBuffer {
   if (!buffer1) {
     return buffer2;
   } else if (!buffer2) {
     return buffer1;
   }
-  let tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-  tmp.set(new Uint8Array(buffer1), 0);
-  tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-  return tmp.buffer;
+  const newBuffer = new ArrayBuffer(buffer1.byteLength + buffer2.byteLength);
+  const view = new Uint8Array(newBuffer);
+  view.set(new Uint8Array(buffer1), 0);
+  view.set(new Uint8Array(buffer2), buffer1.byteLength);
+  return newBuffer;
 }
+
+export function concatArrays<T> (arg0: T[], ...args: T[][]): T[] {
+  return Array.prototype.concat.apply(arg0, args);
+}
+
 
 export function forEachOwnPropKeyInObject<T> (object: Object, callback: (el: T) => void) {
   for (const key in object) {
@@ -139,6 +192,15 @@ export function utf8StringToBuffer(str: string): ArrayBuffer {
     bufView[i] = str.charCodeAt(i);
   }
   return buf;
+}
+
+export function hexToBytes (s: string): Uint8Array {
+  let len = s.length >> 1;
+  let arr = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    arr[i] = parseInt(s.substr(i * 2, 2), 16);
+  }
+  return arr;
 }
 
 
