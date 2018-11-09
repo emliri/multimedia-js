@@ -54,16 +54,10 @@ import {
   SELF_CONTAINED_DATA_REFERENCE_FLAG
 } from './mp4iso';
 
+import { hexToBytes } from '../../common-utils';
+
 // module RtmpJs.MP4 {
 
-function hex (s: string): Uint8Array {
-  let len = s.length >> 1;
-  let arr = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    arr[i] = parseInt(s.substr(i * 2, 2), 16);
-  }
-  return arr;
-}
 
 export const SOUNDRATES = [5500, 11025, 22050, 44100];
 export const SOUNDFORMATS = ['PCM', 'ADPCM', 'MP3', 'PCM le', 'Nellymouser16', 'Nellymouser8', 'Nellymouser', 'G.711 A-law', 'G.711 mu-law', null, 'AAC', 'Speex', 'MP3 8khz'];
@@ -179,8 +173,10 @@ export function parseVideodata (data: Uint8Array): VideoPacket {
   return result;
 }
 
-export const AUDIO_PACKET = 8;
-export const VIDEO_PACKET = 9;
+export enum MP4MuxPacketType {
+  AUDIO_PACKET = 8,
+  VIDEO_PACKET = 9 // legacy support numbers, not sure if can be replaced
+};
 
 let MAX_PACKETS_IN_CHUNK = Infinity;
 let SPLIT_AT_KEYFRAMES = true;
@@ -277,18 +273,40 @@ export class MP4Mux {
     }
 
     public pushPacket (
-      type: number, data: Uint8Array, timestamp: number,
-      forceRaw: boolean = false, isInitData: boolean = false,
-      isKeyframe: boolean = false, cto: number = 0
+      type: MP4MuxPacketType,
+      codecId: number,
+      data: Uint8Array,
+      timestamp: number,
+      forceRaw: boolean = false,
+      isInitData: boolean = false,
+      isKeyframe: boolean = false,
+      cto: number = 0
     ) {
+
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._tryGenerateHeader();
       }
 
       switch (type) {
-      case AUDIO_PACKET: // audio
-        var audioTrack = this.audioTrackState;
-        var audioPacket = parseAudiodata(data);
+      case MP4MuxPacketType.AUDIO_PACKET: // audio
+        const audioTrack = this.audioTrackState;
+        let audioPacket: AudioPacket;
+
+        if (forceRaw) {
+          audioPacket = {
+            data,
+            codecId,
+            codecDescription: SOUNDFORMATS[codecId],
+            rate: SOUNDRATES[3], // FIXME: hardcoded 44100khz
+            size: 16, // FIXME: hardcoded 16 bit sampledepth
+            channels: 2, // FIXME: hardcoded stereo
+            samples: 1152,
+            packetType: AudioPacketType.RAW
+          };
+        } else {
+          audioPacket = parseAudiodata(data);
+        }
+
         if (!audioTrack || audioTrack.trackInfo.codecId !== audioPacket.codecId) {
           throw new Error('Unexpected audio packet codec: ' + audioPacket.codecDescription);
         }
@@ -306,14 +324,14 @@ export class MP4Mux {
         }
         this.cachedPackets.push({ packet: audioPacket, timestamp, trackId: audioTrack.trackId });
         break;
-      case VIDEO_PACKET:
+      case MP4MuxPacketType.VIDEO_PACKET:
         var videoTrack = this.videoTrackState;
         var videoPacket: VideoPacket;
         if (forceRaw) {
           videoPacket = {
             frameType: isKeyframe ? VideoFrameType.KEY : VideoFrameType.INNER,
-            codecId: 7,
-            codecDescription: VIDEOCODECS[7],
+            codecId: AVC_VIDEO_CODEC_ID,
+            codecDescription: VIDEOCODECS[AVC_VIDEO_CODEC_ID],
             data: data,
             packetType: isInitData ? VideoPacketType.HEADER : VideoPacketType.NALU,
             compositionTime: timestamp + cto
@@ -383,6 +401,8 @@ export class MP4Mux {
       let brands: string[] = ['isom'];
       let audioDataReferenceIndex = 1; let videoDataReferenceIndex = 1;
       let traks: TrackBox[] = [];
+      const trexs: TrackExtendsBox[] = [];
+
       for (let i = 0; i < this.trackStates.length; i++) {
         let trackState = this.trackStates[i];
         let trackInfo = trackState.trackInfo;
@@ -393,14 +413,14 @@ export class MP4Mux {
           sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
 
           var esdsData = new Uint8Array(41 + audioSpecificConfig.length);
-          esdsData.set(hex('0000000003808080'), 0);
+          esdsData.set(hexToBytes('0000000003808080'), 0);
           esdsData[8] = 32 + audioSpecificConfig.length;
-          esdsData.set(hex('00020004808080'), 9);
+          esdsData.set(hexToBytes('00020004808080'), 9);
           esdsData[16] = 18 + audioSpecificConfig.length;
-          esdsData.set(hex('40150000000000FA000000000005808080'), 17);
+          esdsData.set(hexToBytes('40150000000000FA000000000005808080'), 17);
           esdsData[34] = audioSpecificConfig.length;
           esdsData.set(audioSpecificConfig, 35);
-          esdsData.set(hex('068080800102'), 35 + audioSpecificConfig.length);
+          esdsData.set(hexToBytes('068080800102'), 35 + audioSpecificConfig.length);
           (<AudioSampleEntry>sampleEntry).otherBoxes = [
             new RawTag('esds', esdsData)
           ];
@@ -426,7 +446,7 @@ export class MP4Mux {
         case VP6_VIDEO_CODEC_ID:
           sampleEntry = new VideoSampleEntry('VP6F', videoDataReferenceIndex, trackInfo.width, trackInfo.height);
           (<VideoSampleEntry>sampleEntry).otherBoxes = [
-            new RawTag('glbl', hex('00'))
+            new RawTag('glbl', hexToBytes('00'))
           ];
           // TODO to lie about codec to get it playing in MSE?
           trackState.mimeTypeCodec = 'avc1.42001E';
@@ -435,11 +455,13 @@ export class MP4Mux {
           throw new Error('not supported track type');
         }
 
-        var trak;
+        let trak;
+        let trex;
+
         let trakFlags = TrackHeaderFlags.TRACK_ENABLED | TrackHeaderFlags.TRACK_IN_MOVIE;
         if (trackState === this.audioTrackState) {
           trak = new TrackBox(
-            new TrackHeaderBox(trakFlags, trackState.trackId, trackInfo.duration, 0 /* width */, 0 /* height */, 1.0, i),
+            new TrackHeaderBox(trakFlags, trackState.trackId, trackInfo.duration / trackInfo.timescale, 0 /* width */, 0 /* height */, 1.0, i),
             new MediaBox(
               new MediaHeaderBox(trackInfo.timescale, trackInfo.duration, trackInfo.language),
               new HandlerBox('soun', 'SoundHandler'),
@@ -449,17 +471,19 @@ export class MP4Mux {
                   new DataReferenceBox([new DataEntryUrlBox(SELF_CONTAINED_DATA_REFERENCE_FLAG)])),
                 new SampleTableBox(
                   new SampleDescriptionBox([sampleEntry]),
-                  new RawTag('stts', hex('0000000000000000')),
-                  new RawTag('stsc', hex('0000000000000000')),
-                  new RawTag('stsz', hex('000000000000000000000000')),
-                  new RawTag('stco', hex('0000000000000000'))
+                  new RawTag('stts', hexToBytes('0000000000000000')),
+                  new RawTag('stsc', hexToBytes('0000000000000000')),
+                  new RawTag('stsz', hexToBytes('000000000000000000000000')),
+                  new RawTag('stco', hexToBytes('0000000000000000'))
                 )
               )
             )
           );
+
         } else if (trackState === this.videoTrackState) {
+
           trak = new TrackBox(
-            new TrackHeaderBox(trakFlags, trackState.trackId, trackInfo.duration, trackInfo.width, trackInfo.height, 0 /* volume */, i),
+            new TrackHeaderBox(trakFlags, trackState.trackId, trackInfo.duration / trackInfo.timescale, trackInfo.width, trackInfo.height, 0 /* volume */, i),
             new MediaBox(
               new MediaHeaderBox(trackInfo.timescale, trackInfo.duration, trackInfo.language),
               new HandlerBox('vide', 'VideoHandler'),
@@ -469,26 +493,28 @@ export class MP4Mux {
                   new DataReferenceBox([new DataEntryUrlBox(SELF_CONTAINED_DATA_REFERENCE_FLAG)])),
                 new SampleTableBox(
                   new SampleDescriptionBox([sampleEntry]),
-                  new RawTag('stts', hex('0000000000000000')),
-                  new RawTag('stsc', hex('0000000000000000')),
-                  new RawTag('stsz', hex('000000000000000000000000')),
-                  new RawTag('stco', hex('0000000000000000'))
+                  new RawTag('stts', hexToBytes('0000000000000000')),
+                  new RawTag('stsc', hexToBytes('0000000000000000')),
+                  new RawTag('stsz', hexToBytes('000000000000000000000000')),
+                  new RawTag('stco', hexToBytes('0000000000000000'))
                 )
               )
             )
           );
         }
+
+        trex = new TrackExtendsBox(trackState.trackId, 0, 0, 0, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
+
         traks.push(trak);
+        trexs.push(trex);
       }
 
-      let mvex = new MovieExtendsBox(null, [
-        new TrackExtendsBox(1, 1, 0, 0, 0)
-        // new TrackExtendsBox(2, 1, 0, 0, 0) // FIXME: add trex boxes depending on actual metadata
-      ], null);
+      let mvex = new MovieExtendsBox(null, trexs, null);
+
       let udat = new BoxContainerBox('udat', [
         new MetaBox(
-          new RawTag('hdlr', hex('00000000000000006D6469726170706C000000000000000000')), // notice weird stuff in reserved field
-          [new RawTag('ilst', hex('00000025A9746F6F0000001D6461746100000001000000004C61766635342E36332E313034'))]
+          new RawTag('hdlr', hexToBytes('00000000000000006D6469726170706C000000000000000000')), // notice weird stuff in reserved field
+          [new RawTag('ilst', hexToBytes('00000025A9746F6F0000001D6461746100000001000000004C61766635342E36332E313034'))]
         )
       ]);
 
@@ -501,8 +527,8 @@ export class MP4Mux {
         [0].trackInfo;
 
       let mvhd = new MovieHeaderBox(
-        minDurationTrackInfo.timescale,
-        minDurationTrackInfo.duration,
+        1, // HACK
+        minDurationTrackInfo.duration / minDurationTrackInfo.timescale + 1,
         this.trackStates.length + 1
       );
 
@@ -561,9 +587,9 @@ export class MP4Mux {
         // ??? not sure what this was doing but lets keep it around -> var currentTimestamp = (trackPackets[0].timestamp * trackInfo.timescale / 1000) | 0; ???
 
         let tfdt = new TrackFragmentBaseMediaDecodeTimeBox(trackState.cachedDuration);
-        var tfhd: TrackFragmentHeaderBox;
-        var trun: TrackRunBox;
-        var trunSamples: TrackRunSample[];
+        let trun: TrackRunBox;
+        let tfhd: TrackFragmentHeaderBox;
+        let trunSamples: TrackRunSample[];
 
         trafDataStarts.push(tdatPosition);
         switch (trackInfo.codecId) {

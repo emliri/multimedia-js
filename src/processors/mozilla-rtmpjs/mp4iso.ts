@@ -1,3 +1,5 @@
+import { concatArrays } from "../../common-utils";
+
 /**
  * Copyright 2015 Mozilla Foundation
  *
@@ -59,10 +61,6 @@ function utf8decode (str) {
 let START_DATE = -2082844800000; /* midnight after Jan. 1, 1904 */
 let DEFAULT_MOVIE_MATRIX: number[] = [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0];
 let DEFAULT_OP_COLOR: number[] = [0, 0, 0];
-
-function concatArrays<T> (arg0: T[], ...args: T[][]): T[] {
-  return Array.prototype.concat.apply(arg0, args);
-}
 
 function writeInt32 (data: Uint8Array, offset: number, value: number) {
   data[offset] = (value >> 24) & 255;

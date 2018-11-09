@@ -7,8 +7,9 @@ import { CommonMimeTypes } from '../core/payload-description';
 import { MP3Parser, MP3ParserResult } from './mp3/mp3-parser';
 import { BufferSlice, BufferProperties } from '../core/buffer';
 import { getLogger } from '../ext-mod/inspector.js/src/utils/logger';
+import { MPEGAudioFrame } from './mp3/mpeg-audio-parser';
 
-const {log, error} = getLogger('MP3ParseProcessor');
+const {log, debug, error} = getLogger('MP3ParseProcessor');
 
 export class MP3ParseProcessor extends Processor {
   constructor () {
@@ -41,15 +42,22 @@ export class MP3ParseProcessor extends Processor {
 
     const res: MP3ParserResult = MP3Parser.parse(bufferSlice.getUint8Array());
 
-    log('parsed mp3 data:', res)
+    log('parsed mp3 frames:', res.mp3Frames.length);
 
-    res.mp3Frames.forEach((frame) => {
-      const p: Packet = Packet.fromArrayBuffer(
-        frame.data.buffer,
-        CommonMimeTypes.AUDIO_MP3,
-        'mp3a',
-        frame.frameDuration
-      );
+    let timestamp = 0;
+
+    debug('parser result:', res);
+
+    res.mp3Frames.forEach((frame: MPEGAudioFrame) => {
+
+      const p: Packet = Packet.fromSlice(BufferSlice.fromTypedArray(frame.data), timestamp, 0);
+
+      p.data[0].props = new BufferProperties(CommonMimeTypes.AUDIO_MP3, frame.frameDuration, 16, 1);
+      p.data[0].props.codec = 'mp3a'; // .mp3?
+
+      timestamp += frame.frameDuration;
+
+      log('created new mp3 packet @:', p.timestamp)
 
       this.out[0].transfer(p);
     });

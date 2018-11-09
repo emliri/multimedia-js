@@ -10,6 +10,7 @@ export const MPEGAudioBitratesTable: number[] = [ 32, 64, 96, 128, 160, 192, 224
   32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,
   32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256,
   8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160 ];
+
 export type MPEGAudioHeader = {
     sampleRate: number
     channelCount: number
