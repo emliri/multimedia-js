@@ -227,6 +227,11 @@ export abstract class Socket implements SignalReceiver {
 }
 
 export class InputSocket extends Socket {
+
+  static unsafe(s: Socket): InputSocket {
+    return (<InputSocket> s);
+  }
+
   private onReceive_: PacketReceiveCallback;
 
   constructor (onReceive: PacketReceiveCallback, descriptor: SocketDescriptor) {
@@ -254,6 +259,11 @@ export class InputSocket extends Socket {
 }
 
 export class OutputSocket extends Socket {
+
+  static unsafe(s: Socket): OutputSocket {
+    return (<OutputSocket> s);
+  }
+
   private peers_: Socket[];
 
   constructor (descriptor: SocketDescriptor) {
