@@ -192,7 +192,6 @@ export class MP4MuxProcessor extends Processor {
     });
   }
 
-
   private _processAudioPacket(p: Packet) {
 
     p.forEachBufferSlice((bufferSlice) => {

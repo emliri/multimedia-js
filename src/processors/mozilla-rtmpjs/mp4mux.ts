@@ -17,7 +17,6 @@
 import {
   TrackBox,
   SampleEntry,
-  SampleDescriptionBox,
   SampleFlags,
   AudioSampleEntry,
   RawTag,
@@ -384,6 +383,10 @@ export class MP4Mux {
       }
     }
 
+    private _generatePlainMovFile () {
+
+    }
+
     private _tryGenerateHeader () {
       let allInitializationDataExists = this.trackStates.every((ts) => {
         switch (ts.trackInfo.codecId) {
@@ -469,13 +472,7 @@ export class MP4Mux {
                 new SoundMediaHeaderBox(),
                 new DataInformationBox(
                   new DataReferenceBox([new DataEntryUrlBox(SELF_CONTAINED_DATA_REFERENCE_FLAG)])),
-                new SampleTableBox(
-                  new SampleDescriptionBox([sampleEntry]),
-                  new RawTag('stts', hexToBytes('0000000000000000')),
-                  new RawTag('stsc', hexToBytes('0000000000000000')),
-                  new RawTag('stsz', hexToBytes('000000000000000000000000')),
-                  new RawTag('stco', hexToBytes('0000000000000000'))
-                )
+                  SampleTableBox.createEmptyForFragmentedMode([sampleEntry])
               )
             )
           );
@@ -491,13 +488,7 @@ export class MP4Mux {
                 new VideoMediaHeaderBox(),
                 new DataInformationBox(
                   new DataReferenceBox([new DataEntryUrlBox(SELF_CONTAINED_DATA_REFERENCE_FLAG)])),
-                new SampleTableBox(
-                  new SampleDescriptionBox([sampleEntry]),
-                  new RawTag('stts', hexToBytes('0000000000000000')),
-                  new RawTag('stsc', hexToBytes('0000000000000000')),
-                  new RawTag('stsz', hexToBytes('000000000000000000000000')),
-                  new RawTag('stco', hexToBytes('0000000000000000'))
-                )
+                  SampleTableBox.createEmptyForFragmentedMode([sampleEntry])
               )
             )
           );
@@ -605,7 +596,8 @@ export class MP4Mux {
             trackState.samplesProcessed += audioPacket.samples;
           }
           var tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
-          tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
+          tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
+            SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
           var trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT |
                             TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT;
           trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, 0 /* first flags */);
@@ -626,8 +618,9 @@ export class MP4Mux {
 
             let compositionTime = (trackInfo.timescale / trackInfo.framerate) + videoPacket.compositionTime;
 
-            // ??? not sure what this was doing but lets keep it around -> Math.round(samplesProcessed * trackInfo.timescale / trackInfo.framerate + videoPacket.compositionTime * trackInfo.timescale / 1000);
+            // ??? not sure what this was doing but lets keep it around ... Math.round(samplesProcessed * trackInfo.timescale / trackInfo.framerate + videoPacket.compositionTime * trackInfo.timescale / 1000);
 
+            // -> this seems more senseful given that CT is defined as CT(n)  =  DT(n)  +  CTO(n)
             let compositionTimeOffset = compositionTime - nextTime;
 
             tdatParts.push(videoPacket.data);
@@ -641,7 +634,8 @@ export class MP4Mux {
               compositionTimeOffset });
           }
           var tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
-          tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
+          tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
+            SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
           var trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT | TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT |
                             TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT |
                             TrackRunFlags.SAMPLE_FLAGS_PRESENT | TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET;
@@ -650,7 +644,7 @@ export class MP4Mux {
           trackState.samplesProcessed = samplesProcessed;
           break;
         default:
-          throw new Error('Un codec');
+          throw new Error('Unknown codec');
         }
 
         let traf = new TrackFragmentBox(tfhd, tfdt, trun);
@@ -678,6 +672,7 @@ export class MP4Mux {
     }
 }
 
+/*
 export function parseFLVMetadata (metadata: any): MP4Metadata {
   let tracks: MP4Track[] = [];
   let audioTrackId = -1;
@@ -784,6 +779,7 @@ export function parseFLVMetadata (metadata: any): MP4Metadata {
   };
 }
 
+
 export function splitMetadata (metadata: MP4Metadata): MP4Metadata[] {
   let tracks: MP4Metadata[] = [];
   if (metadata.audioTrackId >= 0) {
@@ -804,4 +800,5 @@ export function splitMetadata (metadata: MP4Metadata): MP4Metadata[] {
   }
   return tracks;
 }
+*/
 // }

@@ -151,6 +151,11 @@ export class Packet {
     return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
 
+  /**
+   * CT <==> PTS
+   *
+   * CT(n)  =  DT(n)  +  CTO(n)
+   */
   getPresentationTimestamp (): number {
     return this._timeOffset + this.timestamp + this.presentationTimeOffset;
   }

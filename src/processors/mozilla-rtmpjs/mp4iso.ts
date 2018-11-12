@@ -1,4 +1,8 @@
-import { concatArrays } from "../../common-utils";
+import { concatArrays, writeUint32, writeInt32, decodeInt32, encodeDate, encodeFloat_16_16, encodeFloat_8_8, encodeFloat_2_30, encodeLang, utf8decode, hexToBytes } from "../../common-utils";
+
+export let START_DATE = -2082844800000; /* midnight after Jan. 1, 1904 */
+export let DEFAULT_MOVIE_MATRIX: number[] = [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0];
+export let DEFAULT_OP_COLOR: number[] = [0, 0, 0];
 
 /**
  * Copyright 2015 Mozilla Foundation
@@ -15,84 +19,6 @@ import { concatArrays } from "../../common-utils";
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-function utf8decode (str) {
-  let bytes = new Uint8Array(str.length * 4);
-  let b = 0;
-  for (let i = 0, j = str.length; i < j; i++) {
-    let code = str.charCodeAt(i);
-    if (code <= 0x7f) {
-      bytes[b++] = code;
-      continue;
-    }
-    if (code >= 0xD800 && code <= 0xDBFF) {
-      let codeLow = str.charCodeAt(i + 1);
-      if (codeLow >= 0xDC00 && codeLow <= 0xDFFF) {
-        // convert only when both high and low surrogates are present
-        code = ((code & 0x3FF) << 10) + (codeLow & 0x3FF) + 0x10000;
-        ++i;
-      }
-    }
-    if ((code & 0xFFE00000) !== 0) {
-      bytes[b++] = 0xF8 | ((code >>> 24) & 0x03);
-      bytes[b++] = 0x80 | ((code >>> 18) & 0x3F);
-      bytes[b++] = 0x80 | ((code >>> 12) & 0x3F);
-      bytes[b++] = 0x80 | ((code >>> 6) & 0x3F);
-      bytes[b++] = 0x80 | (code & 0x3F);
-    } else if ((code & 0xFFFF0000) !== 0) {
-      bytes[b++] = 0xF0 | ((code >>> 18) & 0x07);
-      bytes[b++] = 0x80 | ((code >>> 12) & 0x3F);
-      bytes[b++] = 0x80 | ((code >>> 6) & 0x3F);
-      bytes[b++] = 0x80 | (code & 0x3F);
-    } else if ((code & 0xFFFFF800) !== 0) {
-      bytes[b++] = 0xE0 | ((code >>> 12) & 0x0F);
-      bytes[b++] = 0x80 | ((code >>> 6) & 0x3F);
-      bytes[b++] = 0x80 | (code & 0x3F);
-    } else {
-      bytes[b++] = 0xC0 | ((code >>> 6) & 0x1F);
-      bytes[b++] = 0x80 | (code & 0x3F);
-    }
-  }
-  return bytes.subarray(0, b);
-}
-
-// module RtmpJs.MP4.Iso {
-
-let START_DATE = -2082844800000; /* midnight after Jan. 1, 1904 */
-let DEFAULT_MOVIE_MATRIX: number[] = [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0];
-let DEFAULT_OP_COLOR: number[] = [0, 0, 0];
-
-function writeInt32 (data: Uint8Array, offset: number, value: number) {
-  data[offset] = (value >> 24) & 255;
-  data[offset + 1] = (value >> 16) & 255;
-  data[offset + 2] = (value >> 8) & 255;
-  data[offset + 3] = value & 255;
-}
-
-function decodeInt32 (s: string): number {
-  return (s.charCodeAt(0) << 24) | (s.charCodeAt(1) << 16) |
-           (s.charCodeAt(2) << 8) | s.charCodeAt(3);
-}
-
-function encodeDate (d: number): number {
-  return ((d - START_DATE) / 1000) | 0;
-}
-
-function encodeFloat_16_16 (f: number): number {
-  return (f * 0x10000) | 0;
-}
-
-function encodeFloat_2_30 (f: number): number {
-  return (f * 0x40000000) | 0;
-}
-
-function encodeFloat_8_8 (f: number): number {
-  return (f * 0x100) | 0;
-}
-
-function encodeLang (s: string): number {
-  return ((s.charCodeAt(0) & 0x1F) << 10) | ((s.charCodeAt(1) & 0x1F) << 5) | (s.charCodeAt(2) & 0x1F);
-}
 
 export class Box {
     public offset: number;
@@ -519,13 +445,361 @@ export class SampleDescriptionBox extends FullBox {
   }
 }
 
+export type DecodingTimeToSampleEntry = {
+  sampleCount: number
+  sampleDelta: number
+}
+
+export class DecodingTimeToSampleBox extends FullBox {
+
+  constructor (flags: number, public entries: DecodingTimeToSampleEntry[]) {
+    super('stts', 0, flags);
+  }
+
+  public layout (offset: number): number {
+    this.size = super.layout(offset) + 4 + (this.entries.length * 2 * 4);
+    return this.size;
+  }
+
+  public write (data: Uint8Array): number {
+    let offset = super.write(data);
+    offset += writeUint32(data, offset, this.entries.length);
+    for (let i = 0; i < this.entries.length; i++) {
+      offset += writeUint32(data, offset, this.entries[i].sampleCount);
+      offset += writeUint32(data, offset, this.entries[i].sampleDelta);
+    }
+    return offset;
+  }
+
+}
+
+/**
+ * This box provides the offset between decoding time and composition time.
+ *
+ * Since decoding time must be less than  the  composition  time,
+ * the  offsets  are  expressed  as  unsigned  numbers  such  that CT(n)  =  DT(n)  +  CTTS(n)
+ * where CTTS(n) is the (uncompressed) table entry for sample n.
+ *
+ * The composition time to sample table is optional and must only be present if DT and CT differ for any samples.
+ */
+
+export type CompositionTimeToSampleEntry = {
+  sampleCount: number
+  sampleOffset: number
+}
+
+export class CompositionTimeToSampleBox extends FullBox {
+
+  constructor (flags: number, public entries: CompositionTimeToSampleEntry[]) {
+    super('ctts', 0, flags);
+  }
+
+  public layout (offset: number): number {
+    this.size = super.layout(offset) + 4 + (this.entries.length * 2 * 4);
+    return this.size;
+  }
+
+  public write (data: Uint8Array): number {
+    let offset = super.write(data);
+    offset += writeUint32(data, offset, this.entries.length);
+    for (let i = 0; i < this.entries.length; i++) {
+      offset += writeUint32(data, offset, this.entries[i].sampleCount);
+      offset += writeUint32(data, offset, this.entries[i].sampleOffset);
+    }
+    return offset;
+  }
+
+}
+
+/**
+ * This box contains the sample count and a table giving the size in bytes of each sample.
+ * This allows the media data itself to be unframed.
+ * The total number of samples in the media is always indicated in the sample count.
+ */
+
+export class SampleSizeBox extends FullBox {
+  constructor(
+    public sampleSizes: number[] = [],
+    public sampleCount: number = sampleSizes.length,
+    public defaultSampleSize: number = 0) {
+
+    super('stsz', 0, 0);
+  }
+
+  public layout (offset: number): number {
+    this.size = super.layout(offset) + 2 * 4 + (this.sampleSizes.length * 4);
+    return this.size;
+  }
+
+  public write (data: Uint8Array): number {
+    let offset = super.write(data);
+    offset += writeUint32(data, offset, this.defaultSampleSize);
+    offset += writeUint32(data, offset, this.sampleCount);
+    if (this.defaultSampleSize === 0) {
+      offset += writeUint32(data, offset, this.sampleSizes[i]);
+    }
+    return offset;
+  }
+}
+
+/**
+ * first_chunk is an integer that gives the index of the first chunk
+ * in this run of chunks that share the same samples-per-chunk and sample-description-index;
+ * the index of the first chunk in a track has the value 1
+ * (the first_chunk field in the first record of this box has the value 1,
+ * identifying that the first sample maps to the first chunk).
+ *
+ * samples_per_chunk is an integer that gives the number of samples in each of these chunks.
+ *
+ * sample_description_index is an integer that gives the index of the sample entry that describes the samples
+ * in  this  chunk.  The  index  ranges  from  1  to  the  number  of  sample  entries  in  the  Sample  Description Box.
+ */
+
+export type SampleToChunkEntry = {
+  firstChunk: number;
+  samplesPerChunk: number;
+  sampleDescriptionIndex: number
+};
+
+export class SampleToChunkBox extends FullBox {
+  constructor(public entries: SampleToChunkEntry[]) {
+    super('stsc', 0, 0);
+  }
+
+  public layout (offset): number {
+    this.size = super.layout(offset) + 4 + (this.entries.length * 3 * 4);
+    return this.size;
+  }
+
+  public write (data: Uint8Array): number {
+    let offset = super.write(data);
+
+    offset += writeUint32(data, offset, this.entries.length);
+    for (let i = 0; i < this.entries.length; i++) {
+      offset += writeUint32(data, offset, this.entries[i].firstChunk);
+      offset += writeUint32(data, offset, this.entries[i].samplesPerChunk);
+      offset += writeUint32(data, offset, this.entries[i].sampleDescriptionIndex);
+    }
+
+    return offset;
+  }
+
+}
+
+/**
+ * The chunk offset table gives the index of each chunk into the containing file.
+ *
+ * There are two variants, permitting the use of 32-bit or 64-bit offsets.
+ *
+ * The latter is useful when managing very large presentations.
+ * At most one of these variants will occur in any single instance of a sample table.
+ * Offsets are file offsets, not the offset into any box within the file (e.g. Media Data Box).
+ * This permits referring to media data in files without any box structure.
+ * It does also mean that care must be taken when constructing a self-contained ISO file with its metadata (Movie Box) at the front,
+ * as the size of the Movie Box will affect the chunk offsets to the media data.
+ */
+
+export class ChunkOffsetBox extends FullBox {
+
+  constructor(public offsets: number[]) {
+    super('stco', 0, 0);
+  }
+
+  public layout (offset): number {
+    this.size = super.layout(offset) + 4 + this.offsets.length * 4;
+    return this.size;
+  }
+
+  public write (data: Uint8Array): number {
+    let offset = super.write(data);
+
+    offset += writeUint32(data, offset, this.offsets.length);
+    for (let i = 0; i < this.offsets.length; i++) {
+      offset += writeUint32(data, offset, this.offsets[i]);
+    }
+
+    return offset;
+  }
+}
+
+export class SyncSampleBox extends FullBox {
+
+  constructor(public syncSampleNumbers: number[]) {
+    super('stss', 0, 0);
+  }
+
+  public layout (offset): number {
+    this.size = super.layout(offset) + 4 + this.syncSampleNumbers.length * 4;
+    return this.size;
+  }
+
+  public write (data: Uint8Array): number {
+    let offset = super.write(data);
+
+    offset += writeUint32(data, offset, this.syncSampleNumbers.length);
+    for (let i = 0; i < this.syncSampleNumbers.length; i++) {
+      offset += writeUint32(data, offset, this.syncSampleNumbers[i]);
+    }
+
+    return offset;
+  }
+}
+
+export type StblSample = {
+  size: number
+  dts: number
+  cts: number
+  isRap: boolean // "random access point" -> appears in sync-samples box
+}
+
+/**
+ * This box provides a compact marking of the random access points within the stream.
+ *
+ * The table is arranged in strictly increasing order of sample number.
+ *
+ * If the sync sample box is not present, every sample is a random access point.
+ *
+ * entry_count is an integer that gives the number of entries in the following table.
+ *
+ * If entry_count is zero, there are no random access points within the stream and the following table is empty.
+ *
+ * sample_number gives the numbers of the samples that are random access points in the stream.
+ */
 export class SampleTableBox extends BoxContainerBox {
+
+  static createEmptyForFragmentedMode(sampleDescriptionEntries: Box[]): SampleTableBox {
+
+    return new SampleTableBox(
+      new SampleDescriptionBox(sampleDescriptionEntries),
+      new RawTag('stts', hexToBytes('0000000000000000')),
+      new RawTag('ctts', hexToBytes('0000000000000000')),
+      new RawTag('stsc', hexToBytes('0000000000000000')),
+      new RawTag('stsz', hexToBytes('000000000000000000000000')),
+      new RawTag('stco', hexToBytes('0000000000000000'))
+    )
+
+    /*
+      return new SampleTableBox(
+      new SampleDescriptionBox(sampleDescriptionEntries),
+      new DecodingTimeToSampleBox(0, []),
+      new CompositionTimeToSampleBox(0, []),
+      new SampleToChunkBox([]),
+      new SampleSizeBox([]),
+      new ChunkOffsetBox([]),
+      //new SyncSampleBox([])
+    )
+    */
+  }
+
+  /**
+   * Assumes all samples be located in a contiguous chunk
+   * where every sample is followed by the next one. This means
+   * only the original offset needs to be input, and all sample offsets
+   * can get derived from the aforementioned sample sizes.
+   *
+   * @param sampleDescriptionEntry
+   * @param samples
+   * @param chunkOffset
+   */
+  static createFromSamplesInSingleChunk(
+    sampleDescriptionEntry: Box,
+    samples: StblSample[],
+    chunkOffset: number = 0
+    ): SampleTableBox {
+
+    const stts: DecodingTimeToSampleEntry[] = [];
+    const ctts: CompositionTimeToSampleEntry[] = [];
+
+    // reduce all the indices where a random-access-point is found into a covenient list...
+    const stss: number[]
+      = samples.reduce((array, sample, index) => {
+        if (sample.isRap) {
+          array.push(index + 1)
+        }
+        return array;
+      },
+    []);
+
+    const stsz: number[] = samples.map(sample => sample.size);
+
+    // "now must we compress thy deltas & offsets ..."
+    {
+      let previousSampleDts: number = null;
+      let sampleCount = 0;
+      let sampleDelta: number;
+      for (let i = 0; i < samples.length; i++) {
+        const sample = samples[i];
+
+        if (previousSampleDts !== null) {
+
+          if (sample.dts - previousSampleDts != sampleDelta
+            || (i === samples.length -1)) {
+
+            stts.push({
+              sampleCount,
+              sampleDelta
+            });
+          }
+          sampleCount++;
+          sampleDelta = sample.dts - previousSampleDts;
+        }
+
+        previousSampleDts = sample.dts;
+      }
+    }
+
+    {
+      let sampleCount = 0;
+      let sampleOffset: number = null;
+
+      for (let i = 0; i < samples.length; i++) {
+        const sample = samples[i];
+
+        if (sampleOffset !== null) {
+          if (sample.cts - sample.dts !== sampleOffset
+            || (i === samples.length -1)) {
+            ctts.push({
+              sampleCount,
+              sampleOffset
+            });
+          }
+        }
+
+        sampleCount++;
+        sampleOffset = sample.cts - sample.dts;
+
+      }
+    }
+
+    const stsc: SampleToChunkEntry[] = [{
+      firstChunk: 1,
+      samplesPerChunk: samples.length,
+      sampleDescriptionIndex: 1
+    }];
+
+    return new SampleTableBox(
+      new SampleDescriptionBox([sampleDescriptionEntry]),
+      new DecodingTimeToSampleBox(0, stts),
+      new CompositionTimeToSampleBox(0, ctts),
+      new SampleToChunkBox(stsc),
+      new SampleSizeBox(stsz),
+      new ChunkOffsetBox([chunkOffset]),
+      new SyncSampleBox(stss)
+    )
+  }
+
   constructor (public sampleDescriptions: SampleDescriptionBox,
                 public timeToSample: Box,
+                public compositionOffsetBox: Box,
                 public sampleToChunk: Box,
-                public sampleSizes: Box, // optional?
-                public chunkOffset: Box) {
-    super('stbl', [sampleDescriptions, timeToSample, sampleToChunk, sampleSizes, chunkOffset]);
+                public sampleSizes: Box,
+                public chunkOffset: Box,
+                public syncSamples?: Box) {
+
+    super('stbl',
+      syncSamples ?
+        [sampleDescriptions, timeToSample, compositionOffsetBox, sampleToChunk, sampleSizes, chunkOffset, syncSamples]
+        : [sampleDescriptions, timeToSample, compositionOffsetBox, sampleToChunk, sampleSizes, chunkOffset]);
   }
 }
 
@@ -742,7 +1016,7 @@ export enum TrackRunFlags {
     SAMPLE_COMPOSITION_TIME_OFFSET = 0x000800,
   }
 
-export interface TrackRunSample {
+export type TrackRunSample = {
     duration?: number;
     size?: number;
     flags?: number;
