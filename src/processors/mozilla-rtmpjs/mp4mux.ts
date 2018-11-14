@@ -302,7 +302,7 @@ export class MP4Mux {
             rate: SOUNDRATES[3], // FIXME: hardcoded 44100khz
             size: 16, // FIXME: hardcoded 16 bit sampledepth
             channels: 2, // FIXME: hardcoded stereo
-            samples: 1152,
+            samples: 1024, // FIXME: hardcoded samples-per-frame/packet
             packetType: isInitData ? AudioPacketType.HEADER : AudioPacketType.RAW,
           };
         } else {
@@ -601,12 +601,16 @@ export class MP4Mux {
         case MP3_SOUND_CODEC_ID:
           trunSamples = [];
           for (var j = 0; j < trackPackets.length; j++) {
+
             let audioPacket: AudioPacket = trackPackets[j].packet;
             let audioFrameDuration = Math.round(audioPacket.samples * trackInfo.timescale / trackInfo.samplerate);
+
             tdatParts.push(audioPacket.data);
             tdatPosition += audioPacket.data.length;
+
             trunSamples.push({ duration: audioFrameDuration, size: audioPacket.data.length });
             trackState.samplesProcessed += audioPacket.samples;
+
           }
           var tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
           tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,

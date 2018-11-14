@@ -89,7 +89,7 @@ export class MP4MuxProcessor extends Processor {
 
   protected processTransfer_ (inputSocket: InputSocket, p: Packet, inputIndex: number): boolean {
 
-    //debug('received packet @', p.timestamp, 'on input:', inputIndex);
+    debug(`received packet: ${p.toString()}; on input: ${inputIndex}`);
 
     if (!p.defaultPayloadInfo) {
       warn('no default payload info:', p);
@@ -112,13 +112,13 @@ export class MP4MuxProcessor extends Processor {
         44100,
         2,
         'und',
-        60
+        86
       );
 
       return true;
     }
 
-    if (p.defaultPayloadInfo.isVideo()) {
+    else if (p.defaultPayloadInfo.isVideo()) {
 
       this.videoPacketQueue_.push(p);
 
@@ -133,7 +133,7 @@ export class MP4MuxProcessor extends Processor {
         // FIXME: get actual infos here from input packets
         25, // fps
         768, 576, // resolution
-        60 // duration
+        86 // duration
       );
 
       return true;
@@ -174,17 +174,17 @@ export class MP4MuxProcessor extends Processor {
         log('got video codec init data');
       }
 
-      //log('video packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
+      log('video packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
         data,
-        p.timestamp * VIDEO_TRACK_DEFAULT_TIMESCALE,
+        p.timestamp, // * VIDEO_TRACK_DEFAULT_TIMESCALE,
         true,
         bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.presentationTimeOffset * VIDEO_TRACK_DEFAULT_TIMESCALE
+        p.presentationTimeOffset // * VIDEO_TRACK_DEFAULT_TIMESCALE
       );
 
       if (!this.keyFramePushed_ &&
@@ -204,7 +204,7 @@ export class MP4MuxProcessor extends Processor {
         log('got audio codec init data');
       }
 
-      //log('audio packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
+      log('audio packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.AUDIO_PACKET,

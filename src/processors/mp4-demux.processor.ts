@@ -45,20 +45,23 @@ export class MP4DemuxProcessor extends Processor {
       ]);
 
       if (!this._trackIdToOutputs[track.id]) {
-        const out = this._trackIdToOutputs[track.id] = this.createOutput(sd);
+        this._trackIdToOutputs[track.id] = this.createOutput(sd);
       }
 
       return this._trackIdToOutputs[track.id];
     }
 
     protected processTransfer_ (inS: InputSocket, p: Packet) {
+
       p.data.forEach((bufferSlice) => {
+
         this._demuxer.append(bufferSlice.getUint8Array());
         this._demuxer.end();
 
         const tracks: TracksHash = this._demuxer.tracks;
 
         for (const trackId in tracks) {
+
           const track: Mp4Track = <Mp4Track> tracks[trackId];
 
           // track.update();
@@ -68,8 +71,6 @@ export class MP4DemuxProcessor extends Processor {
           if (track.isVideo()) {
             log('video-track:', track.getResolution());
           }
-
-          // log('timescale', track.ge)
 
           log('defaults:', track.getDefaults());
 
@@ -155,8 +156,9 @@ export class MP4DemuxProcessor extends Processor {
             const p: Packet = Packet.fromSlice(frameSlice);
 
             // timestamps of this packet
-            p.timestamp = frame.getDecodingTimestampInSeconds();
-            p.presentationTimeOffset = frame.getPresentationTimestampInSeconds() - frame.getDecodingTimestampInSeconds();
+            p.timestamp = frame.timeUnscaled; // = frame.getDecodingTimestampInSeconds();
+            p.presentationTimeOffset = frame.ptOffsetUnscaled; // frame.getPresentationTimestampInSeconds() - frame.getDecodingTimestampInSeconds();
+            p.setTimescale(frame.timescale);
 
             // console.log(p)
             // console.log(frame.bytesOffset, frame.size);
