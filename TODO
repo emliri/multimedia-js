@@ -1,3 +1,24 @@
+# Use-Cases
+
+- Tool for "online" mp4 / TS / web analysis and diff :)
+
+- AAC parse-proc (like for h264)
+
+
+# Model design
+
+- Also take care of mime-types and 4cc codec strings properly
+
+
+# Architecture
+
+- *** Run each processor on its own worker and use sockets for messaging *** (- Fix Worker/Task scaffold)
+
+- "Seal" processor (no more sockets added/removed)
+
+- "Block" sockets data flow
+
+- FIFO buffering on sockets (also when not connected yet)
 
 - Socket "probes" / "filters"
 
@@ -6,30 +27,20 @@
      parsing first bits and MediaSource can only be initialized async
   -> Socket has now `whenReady` promise to handle the async-io-socket case in a non-blocking-RAII-like way
 
+
+# Debugging
+
 - Apply lint rules / Remove console logs
 
 - Filterable logs
 
-- Tool for "online" mp4 / TS / web analysis and diff :)
-
-- AAC parse-proc (like for h264)
-
-- Desynchronize transfer func
+# Testing
 
 - Generalize test-case for flows that take URL as entry point
 
 - Automate running web test-cases
 
-- Also take care of mime-types and 4cc codec strings properly
-
-- Fix Worker/Task scaffold
-
 - Seperate compile of procs and core
 
 - Essentialize/Cleanup Hlsjs-parser/muxer-parts
 
-- "Seal" processor (no more sockets added/removed)
-
-- "Block" sockets data flow
-
-- FIFO buffering on sockets (also when not connected yet)
