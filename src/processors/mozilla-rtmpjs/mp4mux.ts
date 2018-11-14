@@ -364,13 +364,13 @@ export class MP4Mux {
       }
       if (this.cachedPackets.length >= MAX_PACKETS_IN_CHUNK &&
           this.state === MP4MuxState.MAIN_PACKETS) {
-        this._chunk();
+        this._generateChunk();
       }
     }
 
     public flush () {
       if (this.cachedPackets.length > 0) {
-        this._chunk();
+        this._generateChunk();
       }
     }
 
@@ -537,9 +537,10 @@ export class MP4Mux {
       this.ondata(header);
       this.filePos += header.length;
       this.state = MP4MuxState.MAIN_PACKETS;
+
     }
 
-    _chunk () {
+    _generateChunk () {
       let cachedPackets = this.cachedPackets;
 
       if (SPLIT_AT_KEYFRAMES && this.videoTrackState) {
@@ -672,133 +673,3 @@ export class MP4Mux {
     }
 }
 
-/*
-export function parseFLVMetadata (metadata: any): MP4Metadata {
-  let tracks: MP4Track[] = [];
-  let audioTrackId = -1;
-  let videoTrackId = -1;
-
-  let duration = +metadata.asGetPublicProperty('duration');
-
-  let audioCodec; let audioCodecId;
-  let audioCodecCode = metadata.asGetPublicProperty('audiocodecid');
-  switch (audioCodecCode) {
-  case MP3_SOUND_CODEC_ID:
-  case 'mp3':
-    audioCodec = 'mp3';
-    audioCodecId = MP3_SOUND_CODEC_ID;
-    break;
-  case AAC_SOUND_CODEC_ID:
-  case 'mp4a':
-    audioCodec = 'mp4a';
-    audioCodecId = AAC_SOUND_CODEC_ID;
-    break;
-  default:
-    if (!isNaN(audioCodecCode)) {
-      throw new Error('Unsupported audio codec: ' + audioCodecCode);
-    }
-    audioCodec = null;
-    audioCodecId = -1;
-    break;
-  }
-
-  let videoCodec; let videoCodecId;
-  let videoCodecCode = metadata.asGetPublicProperty('videocodecid');
-  switch (videoCodecCode) {
-  case VP6_VIDEO_CODEC_ID:
-  case 'vp6f':
-    videoCodec = 'vp6f';
-    videoCodecId = VP6_VIDEO_CODEC_ID;
-    break;
-  case AVC_VIDEO_CODEC_ID:
-  case 'avc1':
-    videoCodec = 'avc1';
-    videoCodecId = AVC_VIDEO_CODEC_ID;
-    break;
-  default:
-    if (!isNaN(videoCodecCode)) {
-      throw new Error('Unsupported video codec: ' + videoCodecCode);
-    }
-    videoCodec = null;
-    videoCodecId = -1;
-    break;
-  }
-
-  let audioTrack: MP4Track = (audioCodec === null) ? null : {
-    duration: -1,
-    codecDescription: audioCodec,
-    codecId: audioCodecId,
-    language: 'und',
-    timescale: +metadata.asGetPublicProperty('audiosamplerate') || 44100,
-    samplerate: +metadata.asGetPublicProperty('audiosamplerate') || 44100,
-    channels: +metadata.asGetPublicProperty('audiochannels') || 2,
-    samplesize: 16
-  };
-  let videoTrack: MP4Track = (videoCodec === null) ? null : {
-    duration: -1,
-    codecDescription: videoCodec,
-    codecId: videoCodecId,
-    language: 'und',
-    timescale: 60000,
-    framerate: +metadata.asGetPublicProperty('videoframerate') ||
-                 +metadata.asGetPublicProperty('framerate'),
-    width: +metadata.asGetPublicProperty('width'),
-    height: +metadata.asGetPublicProperty('height')
-  };
-
-  let trackInfos = metadata.asGetPublicProperty('trackinfo');
-  if (trackInfos) {
-    // Not in the Adobe's references, red5 specific?
-    for (let i = 0; i < trackInfos.length; i++) {
-      let info = trackInfos[i];
-      let sampleDescription = info.asGetPublicProperty('sampledescription')[0];
-      if (sampleDescription.asGetPublicProperty('sampletype') === audioCodecCode) {
-        audioTrack.language = info.asGetPublicProperty('language');
-        audioTrack.timescale = +info.asGetPublicProperty('timescale');
-      } else if (sampleDescription.asGetPublicProperty('sampletype') === videoCodecCode) {
-        videoTrack.language = info.asGetPublicProperty('language');
-        videoTrack.timescale = +info.asGetPublicProperty('timescale');
-      }
-    }
-  }
-
-  if (videoTrack) {
-    videoTrackId = tracks.length;
-    tracks.push(videoTrack);
-  }
-  if (audioTrack) {
-    audioTrackId = tracks.length;
-    tracks.push(audioTrack);
-  }
-
-  return {
-    tracks: tracks,
-    duration: duration,
-    audioTrackId: audioTrackId,
-    videoTrackId: videoTrackId
-  };
-}
-
-
-export function splitMetadata (metadata: MP4Metadata): MP4Metadata[] {
-  let tracks: MP4Metadata[] = [];
-  if (metadata.audioTrackId >= 0) {
-    tracks.push({
-      tracks: [metadata.tracks[metadata.audioTrackId]],
-      duration: metadata.duration,
-      audioTrackId: 0,
-      videoTrackId: -1
-    });
-  }
-  if (metadata.videoTrackId >= 0) {
-    tracks.push({
-      tracks: [metadata.tracks[metadata.videoTrackId]],
-      duration: metadata.duration,
-      audioTrackId: -1,
-      videoTrackId: 0
-    });
-  }
-  return tracks;
-}
-*/
-// }
