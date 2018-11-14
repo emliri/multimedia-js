@@ -93,7 +93,7 @@ export class Packet {
   }
 
   private _symbol: PacketSymbol = PacketSymbol.VOID;
-  private _timescale: number = 1;
+  private _timescale: number = 1; // maybe not have a default value?
   private _hasDefaultBufferProps: boolean = true;
   private _timeOffset: number = 0;
 
@@ -133,6 +133,15 @@ export class Packet {
   // TODO: check if other buffers have other infos etc..
   get hasDefaultPayloadInfo(): boolean {
     return this._hasDefaultBufferProps;
+  }
+
+  toString(): string {
+    const p = this;
+    const description
+      = `<${p.defaultPayloadInfo.mimeType}>`
+      + ` @(${p.timestamp} + ${p.getTimestampOffset()} / ${p.getTimescale()}`
+      + ` -> ${p.getNormalizedDts()})`
+    return description;
   }
 
   /*
