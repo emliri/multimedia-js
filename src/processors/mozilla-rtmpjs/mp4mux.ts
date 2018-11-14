@@ -54,6 +54,9 @@ import {
 } from './mp4iso';
 
 import { hexToBytes } from '../../common-utils';
+import { getLogger } from '../../logger';
+
+const {warn} = getLogger('MP4Mux(moz)');
 
 // module RtmpJs.MP4 {
 
@@ -68,16 +71,27 @@ export enum AudioPacketType {
     RAW = 1,
   }
 
-  interface AudioPacket {
-    codecDescription: string;
-    codecId: number;
-    data: Uint8Array;
-    rate: number;
-    size: number;
-    channels: number;
-    samples: number;
-    packetType: AudioPacketType;
-  }
+export type AudioPacket = {
+  codecDescription: string;
+  codecId: number;
+  data: Uint8Array;
+  rate: number;
+  size: number;
+  channels: number;
+  samples: number;
+  packetType: AudioPacketType;
+}
+
+export type VideoPacket = {
+  frameType: VideoFrameType;
+  codecId: number;
+  codecDescription: string;
+  data: Uint8Array;
+  packetType: VideoPacketType;
+  compositionTime: number;
+  horizontalOffset?: number;
+  verticalOffset?: number;
+}
 
 export function parseAudiodata (data: Uint8Array): AudioPacket {
   let i = 0;
@@ -132,17 +146,6 @@ export enum VideoPacketType {
     END = 2,
   }
 
-interface VideoPacket {
-  frameType: VideoFrameType;
-  codecId: number;
-  codecDescription: string;
-  data: Uint8Array;
-  packetType: VideoPacketType;
-  compositionTime: number;
-  horizontalOffset?: number;
-  verticalOffset?: number;
-}
-
 export function parseVideodata (data: Uint8Array): VideoPacket {
   let i = 0;
   let frameType = data[i] >> 4;
@@ -180,11 +183,11 @@ export enum MP4MuxPacketType {
 let MAX_PACKETS_IN_CHUNK = Infinity;
 let SPLIT_AT_KEYFRAMES = true;
 
-  interface CachedPacket {
-    packet: any;
-    timestamp: number;
-    trackId: number;
-  }
+type CachedPacket = {
+  packet: any;
+  timestamp: number;
+  trackId: number;
+}
 
 export interface MP4Track {
     codecDescription?: string;
@@ -283,7 +286,7 @@ export class MP4Mux {
     ) {
 
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
-        this._tryGenerateHeader();
+        this._attemptGenerateHeader();
       }
 
       switch (type) {
@@ -300,7 +303,7 @@ export class MP4Mux {
             size: 16, // FIXME: hardcoded 16 bit sampledepth
             channels: 2, // FIXME: hardcoded stereo
             samples: 1152,
-            packetType: AudioPacketType.RAW
+            packetType: isInitData ? AudioPacketType.HEADER : AudioPacketType.RAW,
           };
         } else {
           audioPacket = parseAudiodata(data);
@@ -360,7 +363,7 @@ export class MP4Mux {
       }
 
       if (this.state === MP4MuxState.NEED_HEADER_DATA) {
-        this._tryGenerateHeader();
+        this._attemptGenerateHeader();
       }
       if (this.cachedPackets.length >= MAX_PACKETS_IN_CHUNK &&
           this.state === MP4MuxState.MAIN_PACKETS) {
@@ -387,8 +390,8 @@ export class MP4Mux {
 
     }
 
-    private _tryGenerateHeader () {
-      let allInitializationDataExists = this.trackStates.every((ts) => {
+    private _attemptGenerateHeader () {
+      const allInitializationDataExists = this.trackStates.every((ts) => {
         switch (ts.trackInfo.codecId) {
         case AAC_SOUND_CODEC_ID:
         case AVC_VIDEO_CODEC_ID:
@@ -397,7 +400,9 @@ export class MP4Mux {
           return true;
         }
       });
+
       if (!allInitializationDataExists) {
+        //warn('missing some initialization data to create moov atom');
         return; // not enough data, waiting more
       }
 
@@ -415,6 +420,10 @@ export class MP4Mux {
           var audioSpecificConfig = trackState.initializationData[0];
           sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
 
+          var esdsData = audioSpecificConfig;
+
+          // FIXME: instead of taking the data inside the ES_Descriptor we are using the data of the esds atom directly
+          /*
           var esdsData = new Uint8Array(41 + audioSpecificConfig.length);
           esdsData.set(hexToBytes('0000000003808080'), 0);
           esdsData[8] = 32 + audioSpecificConfig.length;
@@ -424,12 +433,15 @@ export class MP4Mux {
           esdsData[34] = audioSpecificConfig.length;
           esdsData.set(audioSpecificConfig, 35);
           esdsData.set(hexToBytes('068080800102'), 35 + audioSpecificConfig.length);
+          */
+
           (<AudioSampleEntry>sampleEntry).otherBoxes = [
             new RawTag('esds', esdsData)
           ];
+
           var objectType = (audioSpecificConfig[0] >> 3); // TODO 31
           // mp4a.40.objectType
-          trackState.mimeTypeCodec = 'mp4a.40.' + objectType;
+          trackState.mimeTypeCodec = 'mp4a.40.' + objectType; // 'mp4a.40.2'
           break;
         case MP3_SOUND_CODEC_ID:
           sampleEntry = new AudioSampleEntry('.mp3', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
@@ -519,7 +531,7 @@ export class MP4Mux {
 
       let mvhd = new MovieHeaderBox(
         1, // HACK
-        minDurationTrackInfo.duration / minDurationTrackInfo.timescale + 1,
+        minDurationTrackInfo.duration / minDurationTrackInfo.timescale,
         this.trackStates.length + 1
       );
 

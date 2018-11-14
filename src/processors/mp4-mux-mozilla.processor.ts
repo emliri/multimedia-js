@@ -57,6 +57,8 @@ export enum MP4MuxProcessorSupportedCodecs {
   VP6 = 'vp6f'
 }
 
+const FORCE_MP3 = false;
+
 export class MP4MuxProcessor extends Processor {
 
   private hasBeenClosed_: boolean = false;
@@ -87,7 +89,7 @@ export class MP4MuxProcessor extends Processor {
 
   protected processTransfer_ (inputSocket: InputSocket, p: Packet, inputIndex: number): boolean {
 
-    debug('received packet @', p.timestamp, 'on input:', inputIndex);
+    //debug('received packet @', p.timestamp, 'on input:', inputIndex);
 
     if (!p.defaultPayloadInfo) {
       warn('no default payload info:', p);
@@ -106,7 +108,7 @@ export class MP4MuxProcessor extends Processor {
 
       // FIXME: get actual infos here from input packets
       this._addAudioTrack(
-        MP4MuxProcessorSupportedCodecs.MP3,
+        FORCE_MP3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
         44100,
         2,
         'und',
@@ -169,10 +171,10 @@ export class MP4MuxProcessor extends Processor {
       const data = bufferSlice.getUint8Array();
 
       if (bufferSlice.props.isBitstreamHeader) {
-        log('got codec init data');
+        log('got video codec init data');
       }
 
-      log('video packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
+      //log('video packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.VIDEO_PACKET,
@@ -199,14 +201,14 @@ export class MP4MuxProcessor extends Processor {
       const data = bufferSlice.getUint8Array();
 
       if (bufferSlice.props.isBitstreamHeader) {
-        log('got codec init data');
+        log('got audio codec init data');
       }
 
-      log('audio packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
+      //log('audio packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.AUDIO_PACKET,
-        MP3_SOUND_CODEC_ID,
+        FORCE_MP3 ?  MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
         data,
         p.timestamp,
         true,
@@ -337,7 +339,7 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private onMp4MuxerData_ (data: Uint8Array) {
-    const p: Packet = Packet.fromArrayBuffer(data.buffer, 'video/mp4; codecs="avc1.64001f"');
+    const p: Packet = Packet.fromArrayBuffer(data.buffer, 'video/mp4; codecs="avc1.64001f,mp4a.40.2"');
 
     log('transferring new fmp4 data:', p);
 

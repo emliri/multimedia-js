@@ -260,7 +260,7 @@ export class InputSocket extends Socket {
 
 export class OutputSocket extends Socket {
 
-  static unsafe(s: Socket): OutputSocket {
+  static fromUnsafe(s: Socket): OutputSocket {
     return (<OutputSocket> s);
   }
 

@@ -12,6 +12,7 @@ import { Mp4Track } from '../ext-mod/inspector.js/src/demuxer/mp4/mp4-track';
 import { BufferProperties, BufferSlice } from '../core/buffer';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
+import { Esds } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/esds';
 
 const { log, warn, error } = getLogger('MP4DemuxProcessor');
 
@@ -56,7 +57,6 @@ export class MP4DemuxProcessor extends Processor {
         this._demuxer.end();
 
         const tracks: TracksHash = this._demuxer.tracks;
-        const atoms: Atom[] = this._demuxer.getAtoms();
 
         for (const trackId in tracks) {
           const track: Mp4Track = <Mp4Track> tracks[trackId];
@@ -80,11 +80,16 @@ export class MP4DemuxProcessor extends Processor {
           const output: OutputSocket = this._ensureOutputForTrack(track);
 
           if (track.type === Mp4Track.TYPE_VIDEO) {
+            // FIXME: support HEVC too
             const avcC = (<AvcC> track.getReferenceAtom());
+            if (!avcC) {
+              warn('no codec data found for video track with id:', track.id);
+              continue;
+            }
+
             const avcCodecData = avcC.data;
 
             const initProps: BufferProperties = new BufferProperties(track.mimeType);
-
             initProps.isBitstreamHeader = true;
 
             log('flagged packet as bitstream header')
@@ -98,16 +103,32 @@ export class MP4DemuxProcessor extends Processor {
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
 
-            if (!avcCodecData) {
-              warn('no codec data found for video track with id:', track.id);
-              continue;
-            }
-
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(avcCodecData, initProps)));
 
             if (avcC.numOfPictureParameterSets > 1 || avcC.numOfSequenceParameterSets > 1) {
               throw new Error('No support for more than one sps/pps pair');
             }
+          }
+
+          else if (track.type === Mp4Track.TYPE_AUDIO) {
+            // FIXME: support MP3 too (this is for AAC only)
+            const esds = (<Esds> track.getReferenceAtom());
+            if (!esds) {
+              warn('no codec data found for audio track with id:', track.id);
+              continue;
+            }
+
+            const esdsData = esds.data;
+
+            log('found AAC decoder config:', esds.decoderConfig)
+
+            const initProps: BufferProperties = new BufferProperties(track.mimeType);
+            initProps.isBitstreamHeader = true;
+
+            log('flagged packet as bitstream header')
+
+            output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(esdsData, initProps)));
+
           }
 
           const props: BufferProperties = new BufferProperties(

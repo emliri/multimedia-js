@@ -19,7 +19,9 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
     this._flow = new MovToFmp4Flow(
       '/test-data/mp4/v-0576p-1400k-libx264.mov',
-      '/test-data/mp3/shalafon.mp3',
+      //'/test-data/mp3/shalafon.mp3',
+      //'/test-data/guitars.m4a',
+      '/test-data/mp4/KickOutTheJams.mp4',
       //'/test-data/mp3/212438__pcfstnk__ubahn.mp3',
       mediaSource);
 

@@ -31,3 +31,5 @@
 - "Seal" processor (no more sockets added/removed)
 
 - "Block" sockets data flow
+
+- FIFO buffering on sockets (also when not connected yet)
