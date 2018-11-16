@@ -116,7 +116,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
         const objectUrl = URL.createObjectURL(blob);
         const link = document.createElement('a'); // Or maybe get it from the current document
         link.href = objectUrl;
-        link.download = `buffer${bufferDownloadCnt++}.mp4`;
+        link.download = `buffer${bufferDownloadCnt++}-${Date.now()}.mp4`;
         link.innerHTML = '<p>Download buffer</p>';
         document.body.appendChild(link); // Or append it whereever you want
       }
