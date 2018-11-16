@@ -6,7 +6,7 @@ import { Signal, SignalHandler, SignalReceiver, SignalReceiverCastResult, collec
 
 import { dispatchAsyncTask } from '../common-utils';
 
-const { log, error } = getLogger('Socket', LoggerLevels.OFF);
+const { log, error } = getLogger('Socket', LoggerLevels.ERROR);
 
 export enum SocketType {
   INPUT,
@@ -170,6 +170,7 @@ export abstract class Socket implements SignalReceiver {
         try {
           resolve(this.transferSync(p));
         } catch(e) {
+          error('Error upon packet-transfer execution:', e);
           reject(e);
         }
       });

@@ -28,7 +28,5 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
     this.domMountPoint.appendChild(videoEl);
   }
 
-  run() {
-
-  }
+  run() {}
 }

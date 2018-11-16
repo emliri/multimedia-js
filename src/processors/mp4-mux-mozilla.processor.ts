@@ -240,7 +240,7 @@ export class MP4MuxProcessor extends Processor {
   private _initMuxer () {
     log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_);
 
-    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_);
+    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, false);
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);

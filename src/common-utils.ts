@@ -28,6 +28,29 @@ export function toNumber (n: any): number {
   throw new Error('Value does not convert to number: ' + n);
 }
 
+export type OneDeepNestedArray<T> = T[][];
+export type TwoDeepNestedArray<T> = T[][][];
+export type ThreeDeepNestedArray<T> = T[][][];
+
+export type SomeNestedArray<T> = OneDeepNestedArray<T> | TwoDeepNestedArray<T> | ThreeDeepNestedArray<T>;
+
+export function flattenOneDeepNestedArray<T>(a: OneDeepNestedArray<T>): T[] {
+  return [].concat(...a);
+}
+
+export function unsafeFlattenAnyNestedArray<T>(arr: any[]): T[] {
+  return arr.reduce(function (flat, toFlatten) {
+    return flat.concat(Array.isArray(toFlatten) ? unsafeFlattenAnyNestedArray(toFlatten) : toFlatten);
+  }, []);
+}
+
+export function lastOfArray<T>(a: T[]): T | null {
+  if (!a.length) {
+    return null;
+  }
+  return a[a.length - 1];
+}
+
 /**
  * Copies source data into a previously allocated destination buffer (see memcpy)
  */
