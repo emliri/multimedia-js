@@ -229,7 +229,7 @@ export abstract class Socket implements SignalReceiver {
 
 export class InputSocket extends Socket {
 
-  static unsafe(s: Socket): InputSocket {
+  static fromUnsafe(s: Socket): InputSocket {
     return (<InputSocket> s);
   }
 
