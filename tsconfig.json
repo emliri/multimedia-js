@@ -13,7 +13,10 @@
     "exclude": [
         "node_modules",
         "test-data",
-        "**/*.spec.ts"
+        "**/*.spec.ts",
+        "src/ext-mod/Broadway",
+        "src/ext-mod/codem-isoboxer",
+        "src/ext-mod/mp4box.js" // there are some nasty hoisted global vars in here
     ],
     "include": [
         "index.ts",
