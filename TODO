@@ -4,6 +4,10 @@
 
 - AAC parse-proc (like for h264)
 
+- Mux to plain mov with moz-mp4-mux (non-fragmented)
+
+- Remove all hardcoded values in moz-mp4-mux
+
 
 # Model design
 
