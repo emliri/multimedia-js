@@ -56,8 +56,9 @@ import {
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
 import { getLogger } from '../../logger';
 import { BoxContainerBox, Box } from './mp4iso-base';
+import { SampleTablePackager } from './mp4iso-sample-table';
 
-const {warn} = getLogger('MP4Mux(moz)');
+const {warn, debug} = getLogger('MP4Mux(moz)');
 
 let MAX_PACKETS_IN_CHUNK = Infinity;
 let SPLIT_AT_KEYFRAMES = true;
@@ -409,6 +410,7 @@ export class MP4Mux {
       this.ondata(header);
     }
 
+    // TODO: make static (is stateless)
     private _createTrackBox(
 
       trakFlags: number,
@@ -427,10 +429,12 @@ export class MP4Mux {
       if (handlerType === 'soun') {
         volume = 1.0;
         specificMediaHandlerBox = new SoundMediaHeaderBox(0);
-      } else if (handlerType === 'video') {
+      } else if (handlerType === 'vide') {
         width = trackInfo.width;
         height = trackInfo.height;
         specificMediaHandlerBox = new VideoMediaHeaderBox();
+      } else {
+        throw new Error('Unknown handler-type: ' + handlerType)
       }
 
       // TODO: make these constants
@@ -589,6 +593,7 @@ export class MP4Mux {
       const videoDataReferenceIndex = 1;
       const traks: TrackBox[] = [];
       const trexs: TrackExtendsBox[] = [];
+      const traksData: {trakFlags: number, trackState: MP4TrackState, trackInfo: MP4Track, sampleDescEntry: SampleEntry}[] = []
 
       for (let i = 0; i < this.trackStates.length; i++) {
 
@@ -659,20 +664,9 @@ export class MP4Mux {
           throw new Error('Need sample-table content in unfragmented mode');
         }
 
-        let sampleTable: SampleTableBox = fragmentedMode
-          ? SampleTableBox.createEmptyForFragmentedMode([sampleDescEntry])
-            : SampleTableBox.createFromSamplesInSingleChunk(sampleDescEntry, samples[i]);
-
-        let trak = null;
-        if (trackState === this.audioTrackState) {
-          trak = this._createTrackBox(trakFlags, trackState, trackInfo, 'soun', 'SoundHandler', sampleTable, i);
-        } else if (trackState === this.videoTrackState) {
-          trak = this._createTrackBox(trakFlags, trackState, trackInfo, 'vide', 'VideoHandler', sampleTable, i);
-        }
-        if (!trak) {
-          throw new Error('There should be a new trak box created, but got null');
-        }
-        traks.push(trak);
+        traksData.push({
+          trakFlags, trackState, trackInfo, sampleDescEntry
+        });
 
         let trex = new TrackExtendsBox(trackState.trackId, 0, 0, 0, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
         trexs.push(trex);
@@ -704,35 +698,64 @@ export class MP4Mux {
         this.trackStates.length + 1
       );
 
-      const ftype = new FileTypeBox('isom', 0x00000200, brands);
-      const wide: Box = fragmentedMode ? null : new RawTag('wide', hexToBytes(''));
-      const moov = new MovieBox(mvhd, traks, mvex, udat);
-
+      // first we write the ftyp and eventually the wide & mdat boxes
       let fileSizeBytes = 0;
+      const ftype = new FileTypeBox('isom', 0x00000200, brands);
+
       fileSizeBytes += ftype.layout(0);
 
+      const wide: Box = fragmentedMode ? null : new RawTag('wide', hexToBytes(''));
       if (wide) {
         fileSizeBytes += wide.layout(fileSizeBytes);
       }
+      // we store the offset after this, in case we are unfragmented and need to insert mdat now
+      // -> we need this offset to write the sample table chunk offsets
+      let mdatOffset = fileSizeBytes + 8;
       if (mdat) {
         fileSizeBytes += mdat.layout(fileSizeBytes);
       }
 
+      // -> we can only package the sample-table once we know where the mdat will be
+      traksData.forEach(({trakFlags, trackInfo, trackState, sampleDescEntry}, i) => {
+
+        debug('creating sample table with mdat offset:', mdatOffset)
+
+        let sampleTable: SampleTableBox = fragmentedMode
+          ? SampleTablePackager.createEmptyForFragmentedMode([sampleDescEntry])
+            : SampleTablePackager.createFromSamplesInSingleChunk(sampleDescEntry, samples[i], mdatOffset);
+
+        // sum up all sample-sizes and add them up mdat offset now to shift the offset for the next track
+        mdatOffset += samples[i].reduce((totalSize, sample) => {
+          return totalSize + sample.size;
+        }, 0);
+
+        let trak = null;
+        if (trackState === this.audioTrackState) {
+          trak = this._createTrackBox(trakFlags, trackState, trackInfo, 'soun', 'SoundHandler', sampleTable, i);
+        } else if (trackState === this.videoTrackState) {
+          trak = this._createTrackBox(trakFlags, trackState, trackInfo, 'vide', 'VideoHandler', sampleTable, i);
+        }
+
+        if (!trak) {
+          throw new Error('There should be a new trak box created, but got null');
+        }
+        traks.push(trak);
+      });
+
+      // and now we can create the moov box
+      const moov = new MovieBox(mvhd, traks, mvex, udat);
       fileSizeBytes += moov.layout(fileSizeBytes);
 
+      // finally we can write the file data with the whole structure
       const fileData = new Uint8Array(fileSizeBytes);
-
       ftype.write(fileData);
-
       if (wide) {
         wide.write(fileData);
       }
       if (mdat) {
         mdat.write(fileData);
       }
-
       moov.write(fileData);
-
       return fileData;
     }
 
