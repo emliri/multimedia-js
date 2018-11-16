@@ -8,6 +8,7 @@
 
 - Remove all hardcoded values in moz-mp4-mux
 
+- Fix sample-table packager sync-frames list bug
 
 # Model design
 
