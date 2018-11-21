@@ -72,13 +72,22 @@ type CachedPacket = {
 export const SOUNDRATES = [5500, 11025, 22050, 44100];
 
 export const SOUNDFORMATS = [
-  'PCM', 'ADPCM', 'MP3', 'PCM le',
-  'Nellymouser16', 'Nellymouser8', 'Nellymouser',
-  'G.711 A-law', 'G.711 mu-law',
-  null, 'AAC', 'Speex', 'MP3 8khz'];
+  'PCM',
+  'ADPCM',
+  'MP3',
+  'PCM le',
+  'Nellymouser16',
+  'Nellymouser8',
+  'Nellymouser',
+  'G.711 A-law',
+  'G.711 mu-law',
+  null, // ???
+  'AAC',
+  'Speex',
+  'MP3 8khz'
+];
 
 export const MP3_SOUND_CODEC_ID = 2;
-
 export const AAC_SOUND_CODEC_ID = 10;
 
 export enum AudioPacketType {
