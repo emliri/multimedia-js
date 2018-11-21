@@ -1,4 +1,16 @@
+# Bugs
+
+
+- Remove all hardcoded values in moz-mp4-mux
+
+- Fix sample-table packager sync-frames list bug
+
+
+
+
 # Use-Cases
+
+- Method to create "grow" new BufferSlice from original data and (list of) additional slices
 
 - Tool for "online" mp4 / TS / web analysis and diff :)
 
@@ -6,18 +18,13 @@
 
 - Mux to plain mov with moz-mp4-mux (non-fragmented)
 
-- Remove all hardcoded values in moz-mp4-mux
-
-- Fix sample-table packager sync-frames list bug
-
 # Model design
 
 - Also take care of mime-types and 4cc codec strings properly
 
-
 # Architecture
 
-- *** Run each processor on its own worker and use sockets for messaging *** (- Fix Worker/Task scaffold)
+- Proxy sockets: *** Run each processor on its own worker and use sockets for messaging *** (- Fix Worker/Task scaffold)
 
 - "Seal" processor (no more sockets added/removed)
 
