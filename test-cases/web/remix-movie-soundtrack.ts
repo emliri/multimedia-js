@@ -1,9 +1,9 @@
 import { MmjsTestCase } from '../mmjs-test-case';
-import { MovToFmp4Flow } from '../../src/flows/mov-to-fmp4.flow';
+import { CombineMp4sToMovFlow } from '../../src/flows/combine-mp4s-to-mov.flow';
 
 export class RemixMovieSoundtrack extends MmjsTestCase {
 
-  private _flow: MovToFmp4Flow = null;
+  private _flow: CombineMp4sToMovFlow = null;
 
   setup(done: () => void) {
 
@@ -19,17 +19,21 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
     videoFileInput.accept = 'video/mp4,video/quicktime';
 
     this.domMountPoint.appendChild(document.createElement('br'))
-    this.domMountPoint.appendChild(document.createTextNode('Audio file:'))
+    this.domMountPoint.appendChild(document.createTextNode('Audio file: '))
     this.domMountPoint.appendChild(audioFileInput);
     this.domMountPoint.appendChild(document.createElement('br'))
-    this.domMountPoint.appendChild(document.createTextNode('Video file:'))
+    this.domMountPoint.appendChild(document.createElement('br'))
+    this.domMountPoint.appendChild(document.createTextNode('Video file: '))
     this.domMountPoint.appendChild(videoFileInput);
 
     this.domMountPoint.appendChild(document.createElement('br'))
     const processButton = document.createElement('button');
     processButton.innerText = 'Process'
 
+    // TODO: use the bootstrap grid
+    this.domMountPoint.appendChild(document.createElement('br'))
     this.domMountPoint.appendChild(processButton);
+    this.domMountPoint.appendChild(document.createElement('br'))
     this.domMountPoint.appendChild(document.createElement('br'))
 
     const videoEl = document.createElement('video');
@@ -37,6 +41,7 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
     videoEl.addEventListener('error', () => {
       console.error(videoEl.error);
     });
+
     this.domMountPoint.appendChild(videoEl);
 
     const mediaSource = new MediaSource();
@@ -45,18 +50,15 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
     processButton.onclick = () => {
 
-      const videoUrl = URL.createObjectURL(videoFileInput.files[0])
-      const audioUrl = URL.createObjectURL(audioFileInput.files[0]);
+      const videoUrl = videoFileInput.files[0] ? URL.createObjectURL(videoFileInput.files[0]) : '/test-data/mp4/v-0576p-1400k-libx264.mov';
+      const audioUrl = audioFileInput.files[0] ? URL.createObjectURL(audioFileInput.files[0]) : '/test-data/mp4/KickOutTheJams.mp4';
 
-      //const videoUrl = '/test-data/mp4/v-0576p-1400k-libx264.mov';
-      //const audioUrl = '/test-data/mp4/KickOutTheJams.mp4';
-
-      this._flow = new MovToFmp4Flow(
+      this._flow = new CombineMp4sToMovFlow(
         videoUrl,
         audioUrl,
-        mediaSource);
-    }
+        document.body);
 
+    }
 
   }
 
