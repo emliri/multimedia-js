@@ -1,7 +1,6 @@
 import { InputSocket, SocketDescriptor } from '../core/socket';
 import { Packet } from '../core/packet';
 import { MediaSourceController } from './html5-media-source/media-source-controller';
-import { concatArrayBuffers } from '../common-utils';
 import { getLogger } from '../logger';
 
 const { log, warn, error } = getLogger('HTML5MediaSourceBufferSocket');
@@ -11,7 +10,6 @@ const MEDIA_SOURCE_OPEN_FAILURE_TIMEOUT_MS = 4000;
 export class HTML5MediaSourceBufferSocket extends InputSocket {
 
   private mediaSourceController: MediaSourceController;
-  private accuBuffer: ArrayBuffer = null;
 
   private _readyPromise: Promise<void>;
 
@@ -108,25 +106,9 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
       }
       sourceBufferQueue.appendBuffer(buffer, 0);
 
-      /// * This is a nasty debugging hack. We should add a probe/filter to do this
-      //
-      if (ENABLE_BUFFER_DOWNLOAD_LINK) {
-        this.accuBuffer = concatArrayBuffers(this.accuBuffer, buffer);
-        const blob = new Blob([this.accuBuffer], { type: 'video/mp4' });
-        const objectUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a'); // Or maybe get it from the current document
-        link.href = objectUrl;
-        link.download = `buffer${bufferDownloadCnt++}-${Date.now()}.mp4`;
-        link.innerHTML = '<p>Download buffer</p>';
-        document.body.appendChild(link); // Or append it whereever you want
-      }
-      //*/
     })
 
     return true;
   }
 
 }
-
-var bufferDownloadCnt = 0;
-var ENABLE_BUFFER_DOWNLOAD_LINK = true;
