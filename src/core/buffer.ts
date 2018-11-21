@@ -1,4 +1,5 @@
 import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './payload-description';
+import { allocAndCopyTypedArraySlice } from '../common-utils';
 
 /**
  * @class
@@ -52,11 +53,12 @@ export class BufferProperties extends PayloadDescriptor {
  *
  */
 export class BufferSlice {
+
   static mapArrayBuffers (bufferSlices: BufferSlices): ArrayBuffer[] {
     return bufferSlices.map((bs) => bs.arrayBuffer);
   }
 
-  static fromTypedArray (typedArray: ArrayBufferView, props?: BufferProperties) {
+  static fromTypedArray (typedArray: ArrayBufferView, props?: BufferProperties): BufferSlice {
     return new BufferSlice(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength, props);
   }
 
@@ -186,7 +188,7 @@ export class BufferSlice {
     }
 
     /**
-    offsetIncrement Amount of bytes to move front of window forward
+     * offsetIncrement Amount of bytes to move front of window forward
      * @see unwrap called internally, same limitations apply
      * @returns new BufferSlice
      */
@@ -195,7 +197,7 @@ export class BufferSlice {
     }
 
     /**
-    lengthReduction Amount of bytes to move back of window in retreat
+     * lengthReduction Amount of bytes to move back of window in retreat
      * @returns new BufferSlice
      */
     shrinkBack (lengthReduction: number) {
@@ -216,8 +218,6 @@ export class BufferSlice {
      *
      * This should be the default method to pass the data slice into nested components for processing.
      *
-    offset
-    length
      */
     getUint8Array (): Uint8Array {
       return new Uint8Array(this.arrayBuffer, this.offset, this.length);
@@ -229,8 +229,6 @@ export class BufferSlice {
      *
      * This should be the default method to pass the data slice into nested components for deep-analysis or manipulation.
      *
-    offset
-    length
      */
     getDataView (): DataView {
       return new DataView(this.arrayBuffer, this.offset, this.length);
@@ -238,14 +236,12 @@ export class BufferSlice {
 
     /**
      *
-     * Returns an ArrayBufferView for the internal buffer based on the current offset/length of this slice.
+     * Creates a view of the slice without copying but exposing the Node.js Buffer interface instead of Uint8Array or ArrayBufferView
      *
-     * May be an alternative to getUint8Array.
+     * May be an alternative to getUint8Array in certain cases when interacting with Nodejs APIs or streams.
      *
      * This might only work on Node.js or browser envs that have a Buffer constructor.
      *
-    offset
-    length
      */
     getBuffer (): Buffer {
       if (!Buffer) {
@@ -253,6 +249,16 @@ export class BufferSlice {
       }
       return Buffer.from(this.arrayBuffer, this.offset, this.length);
     }
+
+    /**
+     * allocates a new ArrayBuffer from the current slice
+     */
+    newArrayBuffer (): ArrayBuffer {
+      return allocAndCopyTypedArraySlice(this.getDataView());
+    }
+
+    // TODO: method to create "grow" new BufferSlice from original data and (list of) additional slices
+
 }
 
 export type BufferSlices = BufferSlice[];

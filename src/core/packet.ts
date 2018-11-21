@@ -1,4 +1,5 @@
 import { BufferSlices, BufferSlice, BufferProperties } from './buffer';
+import { UNKNOWN_MIMETYPE } from './payload-description';
 
 /**
  * Symbols are passed into sockets and thus processors to convey in-band
@@ -111,6 +112,43 @@ export class Packet {
 
   }
 
+  mapArrayBuffers (): ArrayBuffer[] {
+    return BufferSlice.mapArrayBuffers(this.data);
+  }
+
+  forEachBufferSlice (
+    method: (bs: BufferSlice) => void,
+    errorHandler: (bs: BufferSlice, err: Error) => boolean = null,
+    context: any = null) {
+    let abort = false;
+    // we use an on-stack shallow copy of the array to prevent any
+    // side-effects on other manipulation of the packet itself from within
+    // the loop we will run here.
+    this.data.slice().forEach((bufferSlice) => {
+      if (abort) {
+        return;
+      }
+      if (context) {
+        method = method.bind(context);
+        if (errorHandler) {
+          errorHandler = errorHandler.bind(context);
+        }
+      }
+      try {
+        method(bufferSlice);
+      } catch (err) {
+        if (errorHandler) {
+          if (!errorHandler(bufferSlice, err)) {
+            abort = true;
+            console.error('Packet buffers loop aborted: ', err);
+          }
+        } else {
+          throw err;
+        }
+      }
+    });
+  }
+
   get symbol (): PacketSymbol {
     return this._symbol;
   }
@@ -138,7 +176,7 @@ export class Packet {
   toString(): string {
     const p = this;
     const description
-      = `<${p.defaultPayloadInfo.mimeType}>`
+      = `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>`
       + ` @(${p.timestamp} + ${p.getTimestampOffset()} / ${p.getTimescale()}`
       + ` -> ${p.getNormalizedDts()})`
     return description;
@@ -197,40 +235,4 @@ export class Packet {
     return this.getDecodingTimestamp() / this.getTimescale();
   }
 
-  mapArrayBuffers (): ArrayBuffer[] {
-    return BufferSlice.mapArrayBuffers(this.data);
-  }
-
-  forEachBufferSlice (
-    method: (bs: BufferSlice) => void,
-    errorHandler: (bs: BufferSlice, err: Error) => boolean = null,
-    context: any = null) {
-    let abort = false;
-    // we use an on-stack shallow copy of the array to prevent any
-    // side-effects on other manipulation of the packet itself from within
-    // the loop we will run here.
-    this.data.slice().forEach((bufferSlice) => {
-      if (abort) {
-        return;
-      }
-      if (context) {
-        method = method.bind(context);
-        if (errorHandler) {
-          errorHandler = errorHandler.bind(context);
-        }
-      }
-      try {
-        method(bufferSlice);
-      } catch (err) {
-        if (errorHandler) {
-          if (!errorHandler(bufferSlice, err)) {
-            abort = true;
-            console.error('Packet buffers loop aborted: ', err);
-          }
-        } else {
-          throw err;
-        }
-      }
-    });
-  }
 }

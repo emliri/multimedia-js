@@ -304,7 +304,19 @@ export class OutputSocket extends Socket {
     return this;
   }
 
-  disconnect (s: Socket) {
+  /**
+   * Disconnects this socket from peer socket s (which this had previously connected with `connect` method)
+   * If `null` or default is passed, all peer sockets are disconnected.
+   * If socket passed is not a peer socket, will throw an error.
+   * @param s
+   */
+  disconnect (s: Socket = null) {
+    if (!s) {
+      if (this.hasPeers()) {
+        this.peers_.splice(0, this.peers_.length);
+      }
+      return;
+    }
     const index = this.peers_.indexOf(s);
     if (index < 0) {
       throw new Error('Socket can not be disconnected as its not connected');
@@ -318,8 +330,16 @@ export class OutputSocket extends Socket {
     return index >= 0;
   }
 
-  getPeerSockets () {
+  getPeerSockets (): Socket[] {
     return this.peers_;
+  }
+
+  getNumberOfPeers(): number {
+    return this.peers_.length;
+  }
+
+  hasPeers(): boolean {
+    return this.getNumberOfPeers() > 0;
   }
 
   /**

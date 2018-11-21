@@ -51,6 +51,9 @@ export function lastOfArray<T>(a: T[]): T | null {
   return a[a.length - 1];
 }
 
+// TODO: allocation methods
+// TODO: allow using "fast but unsafe" allocation methods in V8/Nodejs via Buffer.allocUnsafe
+
 /**
  * Copies source data into a previously allocated destination buffer (see memcpy)
  */
@@ -79,8 +82,8 @@ export function copyArrayBuffer(
  * @param end
  */
 export function copyToNewArrayBuffer(buffer: ArrayBuffer, offset: number = 0, size?: number): ArrayBuffer {
-  if (offset >= buffer.byteLength || offset + size >= buffer.byteLength) {
-    throw new Error(`Offset or size are out of array-buffer bounds: ${offset}/${size}`);
+  if (offset >= buffer.byteLength || offset + size > buffer.byteLength) {
+    throw new Error(`Offset or size are out of array-buffer bounds: ${offset}/${size}, but byte-length is ${buffer.byteLength}`);
   }
   return buffer.slice(offset, offset + size - 1);
 }
@@ -114,7 +117,6 @@ export function concatArrayBuffers (buffer1: ArrayBuffer, buffer2: ArrayBuffer):
 export function concatArrays<T> (arg0: T[], ...args: T[][]): T[] {
   return Array.prototype.concat.apply(arg0, args);
 }
-
 
 export function forEachOwnPropKeyInObject<T> (object: Object, callback: (el: T) => void) {
   for (const key in object) {
