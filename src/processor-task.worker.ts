@@ -1,4 +1,4 @@
-import { WorkerTask, WorkerMessage } from './core/worker';
+import { ProcessorTask, ProcessorTaskMessage } from './core/task-worker';
 
 import { makeUUID_v1 } from './common-crypto';
 
@@ -19,10 +19,10 @@ const { log } = getLogger(`base-worker-${workerId}`);
   function onMessage (event: Event) {
     log('Got message passed:', event);
 
-    processTask(<WorkerTask> (event as any).data);
+    processTask(<ProcessorTask> (event as any).data);
   }
 
-  function processTask (task: WorkerTask) {
+  function processTask (task: ProcessorTask) {
     task.workerContext = context;
 
     log(`Processing task "${task.name}" under job-id ${nextJobId} now ...`);
@@ -38,7 +38,6 @@ const { log } = getLogger(`base-worker-${workerId}`);
     }
 
     const endTime = performance.now();
-
     const latencyMs = endTime - startTime;
 
     log(`Processed task in ${latencyMs.toFixed(3)} ms, done with job-id ${nextJobId}`);

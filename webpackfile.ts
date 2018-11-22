@@ -5,7 +5,7 @@ const configs = []
 // Main Library
 {
   const entrySrc = './index.ts'
-  const libName = 'Multimedia'
+  const libName = 'MM'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true
@@ -21,10 +21,29 @@ const configs = []
   )
 }
 
-// Worker
+// Task worker
 {
-  const entrySrc = './src/base.worker.ts'
-  const libName = 'MultimediaWorker'
+  const entrySrc = './src/processor-task.worker.ts'
+  const libName = 'MMProcessorTaskWorker'
+  const buildPath = 'dist'
+  const libraryTarget = 'umd'
+  const debug = true
+
+  configs.push(
+    createWebpackConfig({
+      debug,
+      entrySrc,
+      libName,
+      libraryTarget,
+      buildPath
+    })
+  )
+}
+
+// Processor-proxy worker
+{
+  const entrySrc = './src/processor-proxy.worker.ts'
+  const libName = 'MMProcessorProxyWorker'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true
@@ -43,7 +62,7 @@ const configs = []
 // TestCasesWeb
 {
   const entrySrc = './test-cases/web/index.ts'
-  const libName = 'MultimediaTestCasesWeb'
+  const libName = 'MMTestCasesWeb'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true

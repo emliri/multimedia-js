@@ -7,6 +7,7 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
   setup(done: () => void) {
 
+    // FIXME: use file-chooser socket instead
     const audioFileInput = document.createElement('input');
     const videoFileInput = document.createElement('input');
 
@@ -56,7 +57,7 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
       this._flow = new CombineMp4sToMovFlow(
         videoUrl,
         audioUrl,
-        document.body);
+        document.querySelector('#root'));
 
     }
 

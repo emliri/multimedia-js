@@ -1,21 +1,27 @@
 <html>
     <meta charset="utf-8">
+
     <head>
         <title>mmjs framework - test cases</title>
-
         <link rel="stylesheet" href="../../node_modules/bootstrap/dist/css/bootstrap.css">
+        <style>
+          #root {
+            text-align: center;
+          }
+        </style>
     </head>
+
     <body>
       <div id="root"></div>
     </body>
 
-    <script src="/dist/MultimediaTestCasesWeb.umd.js"></script>
+    <script src="/dist/MMTestCasesWeb.umd.js"></script>
 
     <script src="load-test-cases.js"></script>
 
     <script>
       printTestCases();
 
-      setupTestCase(MultimediaTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0);
+      setupTestCase(MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0);
     </script>
 </html>

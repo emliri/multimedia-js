@@ -10,7 +10,7 @@ export const DEFAULT_HTML_TEMPLATE = "`<p>Download ${fileName}</p>`";
 
 const {debug} = getLogger('FileDownloadSocket');
 
-export class FileDownloadSocket extends InputSocket {
+export class WebFileDownloadSocket extends InputSocket {
 
   private _accuBuffer: ArrayBuffer = null;
   private _bufferDownloadCnt = 0;
@@ -37,7 +37,9 @@ export class FileDownloadSocket extends InputSocket {
 
     p.forEachBufferSlice((bs) => {
 
-      this._accuBuffer = concatArrayBuffers(this._accuBuffer, bs.arrayBuffer); // FIXME: should use newArrayBuffer and avoid copying "twice"
+      debug('accumulating slice data', bs.size());
+
+      this._accuBuffer = concatArrayBuffers(this._accuBuffer, bs.newArrayBuffer());
 
       const blob = new Blob([this._accuBuffer], { type: this._mimeType });
       const objectUrl = URL.createObjectURL(blob);

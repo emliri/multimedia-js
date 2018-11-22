@@ -1,10 +1,8 @@
 # Bugs
 
-
 - Remove all hardcoded values in moz-mp4-mux
 
 - Fix sample-table packager sync-frames list bug
-
 
 
 
@@ -16,13 +14,17 @@
 
 - AAC parse-proc (like for h264)
 
-- Mux to plain mov with moz-mp4-mux (non-fragmented)
+
 
 # Model design
 
 - Also take care of mime-types and 4cc codec strings properly
 
+
+
 # Architecture
+
+- Ref-counting of packets via socket transfers (and sealing?)
 
 - Proxy sockets: *** Run each processor on its own worker and use sockets for messaging *** (- Fix Worker/Task scaffold)
 

@@ -33,13 +33,42 @@ import * as Crypto from './src/common-crypto';
 
 import { XhrSocket } from './src/io-sockets/xhr.socket';
 
+// TODO: use node-externals in webpack config
 import { NodeFsWriteSocket } from './src/io-sockets/node-fs-write.socket';
 import { NodeFsReadSocket } from './src/io-sockets/node-fs-read.socket';
 
+import { Processor } from './src/core/processor';
+import { InputSocket, Socket, OutputSocket, SocketDescriptor } from './src/core/socket';
+import { Packet } from './src/core/packet';
+import { BufferSlice, BufferProperties } from './src/core/buffer';
+import { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails } from './src/core/payload-description';
+import { Signal } from './src/core/signal';
+import { Flow } from './src/core/flow';
+import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
+import { HTML5MediaSourceBufferSocket } from './src/io-sockets/html5-media-source-buffer.socket';
+import { WebFileDownloadSocket } from './src/io-sockets/web-file-download.socket';
+
 export const Common = {
   Utils,
-  Crypto
+  Crypto,
+  MimeTypes: CommonMimeTypes,
+  MimetypePrefix
 };
+
+export const Core = {
+  Processor,
+  Socket,
+  SocketDescriptor,
+  InputSocket,
+  OutputSocket,
+  Packet,
+  BufferSlice,
+  BufferProperties,
+  PayloadDescriptor,
+  PayloadDetails,
+  Signal,
+  Flow
+}
 
 export const Processors = {
   H264ParseProcessor,
@@ -53,9 +82,14 @@ export const Processors = {
 };
 
 export const IoSockets = {
-  XhrSocket
+  XhrSocket,
+  WebFileChooserSocket,
+  WebFileDownloadSocket,
+  HTML5MediaSourceBufferSocket,
   // NodeFsReadSocket,
   // NodeFsWriteSocket
 };
 
 export const Flows = { HttpToMediaSourceFlow };
+
+

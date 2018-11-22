@@ -2,7 +2,7 @@ import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, S
 import { PacketSymbol, Packet } from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 import { EventEmitter } from 'eventemitter3';
-import { WorkerTask } from './worker';
+import { ProcessorTask } from './task-worker';
 import { getLogger } from '../logger';
 
 const {debug, error} = getLogger("Processor");
@@ -10,7 +10,7 @@ const {debug, error} = getLogger("Processor");
 // import WorkerLoader from "worker-loader!../base.worker";
 
 // HACK: DIRTY-way worker loading :)
-const WORKER_PATH = '/dist/MultimediaWorker.umd.js';
+const TASK_WORKER_PATH = '/dist/MMProcessorTaskWorker.umd.js';
 
 export enum ProcessorEvent {
     ANY_SOCKET_CREATED = 'processor:socket-created',
@@ -34,10 +34,10 @@ export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver {
     private inputs_: InputSocket[] = [];
     private outputs_: OutputSocket[] = [];
-    private worker_: Worker = null;
+    private taskWorker_: Worker = null;
 
     // TODO: internalize EE instance to avoid polluting interface (we should only expose on/once/off)
-    // private eventEmitter_: typeof EventEmitter = new EventEmitter();
+    //private eventEmitter_: typeof EventEmitter = new EventEmitter();
 
     public enableSymbolProxying: boolean = true;
 
@@ -49,8 +49,8 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     }
 
     terminate () {
-      if (this.worker_) {
-        this.worker_.terminate();
+      if (this.taskWorker_) {
+        this.taskWorker_.terminate();
       }
     }
 
@@ -176,14 +176,14 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       return s;
     }
 
-    private getWorker (): Worker {
-      if (!this.worker_) {
-        this.worker_ = new Worker(WORKER_PATH);
-        this.worker_.addEventListener('message', (event) => {
-          this.onWorkerMessage(event);
+    private getTaskWorker (): Worker {
+      if (!this.taskWorker_) {
+        this.taskWorker_ = new Worker(TASK_WORKER_PATH);
+        this.taskWorker_.addEventListener('message', (event) => {
+          this.onTaskWorkerMessage(event);
         });
       }
-      return this.worker_;
+      return this.taskWorker_;
     }
 
     /**
@@ -247,18 +247,18 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       }
     }
 
-    protected onWorkerMessage (event: Event) {
+    protected onTaskWorkerMessage (event: MessageEvent) {
       console.warn('Processor should implement onWorkerMessage');
       console.warn('Worker event not handled:', event);
     }
 
-    protected dispatchWorkerTask (name: string, packet: Packet) {
-      const task: WorkerTask = {
+    protected dispatchTask (name: string, packet: Packet) {
+      const task: ProcessorTask = {
         workerContext: null,
         packet,
         name
       };
-      this.getWorker()
+      this.getTaskWorker()
         .postMessage(task, task.packet.mapArrayBuffers());
     }
 
@@ -277,6 +277,8 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * If one wants to actually get the handle of a symbolic packet,
      * it is possible by disabling proxying (return false here in an override of this method)
      * as in this case these packets will be passed into `processTransfer_`.
+     *
+     * FIXME: what if we don't want proxying but avoid transfer-method to be called with parent packet?
      *
      * @returns True if the symbolic packet should be proxied
      */

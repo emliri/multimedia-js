@@ -1,15 +1,15 @@
 import { Packet } from './packet';
 
-export type WorkerTask = {
+export type ProcessorTask = {
   workerContext: Worker,
   name: string,
   packet: Packet,
 };
 
-export type WorkerMessage = {
+export type ProcessorTaskMessage = {
   packet: Packet
 };
 
-export function postMessage (context: Worker, wm: WorkerMessage) {
+export function postTaskMessage (context: Worker, wm: ProcessorTaskMessage) {
   context.postMessage(wm, wm.packet.mapArrayBuffers());
 }

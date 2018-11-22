@@ -2,11 +2,11 @@ var rootEl = document.getElementById('root');
 
 var testCases = [];
 
-for (var caseName in MultimediaTestCasesWeb) {
+for (var caseName in MMTestCasesWeb) {
   if (caseName === 'mmjs') {
     continue;
   }
-  var TestCase =  MultimediaTestCasesWeb[caseName];
+  var TestCase =  MMTestCasesWeb[caseName];
   console.log('Initializing test-case:', caseName);
   testCases.push([new TestCase(rootEl), caseName]);
 }

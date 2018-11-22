@@ -1,4 +1,4 @@
-import { WorkerTask, postMessage } from '../../core/worker';
+import { ProcessorTask, postTaskMessage } from '../../core/task-worker';
 import { CommonMimeTypes } from '../../core/payload-description';
 import { Packet, PacketSymbol } from '../../core/packet';
 import { BufferSlice } from '../../core/buffer';
@@ -9,7 +9,7 @@ import { TSDemuxer } from './ts-demuxer';
 
 const {log} = getLogger('TSDemuxerTask');
 
-export function processTSDemuxerAppend (task: WorkerTask) {
+export function processTSDemuxerAppend (task: ProcessorTask) {
 
   const demuxer = new TSDemuxer((
     audioTrack,
@@ -40,7 +40,7 @@ export function processTSDemuxerAppend (task: WorkerTask) {
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
-      postMessage(task.workerContext, {
+      postTaskMessage(task.workerContext, {
         packet
       });
 
@@ -76,14 +76,14 @@ export function processTSDemuxerAppend (task: WorkerTask) {
 
         const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
-        postMessage(task.workerContext, {
+        postTaskMessage(task.workerContext, {
           packet
         });
 
       });
     });
 
-    postMessage(task.workerContext, {
+    postTaskMessage(task.workerContext, {
       packet: Packet.newFlush()
     });
 

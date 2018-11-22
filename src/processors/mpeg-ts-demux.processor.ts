@@ -29,7 +29,7 @@ export class MPEGTSDemuxProcessor extends Processor {
     return getSocketDescriptor(socketType);
   }
 
-  protected onWorkerMessage (event: Event) {
+  protected onTaskWorkerMessage (event: Event) {
 
     const p = Packet.fromTransferable((event as any).data.packet);
 
@@ -70,7 +70,7 @@ export class MPEGTSDemuxProcessor extends Processor {
 
   protected processTransfer_ (inS: InputSocket, p: Packet) {
 
-    this.dispatchWorkerTask('tsdemuxer', p);
+    this.dispatchTask('tsdemuxer', p);
 
     return true;
   }

@@ -85,7 +85,12 @@ export function copyToNewArrayBuffer(buffer: ArrayBuffer, offset: number = 0, si
   if (offset >= buffer.byteLength || offset + size > buffer.byteLength) {
     throw new Error(`Offset or size are out of array-buffer bounds: ${offset}/${size}, but byte-length is ${buffer.byteLength}`);
   }
-  return buffer.slice(offset, offset + size - 1);
+  /**
+   * The slice() method returns a shallow copy of a portion of an array
+   * into a new array object selected from begin to end (end not included).
+   * The original array will not be modified.
+   */
+  return buffer.slice(offset, offset + size);
 }
 
 /**
