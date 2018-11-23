@@ -76,7 +76,7 @@ export abstract class Socket implements SignalReceiver {
     this.state_ = new SocketState();
   }
 
-  dispose() {}
+  close() {}
 
   type (): SocketType {
     return this.type_;

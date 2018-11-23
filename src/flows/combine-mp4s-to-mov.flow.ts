@@ -3,11 +3,12 @@ import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
-import { ProcessorEvent, ProcessorEventData } from '../core/processor';
+import { ProcessorEvent, ProcessorEventData, Processor } from '../core/processor';
 import { OutputSocket } from '../core/socket';
 import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
-import { FileDownloadSocket } from '../io-sockets/file-download.socket';
+import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
+import { createProcessorProxyWorkerShell } from '../core/processor-factory';
 
 export class CombineMp4sToMovFlow extends Flow {
 
@@ -22,66 +23,74 @@ export class CombineMp4sToMovFlow extends Flow {
       }
     );
 
-    const mp4DemuxProcVideo = new MP4DemuxProcessor();
+    let mp4DemuxProcVideo; //= new MP4DemuxProcessor();
 
-    const h264ParseProc = new H264ParseProcessor();
-    const mp3ParseProc = new MP3ParseProcessor();
+    const mp4DemuxProcVideoWorkerShell: Promise<Processor> = createProcessorProxyWorkerShell(MP4DemuxProcessor.getName());
 
-    const mp4MuxProc = new MP4MuxProcessor();
+    mp4DemuxProcVideoWorkerShell.then((proc) => {
 
-    const muxerVideoInput = mp4MuxProc.createInput();
-    const muxerAudioInput = mp4MuxProc.createInput();
+      mp4DemuxProcVideo = proc;
 
-    const xhrSocketMovFile = new XhrSocket(videoMp4Url);
-    const xhrSocketAudioFile = new XhrSocket(audioUrl);
+      const h264ParseProc = new H264ParseProcessor();
+      const mp3ParseProc = new MP3ParseProcessor();
 
-    /*
-    const mediaSourceSocket: HTML5MediaSourceBufferSocket
-        = new HTML5MediaSourceBufferSocket(new MediaSource()); // avc1.4d401f 'video/mp4; codecs=avc1.64001f'
-    */
+      const mp4MuxProc = new MP4MuxProcessor();
 
-    const downloadSocket: FileDownloadSocket = new FileDownloadSocket(downloadLinkContainer, 'video/quicktime', '`buffer${counter}-${Date.now()}.mp4`');
+      const muxerVideoInput = mp4MuxProc.createInput();
+      const muxerAudioInput = mp4MuxProc.createInput();
 
-    const destinationSocket = downloadSocket;
+      const xhrSocketMovFile = new XhrSocket(videoMp4Url);
+      const xhrSocketAudioFile = new XhrSocket(audioUrl);
 
-    let mp4DemuxProcAudio = null;
+      /*
+      const mediaSourceSocket: HTML5MediaSourceBufferSocket
+          = new HTML5MediaSourceBufferSocket(new MediaSource()); // avc1.4d401f 'video/mp4; codecs=avc1.64001f'
+      */
 
-    // wire up audio data source
-    if (audioUrl.endsWith('.mp3')) {
-      xhrSocketAudioFile.connect(mp3ParseProc.in[0]);
-      mp3ParseProc.out[0].connect(muxerAudioInput);
-    } else { // TODO: check using mimetypes from XHR
-      // assuming mp4a
-      mp4DemuxProcAudio = new MP4DemuxProcessor();
-      xhrSocketAudioFile.connect(mp4DemuxProcAudio.in[0]);
-    }
+      const downloadSocket: WebFileDownloadSocket
+        = new WebFileDownloadSocket(downloadLinkContainer, 'video/quicktime', '`buffer${counter}-${Date.now()}.mp4`');
 
-    // wire up video
-    xhrSocketMovFile.connect(mp4DemuxProcVideo.in[0]);
+      const destinationSocket = downloadSocket;
 
-    // set up
-    destinationSocket.whenReady().then(() => {
+      let mp4DemuxProcAudio = null;
 
-      mp4DemuxProcVideo.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
+      // wire up audio data source
+      if (audioUrl.endsWith('.mp3')) {
+        xhrSocketAudioFile.connect(mp3ParseProc.in[0]);
+        mp3ParseProc.out[0].connect(muxerAudioInput);
+      } else { // TODO: check using mimetypes from XHR
+        // assuming mp4a
+        mp4DemuxProcAudio = new MP4DemuxProcessor();
+        xhrSocketAudioFile.connect(mp4DemuxProcAudio.in[0]);
+      }
 
-        // FIXME: check the socket-descriptor actually is video
-        console.log('mp4 demux output socket created');
+      // wire up video
+      xhrSocketMovFile.connect(mp4DemuxProcVideo.in[0]);
 
-        // FIXME: avoid the unsafe cast here somehow?
-        OutputSocket.fromUnsafe(eventData.socket).connect(h264ParseProc.in[0]);
+      // set up
+      destinationSocket.whenReady().then(() => {
 
-        h264ParseProc.out[0].connect(muxerVideoInput);
+        mp4DemuxProcVideo.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
+
+          // FIXME: check the socket-descriptor actually is video
+          console.log('mp4 demux output socket created');
+
+          // FIXME: avoid the unsafe cast here somehow?
+          OutputSocket.fromUnsafe(eventData.socket).connect(h264ParseProc.in[0]);
+
+          h264ParseProc.out[0].connect(muxerVideoInput);
+        });
+
       });
 
+      mp4DemuxProcAudio.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
+
+        OutputSocket.fromUnsafe(eventData.socket).connect(muxerAudioInput);
+
+      });
+
+      mp4MuxProc.out[0].connect(destinationSocket);
     });
-
-    mp4DemuxProcAudio.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
-
-      OutputSocket.fromUnsafe(eventData.socket).connect(muxerAudioInput);
-
-    });
-
-    mp4MuxProc.out[0].connect(destinationSocket);
 
   }
 

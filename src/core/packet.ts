@@ -35,6 +35,21 @@ export class Packet {
     if (p._symbol > 0) {
       newPacket.symbol = p._symbol;
     }
+    // FIXME: add synchro id and timestamp offset
+    return newPacket;
+  }
+
+  static makeTransferableCopy(p: Packet) {
+    const newPacket: Packet = new Packet(
+      p.data.map((bs) => BufferSlice.copy(bs)),
+      p.timestamp,
+      p.presentationTimeOffset,
+      p.createdAt
+    );
+    if (p._symbol > 0) {
+      newPacket.symbol = p._symbol;
+    }
+    // FIXME: add synchro id and timestamp offset
     return newPacket;
   }
 

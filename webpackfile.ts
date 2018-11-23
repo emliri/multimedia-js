@@ -23,7 +23,7 @@ const configs = []
 
 // Task worker
 {
-  const entrySrc = './src/processor-task.worker.ts'
+  const entrySrc = './src/core/processor-task.worker.ts'
   const libName = 'MMProcessorTaskWorker'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
@@ -42,7 +42,7 @@ const configs = []
 
 // Processor-proxy worker
 {
-  const entrySrc = './src/processor-proxy.worker.ts'
+  const entrySrc = './src/core/processor-proxy.worker.ts'
   const libName = 'MMProcessorProxyWorker'
   const buildPath = 'dist'
   const libraryTarget = 'umd'

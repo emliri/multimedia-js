@@ -10,23 +10,26 @@ const defaultLsdProvider: LambdaSocketDescriptorProvider = () => new SocketDescr
 export const defaultLambdaSocketDescriptorProvider = defaultLsdProvider;
 
 export class LambdaProcessor extends Processor {
-    private transferFunc_: LambdaTransferFunction;
-    private lsd_: LambdaSocketDescriptorProvider;
 
-    constructor (
-      tf: LambdaTransferFunction,
-      lsd: LambdaSocketDescriptorProvider = defaultLsdProvider
-    ) {
-      super();
-      this.transferFunc_ = tf;
-      this.lsd_ = lsd;
-    }
+  static getName(): string { return "LambdaProcessor" }
 
-    templateSocketDescriptor (st: SocketType): SocketDescriptor {
-      return this.lsd_(st);
-    }
+  private transferFunc_: LambdaTransferFunction;
+  private lsd_: LambdaSocketDescriptorProvider;
 
-    protected processTransfer_ (inS: InputSocket, p: Packet): boolean {
-      return this.transferFunc_(inS, p);
-    }
+  constructor (
+    tf: LambdaTransferFunction,
+    lsd: LambdaSocketDescriptorProvider = defaultLsdProvider
+  ) {
+    super();
+    this.transferFunc_ = tf;
+    this.lsd_ = lsd;
+  }
+
+  templateSocketDescriptor (st: SocketType): SocketDescriptor {
+    return this.lsd_(st);
+  }
+
+  protected processTransfer_ (inS: InputSocket, p: Packet): boolean {
+    return this.transferFunc_(inS, p);
+  }
 }

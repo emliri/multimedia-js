@@ -32,6 +32,8 @@ const getSocketDescriptor: SocketTemplateGenerator =
 
 export class MP4MuxHlsjsProcessor extends Processor {
 
+  static getName(): string { return "MP4MuxHlsjsProcessor" }
+
   private _fmp4Remux: Fmp4Remuxer = new Fmp4Remuxer(
     this._onFmp4Event.bind(this),
     config

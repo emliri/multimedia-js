@@ -2,9 +2,7 @@ import { Processor } from '../core/processor';
 import { Packet } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
-import { CommonMimeTypes } from '../core/payload-description';
-
-import { BufferSlice, BufferProperties } from '../core/buffer';
+import { BufferSlice } from '../core/buffer';
 
 /*
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
@@ -19,6 +17,9 @@ import { getLogger } from '../logger';
 const {log, warn, error} = getLogger("H264ParseProcessor");
 
 export class H264ParseProcessor extends Processor {
+
+  static getName(): string { return "H264ParseProcessor" }
+
   // private h264Reader: H264Reader;
 
   private h264Parser: H264Parser = new H264Parser();

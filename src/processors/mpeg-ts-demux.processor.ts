@@ -16,6 +16,8 @@ const getSocketDescriptor: SocketTemplateGenerator =
 
 export class MPEGTSDemuxProcessor extends Processor {
 
+  static getName(): string { return "MPEGTSDemuxProcessor" }
+
   private _programMap: {[pid: number]: OutputSocket} = {};
   private _haveAudio: boolean = false;
   private _haveVideo: boolean = false;

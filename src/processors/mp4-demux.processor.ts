@@ -23,6 +23,9 @@ const getSocketDescriptor: SocketTemplateGenerator =
       );
 
 export class MP4DemuxProcessor extends Processor {
+
+    static getName(): string { return "MP4DemuxProcessor" }
+
     private _demuxer: Mp4Demuxer;
 
     private _trackIdToOutputs: { [id: number] : OutputSocket} = {};

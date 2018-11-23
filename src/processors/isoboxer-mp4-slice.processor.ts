@@ -10,6 +10,9 @@ import { getLogger } from '../logger';
 const { log } = getLogger('CodemIsoboxerMP4DemuxProcessor');
 
 export class IsoboxerMP4SliceProcessor extends Processor {
+
+  static getName(): string { return "IsoboxerMP4SliceProcessor" }
+
   constructor () {
     super();
     this.createInput();

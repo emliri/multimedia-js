@@ -1,6 +1,6 @@
-import { ProcessorTask, postTaskMessage } from '../../core/task-worker';
+import { ProcessorTask, postTaskMessage } from '../../core/processor-task';
 import { CommonMimeTypes } from '../../core/payload-description';
-import { Packet, PacketSymbol } from '../../core/packet';
+import { Packet } from '../../core/packet';
 import { BufferSlice } from '../../core/buffer';
 
 import { getLogger } from '../../logger';

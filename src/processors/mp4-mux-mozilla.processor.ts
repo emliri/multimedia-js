@@ -61,6 +61,8 @@ const FORCE_MP3 = false;
 
 export class MP4MuxProcessor extends Processor {
 
+  static getName(): string { return "MP4MuxProcessor" }
+
   private hasBeenClosed_: boolean = false;
   private mp4Muxer_: MP4Mux = null;
   private mp4Metadata_: MP4Metadata = null;

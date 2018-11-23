@@ -1,10 +1,10 @@
-import { ProcessorTask, ProcessorTaskMessage } from './core/task-worker';
+import { ProcessorTask } from './processor-task';
 
-import { makeUUID_v1 } from './common-crypto';
+import { makeUUID_v1 } from '../common-crypto';
 
-import { getLogger } from './logger';
+import { getLogger } from '../logger';
 
-import { processTSDemuxerAppend } from './processors/hlsjs-ts-demux/ts-demuxer-task';
+import { processTSDemuxerAppend } from '../processors/hlsjs-ts-demux/ts-demuxer-task';
 
 const context: Worker = self as any;
 const workerId = makeUUID_v1();

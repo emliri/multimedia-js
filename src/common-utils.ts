@@ -93,6 +93,10 @@ export function copyToNewArrayBuffer(buffer: ArrayBuffer, offset: number = 0, si
   return buffer.slice(offset, offset + size);
 }
 
+export function copyArrayBufferCollection(abs: ArrayBuffer[]) {
+  return abs.map((ab) => copyToNewArrayBuffer(ab));
+}
+
 /**
  * Copies only the window that the view points to into a new buffer
  * @param typedArray

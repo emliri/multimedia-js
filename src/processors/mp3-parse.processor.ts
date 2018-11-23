@@ -12,6 +12,9 @@ import { MPEGAudioFrame } from './mp3/mpeg-audio-parser';
 const {log, debug, error} = getLogger('MP3ParseProcessor');
 
 export class MP3ParseProcessor extends Processor {
+
+  static getName(): string { return "MP3ParseProcessor" }
+
   constructor () {
     super();
     this.createInput();

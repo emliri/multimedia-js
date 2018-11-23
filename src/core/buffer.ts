@@ -65,7 +65,7 @@ export class BufferSlice {
   /**
      * Awakes transferable zombies from the dead
      *
-  bufferSlice A possibly "dead" BufferSlice that has been
+     * bufferSlice A possibly "dead" BufferSlice that has been
      *                    cloned to be transferred into or out of a Worker
      *                    and stripped of his methods
      * @returns A new and alive BufferSlice
@@ -79,8 +79,8 @@ export class BufferSlice {
     );
   }
 
-  /**
-  original existing BufferSlice representing a data window into an existing ArrayBuffer
+   /**
+     * original existing BufferSlice representing a data window into an existing ArrayBuffer
      * @returns a new slice with a newly allocated underlying ArrayBuffer that is a copy of the original slice window data
      */
   static copy (original: BufferSlice): BufferSlice {

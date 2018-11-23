@@ -2,7 +2,7 @@ import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, S
 import { PacketSymbol, Packet } from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 import { EventEmitter } from 'eventemitter3';
-import { ProcessorTask } from './task-worker';
+import { ProcessorTask } from './processor-task';
 import { getLogger } from '../logger';
 
 const {debug, error} = getLogger("Processor");
@@ -32,6 +32,9 @@ export type ProcessorEventData = {
 export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
 export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver {
+
+    static getName(): string { return null; }
+
     private inputs_: InputSocket[] = [];
     private outputs_: OutputSocket[] = [];
     private taskWorker_: Worker = null;
@@ -40,6 +43,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     //private eventEmitter_: typeof EventEmitter = new EventEmitter();
 
     public enableSymbolProxying: boolean = true;
+    // public enableSymbolProcessing: boolean = false;
 
     constructor (
       private onSignal_: SignalHandler = null,
@@ -291,4 +295,27 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * Returns true when packet was handled correctly in some way.
      */
     protected abstract processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean;
+
+    /**
+     * Needed by proxy shell
+     * @param st
+     */
+    protected overrideSocketTemplate(st: SocketTemplateGenerator) {
+      this.socketTemplate_ = st;
+    }
+
+    /**
+     * RPC-compatiblity wrapper for processTransfer_. Avoids to recover a Socket-type object on the remote
+     * for which we don't ensure tranferability i.e for which we don't have a proxy.
+     *
+     * Not supposed to be directly called but to be invoked remotely.
+     *
+     * @param p
+     * @param inputIndex
+     */
+    public __remotelyInvokeProcessTransfer__(p: Packet, inputIndex: number) {
+      this.processTransfer_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
+    }
+
 }
+
