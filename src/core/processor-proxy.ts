@@ -262,7 +262,7 @@ export class ProcessorProxy extends Processor {
   }
 
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
-    log(' symbol handler:', symbol)
+    log('symbol handler:', symbol)
     this._worker.invokeMethod(this._worker.subContextId, '__invokeRPCPacketHandler__', [Packet.fromSymbol(symbol)]);
     return true; // we return true here because we handle it somehow but generally proxying is disabled
                  // since this is something to be determined by the proxied instance
