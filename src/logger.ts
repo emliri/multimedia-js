@@ -11,9 +11,9 @@ const getPrefix = function (type: string, category: string): string {
 
 export function checkLogLevel (level: number, catLevel: number) {
   switch (catLevel) {
-  case LoggerLevels.INFO: return (level >= LoggerLevels.INFO) && console.info;
-  case LoggerLevels.LOG: return (level >= LoggerLevels.LOG) && console.log;
   case LoggerLevels.DEBUG: return (level >= LoggerLevels.DEBUG) && console.debug;
+  case LoggerLevels.LOG: return (level >= LoggerLevels.LOG) && console.log;
+  case LoggerLevels.INFO: return (level >= LoggerLevels.INFO) && console.info;
   case LoggerLevels.WARN: return (level >= LoggerLevels.WARN) && console.warn;
   case LoggerLevels.ERROR: return (level >= LoggerLevels.ERROR) && console.error;
   }
@@ -22,18 +22,18 @@ export function checkLogLevel (level: number, catLevel: number) {
 export type LoggerFunc = (...args: any[]) => void;
 
 export type Logger = {
-  info: LoggerFunc,
-  log: LoggerFunc
   debug: LoggerFunc
+  log: LoggerFunc
+  info: LoggerFunc,
   warn: LoggerFunc
   error: LoggerFunc
 };
 
 export enum LoggerLevels {
   ON = Infinity,
-  LOG = 5,
-  INFO = 4,
-  DEBUG = 3,
+  DEBUG = 5,
+  LOG = 4,
+  INFO = 3,
   WARN = 2,
   ERROR = 1,
   OFF = 0
@@ -43,9 +43,9 @@ export const getLogger = function (category: string, level: number = LoggerLevel
   let window = self; // Needed for WebWorker compat
 
   return {
-    info: checkLogLevel(level, LoggerLevels.INFO) ? console.info.bind(window['console'], getPrefix('i', category)) : noop,
-    log: checkLogLevel(level, LoggerLevels.LOG) ? console.log.bind(window['console'], getPrefix('l', category)) : noop,
     debug: checkLogLevel(level, LoggerLevels.DEBUG) ? console.debug.bind(window['console'], getPrefix('d', category)) : noop,
+    log: checkLogLevel(level, LoggerLevels.LOG) ? console.log.bind(window['console'], getPrefix('l', category)) : noop,
+    info: checkLogLevel(level, LoggerLevels.INFO) ? console.info.bind(window['console'], getPrefix('i', category)) : noop,
     warn: checkLogLevel(level, LoggerLevels.WARN) ? console.warn.bind(window['console'], getPrefix('w', category)) : noop,
     error: checkLogLevel(level, LoggerLevels.ERROR) ? console.error.bind(window['console'], getPrefix('e', category)) : noop
   };
