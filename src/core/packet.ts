@@ -86,7 +86,7 @@ export class Packet {
     return p;
   }
 
-  private static fromSymbol (symbol: PacketSymbol) {
+  static fromSymbol (symbol: PacketSymbol) {
     const p = new Packet();
     p.symbol = symbol;
     return p;
