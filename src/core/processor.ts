@@ -57,7 +57,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     //private eventEmitter_: typeof EventEmitter = new EventEmitter();
 
     public enableSymbolProxying: boolean = true;
-    // public enableSymbolProcessing: boolean = false;
+    public muteSymbolProcessing: boolean = false;
 
     constructor (
       private onSignal_: SignalHandler = null,
@@ -219,7 +219,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
         this.transferPacketToAllOutputs_(p);
         return true;
       }
-      return false;
+      return this.muteSymbolProcessing;
     }
 
     /**
@@ -281,6 +281,8 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
     }
 
     /**
+     * FIXME: explain this better
+     *
      * At the same time handler for symbols, as well as
      * arbiter function to determine if this proc proxies or not specific symbols.
      *
@@ -292,13 +294,15 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * their other properties should be ignored in that case. They also should
      * not carry any data.
      *
-     * If one wants to actually get the handle of a symbolic packet,
-     * it is possible by disabling proxying (return false here in an override of this method)
-     * as in this case these packets will be passed into `processTransfer_`.
+     * Returning false will have this packet carrying the symbol be passed into `processTransfer_`.
      *
-     * FIXME: what if we don't want proxying but avoid transfer-method to be called with parent packet?
+     * Setting the Processor instance property `enableSymbolProxying` to false (default true)
+     * will disable proxying generally for all packets. That way, proxying can be disabled while
+     * packets with symbols will also not be passed into the processing scope.
      *
-     * @returns True if the symbolic packet should be proxied
+     * NOTE: Transferring the packet with the symbol to all output sockets "manually" is de-facto performing proxying.
+     *
+     * @returns True if the symbolic packet should be proxied, false if we want to handle this manually in the processing scope (when symbol-proxying enabled)
      */
     protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
       return symbol !== PacketSymbol.VOID;
@@ -327,8 +331,8 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      * @param p
      * @param inputIndex
      */
-    public __remotelyInvokeProcessTransfer__(p: Packet, inputIndex: number) {
-      this.processTransfer_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
+    public __invokeRPCPacketHandler__(p: Packet, inputIndex: number) {
+      this.onReceiveFromInput_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
     }
 
 }

@@ -119,6 +119,10 @@ log('setting new worker instance up ...');
 
         outputSocket.connect(new InputSocket((p: Packet) => {
 
+          if (p.isSymbolic()) {
+            log('making transferrable symbolic packet');
+          }
+
           const packet = Packet.makeTransferableCopy(p); // NOT ideal in terms of performance and allocation
                                                          // BETTER: remap the same amount arraybuffers<->slices
 
@@ -138,6 +142,7 @@ log('setting new worker instance up ...');
           context.postMessage(callbackData, packet.mapArrayBuffers());
 
           return true
+
         }, outputSocket.descriptor()));
       });
 

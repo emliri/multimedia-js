@@ -1,5 +1,5 @@
 import { makeUUID_v1 } from "../common-crypto";
-import { getLogger } from "../logger";
+import { getLogger, LoggerLevels } from "../logger";
 import { Processor, ProcessorEvent } from "./processor";
 import { InputSocket, SocketDescriptor, SocketType } from "./socket";
 import { Packet, PacketSymbol } from "./packet";
@@ -8,7 +8,7 @@ import { VoidCallback } from "../common-types";
 
 const PROXY_WORKER_PATH = '/dist/MMProcessorProxyWorker.umd.js'; // FIXME nasty HACK!! -> make this configurable
 
-const { log, debug, error } = getLogger(`ProcessorProxy`);
+const { log, debug, error } = getLogger(`ProcessorProxy`, LoggerLevels.LOG);
 
 export enum ProcessorProxyWorkerMessage {
   SPAWN = 'spawn',
@@ -82,7 +82,7 @@ export class ProcessorProxyWorker {
     this._worker.addEventListener('message', (event: MessageEvent) => {
       const callbackData: ProcessorProxyWorkerCallbackData = <ProcessorProxyWorkerCallbackData> event.data;
 
-      log('message received:', event)
+      debug('message received:', event)
 
       switch (callbackData.callback) {
       case ProcessorProxyWorkerCallback.SPAWNED: {
@@ -173,6 +173,11 @@ export class ProcessorProxy extends Processor {
   ) {
     super();
 
+    // disable proxying any symbols automatically
+    this.enableSymbolProxying = false;
+    // disable passing any symbols to process transfer
+    this.muteSymbolProcessing = true;
+
     const onSpawned = () => {
       log(`worker spawned with sub-context-id ${this._worker.subContextId}`)
     }
@@ -251,17 +256,23 @@ export class ProcessorProxy extends Processor {
   }
 
   protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
-    this._worker.invokeMethod(this._worker.subContextId, '__remotelyInvokeProcessTransfer__', [p, inputIndex], p.mapArrayBuffers());
+    // we can do this since we made sure that we wont get any symbolic packets in here
+    this._worker.invokeMethod(this._worker.subContextId, '__invokeRPCPacketHandler__', [p, inputIndex], p.mapArrayBuffers());
     return true;
   }
 
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
-    log('received symbol:', symbol)
-    return false;
+    log(' symbol handler:', symbol)
+    this._worker.invokeMethod(this._worker.subContextId, '__invokeRPCPacketHandler__', [Packet.fromSymbol(symbol)]);
+    return true; // we return true here because we handle it somehow but generally proxying is disabled
+                 // since this is something to be determined by the proxied instance
   }
 
   private _onTransferFromOutputCallback(p: Packet, outputIndex: number) {
     const packet = Packet.fromTransferable(p);
+    if (packet.isSymbolic()) {
+      log('received symbolic packet from worker with value:', p.symbol)
+    }
     this.out[outputIndex].transfer(packet)
   }
 
