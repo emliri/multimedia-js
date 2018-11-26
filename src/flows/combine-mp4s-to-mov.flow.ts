@@ -23,15 +23,8 @@ export class CombineMp4sToMovFlow extends Flow {
       }
     );
 
-    const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor) //;  = MP4DemuxProcessor.createWorkerShell(); // : Promise<Processor> = createProcessorProxyWorkerAsync(MP4DemuxProcessor.getName());
-
-    //mp4DemuxProcVideoWorkerShell.then((proc) =>
-
     {
-
-      //mp4DemuxProcVideo = proc;
-
-      //mp4DemuxProcVideo = mp4DemuxProcVideoWorkerShell;
+      const mp4DemuxProcVideo = new MP4DemuxProcessor(); // = newProcessorWorkerShell(MP4DemuxProcessor) //;  = MP4DemuxProcessor.createWorkerShell(); // : Promise<Processor> = createProcessorProxyWorkerAsync(MP4DemuxProcessor.getName());
 
       const h264ParseProc = new H264ParseProcessor();
       const mp3ParseProc = new MP3ParseProcessor();
@@ -93,7 +86,6 @@ export class CombineMp4sToMovFlow extends Flow {
 
       mp4MuxProc.out[0].connect(destinationSocket);
     }
-    //);
 
   }
 

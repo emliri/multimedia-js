@@ -14,7 +14,7 @@ import { NALU } from './h264/nalu';
 
 import { getLogger } from '../logger';
 
-const {log, warn, error} = getLogger("H264ParseProcessor");
+const {log, warn, error} = getLogger("H264ParseProcessor", 0);
 
 export class H264ParseProcessor extends Processor {
 

@@ -1,8 +1,8 @@
 import { Processor } from '../core/processor';
-import { Packet } from '../core/packet';
+import { Packet, PacketSymbol } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType, OutputSocket, SocketTemplateGenerator } from '../core/socket';
 
-import { getLogger } from '../logger';
+import { getLogger, LoggerLevels } from '../logger';
 
 import { createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom } from '../ext-mod/inspector.js/src';
 
@@ -14,7 +14,7 @@ import { BufferProperties, BufferSlice } from '../core/buffer';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { Esds } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/esds';
 
-const { log, warn, error } = getLogger('MP4DemuxProcessor');
+const { log, warn, error } = getLogger('MP4DemuxProcessor', LoggerLevels.LOG);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -52,6 +52,11 @@ export class MP4DemuxProcessor extends Processor {
       }
 
       return this._trackIdToOutputs[track.id];
+    }
+
+    protected handleSymbolicPacket_(s: PacketSymbol) {
+      log('handling symbol:', s)
+      return super.handleSymbolicPacket_(s);
     }
 
     protected processTransfer_ (inS: InputSocket, p: Packet) {

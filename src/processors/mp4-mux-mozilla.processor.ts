@@ -15,9 +15,9 @@ import {
 } from './mozilla-rtmpjs/mp4mux';
 
 import { isNumber } from '../common-utils';
-import { getLogger } from '../logger';
+import { getLogger, LoggerLevels } from '../logger';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor(Moz)');
+const { log, debug, warn } = getLogger('MP4MuxProcessor(Moz)', LoggerLevels.LOG);
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -176,7 +176,7 @@ export class MP4MuxProcessor extends Processor {
         log('got video codec init data');
       }
 
-      log('video packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
+      debug('video packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.VIDEO_PACKET,
@@ -206,7 +206,7 @@ export class MP4MuxProcessor extends Processor {
         log('got audio codec init data');
       }
 
-      log('audio packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
+      debug('audio packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.AUDIO_PACKET,
