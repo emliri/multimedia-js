@@ -12,7 +12,6 @@ import { makeUUID_v1 } from "../common-crypto";
 import { getLogger } from "../logger";
 
 import { Processors } from '../../index';
-import { copyToNewArrayBuffer, copyArrayBufferCollection } from "../common-utils";
 
 const workerId = makeUUID_v1();
 const { log, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`);

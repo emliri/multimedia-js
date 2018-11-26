@@ -1,3 +1,5 @@
+import { VoidCallback } from "../../common-types";
+
 /**
  * Copyright 2015 Mozilla Foundation
  *
@@ -37,7 +39,7 @@ export class FLVParser {
 
     public onHeader: (header: FLVHeader) => void;
     public onTag: (tag: FLVTag) => void;
-    public onClose: () => void;
+    public onClose: VoidCallback;
     public onError: (error) => void;
 
     public constructor () {

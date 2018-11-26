@@ -8,7 +8,7 @@ import { OutputSocket } from '../core/socket';
 import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
-import { createProcessorProxyWorkerShell } from '../core/processor-factory';
+import { createProcessorWorkerShellAsync, newProcessorWorkerShell } from '../core/processor-factory';
 
 export class CombineMp4sToMovFlow extends Flow {
 
@@ -23,13 +23,15 @@ export class CombineMp4sToMovFlow extends Flow {
       }
     );
 
-    let mp4DemuxProcVideo; //= new MP4DemuxProcessor();
+    const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor) //;  = MP4DemuxProcessor.createWorkerShell(); // : Promise<Processor> = createProcessorProxyWorkerAsync(MP4DemuxProcessor.getName());
 
-    const mp4DemuxProcVideoWorkerShell: Promise<Processor> = createProcessorProxyWorkerShell(MP4DemuxProcessor.getName());
+    //mp4DemuxProcVideoWorkerShell.then((proc) =>
 
-    mp4DemuxProcVideoWorkerShell.then((proc) => {
+    {
 
-      mp4DemuxProcVideo = proc;
+      //mp4DemuxProcVideo = proc;
+
+      //mp4DemuxProcVideo = mp4DemuxProcVideoWorkerShell;
 
       const h264ParseProc = new H264ParseProcessor();
       const mp3ParseProc = new MP3ParseProcessor();
@@ -90,7 +92,8 @@ export class CombineMp4sToMovFlow extends Flow {
       });
 
       mp4MuxProc.out[0].connect(destinationSocket);
-    });
+    }
+    //);
 
   }
 

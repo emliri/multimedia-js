@@ -1,7 +1,10 @@
 import { Processor } from "./processor";
 import { Processors } from "../../index";
 import { ProcessorProxy } from "./processor-proxy";
+import { VoidCallback } from "../common-types";
+import { noop } from "../common-utils";
 
+/*
 export abstract class FactorizableProcessor extends Processor {
   private constructor() {
     super() // TODO: have protected signal handler setter
@@ -12,6 +15,7 @@ export abstract class FactorizableProcessor extends Processor {
     return new Processors[name]();
   }
 }
+*/
 
 /*
 export class FactorizableProcessorImpl extends FactorizableProcessor {
@@ -40,7 +44,15 @@ export function createProcessorFromShellName(factoryName: string): Processor {
   return createProcessorFromConstructor(getProcessorConstructorByName(factoryName));
 }
 
-export function createProcessorProxyWorkerShell(factoryName: string, timeoutMs: number = 1000): Promise<ProcessorProxy> {
+export function newProcessorWorkerShell(procConstructor: typeof Processor, onReady: VoidCallback = noop): ProcessorProxy {
+  const name = procConstructor.getName();
+  if (!name) {
+    throw new Error('Can not use factory, static name is not defined');
+  }
+  return new ProcessorProxy(name, onReady);
+};
+
+export function createProcessorWorkerShellAsync(factoryName: string, timeoutMs: number = 1000): Promise<ProcessorProxy> {
   return new Promise<ProcessorProxy>((resolve, reject) => {
     const proc = new ProcessorProxy(factoryName, () => {
       const timeout = setTimeout(() => {

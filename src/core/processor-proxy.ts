@@ -4,10 +4,11 @@ import { Processor, ProcessorEvent } from "./processor";
 import { InputSocket, SocketDescriptor, SocketType } from "./socket";
 import { Packet, PacketSymbol } from "./packet";
 import { createProcessorFromShellName } from "./processor-factory";
+import { VoidCallback } from "../common-types";
 
 const PROXY_WORKER_PATH = '/dist/MMProcessorProxyWorker.umd.js'; // FIXME nasty HACK!! -> make this configurable
 
-const { log, debug, warn, error } = getLogger(`ProcessorProxy`);
+const { log, debug, error } = getLogger(`ProcessorProxy`);
 
 export enum ProcessorProxyWorkerMessage {
   SPAWN = 'spawn',
@@ -46,14 +47,21 @@ export type ProcessorProxyWorkerCallbackTransferValue = {
   outputIndex: number
 }
 
+export type ProcessorProxyWorkerSubContext = {
+  id: number
+  workerId: number
+  processor: Processor
+  name: string
+};
+
 export class ProcessorProxyWorker {
 
   private _subContextId: number = null;
   private _worker: Worker = null
 
   constructor(
-    private _onSpawned: () => void,
-    private _onCreated: () => void,
+    private _onSpawned: VoidCallback,
+    private _onCreated: VoidCallback,
     private _onTransfer: (value: ProcessorProxyWorkerCallbackTransferValue) => void,
     private _onMethodReturn: (retValue: any) => void,
     private _onEvent: (event: ProcessorEvent) => void,
@@ -105,7 +113,10 @@ export class ProcessorProxyWorker {
   }
 
   get subContextId() {
-    return this._subContextId;
+    // little hacky trick: we pass 0 instead of the actual subContextId because we only use one context anyway
+    // for supporting multiple sub-contexts per worker instance (to share one across several proxied procs) we
+    // can only allow async proxy initialization (create only called from the spawned-callback after we have set the subContextId on this the shell side)
+    return this._subContextId || 0;
   }
 
   spawn() {
@@ -154,29 +165,26 @@ export class ProcessorProxy extends Processor {
 
   private _worker: ProcessorProxyWorker;
   private _isReady: boolean = false;
+  private _protoInstanceSocketsCreated = 0;
 
   constructor(
     readonly processorShellName: string, // TODO: pass in constructor instead and do factory stuff outside of here
-    onReady: () => void
+    onReady: VoidCallback
   ) {
     super();
 
     const onSpawned = () => {
       log(`worker spawned with sub-context-id ${this._worker.subContextId}`)
-      this._worker.create(this._worker.subContextId, this.processorShellName, []);
     }
 
     const onCreated = () => {
       log(`processor-proxy for shell-name ${this.processorShellName} is ready`);
       this._isReady = true;
-
-      this._initProtoShell();
-
       onReady();
     }
 
     const onTransfer = (transferValue: ProcessorProxyWorkerCallbackTransferValue) => {
-      this.onTransferFromOutputCallback(transferValue.packet, transferValue.outputIndex);
+      this._onTransferFromOutputCallback(transferValue.packet, transferValue.outputIndex);
     }
 
     const onMethodReturn = (returnVal: any) => {
@@ -184,13 +192,31 @@ export class ProcessorProxy extends Processor {
       debug('return value from call to proxy processor method: ', returnVal);
     }
 
+    const decrementSocketCreatedCounter = () => {
+      // we are doing this to count down the sockets
+      // created by the proto-instance to avoid a double-feedback
+      // that would result in creating these sockets twice
+      // since ultimately these will also trigger events on the worker side.
+      // we only want to mirror the socket creations
+      // that we haven't initialized ourselves.
+      if (this._protoInstanceSocketsCreated > 0) {
+        this._protoInstanceSocketsCreated--
+        return false;
+      }
+      return true;
+    }
+
     const onEvent = (event: ProcessorEvent) => {
       switch(event) {
       case ProcessorEvent.INPUT_SOCKET_CREATED:
-        super.createInput()
+        if (decrementSocketCreatedCounter()) {
+          super.createInput()
+        }
         break;
       case ProcessorEvent.OUTPUT_SOCKET_CREATED:
-        super.createOutput()
+        if (decrementSocketCreatedCounter()) {
+          super.createOutput()
+        }
         break;
       }
     }
@@ -203,7 +229,10 @@ export class ProcessorProxy extends Processor {
       onEvent
     );
 
+    // all these "commands" will get queued by the worker thread anyway, we don't need to worry about synchronization at this point
     this._worker.spawn();
+    this._worker.create(this._worker.subContextId, this.processorShellName, []);
+    this._initProtoShell();
 
   }
 
@@ -227,10 +256,11 @@ export class ProcessorProxy extends Processor {
   }
 
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
+    log('received symbol:', symbol)
     return false;
   }
 
-  private onTransferFromOutputCallback(p: Packet, outputIndex: number) {
+  private _onTransferFromOutputCallback(p: Packet, outputIndex: number) {
     const packet = Packet.fromTransferable(p);
     this.out[outputIndex].transfer(packet)
   }
@@ -251,15 +281,9 @@ export class ProcessorProxy extends Processor {
     protoInstance.out.forEach(() => {
       this.createOutput();
     });
+    this._protoInstanceSocketsCreated = protoInstance.in.length + protoInstance.out.length;
   }
 
   // TODO: figure what to do about signals...
 
 }
-
-export type ProcessorProxyWorkerSubContext = {
-  id: number
-  workerId: number
-  processor: Processor
-  name: string
-};

@@ -4,6 +4,9 @@ import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collec
 import { EventEmitter } from 'eventemitter3';
 import { ProcessorTask } from './processor-task';
 import { getLogger } from '../logger';
+import { ProcessorProxy } from './processor-proxy';
+import { VoidCallback } from '../common-types';
+import { noop } from '../common-utils';
 
 const {debug, error} = getLogger("Processor");
 
@@ -34,6 +37,17 @@ export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver {
 
     static getName(): string { return null; }
+
+    // FIXME: crashes with "Object prototype may only be an Object or null"
+    /*
+    static createWorkerShell(onReady: VoidCallback = noop): ProcessorProxy {
+      const name = this.getName();
+      if (!name) {
+        throw new Error('Can not use factory, static name is not defined');
+      }
+      return new ProcessorProxy(name, onReady);
+    };
+    */
 
     private inputs_: InputSocket[] = [];
     private outputs_: OutputSocket[] = [];

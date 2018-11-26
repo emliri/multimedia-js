@@ -1,3 +1,5 @@
+import { VoidCallback } from "../../common-types";
+
 /**
  * Copyright 2015 Mozilla Foundation
  *
@@ -31,7 +33,7 @@ export class MP3Parser {
 
     public onNoise: (data: Uint8Array) => void;
     public onFrame: (data: Uint8Array) => void;
-    public onClose: () => void;
+    public onClose: VoidCallback;
 
     constructor () {
       this.buffer = null;

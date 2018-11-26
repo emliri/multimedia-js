@@ -12,6 +12,18 @@ import { allocAndCopyTypedArraySlice } from '../common-utils';
  *
  */
 export class BufferProperties extends PayloadDescriptor {
+
+  static fromTransferable(props: BufferProperties) {
+    const newProps = new BufferProperties(props.mimeType,
+      props.sampleDuration, props.sampleDepth, props.samplesCount,
+      props.isBitstreamHeader, props.isKeyframe, props.timestampDelta,
+      props.mediaKey, props.tags);
+    newProps.elementaryStreamId = props.elementaryStreamId;
+    newProps.details = props.details;
+    newProps.codec = props.codec;
+    return newProps;
+  }
+
   constructor (
     mimeType = UNKNOWN_MIMETYPE,
     sampleDuration = NaN,
@@ -75,7 +87,7 @@ export class BufferSlice {
       bufferSlice.arrayBuffer,
       bufferSlice.offset,
       bufferSlice.length,
-      bufferSlice.props
+      BufferProperties.fromTransferable(bufferSlice.props)
     );
   }
 

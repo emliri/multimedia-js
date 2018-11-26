@@ -1,3 +1,7 @@
+import { VoidCallback, OneDeepNestedArray } from "./common-types";
+
+export const noop = () => {};
+
 /**
  *
  * @returns true on finite values, false on Infinity
@@ -27,12 +31,6 @@ export function toNumber (n: any): number {
   }
   throw new Error('Value does not convert to number: ' + n);
 }
-
-export type OneDeepNestedArray<T> = T[][];
-export type TwoDeepNestedArray<T> = T[][][];
-export type ThreeDeepNestedArray<T> = T[][][];
-
-export type SomeNestedArray<T> = OneDeepNestedArray<T> | TwoDeepNestedArray<T> | ThreeDeepNestedArray<T>;
 
 export function flattenOneDeepNestedArray<T>(a: OneDeepNestedArray<T>): T[] {
   return [].concat(...a);
@@ -136,7 +134,7 @@ export function forEachOwnPropKeyInObject<T> (object: Object, callback: (el: T) 
   }
 }
 
-export function dispatchAsyncTask (func: () => void, timeoutSeconds: number = 0): number {
+export function dispatchAsyncTask (func: VoidCallback, timeoutSeconds: number = 0): number {
   return <any> setTimeout(func, timeoutSeconds * 1000);
 }
 
