@@ -1,4 +1,4 @@
-import { Processor } from '../core/processor';
+import { Processor, ProcessorEvent } from '../core/processor';
 import { Packet } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
@@ -26,8 +26,13 @@ export class H264ParseProcessor extends Processor {
 
   constructor () {
     super();
+
+    //this.on(ProcessorEvent.ANY_SOCKET_CREATED, () => {debugger});
+
     this.createInput();
     this.createOutput();
+
+
   }
 
   templateSocketDescriptor (st: SocketType): SocketDescriptor {

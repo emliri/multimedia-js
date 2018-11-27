@@ -343,7 +343,7 @@ export class MP4MuxProcessor extends Processor {
   private onMp4MuxerData_ (data: Uint8Array) {
     const p: Packet = Packet.fromArrayBuffer(data.buffer, 'video/mp4; codecs="avc1.64001f,mp4a.40.2"');
 
-    log('transferring new fmp4 data:', p);
+    log('transferring new mp4 data:', p);
 
     this.out[0].transfer(p);
   }
