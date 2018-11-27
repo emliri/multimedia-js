@@ -1,5 +1,5 @@
 import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './payload-description';
-import { allocAndCopyTypedArraySlice } from '../common-utils';
+import { allocAndCopyTypedArraySlice, copyToNewArrayBuffer } from '../common-utils';
 
 /**
  * @class
@@ -96,9 +96,8 @@ export class BufferSlice {
      * @returns a new slice with a newly allocated underlying ArrayBuffer that is a copy of the original slice window data
      */
   static copy (original: BufferSlice): BufferSlice {
-    const thiz = original;
-    const slice = new BufferSlice(thiz.arrayBuffer.slice(thiz.offset, thiz.offset + this.length));
-    slice.props = thiz.props;
+    const slice = new BufferSlice(copyToNewArrayBuffer(original.arrayBuffer, original.offset, original.length));
+    slice.props = original.props;
     return slice;
   }
 
@@ -267,6 +266,10 @@ export class BufferSlice {
      */
     newArrayBuffer (): ArrayBuffer {
       return allocAndCopyTypedArraySlice(this.getDataView());
+    }
+
+    toString(): string {
+      return `slice @${this.offset} of length ${this.length} in buffer of ${this.arrayBuffer.byteLength} bytes`;
     }
 
     // TODO: method to create "grow" new BufferSlice from original data and (list of) additional slices
