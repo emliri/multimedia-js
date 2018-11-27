@@ -1,7 +1,7 @@
 import { makeUUID_v1 } from "../common-crypto";
 import { getLogger, LoggerLevels } from "../logger";
-import { Processor, ProcessorEvent } from "./processor";
-import { InputSocket, SocketDescriptor, SocketType } from "./socket";
+import { Processor, ProcessorEvent, ProcessorEventData } from "./processor";
+import { InputSocket, SocketDescriptor, SocketType, Socket } from "./socket";
 import { Packet, PacketSymbol } from "./packet";
 import { createProcessorFromShellName } from "./processor-factory";
 import { VoidCallback } from "../common-types";
@@ -150,7 +150,7 @@ export class ProcessorProxyWorker {
   }
 
   invokeMethod(subContextId, methodName: string, methodArgs: any[], transferrables?: ArrayBuffer[]) {
-    log('invoke method called:', methodName)
+    debug('invoke method called:', methodName)
     const message: ProcessorProxyWorkerMessageData = {
       message: ProcessorProxyWorkerMessage.INVOKE_METHOD,
       subContextId,
@@ -197,6 +197,7 @@ export class ProcessorProxy extends Processor {
       debug('return value from call to proxy processor method: ', returnVal);
     }
 
+    /*
     const decrementSocketCreatedCounter = () => {
       // we are doing this to count down the sockets
       // created by the proto-instance to avoid a double-feedback
@@ -210,20 +211,27 @@ export class ProcessorProxy extends Processor {
       }
       return true;
     }
+    */
 
     const onEvent = (event: ProcessorEvent) => {
+      let data: ProcessorEventData;
+      let socket: Socket;
       switch(event) {
       case ProcessorEvent.INPUT_SOCKET_CREATED:
-        if (decrementSocketCreatedCounter()) {
-          super.createInput()
-        }
+        socket = super.createInput()
         break;
       case ProcessorEvent.OUTPUT_SOCKET_CREATED:
-        if (decrementSocketCreatedCounter()) {
-          super.createOutput()
-        }
+        socket = super.createOutput()
         break;
       }
+      /*
+      data = {
+        event,
+        processor: this,
+        socket
+      }
+      this.emit(event, data);
+      */
     }
 
     this._worker = new ProcessorProxyWorker(
@@ -237,7 +245,7 @@ export class ProcessorProxy extends Processor {
     // all these "commands" will get queued by the worker thread anyway, we don't need to worry about synchronization at this point
     this._worker.spawn();
     this._worker.create(this._worker.subContextId, this.processorShellName, []);
-    this._initProtoShell();
+    this._initShellFromProtoInstance();
 
   }
 
@@ -256,8 +264,9 @@ export class ProcessorProxy extends Processor {
   }
 
   protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
-    // we can do this since we made sure that we wont get any symbolic packets in here
-    this._worker.invokeMethod(this._worker.subContextId, '__invokeRPCPacketHandler__', [p, inputIndex], p.mapArrayBuffers());
+    // we can do this since we made sure that we wont get any symbolic packets in
+    const packet = Packet.makeTransferableCopy(p);
+    this._worker.invokeMethod(this._worker.subContextId, '__invokeRPCPacketHandler__', [packet, inputIndex], packet.mapArrayBuffers());
     return true;
   }
 
@@ -271,12 +280,12 @@ export class ProcessorProxy extends Processor {
   private _onTransferFromOutputCallback(p: Packet, outputIndex: number) {
     const packet = Packet.fromTransferable(p);
     if (packet.isSymbolic()) {
-      log('received symbolic packet from worker with value:', p.symbol)
+      log('received symbolic packet from worker with value:', packet.symbol)
     }
     this.out[outputIndex].transfer(packet)
   }
 
-  private _initProtoShell() {
+  private _initShellFromProtoInstance() {
     // make a utility like this to "clone" a proc ?
     const protoInstance = createProcessorFromShellName(this.processorShellName);
     // we are basically probing the proto instance of the proc and creating a clone of its template-generator function
@@ -287,10 +296,10 @@ export class ProcessorProxy extends Processor {
     this.overrideSocketTemplate(socketTemplateGenerator);
     // FIXME: apply socket-descriptors
     protoInstance.in.forEach(() => {
-      this.createInput();
+      super.createInput();
     });
     protoInstance.out.forEach(() => {
-      this.createOutput();
+      super.createOutput();
     });
     this._protoInstanceSocketsCreated = protoInstance.in.length + protoInstance.out.length;
   }

@@ -34,7 +34,7 @@ log('setting new worker instance up ...');
   }
 
   function onMessage (event: MessageEvent) {
-    log('got message passed:', event.data.message);
+    debug('got message passed:', event.data.message);
 
     const data: ProcessorProxyWorkerMessageData = <ProcessorProxyWorkerMessageData> event.data;
 
@@ -112,43 +112,52 @@ log('setting new worker instance up ...');
       subContext.processor.on(ProcessorEvent.SYMBOLIC_PACKET, onEvent);
       subContext.processor.on(ProcessorEvent.SIGNAL, onEvent);
 
+      const onOutputSockeTransfer = (outputIndex: number, p: Packet) => {
+        if (p.isSymbolic()) {
+          log('making transferrable symbolic packet');
+        }
+
+        //p.forEachBufferSlice((bs) => debug(bs.toString()))
+
+        const packet = Packet.makeTransferableCopy(p); // NOT ideal in terms of performance and allocation
+                                                       // BETTER: remap the same amount arraybuffers<->slices
+
+        packet.forEachBufferSlice((bs) => debug(bs.toString()))
+
+        const transferValue: ProcessorProxyWorkerCallbackTransferValue = {
+          packet,
+          outputIndex
+        }
+
+        const callbackData: ProcessorProxyWorkerCallbackData = {
+          callback: ProcessorProxyWorkerCallback.TRANSFER,
+          subContextId: subContext.id,
+          processorName: subContext.name,
+          workerId,
+          value: transferValue
+        }
+
+        context.postMessage(callbackData, packet.mapArrayBuffers());
+
+        return true
+      }
+
+      const wireUpOutputSocket = (outputSocket: OutputSocket, outputIndex: number) => {
+        outputSocket.connect(new InputSocket(onOutputSockeTransfer.bind(this, outputIndex), outputSocket.descriptor()));
+      }
+
       subContext.processor.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
 
         const outputSocket = OutputSocket.fromUnsafe(data.socket);
         const outputIndex = subContext.processor.out.length - 1;
 
-        outputSocket.connect(new InputSocket((p: Packet) => {
+        wireUpOutputSocket(outputSocket, outputIndex);
 
-          if (p.isSymbolic()) {
-            log('making transferrable symbolic packet');
-          }
-
-          p.forEachBufferSlice((bs) => debug(bs.toString()))
-
-          const packet = Packet.makeTransferableCopy(p); // NOT ideal in terms of performance and allocation
-                                                         // BETTER: remap the same amount arraybuffers<->slices
-
-          packet.forEachBufferSlice((bs) => debug(bs.toString()))
-
-          const transferValue: ProcessorProxyWorkerCallbackTransferValue = {
-            packet,
-            outputIndex
-          }
-
-          const callbackData: ProcessorProxyWorkerCallbackData = {
-            callback: ProcessorProxyWorkerCallback.TRANSFER,
-            subContextId: subContext.id,
-            processorName: subContext.name,
-            workerId,
-            value: transferValue
-          }
-
-          context.postMessage(callbackData, packet.mapArrayBuffers());
-
-          return true
-
-        }, outputSocket.descriptor()));
       });
+
+      // finally, make sure to wire up the output-sockets that already existed *before* we set up the above event listener
+      // i.e the ones created in the proc constructor
+      subContext.processor.out.forEach(wireUpOutputSocket);
 
       const callbackData: ProcessorProxyWorkerCallbackData = {
         callback: ProcessorProxyWorkerCallback.CREATED,

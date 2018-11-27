@@ -52,6 +52,8 @@ export function newProcessorWorkerShell(procConstructor: typeof Processor, onRea
   return new ProcessorProxy(name, onReady);
 };
 
+export const newProc = newProcessorWorkerShell; // shorthand
+
 export function createProcessorWorkerShellAsync(factoryName: string, timeoutMs: number = 1000): Promise<ProcessorProxy> {
   return new Promise<ProcessorProxy>((resolve, reject) => {
     const proc = new ProcessorProxy(factoryName, () => {
