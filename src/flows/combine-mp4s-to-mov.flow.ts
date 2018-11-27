@@ -9,6 +9,9 @@ import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-b
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
 import { createProcessorWorkerShellAsync, newProcessorWorkerShell } from '../core/processor-factory';
+import { getLogger } from '../logger';
+
+const { log } = getLogger('CombineMp4sToMovFlow');
 
 export class CombineMp4sToMovFlow extends Flow {
 
@@ -24,12 +27,11 @@ export class CombineMp4sToMovFlow extends Flow {
     );
 
     {
-      const mp4DemuxProcVideo = new MP4DemuxProcessor(); // = newProcessorWorkerShell(MP4DemuxProcessor) //;  = MP4DemuxProcessor.createWorkerShell(); // : Promise<Processor> = createProcessorProxyWorkerAsync(MP4DemuxProcessor.getName());
+      const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor)
+      const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
+      const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
 
-      const h264ParseProc = new H264ParseProcessor();
-      const mp3ParseProc = new MP3ParseProcessor();
-
-      const mp4MuxProc = new MP4MuxProcessor();
+      const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
 
       const muxerVideoInput = mp4MuxProc.createInput();
       const muxerAudioInput = mp4MuxProc.createInput();
@@ -55,7 +57,7 @@ export class CombineMp4sToMovFlow extends Flow {
         mp3ParseProc.out[0].connect(muxerAudioInput);
       } else { // TODO: check using mimetypes from XHR
         // assuming mp4a
-        mp4DemuxProcAudio = new MP4DemuxProcessor();
+        mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
         xhrSocketAudioFile.connect(mp4DemuxProcAudio.in[0]);
       }
 
@@ -68,7 +70,7 @@ export class CombineMp4sToMovFlow extends Flow {
         mp4DemuxProcVideo.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
 
           // FIXME: check the socket-descriptor actually is video
-          console.log('mp4 demux output socket created');
+          log('mp4 video demux output socket created');
 
           // FIXME: avoid the unsafe cast here somehow?
           OutputSocket.fromUnsafe(eventData.socket).connect(h264ParseProc.in[0]);
@@ -80,11 +82,14 @@ export class CombineMp4sToMovFlow extends Flow {
 
       mp4DemuxProcAudio.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
 
+        log('mp4 video demux output socket created');
+
         OutputSocket.fromUnsafe(eventData.socket).connect(muxerAudioInput);
 
       });
 
       mp4MuxProc.out[0].connect(destinationSocket);
+
     }
 
   }
