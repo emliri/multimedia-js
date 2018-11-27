@@ -14,7 +14,7 @@ import { BufferProperties, BufferSlice } from '../core/buffer';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { Esds } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/esds';
 
-const { log, warn, error } = getLogger('MP4DemuxProcessor', LoggerLevels.LOG);
+const { log, warn, debug, error } = getLogger('MP4DemuxProcessor', LoggerLevels.LOG);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -169,7 +169,7 @@ export class MP4DemuxProcessor extends Processor {
             p.setTimescale(frame.timescale);
 
             // console.log(p)
-            // console.log(frame.bytesOffset, frame.size);
+            debug('pushing packet with:', frameSlice.toString());
 
             output.transfer(p);
           });
