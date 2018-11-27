@@ -9,12 +9,12 @@ import { OutputSocket, InputSocket } from "./socket";
 import { Packet } from "./packet";
 
 import { makeUUID_v1 } from "../common-crypto";
-import { getLogger } from "../logger";
+import { getLogger, LoggerLevels } from "../logger";
 
 import { Processors } from '../../index';
 
 const workerId = makeUUID_v1();
-const { log, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`);
+const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevels.LOG);
 
 log('setting new worker instance up ...');
 
@@ -123,8 +123,12 @@ log('setting new worker instance up ...');
             log('making transferrable symbolic packet');
           }
 
+          p.forEachBufferSlice((bs) => debug(bs.toString()))
+
           const packet = Packet.makeTransferableCopy(p); // NOT ideal in terms of performance and allocation
                                                          // BETTER: remap the same amount arraybuffers<->slices
+
+          packet.forEachBufferSlice((bs) => debug(bs.toString()))
 
           const transferValue: ProcessorProxyWorkerCallbackTransferValue = {
             packet,
