@@ -12,9 +12,9 @@ import { BitReader } from '../ext-mod/inspector.js/src/utils/bit-reader';
 import { H264Parser } from './h264/h264';
 import { NALU } from './h264/nalu';
 
-import { getLogger } from '../logger';
+import { getLogger, LoggerLevels } from '../logger';
 
-const {log, warn, error} = getLogger("H264ParseProcessor", 0);
+const {log, warn, error} = getLogger("H264ParseProcessor", LoggerLevels.LOG);
 
 export class H264ParseProcessor extends Processor {
 
@@ -87,6 +87,8 @@ export class H264ParseProcessor extends Processor {
       }
 
       naluSlice.props.isKeyframe = (type === NALU.IDR);
+
+      //log('timescale:', p.getTimescale())
 
       this.out[0].transfer(
         p
