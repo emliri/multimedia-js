@@ -83,7 +83,12 @@ export class H264ParseProcessor extends Processor {
       // console.log(nalu.toString())
 
       if (type === NALU.IDR || type === NALU.SPS || type === NALU.PPS) {
-        log(nalu.toString(), p.timestamp);
+        log(nalu.toString(), p.toString());
+      }
+
+      if (type === NALU.IDR) {
+        p.data[0].props = p.data[0].props.clone();
+        p.data[0].props.isKeyframe = true;
       }
 
       naluSlice.props.isKeyframe = (type === NALU.IDR);
