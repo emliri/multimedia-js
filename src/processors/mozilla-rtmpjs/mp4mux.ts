@@ -544,7 +544,7 @@ export class MP4Mux {
               size: videoPacket.data.length,
               dts,
               cts: compositionTime,
-              isRap: true
+              isRap: videoPacket.frameType === VideoFrameType.KEY
             };
 
             samples.push(s);
