@@ -40,10 +40,12 @@ import { NodeFsReadSocket } from './src/io-sockets/node-fs-read.socket';
 import { Processor } from './src/core/processor';
 import { InputSocket, Socket, OutputSocket, SocketDescriptor } from './src/core/socket';
 import { Packet } from './src/core/packet';
-import { BufferSlice, BufferProperties } from './src/core/buffer';
+import { BufferSlice } from './src/core/buffer';
+import { BufferProperties } from './src/core/buffer-props';
 import { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails } from './src/core/payload-description';
 import { Signal } from './src/core/signal';
 import { Flow } from './src/core/flow';
+
 import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
 import { HTML5MediaSourceBufferSocket } from './src/io-sockets/html5-media-source-buffer.socket';
 import { WebFileDownloadSocket } from './src/io-sockets/web-file-download.socket';
