@@ -43,8 +43,6 @@ function isVideoCodec (codec: MP4MuxProcessorSupportedCodecs): boolean {
   }
 }
 
-const VIDEO_TRACK_DEFAULT_TIMESCALE = 12800;
-
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
       SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac'), // valid inputs
@@ -73,6 +71,9 @@ export class MP4MuxProcessor extends Processor {
   private videoPacketQueue_: Packet[] = [];
   private audioPacketQueue_: Packet[] = [];
   private socketToTrackIndexMap_: {[i: number]: number} = {};
+  // this simpler approach will restrict us to have only one audio and one video track for now
+  private videoTrackIndex_: number;
+  private audioTrackIndex_: number;
 
   constructor () {
     super();
@@ -106,7 +107,9 @@ export class MP4MuxProcessor extends Processor {
         return true;
       }
 
-      this.socketToTrackIndexMap_[inputIndex] = this.mp4Metadata_.tracks.length;
+      this.audioTrackIndex_
+        = this.socketToTrackIndexMap_[inputIndex]
+          = this.mp4Metadata_.tracks.length;
 
       // FIXME: get actual infos here from input packets
       this._addAudioTrack(
@@ -114,7 +117,6 @@ export class MP4MuxProcessor extends Processor {
         44100,
         16,
         2,
-        'und',
         86
       );
 
@@ -129,13 +131,16 @@ export class MP4MuxProcessor extends Processor {
         return true;
       }
 
-      this.socketToTrackIndexMap_[inputIndex] = this.mp4Metadata_.tracks.length;
+      this.videoTrackIndex_
+        = this.socketToTrackIndexMap_[inputIndex]
+          = this.mp4Metadata_.tracks.length;
 
       this._addVideoTrack(
         MP4MuxProcessorSupportedCodecs.AVC,
         // FIXME: get actual infos here from input packets
         25, // fps
-        768, 576, // resolution
+        768,
+        576, // resolution
         86 // duration
       );
 
@@ -169,6 +174,9 @@ export class MP4MuxProcessor extends Processor {
 
   private _processVideoPacket(p: Packet) {
 
+    const videoTrackMetadata = this.mp4Metadata_.tracks[this.videoTrackIndex_];
+    const timescale = videoTrackMetadata.timescale;
+
     p.forEachBufferSlice((bufferSlice) => {
       const mp4Muxer = this.mp4Muxer_;
       const data = bufferSlice.getUint8Array();
@@ -177,17 +185,17 @@ export class MP4MuxProcessor extends Processor {
         log('got video codec init data');
       }
 
-      debug('video packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
+      debug('video packet:', p.toString());
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
         data,
-        p.timestamp,
+        p.getScaledDts(timescale),
         true,
         bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.presentationTimeOffset
+        p.getScaledCto(timescale)
       );
 
       if (!this.keyFramePushed_ &&
@@ -198,6 +206,9 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _processAudioPacket(p: Packet) {
+
+    const audioTrackMetadata = this.mp4Metadata_.tracks[this.audioTrackIndex_];
+    const timescale = audioTrackMetadata.timescale;
 
     p.forEachBufferSlice((bufferSlice) => {
       const mp4Muxer = this.mp4Muxer_;
@@ -211,13 +222,13 @@ export class MP4MuxProcessor extends Processor {
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.AUDIO_PACKET,
-        FORCE_MP3 ?  MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
+        FORCE_MP3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
         data,
-        p.timestamp,
+        p.getScaledDts(timescale),
         true,
         bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.presentationTimeOffset
+        p.getScaledCto(timescale)
       );
 
       if (!this.keyFramePushed_ &&
@@ -281,18 +292,22 @@ export class MP4MuxProcessor extends Processor {
     this.mp4Muxer_.flush();
   }
 
-  private _addAudioTrack (audioCodec: MP4MuxProcessorSupportedCodecs,
-    sampleRate: number, sampleSize: number, numChannels: number, language: string, duration: number): MP4Track {
+  private _addAudioTrack (
+    audioCodec: MP4MuxProcessorSupportedCodecs,
+    sampleRate: number, sampleSize: number,
+    numChannels: number,
+    durationSeconds: number,
+    language: string = 'und'): MP4Track {
 
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec);
     }
 
     let audioTrack: MP4Track = {
-      duration: duration >= 0 ? duration * sampleRate : -1,
+      duration: durationSeconds >= 0 ? durationSeconds * sampleRate : -1,
       codecDescription: audioCodec,
       codecId: getCodecId(audioCodec),
-      language: language || 'und',
+      language: language,
       timescale: sampleRate,
       samplerate: sampleRate,
       channels: numChannels,
@@ -309,38 +324,37 @@ export class MP4MuxProcessor extends Processor {
 
   private _addVideoTrack (
     videoCodec: MP4MuxProcessorSupportedCodecs,
-    frameRate: number, width: number, height: number, duration?: number): MP4Track {
+    frameRate: number,
+    width: number, height: number,
+    durationSeconds: number
+    ): MP4Track {
 
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec);
     }
 
     let videoTrack: MP4Track = {
-      duration: isNumber(duration) ? duration * VIDEO_TRACK_DEFAULT_TIMESCALE : -1,
+      duration: durationSeconds >= 0 ? durationSeconds * frameRate : -1,
       codecDescription: videoCodec,
       codecId: getCodecId(videoCodec),
-      language: 'und',
-      timescale: VIDEO_TRACK_DEFAULT_TIMESCALE,
+      timescale: frameRate,
       framerate: frameRate,
       width: width,
-      height: height
+      height: height,
+      language: 'und'
     };
 
     log('creating video track:', videoCodec)
 
-    //log('created video track:', videoTrack);
-
     this.mp4Metadata_.videoTrackId = this._getNextTrackId();
     this.mp4Metadata_.tracks.push(videoTrack);
 
-    if (isNumber(duration)) {
-      this.mp4Metadata_.duration = duration * VIDEO_TRACK_DEFAULT_TIMESCALE;
-
-      log('set duration:', this.mp4Metadata_.duration);
+    if (!isNumber(this.mp4Metadata_.duration) && isNumber(videoTrack.duration)) {
+      this.mp4Metadata_.duration = videoTrack.duration;
+      log('set top-level metadata duration based on video-track:', this.mp4Metadata_.duration);
     }
 
     return videoTrack;
-
   }
 
   private onMp4MuxerData_ (data: Uint8Array) {
