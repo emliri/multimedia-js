@@ -23,33 +23,50 @@ export type PacketReceiveCallback = ((p: Packet) => boolean);
 export class Packet {
 
   /**
-   * See BufferSlice.fromTransferable
+   * used to recover a packet that was transferred from a another thread (worker) context (passed via a message-event).
+   * the object is then a "dead" structure of metadata and needs to be reconstructed so it has "methods"
+   * again on its instance. all buffer-slices need to be recovered as well. in JS terms, we have lost all of our
+   * prototypical nature and are more of a 1-to-1 serialized snapshot of the object state from which we create
+   * a new instance with the identical properties.
+   * @param p
    */
   static fromTransferable (p: Packet): Packet {
-    const newPacket: Packet = new Packet(
-      p.data.map((bs) => BufferSlice.fromTransferable(bs)),
-      p.timestamp,
-      p.presentationTimeOffset,
-      p.createdAt
-    );
-    if (p._symbol > 0) {
-      newPacket.symbol = p._symbol;
-    }
-    // FIXME: add synchro id and timestamp offset
-    return newPacket;
+    return Packet.fromData(p, p.data.map((bs) => BufferSlice.fromTransferable(bs)));
   }
 
+  /**
+   * same as above but we are creating copies of the buffer data as well.
+   * this is usually done when we pass data from a processing thread (worker) into the control/user thread via a message.
+   * the message is attached a copy of the original data which was processed in the thread in this case.
+   * @param p
+   */
   static makeTransferableCopy(p: Packet) {
+    return Packet.fromData(p, p.data.map((bs) => BufferSlice.copy(bs)));
+  }
+
+  /**
+   * Creates a new packet based on an existing ("dead") packets metadata and some arbitrary data that is passed in.
+   * This is used to convert back and for packet-data to be attached to inter-thread messages.
+   * @param p Expected to be only a state snapshot of a packet without the actual prototype applied (no methods)
+   * @param data
+   */
+  private static fromData (p: Packet, data: BufferSlice[]) {
+
     const newPacket: Packet = new Packet(
-      p.data.map((bs) => BufferSlice.copy(bs)),
+      data,
       p.timestamp,
       p.presentationTimeOffset,
-      p.createdAt
+      p.createdAt,
+      p.synchronizationId
     );
-    if (p._symbol > 0) {
+    if (p._symbol > 0) { // we need to access the private member here because the properties
+                         // and methods are not present when the prototype wasn't called
+                         // same for the methods below
+                         // note: if we would apply the constructor on `p` it would also reset the values
       newPacket.symbol = p._symbol;
     }
-    // FIXME: add synchro id and timestamp offset
+    newPacket.setTimestampOffset(p._timestampOffset);
+    newPacket.setTimescale(p._timescale);
     return newPacket;
   }
 
@@ -111,7 +128,7 @@ export class Packet {
   private _symbol: PacketSymbol = PacketSymbol.VOID;
   private _timescale: number = 1; // maybe not have a default value?
   private _hasDefaultBufferProps: boolean = true;
-  private _timeOffset: number = 0;
+  private _timestampOffset: number = 0;
 
   constructor (
     public data: BufferSlices = [],
@@ -155,7 +172,7 @@ export class Packet {
         if (errorHandler) {
           if (!errorHandler(bufferSlice, err)) {
             abort = true;
-            console.error('Packet buffers loop aborted: ', err);
+            console.error('Packet-buffers loop aborted: ', err);
           }
         } else {
           throw err;
@@ -188,29 +205,25 @@ export class Packet {
     return this._hasDefaultBufferProps;
   }
 
-  toString(): string {
-    const p = this;
-    const description
-      = `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>`
-      + ` @(${p.timestamp} + ${p.getTimestampOffset()} / ${p.getTimescale()}`
-      + ` -> ${p.getNormalizedDts()})`
-    return description;
+  /**
+   * alias for presentationTimeOffset
+   */
+  get cto() {
+    return this.presentationTimeOffset;
   }
 
-  /*
-  isPayloadInfoConsistent(): boolean {
-    throw new Error('not implemented');
-  }
-  */
-
-  getTotalBytes () {
-    return this.data.reduce((accu, buf: BufferSlice) => {
-      return accu + buf.length;
-    }, 0);
+  /**
+   * alias for presentationTimeOffset
+   */
+  get pto() {
+    return this.presentationTimeOffset;
   }
 
-  isSymbolic (): boolean {
-    return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
+  /**
+   * alias for timestamp (caution: not including timestamp-offset)
+   */
+  get dts() {
+    return this.timestamp;
   }
 
   /**
@@ -219,11 +232,11 @@ export class Packet {
    * CT(n)  =  DT(n)  +  CTO(n)
    */
   getPresentationTimestamp (): number {
-    return this._timeOffset + this.timestamp + this.presentationTimeOffset;
+    return this._timestampOffset + this.timestamp + this.presentationTimeOffset;
   }
 
   getDecodingTimestamp (): number {
-    return this._timeOffset + this.timestamp;
+    return this._timestampOffset + this.timestamp;
   }
 
   setTimescale(timescale: number) {
@@ -235,19 +248,70 @@ export class Packet {
   }
 
   setTimestampOffset(tOffset: number) {
-    this._timeOffset = tOffset;
+    this._timestampOffset = tOffset;
   }
 
   getTimestampOffset(): number {
-    return this._timeOffset;
+    return this._timestampOffset;
+  }
+
+  /**
+   * CTO == PTO == presentationTimeOffset
+   */
+  getNormalizedCto(): number {
+    return this.presentationTimeOffset / this._timescale;
+  }
+
+  getNormalizedTimestampOffset(): number {
+    return this._timestampOffset / this._timescale;
   }
 
   getNormalizedPts(): number {
-    return this.getPresentationTimestamp() / this.getTimescale();
+    return this.getPresentationTimestamp() / this._timescale;
   }
 
   getNormalizedDts() {
-    return this.getDecodingTimestamp() / this.getTimescale();
+    return this.getDecodingTimestamp() / this._timescale;
   }
+
+  getScaledPts(timescale: number): number {
+    return this.getNormalizedPts() * timescale;
+  }
+
+  getScaledDts(timescale: number): number {
+    return this.getNormalizedDts() * timescale;
+  }
+
+  /**
+   * CTO == PTO == presentationTimeOffset
+   */
+  getScaledCto(timescale): number {
+    return this.getNormalizedCto() * timescale;
+  }
+
+  getTotalBytes () {
+    return this.data.reduce((accu, buf: BufferSlice) => {
+      return accu + buf.length;
+    }, 0);
+  }
+
+  isSymbolic (): boolean {
+    return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
+  }
+
+  toString(): string {
+    const p = this;
+    const description
+      = `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>`
+      + ` #{(@${p.getTimestampOffset()} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.getTimescale()}`
+      + ` -> ${p.getNormalizedDts()} + ∂${p.getNormalizedCto()} [s]} `
+    return description;
+  }
+
+  /*
+  isPayloadInfoConsistent(): boolean {
+    throw new Error('not implemented');
+  }
+  */
 
 }
