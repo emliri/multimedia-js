@@ -13,7 +13,7 @@ import { allocAndCopyTypedArraySlice, copyToNewArrayBuffer } from '../common-uti
  */
 export class BufferProperties extends PayloadDescriptor {
 
-  static fromTransferable(props: BufferProperties) {
+  static clone(props: BufferProperties) {
     const newProps = new BufferProperties(props.mimeType,
       props.sampleDuration, props.sampleDepth, props.samplesCount,
       props.isBitstreamHeader, props.isKeyframe, props.timestampDelta,
@@ -22,6 +22,10 @@ export class BufferProperties extends PayloadDescriptor {
     newProps.details = props.details;
     newProps.codec = props.codec;
     return newProps;
+  }
+
+  static fromTransferable(props: BufferProperties) {
+    return BufferProperties.clone(props);
   }
 
   constructor (
@@ -37,6 +41,11 @@ export class BufferProperties extends PayloadDescriptor {
   ) {
     super(mimeType, sampleDuration, sampleDepth);
     this.samplesCount = samplesCount;
+  }
+
+  clone(): BufferProperties {
+    const newProps = BufferProperties.clone(this);
+    return newProps;
   }
 
   getTotalDuration () {
