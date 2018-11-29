@@ -74,7 +74,12 @@ export class MP4DemuxProcessor extends Processor {
 
           // track.update();
 
-          log('mime-type:', track.mimeType, track.id, track.getDuration(), track.type, track.getTimescale());
+          log(
+            'mime-type:', track.mimeType,
+            'id:', track.id,
+            'duration:', track.getDuration(),
+            'type:', track.type,
+            'timescale:', track.getTimescale());
 
           if (track.isVideo()) {
             log('video-track:', track.getResolution());
@@ -151,7 +156,6 @@ export class MP4DemuxProcessor extends Processor {
           props.timestampDelta = 0;
 
           track.getFrames().forEach((frame: Frame) => {
-            // log('frame:', frame.frameType, frame.bytesOffset, frame.size, frame.getDecodingTimeUs(), frame.getPresentationTimeUs());
 
             const frameSlice = bufferSlice.unwrap(
               frame.bytesOffset,
@@ -159,16 +163,15 @@ export class MP4DemuxProcessor extends Processor {
               props
             );
 
-            // console.log(frame.size);
-
             const p: Packet = Packet.fromSlice(frameSlice);
 
             // timestamps of this packet
-            p.timestamp = frame.timeUnscaled; // = frame.getDecodingTimestampInSeconds();
-            p.presentationTimeOffset = frame.ptOffsetUnscaled; // frame.getPresentationTimestampInSeconds() - frame.getDecodingTimestampInSeconds();
+            p.timestamp = frame.timeUnscaled;
+            p.presentationTimeOffset = frame.ptOffsetUnscaled;
             p.setTimescale(frame.timescale);
 
-            // console.log(p)
+            //log('timescale:', frame.timescale)
+
             debug('pushing packet with:', frameSlice.toString());
 
             output.transfer(p);
