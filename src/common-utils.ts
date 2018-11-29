@@ -20,6 +20,10 @@ export function isConvertibleToNumber (n: any): boolean {
   return !isNaN(n);
 }
 
+export function isInteger(n: number): boolean { return Number.isInteger(n) }
+
+export function isIntegerIEEE754(n: number): boolean { return Number.isSafeInteger(n) }
+
 /**
  *
  * @returns a finite number or +/- Infinity (if n was that value)

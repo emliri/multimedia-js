@@ -5,11 +5,12 @@ import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 import { CommonMimeTypes } from '../core/payload-description';
 
 import { MP3Parser, MP3ParserResult } from './mp3/mp3-parser';
-import { BufferSlice, BufferProperties } from '../core/buffer';
-import { getLogger } from '../ext-mod/inspector.js/src/utils/logger';
+import { BufferSlice } from '../core/buffer';
+import { getLogger, LoggerLevels } from '../logger';
 import { MPEGAudioFrame } from './mp3/mpeg-audio-parser';
+import { BufferProperties } from '../core/buffer-props';
 
-const {log, debug, error} = getLogger('MP3ParseProcessor');
+const {log, debug, error} = getLogger('MP3ParseProcessor', LoggerLevels.LOG);
 
 export class MP3ParseProcessor extends Processor {
 
@@ -55,8 +56,24 @@ export class MP3ParseProcessor extends Processor {
 
       const p: Packet = Packet.fromSlice(BufferSlice.fromTypedArray(frame.data), timestamp, 0);
 
-      p.data[0].props = new BufferProperties(CommonMimeTypes.AUDIO_MP3, frame.frameDuration, 16, 1);
-      p.data[0].props.codec = 'mp3a'; // .mp3?
+      const samplesPerFrame = frame.frameDuration / frame.sampleDuration;
+      const sampleRate = frame.headerRef.sampleRate;
+
+      const props = new BufferProperties(
+        CommonMimeTypes.AUDIO_MP3,
+        sampleRate,
+        16,
+        1,
+        samplesPerFrame, false, true);
+
+      props.codec = 'mp3a'; // .mp3?
+      props.details.samplesPerFrame = samplesPerFrame;
+      props.details.numChannels = frame.headerRef.channelCount;
+      props.details.constantBitrate = (8 * frame.data.byteLength) / (samplesPerFrame/sampleRate);
+
+      log('new mp3 frame props:', props.toString());
+
+      p.data[0].props = props;
 
       timestamp += frame.frameDuration;
 

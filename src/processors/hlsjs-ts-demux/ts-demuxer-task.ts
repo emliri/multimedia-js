@@ -6,6 +6,7 @@ import { BufferSlice } from '../../core/buffer';
 import { getLogger } from '../../logger';
 
 import { TSDemuxer } from './ts-demuxer';
+import { BufferProperties } from '../../core/buffer-props';
 
 const {log} = getLogger('TSDemuxerTask');
 
@@ -32,8 +33,10 @@ export function processTSDemuxerAppend (task: ProcessorTask) {
         unit.byteOffset,
         unit.byteLength);
 
+      const mimeType = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
+
+      bufferSlice.props = new BufferProperties(mimeType);
       bufferSlice.props.codec = audioTrack.isAAC ? audioTrack.codec : 'mp3a'; // FIXME
-      bufferSlice.props.mimeType = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
       bufferSlice.props.elementaryStreamId = audioTrack.pid;
 
       bufferSlice.props.details.codecConfigurationData = audioTrack.config;
@@ -54,8 +57,9 @@ export function processTSDemuxerAppend (task: ProcessorTask) {
           unit.data.byteOffset,
           unit.data.byteLength);
 
+        bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC);
+
         bufferSlice.props.codec = avcTrack.codec;
-        bufferSlice.props.mimeType = CommonMimeTypes.VIDEO_AVC;
         bufferSlice.props.elementaryStreamId = avcTrack.pid;
 
         bufferSlice.props.isKeyframe = sample.key || unit.type === 5; // IDR

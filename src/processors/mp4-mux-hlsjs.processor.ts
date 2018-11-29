@@ -12,10 +12,11 @@ import {
   Fmp4RemuxerPayloadSegmentData
 } from './hlsjs-fmp4-mux/mp4-remuxer';
 
-import { BufferSlice, BufferProperties } from '../core/buffer';
+import { BufferSlice } from '../core/buffer';
 import { getLogger } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
 import { dispatchAsyncTask } from '../common-utils';
+import { BufferProperties } from '../core/buffer-props';
 
 const { log } = getLogger('MP4MuxHlsjsProcessor');
 
@@ -35,7 +36,7 @@ export class MP4MuxHlsjsProcessor extends Processor {
   static getName(): string { return "MP4MuxHlsjsProcessor" }
 
   private _fmp4Remux: Fmp4Remuxer = new Fmp4Remuxer(
-    this._onFmp4Event.bind(this),
+    this._onFmp4RemuxerEvent.bind(this),
     config
   );
 
@@ -197,7 +198,7 @@ export class MP4MuxHlsjsProcessor extends Processor {
     // return super.handleSymbolicPacket_(symbol);
   }
 
-  private _onFmp4Event (event: Fmp4RemuxerEvent, data) {
+  private _onFmp4RemuxerEvent (event: Fmp4RemuxerEvent, data) {
     switch (event) {
       case Fmp4RemuxerEvent.GOT_INIT_PTS_VALUE:
         log('got init-pts value:', data)
@@ -209,9 +210,12 @@ export class MP4MuxHlsjsProcessor extends Processor {
           log('got init data for a new audio track')
 
           const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.audio.initSegment);
-          bs.props.mimeType = tracks.audio.container;
-          bs.props.codec = tracks.audio.codec;
-          bs.props.details.channelCount = tracks.audio.metadata.channelCount;
+
+          const props = new BufferProperties(tracks.audio.container);
+          props.codec = tracks.audio.codec;
+          props.details.numChannels = tracks.audio.metadata.channelCount;
+
+          bs.props = props;
 
           const p: Packet = Packet.fromSlice(bs);
           p.timestamp = 0;
@@ -225,10 +229,13 @@ export class MP4MuxHlsjsProcessor extends Processor {
           log('got init data for a new video track')
 
           const bs: BufferSlice = BufferSlice.fromTypedArray(tracks.video.initSegment);
-          bs.props.mimeType = tracks.video.container;
-          bs.props.codec = tracks.video.codec;
-          bs.props.details.width = tracks.video.metadata.width;
-          bs.props.details.height = tracks.video.metadata.height;
+
+          const props = new BufferProperties(tracks.video.container);
+          props.codec = tracks.video.codec;
+          props.details.width = tracks.video.metadata.width;
+          props.details.height = tracks.video.metadata.height;
+
+          bs.props = props;
 
           const p: Packet = Packet.fromSlice(bs);
           p.timestamp = 0;

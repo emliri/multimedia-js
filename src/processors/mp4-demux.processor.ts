@@ -10,7 +10,8 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { Esds } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/esds';
 
 import { PayloadDescriptor } from '../core/payload-description';
-import { BufferProperties, BufferSlice } from '../core/buffer';
+import { BufferSlice } from '../core/buffer';
+import { BufferProperties } from '../core/buffer-props';
 
 const { log, warn, debug, error } = getLogger('MP4DemuxProcessor', LoggerLevels.LOG);
 
@@ -89,6 +90,13 @@ export class MP4DemuxProcessor extends Processor {
 
           const output: OutputSocket = this._ensureOutputForTrack(track);
 
+          //let frameRate: number = NaN; // add a Mp4Track property for this and extract inside inspector.js
+          let sampleDepth: number = NaN;
+          let sampleRate: number = NaN;
+          let sampleDurationNum: number = 1;
+          let numChannels: number = NaN;
+          let samplesCount: number = 1;
+
           if (track.type === Mp4Track.TYPE_VIDEO) {
             // FIXME: support HEVC too
             const avcC = (<AvcC> track.getReferenceAtom());
@@ -103,6 +111,16 @@ export class MP4DemuxProcessor extends Processor {
             initProps.isBitstreamHeader = true;
 
             log('flagged packet as bitstream header')
+
+            const spsParsed = avcC.spsParsed[0];
+
+            sampleRate = spsParsed.frameRate.fpsNum;
+            sampleDurationNum = spsParsed.frameRate.fpsDen;
+            sampleDepth = spsParsed.bitDepth;
+
+            if (avcC.numOfSequenceParameterSets > 1) {
+              warn('more than one SPS found, but only handling one here!');
+            }
 
             /*
             const sps: Uint8Array[] = avcC.sps;
@@ -128,25 +146,40 @@ export class MP4DemuxProcessor extends Processor {
               continue;
             }
 
-            const esdsData = esds.data;
+            const audioDecoderConfig = esds.decoderConfig.decoderConfigDescriptor;
+            log('found AAC decoder config:', audioDecoderConfig);
 
-            log('found AAC decoder config:', esds.decoderConfig)
+            sampleDepth = 16;
+            //samplesCount =
+            numChannels = audioDecoderConfig.channelConfiguration
 
             const initProps: BufferProperties = new BufferProperties(track.mimeType);
             initProps.isBitstreamHeader = true;
 
-            log('flagged packet as bitstream header')
+            log('flagged ESDS-atom-data packet as bitstream header')
 
+            const esdsData = esds.data;
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(esdsData, initProps)));
-
           }
+
+          let sampleDuration = track.getDefaults() ? track.getDefaults().sampleDuration : 1;
+
+          log('sample-duration found:', sampleDuration)
 
           const protoProps: BufferProperties = new BufferProperties(
             track.mimeType,
-            track.getDefaults() ? track.getDefaults().sampleDuration : 0,
-            NaN,
-            1
+            sampleRate,
+            sampleDepth,
+            sampleDurationNum,
+            samplesCount
           );
+
+          if (track.isVideo()) {
+            protoProps.details.width = track.getResolution()[0];
+            protoProps.details.height = track.getResolution()[1];
+          } else if (track.isAudio()) {
+            protoProps.details.numChannels = numChannels;
+          }
 
           // General time-delta applied to these tracks buffers
           protoProps.timestampDelta = 0;

@@ -137,7 +137,7 @@ export class SourceBufferQueue {
     const bufferSlice = packet.data[0];
 
     const start = bufferSlice.props.timestampDelta;
-    const end = bufferSlice.props.timestampDelta + bufferSlice.props.sampleDuration;
+    const end = bufferSlice.props.timestampDelta + bufferSlice.props.getSampleDuration()
     const arrayBuffer = bufferSlice.arrayBuffer;
     const timestampOffset = 0;
 
