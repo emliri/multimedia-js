@@ -112,6 +112,7 @@ export class MP4MuxProcessor extends Processor {
       this._addAudioTrack(
         FORCE_MP3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
         44100,
+        16,
         2,
         'und',
         86
@@ -182,11 +183,11 @@ export class MP4MuxProcessor extends Processor {
         MP4MuxPacketType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
         data,
-        p.timestamp, // * VIDEO_TRACK_DEFAULT_TIMESCALE,
+        p.timestamp,
         true,
         bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.presentationTimeOffset // * VIDEO_TRACK_DEFAULT_TIMESCALE
+        p.presentationTimeOffset
       );
 
       if (!this.keyFramePushed_ &&
@@ -281,20 +282,21 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _addAudioTrack (audioCodec: MP4MuxProcessorSupportedCodecs,
-    sampleRate?: number, numChannels?: number, language?: string, duration?: number): MP4Track {
+    sampleRate: number, sampleSize: number, numChannels: number, language: string, duration: number): MP4Track {
+
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec);
     }
 
     let audioTrack: MP4Track = {
-      duration: isNumber(duration) ? duration * 44100 : -1,
+      duration: duration >= 0 ? duration * sampleRate : -1,
       codecDescription: audioCodec,
       codecId: getCodecId(audioCodec),
       language: language || 'und',
-      timescale: sampleRate || 44100,
-      samplerate: sampleRate || 44100,
-      channels: numChannels || 2,
-      samplesize: 16
+      timescale: sampleRate,
+      samplerate: sampleRate,
+      channels: numChannels,
+      samplesize: sampleSize
     };
 
     log('creating audio track:', audioCodec)
@@ -308,6 +310,7 @@ export class MP4MuxProcessor extends Processor {
   private _addVideoTrack (
     videoCodec: MP4MuxProcessorSupportedCodecs,
     frameRate: number, width: number, height: number, duration?: number): MP4Track {
+
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec);
     }
