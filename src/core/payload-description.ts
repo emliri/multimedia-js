@@ -1,3 +1,5 @@
+import { isIntegerIEEE754, isInteger } from "../common-utils";
+
 export type MimeType = string;
 export type MimeTypes = MimeType[];
 
@@ -54,24 +56,58 @@ function doesMimetypeHaveCodec(mimeType: string): boolean {
 }
 
 export class PayloadDescriptor {
-  elementaryStreamId: number = NaN; // FIXME: make this a string
+  /**
+   * mime-type if defined
+   */
+  readonly mimeType: MimeType = null;
 
-  mimeType: MimeType = null;
-  codec: string = null;
+  /**
+   * unit-less factor to deal with arbitrary integer sample-rates without loosing precision [1]
+   */
+  readonly sampleDurationNumerator: number;
 
-  sampleDuration: number = NaN;
-  sampleDepth: SampleBitDepth = SampleBitDepth.UNSPECIFIED;
+  /**
+   * integer bit-depth of one sample
+   */
+  readonly sampleDepth: SampleBitDepth = SampleBitDepth.UNSPECIFIED;
 
-  dataFormat: PayloadDataFormat = PayloadDataFormat.UNSPECIFIED;
-  dataLayout: PayloadDataLayout = PayloadDataLayout.UNSPECIFIED;
+  /**
+   * Hertz [Hz]
+   */
+  readonly sampleRateInteger: number;
 
+  /**
+   * data format/layout applicable for raw signal packets
+   */
+  readonly dataFormat: PayloadDataFormat = PayloadDataFormat.UNSPECIFIED;
+  readonly dataLayout: PayloadDataLayout = PayloadDataLayout.UNSPECIFIED;
+
+  /**
+   * payload specific details (applicable to audio/video/text etc only e.g or codec-data related)
+   */
   details: PayloadDetails = new PayloadDetails();
 
-  constructor (mimeType: string, sampleDuration: number = NaN, sampleDepth: number = NaN) {
+  elementaryStreamId: number = NaN; // FIXME: make this a string
+
+  /**
+   * codec (if applicable)
+   */
+  codec: string = null;
+
+  constructor (mimeType: string,
+    sampleRateInteger: number = 0,
+    sampleDepth: number = 0,
+    sampleDurationNumerator: number = 1) {
+
+    if (!isIntegerIEEE754(sampleRateInteger) || !isInteger(sampleDurationNumerator)) {
+      throw new Error(`sample-rate has to be safe-int (=${sampleRateInteger}) and duration-numerator has to be int too (=${this.sampleDurationNumerator}).`);
+    }
+
     this.mimeType = mimeType.toLowerCase();
 
-    this.sampleDuration = sampleDuration;
+    this.sampleDurationNumerator = sampleDurationNumerator;
     this.sampleDepth = sampleDepth;
+    this.sampleRateInteger = sampleRateInteger;
 
     this.dataFormat = PayloadDataFormat.UNSPECIFIED;
     this.dataLayout = PayloadDataLayout.UNSPECIFIED;
@@ -93,12 +129,36 @@ export class PayloadDescriptor {
     return !!this.codec;
   }
 
-  getSampleSize (): number {
-    return this.sampleDepth / 8;
+  /**
+   * Sample-duration in normal units ([1/Hz] <=> [s])
+   *
+   * By default the sampleRate is expected to be in 1*Hz. The unit to expect can be scaled using
+   * the optional unit-less numerator property to N*Hz. Meaning that the unit is not 1/[s] anymore but 1/(N*[s]),
+   * representing the number of sample in N seconds.
+   *
+   * That means that any sample-rates of the form no-of-samples-per-N-seconds [Hz],
+   * where no-of-samples and N is should be integers, can be represented without precision loss.
+   *
+   * Also floating point values may be used but this may yield precision loss when computing the duration here.
+   */
+  getSampleDuration() {
+    return this.sampleDurationNumerator / this.sampleRateInteger;
   }
 
+  /**
+   * Sampling-rate in normal units ([Hz] <=> [1/s])
+   *
+   * see getSampleDuration, simply the inverted value
+   */
   getSamplingRate (): number {
-    return (1 / this.sampleDuration);
+    return this.sampleRateInteger / this.sampleDurationNumerator;
+  }
+
+  /**
+   * Returns size of one sample in bytes
+   */
+  getSampleSize(): number {
+    return this.sampleDepth / 8;
   }
 
   isAudio() {
@@ -132,24 +192,38 @@ export class PayloadDescriptor {
   isXml() {
     return this.mimeType === ('application/xml');
   }
+
+  toString() {
+    return `[<${this.mimeType} codec="${this.codec}"> @${this.getSamplingRate()}[Hz]|1/(${this.getSampleDuration().toExponential()}[s]) * ${this.sampleDepth}bit #{${this.details.toString()}}]`;
+  }
 }
 
 export class PayloadDetails {
+
+  // place to put generic codec init-data // TODO: get rid of number[] here
+  codecConfigurationData: Uint8Array | number[] = null
+
   // video
-  width: number = 0
-  height: number = 0
+  width: number = 0;
+  height: number = 0;
 
   // color-domains/channels
 
   // audio
-  channelCount: number = 0
-  codecConfigurationData: Uint8Array | number[] = null
+
+  samplesPerFrame: number = 1;
+  numChannels: number = 0
+  constantBitrate: number = NaN;
 
   // text
   // ...
 
   // time-vs-frequency domains
   // ...
+
+  toString() {
+    return `width=${this.width}[px];height=${this.height}[px];samplesPerFrame=${this.samplesPerFrame};cbr=${this.constantBitrate}[b/s];numChannels=${this.numChannels};codecConfigSize=${this.codecConfigurationData ? this.codecConfigurationData.length : 0}`
+  }
 }
 
 export class PayloadCodec {

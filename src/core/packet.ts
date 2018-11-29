@@ -1,5 +1,6 @@
-import { BufferSlices, BufferSlice, BufferProperties } from './buffer';
+import { BufferSlices, BufferSlice } from './buffer';
 import { UNKNOWN_MIMETYPE } from './payload-description';
+import { BufferProperties } from './buffer-props';
 
 /**
  * Symbols are passed into sockets and thus processors to convey in-band
@@ -73,13 +74,7 @@ export class Packet {
   static fromArrayBuffer (
     arrayBuffer: ArrayBuffer,
     mimeType?: string,
-    codec?: string,
-    sampleDuration?: number,
-    samplesCount?: number): Packet {
-
-    const bufferProps = new BufferProperties(mimeType, sampleDuration, samplesCount);
-
-    bufferProps.codec = codec;
+    bufferProps: BufferProperties = new BufferProperties(mimeType)): Packet {
 
     return Packet.fromSlice(new BufferSlice(
       arrayBuffer,

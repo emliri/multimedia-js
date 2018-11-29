@@ -1,57 +1,5 @@
-import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './payload-description';
 import { allocAndCopyTypedArraySlice, copyToNewArrayBuffer } from '../common-utils';
-
-/**
- * @class
- * Describes the payload of a buffer, how many samples it contains of that, and time-contextual information
- * for decrypting/decoding/presentation of the buffer.
- *
- * Generic media-key and parameters can be included as metadata around the buffer.
- *
- * Many buffer "slices" can (but must not) share one buffer-properties object instance, where that has advantages.
- *
- */
-export class BufferProperties extends PayloadDescriptor {
-
-  static clone(props: BufferProperties) {
-    const newProps = new BufferProperties(props.mimeType,
-      props.sampleDuration, props.sampleDepth, props.samplesCount,
-      props.isBitstreamHeader, props.isKeyframe, props.timestampDelta,
-      props.mediaKey, props.tags);
-    newProps.elementaryStreamId = props.elementaryStreamId;
-    newProps.details = props.details;
-    newProps.codec = props.codec;
-    return newProps;
-  }
-
-  static fromTransferable(props: BufferProperties) {
-    return BufferProperties.clone(props);
-  }
-
-  constructor (
-    mimeType = UNKNOWN_MIMETYPE,
-    sampleDuration = NaN,
-    sampleDepth = NaN,
-      public samplesCount: number = 0,
-      public isBitstreamHeader: boolean = false,
-      public isKeyframe: boolean = false,
-      public timestampDelta: number = 0,
-      public mediaKey: any = null,
-      public tags: Set<string> = new Set()
-  ) {
-    super(mimeType, sampleDuration, sampleDepth);
-    this.samplesCount = samplesCount;
-  }
-
-  clone(): BufferProperties {
-    const newProps = BufferProperties.clone(this);
-    return newProps;
-  }
-
-  getTotalDuration () {
-    return this.sampleDuration * this.samplesCount;
-  }
-}
+import { BufferProperties } from './buffer-props';
 
 /**
  * @class
