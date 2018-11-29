@@ -5,14 +5,12 @@ import { InputSocket, SocketDescriptor, SocketType, OutputSocket, SocketTemplate
 import { getLogger, LoggerLevels } from '../logger';
 
 import { createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom } from '../ext-mod/inspector.js/src';
-
-import { PayloadDescriptor } from '../core/payload-description';
-
 import { Mp4Track } from '../ext-mod/inspector.js/src/demuxer/mp4/mp4-track';
-import { BufferProperties, BufferSlice } from '../core/buffer';
-
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { Esds } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/esds';
+
+import { PayloadDescriptor } from '../core/payload-description';
+import { BufferProperties, BufferSlice } from '../core/buffer';
 
 const { log, warn, debug, error } = getLogger('MP4DemuxProcessor', LoggerLevels.LOG);
 
@@ -71,8 +69,6 @@ export class MP4DemuxProcessor extends Processor {
         for (const trackId in tracks) {
 
           const track: Mp4Track = <Mp4Track> tracks[trackId];
-
-          // track.update();
 
           log(
             'mime-type:', track.mimeType,
@@ -145,7 +141,7 @@ export class MP4DemuxProcessor extends Processor {
 
           }
 
-          const props: BufferProperties = new BufferProperties(
+          const protoProps: BufferProperties = new BufferProperties(
             track.mimeType,
             track.getDefaults() ? track.getDefaults().sampleDuration : 0,
             NaN,
@@ -153,9 +149,17 @@ export class MP4DemuxProcessor extends Processor {
           );
 
           // General time-delta applied to these tracks buffers
-          props.timestampDelta = 0;
+          protoProps.timestampDelta = 0;
 
           track.getFrames().forEach((frame: Frame) => {
+
+            let props = protoProps;
+
+            if (frame.frameType === Frame.IDR_FRAME) {
+              log('got idr-frame at:', frame.timeUs, '[us]')
+              props = protoProps.clone();
+              props.isKeyframe = true;
+            }
 
             const frameSlice = bufferSlice.unwrap(
               frame.bytesOffset,
@@ -166,8 +170,8 @@ export class MP4DemuxProcessor extends Processor {
             const p: Packet = Packet.fromSlice(frameSlice);
 
             // timestamps of this packet
-            p.timestamp = frame.timeUnscaled;
-            p.presentationTimeOffset = frame.ptOffsetUnscaled;
+            p.timestamp = frame.scaledDecodingTime;
+            p.presentationTimeOffset = frame.scaledPresentationTimeOffset;
             p.setTimescale(frame.timescale);
 
             //log('timescale:', frame.timescale)
