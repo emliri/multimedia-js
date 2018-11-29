@@ -187,6 +187,10 @@ export class MP4MuxProcessor extends Processor {
 
       debug('video packet:', p.toString());
 
+      if(bufferSlice.props.isKeyframe) {
+        log('got keyframe at:', p.toString())
+      }
+
       mp4Muxer.pushPacket(
         MP4MuxPacketType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
