@@ -1,10 +1,12 @@
 # Bugs
 
-- Remove all hardcoded values in moz-mp4-mux
+- Clone PayloadDetails when cloning BufferProps (and also add clone method to underlying PayloadDescription)
 
-- Fix sample-table packager sync-frames list bug
+- Move TS-demuxer to worker-proxy mode
 
+- Use proc-task workers for crypto-like things for example
 
+- Remove hardcoded worker binary paths (make configurable)
 
 # Use-Cases
 
@@ -14,39 +16,36 @@
 
 - AAC parse-proc (like for h264)
 
-
-
 # Model design
 
-- Also take care of mime-types and 4cc codec strings properly
+- Take care of mime-types and 4cc codec strings properly
 
+- Remove all the "hard-coded" litteral strings and use codec string enums
 
+- Remove all the litteral numbers (especially duplicated values) and replace by const vars
 
 # Architecture
 
 - Ref-counting of packets via socket transfers (and sealing?)
 
-- Proxy sockets: *** Run each processor on its own worker and use sockets for messaging *** (- Fix Worker/Task scaffold)
-
 - "Seal" processor (no more sockets added/removed)
 
-- "Block" sockets data flow
+- "Block" sockets data flow / Socket "probes" / "filters"
 
-- FIFO buffering on sockets (also when not connected yet)
+- FIFO buffering on sockets (also for when not connected yet)
 
-- Socket "probes" / "filters"
+- RAII all the things
 
 - Handle async proc initialization
   -> Handle case like: where MP4-muxer releases codec-info after
      parsing first bits and MediaSource can only be initialized async
   -> Socket has now `whenReady` promise to handle the async-io-socket case in a non-blocking-RAII-like way
 
-
 # Debugging
 
 - Apply lint rules / Remove console logs
 
-- Filterable logs
+- Filterable logs (configure some env var at build time parsed into respective logger cat-instances)
 
 # Testing
 
