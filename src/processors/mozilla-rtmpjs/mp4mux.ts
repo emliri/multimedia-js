@@ -69,6 +69,8 @@ type CachedPacket = {
   trackId: number;
 }
 
+export const AAC_SAMPLES_PER_FRAME = 1024;
+
 export const SOUNDRATES = [5500, 11025, 22050, 44100];
 
 export const SOUNDFORMATS = [
@@ -131,7 +133,7 @@ export function parseAudiodata (data: Uint8Array): AudioPacket {
   case AAC_SOUND_CODEC_ID:
     var type = data[i++];
     packetType = <AudioPacketType>type;
-    samples = 1024; // AAC implementations typically represent 1024 PCM audio samples
+    samples = AAC_SAMPLES_PER_FRAME; // AAC implementations typically represent 1024 PCM audio samples
     break;
   case MP3_SOUND_CODEC_ID:
     var version = (data[i + 1] >> 3) & 3; // 3 - MPEG 1
@@ -300,7 +302,8 @@ export class MP4Mux {
       forceRaw: boolean = false,
       isInitData: boolean = false,
       isKeyframe: boolean = false,
-      cto: number = 0
+      cto: number = 0,
+      audioDetails: {sampleRate: number, sampleDepth: number, samplesPerFrame: number, numChannels: number} = null,
     ) {
 
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
@@ -313,16 +316,24 @@ export class MP4Mux {
         let audioPacket: AudioPacket;
 
         if (forceRaw) {
+
+          if (!audioDetails) {
+            throw new Error('We need audio-details in raw sample push mode');
+          }
+
+          const {sampleRate, sampleDepth, samplesPerFrame, numChannels} = audioDetails;
+
           audioPacket = {
             data,
             codecId,
             codecDescription: SOUNDFORMATS[codecId],
-            rate: SOUNDRATES[3], // FIXME: hardcoded 44100khz
-            size: 16, // FIXME: hardcoded 16 bit sampledepth
-            channels: 2, // FIXME: hardcoded stereo
-            samples: 1024, // FIXME: hardcoded samples-per-frame/packet
+            rate: sampleRate,
+            size: sampleDepth,
+            channels: numChannels,
+            samples: samplesPerFrame,
             packetType: isInitData ? AudioPacketType.HEADER : AudioPacketType.RAW,
           };
+
         } else {
           audioPacket = parseAudiodata(data);
         }
