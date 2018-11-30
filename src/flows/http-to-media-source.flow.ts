@@ -51,16 +51,6 @@ export class HttpToMediaSourceFlow extends Flow {
 
       if (data.processor === mp4DemuxProc) {
 
-        // FIXME: internalize this and have track props come from payload description
-        /*
-        muxerInputSocket = mp4MuxProc._addVideoTrack(
-          MP4MuxProcessorSupportedCodecs.AVC,
-          25, // fps
-          768, 576, // resolution
-          60 // duration
-        );
-        */
-
         demuxOutputSocket.connect(h264ParseProc.in[0]);
         muxerInputSocket = mp4MuxHlsjsProc.createInput();
         h264ParseProc.out[0].connect(muxerInputSocket);
