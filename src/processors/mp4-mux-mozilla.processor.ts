@@ -338,7 +338,8 @@ export class MP4MuxProcessor extends Processor {
   private _addVideoTrack (
     videoCodec: MP4MuxProcessorSupportedCodecs,
     frameRate: number,
-    width: number, height: number,
+    width: number,
+    height: number,
     durationSeconds: number
     ): MP4Track {
 
