@@ -11,7 +11,8 @@ import {
   MP3_SOUND_CODEC_ID,
   AAC_SOUND_CODEC_ID,
   AVC_VIDEO_CODEC_ID,
-  VP6_VIDEO_CODEC_ID
+  VP6_VIDEO_CODEC_ID,
+  AAC_SAMPLES_PER_FRAME
 } from './mozilla-rtmpjs/mp4mux';
 
 import { isNumber } from '../common-utils';
@@ -114,10 +115,10 @@ export class MP4MuxProcessor extends Processor {
       // FIXME: get actual infos here from input packets
       this._addAudioTrack(
         FORCE_MP3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
-        44100,
-        16,
-        2,
-        86
+        p.defaultPayloadInfo.getSamplingRate(),
+        p.defaultPayloadInfo.sampleDepth,
+        p.defaultPayloadInfo.details.numChannels,
+        0
       );
 
       return true;
@@ -138,10 +139,10 @@ export class MP4MuxProcessor extends Processor {
       this._addVideoTrack(
         MP4MuxProcessorSupportedCodecs.AVC,
         // FIXME: get actual infos here from input packets
-        25, // fps
-        768,
-        576, // resolution
-        86 // duration
+        p.defaultPayloadInfo.getSamplingRate(), // fps
+        p.defaultPayloadInfo.details.width,
+        p.defaultPayloadInfo.details.height, // resolution
+        0 // duration
       );
 
       return true;
@@ -214,6 +215,13 @@ export class MP4MuxProcessor extends Processor {
     const audioTrackMetadata = this.mp4Metadata_.tracks[this.audioTrackIndex_];
     const timescale = audioTrackMetadata.timescale;
 
+    const audioDetails = {
+      sampleDepth: audioTrackMetadata.samplesize,
+      sampleRate: audioTrackMetadata.samplerate,
+      samplesPerFrame: AAC_SAMPLES_PER_FRAME,
+      numChannels: audioTrackMetadata.channels
+    };
+
     p.forEachBufferSlice((bufferSlice) => {
       const mp4Muxer = this.mp4Muxer_;
       const data = bufferSlice.getUint8Array();
@@ -232,7 +240,8 @@ export class MP4MuxProcessor extends Processor {
         true,
         bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.getScaledCto(timescale)
+        p.getScaledCto(timescale),
+        audioDetails
       );
 
       if (!this.keyFramePushed_ &&
