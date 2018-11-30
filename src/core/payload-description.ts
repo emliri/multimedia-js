@@ -200,6 +200,12 @@ export class PayloadDescriptor {
 
 export class PayloadDetails {
 
+  /*
+  clone(details: PayloadDetails) {
+
+  }
+  */
+
   // place to put generic codec init-data // TODO: get rid of number[] here
   codecConfigurationData: Uint8Array | number[] = null
 
