@@ -87,7 +87,7 @@ log('setting new worker instance up ...');
       try {
         subContext.processor = new Processors[procName](...data.args);
       } catch(err) {
-        error('Failure calling processor-constructor caused error:', err);
+        error('Failure calling processor-constructor; caused error:', err);
       }
 
       if (!subContext.processor) {
@@ -201,7 +201,7 @@ log('setting new worker instance up ...');
       try {
         returnVal = (subContext.processor[methodName] as Function)(...data.args);
       } catch(err) {
-        error('Failure calling processor-method caused error:', err);
+        error('Failure calling processor-method:', methodName,'caused error:', err);
       }
 
       if (typeof returnVal === 'object') {

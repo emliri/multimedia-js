@@ -1,6 +1,6 @@
 import { makeUUID_v1 } from "../common-crypto";
 import { getLogger, LoggerLevels } from "../logger";
-import { Processor, ProcessorEvent, ProcessorEventData } from "./processor";
+import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from "./processor";
 import { InputSocket, SocketDescriptor, SocketType, Socket } from "./socket";
 import { Packet, PacketSymbol } from "./packet";
 import { createProcessorFromShellName } from "./processor-factory";
@@ -266,13 +266,13 @@ export class ProcessorProxy extends Processor {
   protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
     // we can do this since we made sure that we wont get any symbolic packets in
     const packet = Packet.makeTransferableCopy(p);
-    this._worker.invokeMethod(this._worker.subContextId, '__invokeRPCPacketHandler__', [packet, inputIndex], packet.mapArrayBuffers());
+    this._worker.invokeMethod(this._worker.subContextId, PROCESSOR_RPC_INVOKE_PACKET_HANDLER, [packet, inputIndex], packet.mapArrayBuffers());
     return true;
   }
 
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
     log('symbol handler:', symbol)
-    this._worker.invokeMethod(this._worker.subContextId, '__invokeRPCPacketHandler__', [Packet.fromSymbol(symbol)]);
+    this._worker.invokeMethod(this._worker.subContextId, PROCESSOR_RPC_INVOKE_PACKET_HANDLER, [Packet.fromSymbol(symbol)]);
     return true; // we return true here because we handle it somehow but generally proxying is disabled
                  // since this is something to be determined by the proxied instance
   }

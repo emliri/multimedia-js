@@ -34,6 +34,8 @@ export type ProcessorEventData = {
 
 export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
+export const PROCESSOR_RPC_INVOKE_PACKET_HANDLER = 'mmjs:processor:RPC:invokePacketHandler';
+
 export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver {
 
     static getName(): string { return null; }
@@ -64,6 +66,20 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       private socketTemplate_: SocketTemplateGenerator = null
       ) {
       super();
+
+      /**
+       * RPC-compatible wrapper for processTransfer_. Avoids to recover a Socket-type object on the remote
+       * for which we don't ensure tranferability i.e for which we don't have a proxy.
+       *
+       * Not supposed to be directly called but to be invoked remotely.
+       *
+       * @param p
+       * @param inputIndex
+       */
+      this[PROCESSOR_RPC_INVOKE_PACKET_HANDLER] = (p: Packet, inputIndex: number) => {
+        this.onReceiveFromInput_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
+      };
+
     }
 
     terminate () {
@@ -320,19 +336,6 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
      */
     protected overrideSocketTemplate(st: SocketTemplateGenerator) {
       this.socketTemplate_ = st;
-    }
-
-    /**
-     * RPC-compatiblity wrapper for processTransfer_. Avoids to recover a Socket-type object on the remote
-     * for which we don't ensure tranferability i.e for which we don't have a proxy.
-     *
-     * Not supposed to be directly called but to be invoked remotely.
-     *
-     * @param p
-     * @param inputIndex
-     */
-    public __invokeRPCPacketHandler__(p: Packet, inputIndex: number) {
-      this.onReceiveFromInput_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
     }
 
 }
