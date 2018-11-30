@@ -2,6 +2,8 @@ import {createWebpackConfig} from './webpack-config-factory'
 
 const configs = []
 
+const path = require('path')
+
 // Main Library
 {
   const entrySrc = './index.ts'
