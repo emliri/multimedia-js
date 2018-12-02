@@ -125,6 +125,22 @@ export class PayloadDescriptor {
     return appendCodecToMimeType(this.mimeType, this.codec);
   }
 
+  getMediaSubtype(): string {
+    return this._getMimeTypePart(1);
+  }
+
+  getMediaType(): string {
+    return this._getMimeTypePart(0);
+  }
+
+  protected _getMimeTypePart(i: number) {
+    try {
+      return this.mimeType.split('/')[i];
+    } catch(err) {
+      throw new Error('Malformed mime-type: ' + this.mimeType);
+    }
+  }
+
   hasCodec(): boolean {
     return !!this.codec;
   }

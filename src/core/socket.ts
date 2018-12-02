@@ -237,6 +237,10 @@ export class InputSocket extends Socket {
     return (<InputSocket> s);
   }
 
+  static fromFunction(func: PacketReceiveCallback): InputSocket {
+    return new InputSocket(func, new SocketDescriptor());
+  }
+
   private onReceive_: PacketReceiveCallback;
 
   constructor (onReceive: PacketReceiveCallback, descriptor: SocketDescriptor) {

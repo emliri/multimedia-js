@@ -3,12 +3,11 @@ import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
-import { ProcessorEvent, ProcessorEventData, Processor } from '../core/processor';
+import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { OutputSocket } from '../core/socket';
-import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
-import { createProcessorWorkerShellAsync, newProcessorWorkerShell } from '../core/processor-factory';
+import { newProcessorWorkerShell } from '../core/processor-factory';
 import { getLogger } from '../logger';
 
 const { log } = getLogger('CombineMp4sToMovFlow');
