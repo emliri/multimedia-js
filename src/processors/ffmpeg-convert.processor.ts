@@ -15,7 +15,8 @@ export class FFmpegConvertProcessor extends Processor {
 
   constructor(
     private _audioConfig: FFmpegConversionTargetInfo = null,
-    private _videoConfig: FFmpegConversionTargetInfo = null) {
+    private _videoConfig: FFmpegConversionTargetInfo = null,
+    private _defaultInputFileExt: string = 'dat') {
 
     super();
 
@@ -40,18 +41,21 @@ export class FFmpegConvertProcessor extends Processor {
   protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
 
     let inputFileExt: string = p.defaultPayloadInfo.getMediaSubtype();
-
     if (inputFileExt === '*') {
-      inputFileExt = 'data';
+      inputFileExt = this._defaultInputFileExt;
     }
 
     p.forEachBufferSlice((bs) => {
 
-      const outData = this.ffmpeg_.convertAVFile(
+      const outData: Uint8Array = this.ffmpeg_.convertAVFile(
         bs.getUint8Array(),
         inputFileExt,
         this._audioConfig,
         this._videoConfig);
+
+      if (!outData) {
+        return;
+      }
 
       let outputMimeType = null;
       // TODO: improve the mapping here

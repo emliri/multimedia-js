@@ -7,15 +7,33 @@ import ffmpegWebmToolchain from 'ffmpeg.js/ffmpeg-webm';
 // for now let's try to rely on a global install or some other delegation of the problem to the user by dependency injection
 
 import { getLogger } from '../../logger';
-import { noop } from '../../common-utils';
+import { noop, lastOfArray } from '../../common-utils';
 
-const {debug, log, error} = getLogger('ffmpeg-tool');
+const {debug, log, warn, error} = getLogger('ffmpeg-tool');
 
 export type FFmpegToolchainExeWrapper = any; // FIXME: any as placeholder (need to create type-definitions or wrapper of ffmpeg.js API)
 
 export type FFmpegFileItem = {name: string, data: Uint8Array};
 
 export type FFmpegConversionTargetInfo = {targetCodec: string, targetFiletypeExt, targetBitrateKbps: number}
+
+// TODO: ...
+export class FFmpegStdPipeBuffer {
+/**
+    let stdErrBytesCount = 0;
+    const stderrData: number[] = [];
+    const onStdErrChar = (byte: number) => {
+      stdErrBytesCount++;
+      stderrData.push(byte);
+
+      //debug(`wrote ${stdErrBytesCount} bytes to stderr`);
+      if (this._onStdErrPipeByte) {
+        this._onStdErrPipeByte(byte, stdErrBytesCount);
+      }
+    }
+
+ */
+}
 
 export class FFmpegTool {
 
@@ -30,7 +48,11 @@ export class FFmpegTool {
   }
   */
 
-  constructor(public ffmpeg: FFmpegToolchainExeWrapper) {}
+  constructor(
+    public ffmpeg: FFmpegToolchainExeWrapper,
+    private _onStdErrPipeByte: (newByte: number, bytesCount: number) => void = null,
+    private _onStdOutPipeByte: (newByte: number, bytesCount: number) => void = null
+    ) {}
 
   /**
    * Slightly low-level method, better use a more convenient wrapper if it can fit your purpose.
@@ -47,6 +69,33 @@ export class FFmpegTool {
    * @param ffmpegArguments
    */
   runWithOneInputFile(inputFile: FFmpegFileItem, ffmpegArguments: string[]): FFmpegFileItem {
+
+    // TODO: use FFmpegStdPipeBuffer class
+
+    let stdErrBytesCount = 0;
+    const stderrData: number[] = [];
+    const onStdErrChar = (byte: number) => {
+      stdErrBytesCount++;
+      stderrData.push(byte);
+
+      //debug(`wrote ${stdErrBytesCount} bytes to stderr`);
+      if (this._onStdErrPipeByte) {
+        this._onStdErrPipeByte(byte, stdErrBytesCount);
+      }
+    }
+
+    let stdOutBytesCount = 0;
+    const stdoutData: number[] = [];
+    const onStdOutChar = (byte: number) => {
+      stdOutBytesCount++;
+      stdoutData.push(byte);
+
+      debug(`wrote ${stdOutBytesCount} bytes to stdout`);
+      if (this._onStdOutPipeByte) {
+        this._onStdOutPipeByte(byte, stdErrBytesCount);
+      }
+    }
+
     const {ffmpeg} = this;
     let out = null;
     try {
@@ -55,13 +104,36 @@ export class FFmpegTool {
         arguments: ffmpegArguments,
         // Ignore stdin read requests
         stdin: noop,
-        stdout: noop,
-        stderr: noop
+        stdout: onStdOutChar,
+        stderr: onStdErrChar
       });
       out = result.MEMFS[0];
     } catch(err) {
       error('Running FFmpeg conversion tool failed with an error:', err);
     }
+
+    debug('dumping stderr temp-buffer:', String.fromCharCode(...stderrData))
+
+    if (!out) {
+      // FIXME: this seems to happen with certain x-wav files for some reason
+
+      warn('no memfs item returned, using temp-buffer on stdout to pass out result data (working around known issue with wav files)');
+
+      error('no stdout bytes captured (this is a ffmpeg.js issue most likely)');
+
+      // the approach below would work if we would actually get some data
+      /*
+      if (bytesCount === 0) {
+        error('no bytes written; maybe bad input data, aborting');
+        return null;
+      }
+      out = {
+        name: lastOfArray(ffmpegArguments),
+        data: new Uint8Array(outputData)
+      }
+      */
+    }
+
     return out;
   }
 
@@ -109,6 +181,7 @@ export class FFmpegTool {
 
     const outFile = this.runWithOneInputFile(inputFile, args);
     if (!outFile) {
+      warn('no output file created');
       return null;
     }
     return outFile.data;
