@@ -13,7 +13,7 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
     audioFileInput.type = 'file';
     audioFileInput.id = 'audioFileInput';
-    audioFileInput.accept = 'audio/mp4';
+    audioFileInput.accept = 'audio/mp4,audio/mpeg';
 
     videoFileInput.type = 'file';
     videoFileInput.id = 'videoFileInput';
@@ -51,13 +51,24 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
     processButton.onclick = () => {
 
-      const videoUrl = videoFileInput.files[0] ? URL.createObjectURL(videoFileInput.files[0]) : '/test-data/mp4/v-0576p-1400k-libx264.mov';
-      const audioUrl = audioFileInput.files[0] ? URL.createObjectURL(audioFileInput.files[0]) : '/test-data/mp4/KickOutTheJams.mp4';
+      const audioFile: File = audioFileInput.files[0];
+      const videoFile: File = videoFileInput.files[0];
+
+      console.log('selected audio file:', audioFile)
+      console.log('selected video file:', videoFile)
+
+      const videoUrl = videoFile ? URL.createObjectURL(videoFile) : '/test-data/mp4/v-0576p-1400k-libx264.mov';
+      const audioUrl = audioFile ? URL.createObjectURL(audioFile) : '/test-data/mp4/KickOutTheJams.mp4';
+
+      // "good guess"
+      const isMp3Audio = audioFile.name.endsWith('.mp3');
 
       this._flow = new CombineMp4sToMovFlow(
         videoUrl,
         audioUrl,
-        document.querySelector('#root'));
+        document.querySelector('#root'),
+        isMp3Audio
+      );
 
     }
 

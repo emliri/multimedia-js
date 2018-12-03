@@ -34,14 +34,15 @@ export class FFmpegFlow extends MmjsTestCase {
 
     const ffmpegProc = newProcessorWorkerShell(
       unsafeProcessorType(FFmpegConvertProcessor),
-      [audioConfig, null, 'wav'],
+      [audioConfig, null],
       ['/vendor/ffmpeg.js/ffmpeg-mp4.js']
     );
 
     const fileDownloadSocket = new WebFileDownloadSocket(
       document.querySelector('#root'),
       'audio/mp4',
-      makeTemplate("ffmpeg-output${counter}.mp4"));
+      makeTemplate("ffmpeg-output${counter}.mp4")
+    );
 
     /*
     xhrSocket.connect(InputSocket.fromFunction((p: Packet) => {

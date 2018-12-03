@@ -7,14 +7,17 @@ import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { OutputSocket } from '../core/socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
-import { newProcessorWorkerShell } from '../core/processor-factory';
+import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-factory';
 import { getLogger } from '../logger';
+import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
+import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
+import { makeTemplate } from '../common-utils';
 
 const { log } = getLogger('CombineMp4sToMovFlow');
 
 export class CombineMp4sToMovFlow extends Flow {
 
-  constructor (videoMp4Url: string, audioUrl: string, downloadLinkContainer: HTMLElement) {
+  constructor (videoMp4Url: string, audioUrl: string, downloadLinkContainer: HTMLElement, isMp3Audio: boolean = false) {
 
     super(
       (prevState, newState) => {
@@ -26,6 +29,24 @@ export class CombineMp4sToMovFlow extends Flow {
     );
 
     {
+      debugger;
+      let ffmpegAacTranscodeProc = null;
+      if (isMp3Audio) { // the url might point to a blob so the file extension is not a criteria
+
+        const audioConfig: FFmpegConversionTargetInfo = {
+          targetBitrateKbps: 256,
+          targetCodec: 'aac',
+          targetFiletypeExt: 'mp4'
+        }
+
+        ffmpegAacTranscodeProc = newProcessorWorkerShell(
+          unsafeProcessorType(FFmpegConvertProcessor),
+          [audioConfig, null],
+          ['/vendor/ffmpeg.js/ffmpeg-mp4.js']
+        );
+
+      }
+
       const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor)
       const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
       const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
@@ -44,13 +65,23 @@ export class CombineMp4sToMovFlow extends Flow {
       */
 
       const downloadSocket: WebFileDownloadSocket
-        = new WebFileDownloadSocket(downloadLinkContainer, 'video/quicktime', '`buffer${counter}-${Date.now()}.mp4`');
+        = new WebFileDownloadSocket(downloadLinkContainer, 'video/quicktime', makeTemplate('buffer${counter}-${Date.now()}.mp4'));
 
       const destinationSocket = downloadSocket;
 
-      let mp4DemuxProcAudio = null;
+      let mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
 
+      // hook up transcoding stage
+      let mp4AudioOutSocket = xhrSocketAudioFile;
+      if (ffmpegAacTranscodeProc) {
+        xhrSocketAudioFile.connect(ffmpegAacTranscodeProc.in[0]);
+        mp4AudioOutSocket = ffmpegAacTranscodeProc.out[0];
+      }
+      mp4AudioOutSocket.connect(mp4DemuxProcAudio.in[0]);
+
+      // DEPRECATED: support for mp3 ES in MP4 file (untranscoded)
       // wire up audio data source
+      /*
       if (audioUrl.endsWith('.mp3')) {
         xhrSocketAudioFile.connect(mp3ParseProc.in[0]);
         mp3ParseProc.out[0].connect(muxerAudioInput);
@@ -59,6 +90,7 @@ export class CombineMp4sToMovFlow extends Flow {
         mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
         xhrSocketAudioFile.connect(mp4DemuxProcAudio.in[0]);
       }
+      */
 
       // wire up video
       xhrSocketMovFile.connect(mp4DemuxProcVideo.in[0]);
