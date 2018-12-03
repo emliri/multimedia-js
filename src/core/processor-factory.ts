@@ -36,25 +36,30 @@ export function getProcessorConstructorByName(factoryName: string): typeof Proce
   return Processors[factoryName];
 }
 
-export function createProcessorFromConstructor(ProcessorConstructor: typeof Processor): Processor {
-  return new (<any> ProcessorConstructor)();
+export function createProcessorFromConstructor(ProcessorConstructor: typeof Processor, args: any[] = []): Processor {
+  return new (<any> ProcessorConstructor)(...args);
 }
 
-export function createProcessorFromShellName(factoryName: string): Processor {
-  return createProcessorFromConstructor(getProcessorConstructorByName(factoryName));
+export function createProcessorFromShellName(factoryName: string, args?: any[]): Processor {
+  return createProcessorFromConstructor(getProcessorConstructorByName(factoryName), args);
 }
 
-export function newProcessorWorkerShell(procConstructor: typeof Processor, onReady: VoidCallback = noop): ProcessorProxy {
+export function newProcessorWorkerShell(
+  procConstructor: typeof Processor,
+  args?: any[],
+  importScriptPaths?: string[],
+  onReady: VoidCallback = noop): ProcessorProxy {
+
   const name = procConstructor.getName();
   if (!name) {
     throw new Error('Can not use factory, static name is not defined');
   }
-  return new ProcessorProxy(name, onReady);
+  return new ProcessorProxy(name, onReady, args, importScriptPaths);
 };
 
 export const newProc = newProcessorWorkerShell; // shorthand
 
-export function createProcessorWorkerShellAsync(factoryName: string, timeoutMs: number = 1000): Promise<ProcessorProxy> {
+export function createProcessorWorkerShellAsync(factoryName: string, args: any[] = [], timeoutMs: number = 1000): Promise<ProcessorProxy> {
   return new Promise<ProcessorProxy>((resolve, reject) => {
     const proc = new ProcessorProxy(factoryName, () => {
       const timeout = setTimeout(() => {
@@ -62,9 +67,16 @@ export function createProcessorWorkerShellAsync(factoryName: string, timeoutMs: 
       }, timeoutMs)
       clearTimeout(timeout);
       resolve(proc);
-    })
-  })
+    }, args);
+  });
+}
 
+export function checkProcessorType(procType: any) {
+  return typeof procType.getName === 'function' && procType.getName() !== null
+};
+
+export function unsafeProcessorType(procType: any) {
+  return <typeof Processor> procType;
 }
 
 

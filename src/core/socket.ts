@@ -5,6 +5,7 @@ import { getLogger, makeLogTimestamped, LoggerLevels } from '../logger';
 import { Signal, SignalHandler, SignalReceiver, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 
 import { dispatchAsyncTask } from '../common-utils';
+import { Output } from 'webpack';
 
 const { log, error } = getLogger('Socket', LoggerLevels.ERROR);
 
@@ -297,7 +298,7 @@ export class OutputSocket extends Socket {
   /**
    * {Socket} Another socket to which this socket transfers data ownership to.
    */
-  connect (s: Socket) {
+  connect (s: Socket): OutputSocket {
     if (!s) {
       throw new Error('Socket connect called with ' + s);
     }
@@ -318,7 +319,7 @@ export class OutputSocket extends Socket {
    * If socket passed is not a peer socket, will throw an error.
    * @param s
    */
-  disconnect (s: Socket = null) {
+  disconnect (s: Socket = null): OutputSocket {
     if (!s) {
       if (this.hasPeers()) {
         this.peers_.splice(0, this.peers_.length);

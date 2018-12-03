@@ -8,7 +8,7 @@ import { VoidCallback } from "../common-types";
 
 const PROXY_WORKER_PATH = '/dist/MMProcessorProxyWorker.umd.js'; // FIXME nasty HACK!! -> make this configurable
 
-const { log, debug, error } = getLogger(`ProcessorProxy`, LoggerLevels.LOG);
+const { log, debug, warn, error } = getLogger(`ProcessorProxy`, LoggerLevels.LOG);
 
 export enum ProcessorProxyWorkerMessage {
   SPAWN = 'spawn',
@@ -57,6 +57,7 @@ export type ProcessorProxyWorkerSubContext = {
 export class ProcessorProxyWorker {
 
   private _subContextId: number = null;
+  private _gotSpawnCallback: boolean = false;
   private _worker: Worker = null
 
   constructor(
@@ -64,7 +65,7 @@ export class ProcessorProxyWorker {
     private _onCreated: VoidCallback,
     private _onTransfer: (value: ProcessorProxyWorkerCallbackTransferValue) => void,
     private _onMethodReturn: (retValue: any) => void,
-    private _onEvent: (event: ProcessorEvent) => void,
+    private _onEvent: (event: ProcessorEvent) => void
   ) {
 
     try {
@@ -87,6 +88,7 @@ export class ProcessorProxyWorker {
       switch (callbackData.callback) {
       case ProcessorProxyWorkerCallback.SPAWNED: {
         this._subContextId = callbackData.value;
+        this._gotSpawnCallback = true;
         this._onSpawned();
         break;
       }
@@ -119,12 +121,13 @@ export class ProcessorProxyWorker {
     return this._subContextId || 0;
   }
 
-  spawn() {
+  spawn(importScriptPaths: string[] = []) {
+    const args = importScriptPaths;
     log('spawn called')
     const message: ProcessorProxyWorkerMessageData = {
       message: ProcessorProxyWorkerMessage.SPAWN,
       subContextId: null,
-      args: null
+      args
     }
     this._worker.postMessage(message);
   }
@@ -151,6 +154,9 @@ export class ProcessorProxyWorker {
 
   invokeMethod(subContextId, methodName: string, methodArgs: any[], transferrables?: ArrayBuffer[]) {
     debug('invoke method called:', methodName)
+    if (!this._gotSpawnCallback) {
+      warn(`did not get 'spawned' callback message yet, but posting message to remote-invoke method (will be queued): '${methodName}'`);
+    }
     const message: ProcessorProxyWorkerMessageData = {
       message: ProcessorProxyWorkerMessage.INVOKE_METHOD,
       subContextId,
@@ -165,11 +171,12 @@ export class ProcessorProxy extends Processor {
 
   private _worker: ProcessorProxyWorker;
   private _isReady: boolean = false;
-  private _protoInstanceSocketsCreated = 0;
 
   constructor(
-    readonly processorShellName: string, // TODO: pass in constructor instead and do factory stuff outside of here
-    onReady: VoidCallback
+    private readonly _processorShellName: string, // TODO: pass in constructor instead and do factory stuff outside of here
+    onReady: VoidCallback,
+    private readonly _processorArgs: any[] = [],
+    private readonly _importScriptPaths: string[] = []
   ) {
     super();
 
@@ -183,7 +190,7 @@ export class ProcessorProxy extends Processor {
     }
 
     const onCreated = () => {
-      log(`processor-proxy for shell-name ${this.processorShellName} is ready`);
+      log(`processor-proxy for shell-name ${_processorShellName} is ready`);
       this._isReady = true;
       onReady();
     }
@@ -243,10 +250,13 @@ export class ProcessorProxy extends Processor {
     );
 
     // all these "commands" will get queued by the worker thread anyway, we don't need to worry about synchronization at this point
-    this._worker.spawn();
-    this._worker.create(this._worker.subContextId, this.processorShellName, []);
+    this._worker.spawn(_importScriptPaths);
+    this._worker.create(this._worker.subContextId, _processorShellName, _processorArgs);
     this._initShellFromProtoInstance();
+  }
 
+  get workerShellProcName(): string {
+    return this._processorShellName;
   }
 
   get isReady() {
@@ -266,13 +276,22 @@ export class ProcessorProxy extends Processor {
   protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
     // we can do this since we made sure that we wont get any symbolic packets in
     const packet = Packet.makeTransferableCopy(p);
-    this._worker.invokeMethod(this._worker.subContextId, PROCESSOR_RPC_INVOKE_PACKET_HANDLER, [packet, inputIndex], packet.mapArrayBuffers());
+    this._worker.invokeMethod(
+      this._worker.subContextId,
+      PROCESSOR_RPC_INVOKE_PACKET_HANDLER,
+      [packet, inputIndex],
+      packet.mapArrayBuffers()
+    );
     return true;
   }
 
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
     log('symbol handler:', symbol)
-    this._worker.invokeMethod(this._worker.subContextId, PROCESSOR_RPC_INVOKE_PACKET_HANDLER, [Packet.fromSymbol(symbol)]);
+    this._worker.invokeMethod(
+      this._worker.subContextId,
+      PROCESSOR_RPC_INVOKE_PACKET_HANDLER,
+      [Packet.fromSymbol(symbol)]
+    );
     return true; // we return true here because we handle it somehow but generally proxying is disabled
                  // since this is something to be determined by the proxied instance
   }
@@ -287,7 +306,7 @@ export class ProcessorProxy extends Processor {
 
   private _initShellFromProtoInstance() {
     // make a utility like this to "clone" a proc ?
-    const protoInstance = createProcessorFromShellName(this.processorShellName);
+    const protoInstance = createProcessorFromShellName(this._processorShellName, this._processorArgs);
     // we are basically probing the proto instance of the proc and creating a clone of its template-generator function
     const socketTemplateGenerator = SocketDescriptor.createTemplateGenerator(
       protoInstance.templateSocketDescriptor(SocketType.INPUT),
@@ -301,7 +320,6 @@ export class ProcessorProxy extends Processor {
     protoInstance.out.forEach(() => {
       super.createOutput();
     });
-    this._protoInstanceSocketsCreated = protoInstance.in.length + protoInstance.out.length;
   }
 
   // TODO: figure what to do about signals...

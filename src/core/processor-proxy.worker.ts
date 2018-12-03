@@ -13,6 +13,11 @@ import { getLogger, LoggerLevels } from "../logger";
 
 import { Processors } from '../../index';
 
+/**
+ * https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/importScripts
+ */
+declare var importScripts: (...paths: string[]) => void
+
 const workerId = makeUUID_v1();
 const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevels.LOG);
 
@@ -47,6 +52,23 @@ log('setting new worker instance up ...');
         name: null
       }
       subContexts.push(subContext);
+
+      let failed = false;
+      data.args && data.args.forEach((scriptPath) => {
+        log('loading script for external dependency:', scriptPath);
+        try {
+          importScripts(scriptPath)
+        } catch(err) {
+          warn(`error in imported script: '${scriptPath}'`);
+          error(err);
+          failed = true;
+        }
+      });
+
+      if (failed) {
+        error('loading external scripts failed; aborting');
+        return;
+      }
 
       const callbackData: ProcessorProxyWorkerCallbackData = {
         callback: ProcessorProxyWorkerCallback.SPAWNED,
@@ -191,13 +213,22 @@ log('setting new worker instance up ...');
       break;
     }
     case ProcessorProxyWorkerMessage.INVOKE_METHOD: {
+
       const subContext = getSubContextById(data.subContextId);
       if (typeof data.args[0] !== 'string') {
         throw new Error('Call needs string method-name as first argument');
       }
+
       // stuff that might crash...
       let returnVal;
       const methodName = data.args.shift();
+
+      if (!subContext.processor) {
+        error('attempt to invoke method, but no processor instance spawned in context:', methodName,
+          '; sub-context id:', subContext.id);
+        return;
+      }
+
       try {
         returnVal = (subContext.processor[methodName] as Function)(...data.args);
       } catch(err) {

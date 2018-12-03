@@ -18,6 +18,7 @@ import { LambdaProcessor } from './src/processors/lambda.processor';
 
 import { MP3ParseProcessor } from './src/processors/mp3-parse.processor';
 import { H264ParseProcessor } from './src/processors/h264-parse.processor';
+import { FFmpegConvertProcessor } from './src/processors/ffmpeg-convert.processor';
 
 import { MP4MuxProcessor } from './src/processors/mp4-mux-mozilla.processor';
 import { MP4MuxHlsjsProcessor } from './src/processors/mp4-mux-hlsjs.processor';
@@ -80,7 +81,8 @@ export const Processors = {
   MP4DemuxProcessor,
   MPEGTSDemuxProcessor,
   BroadwayProcessor,
-  LambdaProcessor
+  LambdaProcessor,
+  FFmpegConvertProcessor
 };
 
 export const IoSockets = {

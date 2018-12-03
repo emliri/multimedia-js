@@ -65,6 +65,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
       private onSignal_: SignalHandler = null,
       private socketTemplate_: SocketTemplateGenerator = null
       ) {
+
       super();
 
       /**
@@ -90,6 +91,9 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     // maybe better call protoSocketDescriptor as in prototype pattern?
     templateSocketDescriptor(socketType: SocketType): SocketDescriptor {
+      if (!this.socketTemplate_) {
+        throw new Error('No socket-template generator function set');
+      }
       return this.socketTemplate_(socketType);
     }
 

@@ -31,8 +31,6 @@ export class H264ParseProcessor extends Processor {
 
     this.createInput();
     this.createOutput();
-
-
   }
 
   templateSocketDescriptor (st: SocketType): SocketDescriptor {

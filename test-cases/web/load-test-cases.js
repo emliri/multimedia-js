@@ -1,13 +1,13 @@
 var rootEl = document.getElementById('root');
 
 var testCases = [];
-
+let i = 0;
 for (var caseName in MMTestCasesWeb) {
   if (caseName === 'mmjs') {
     continue;
   }
   var TestCase =  MMTestCasesWeb[caseName];
-  console.log('Initializing test-case:', caseName);
+  console.log(`Initializing test-case #${i++}:`, caseName);
   testCases.push([new TestCase(rootEl), caseName]);
 }
 

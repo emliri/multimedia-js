@@ -8,7 +8,7 @@ import ffmpegWebmToolchain from 'ffmpeg.js/ffmpeg-webm';
 
 import { getLogger } from '../../logger';
 
-const {debug, log, error} = getLogger('ffmpeg');
+const {debug, log, error} = getLogger('ffmpeg-tool');
 
 export type FFmpegToolchainExeWrapper = any; // FIXME: any as placeholder (need to create type-definitions or wrapper of ffmpeg.js API)
 
@@ -52,12 +52,12 @@ export class FFmpegTool {
       const result = ffmpeg({
         MEMFS: [inputFile],
         arguments: ffmpegArguments,
-        // Ignore stdin read requests.
+        // Ignore stdin read requests
         stdin: function() {},
       });
       out = result.MEMFS[0];
     } catch(err) {
-      error('Running FFmpeg failed with an error:', err);
+      error('Running FFmpeg conversion tool failed with an error:', err);
     }
     return out;
   }
@@ -90,15 +90,24 @@ export class FFmpegTool {
 
     const outFilename = `output.${outputFileExt}`;
 
-    const args = [
-      '-i', inputFile.name,
-      '-c:a', audioConfig.targetCodec, '-b:a', `${audioConfig.targetBitrateKbps}k`,
-      '-c:v', videoConfig.targetCodec, '-b:v', `${videoConfig.targetBitrateKbps}k`,
-      outFilename
+    let args: string[] = ['-i', inputFile.name];
 
-    ].concat(extraArgs);
+    if (audioConfig) {
+      args = args.concat(['-c:a', audioConfig.targetCodec, '-b:a', `${audioConfig.targetBitrateKbps}k`])
+    }
+
+    if (videoConfig) {
+      args = args.concat(['-c:v', videoConfig.targetCodec, '-b:v', `${videoConfig.targetBitrateKbps}k`]);
+    }
+
+    args = args.concat([outFilename], extraArgs);
+
+    log(`calling ffmpeg tool with args: "${args.join(' ')}"`);
 
     const outFile = this.runWithOneInputFile(inputFile, args);
+    if (!outFile) {
+      return null;
+    }
     return outFile.data;
   }
 
@@ -122,7 +131,7 @@ export class FFmpegTool {
     let stdout = "";
     let stderr = "";
     const {ffmpeg} = this;
-    return new Promise<string>((res, rej) => {
+    return new Promise<string>((resolve, reject) => {
       // Print FFmpeg's version
       ffmpeg({
         arguments: ["-version"],
@@ -137,9 +146,9 @@ export class FFmpegTool {
         onExit: function(code) {
           log("Virtual process exited with code " + code);
           if (code === 0) {
-            res(stdout);
+            resolve(stdout);
           } else {
-            rej(stderr);
+            reject(stderr);
           }
         },
       });
