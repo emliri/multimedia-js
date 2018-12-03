@@ -7,6 +7,7 @@ import ffmpegWebmToolchain from 'ffmpeg.js/ffmpeg-webm';
 // for now let's try to rely on a global install or some other delegation of the problem to the user by dependency injection
 
 import { getLogger } from '../../logger';
+import { noop } from '../../common-utils';
 
 const {debug, log, error} = getLogger('ffmpeg-tool');
 
@@ -53,7 +54,9 @@ export class FFmpegTool {
         MEMFS: [inputFile],
         arguments: ffmpegArguments,
         // Ignore stdin read requests
-        stdin: function() {},
+        stdin: noop,
+        stdout: noop,
+        stderr: noop
       });
       out = result.MEMFS[0];
     } catch(err) {
@@ -102,7 +105,7 @@ export class FFmpegTool {
 
     args = args.concat([outFilename], extraArgs);
 
-    log(`calling ffmpeg tool with args: "${args.join(' ')}"`);
+    log(`calling main with args: "${args.join(' ')}"`);
 
     const outFile = this.runWithOneInputFile(inputFile, args);
     if (!outFile) {
