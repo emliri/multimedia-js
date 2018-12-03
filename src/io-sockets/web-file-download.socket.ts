@@ -1,12 +1,12 @@
 import { InputSocket, SocketDescriptor } from "../core/socket";
 
 import { Packet } from "../core/packet";
-import { concatArrayBuffers } from "../common-utils";
+import { concatArrayBuffers, makeTemplate } from "../common-utils";
 import { UNKNOWN_MIMETYPE } from "../core/payload-description";
 import { getLogger } from "../logger";
 
-export const DEFAULT_FILENAME_TEMPLATE = "`buffer${counter}-${Date.now()}.data`";
-export const DEFAULT_HTML_TEMPLATE = "`<p>Download ${fileName}</p>`";
+export const DEFAULT_FILENAME_TEMPLATE = makeTemplate("buffer${counter}-${Date.now()}.data");
+export const DEFAULT_HTML_TEMPLATE = makeTemplate("<p>Download ${fileName}</p>");
 
 const {debug} = getLogger('FileDownloadSocket');
 

@@ -4,6 +4,20 @@ export const noop = () => {};
 
 /**
  *
+ * @param s template-able string value.
+ * ex: template ```var s = `${myvar}` ``` is equivalent to ```var t = makeTemplate("${myvar}"); s = eval(t)```
+ * sometimes it can be useful to define the form of a template without evaluating it,
+ * but pass it to the component that will do that later and thus separate these two steps as shown above.
+ * notice that the variables used in the prepared template can only relate to the scope(s) in which
+ * the template effectively gets evaluated, not where it gets created with this function here.
+ * if you want to evaluate values from one specific context to a string, but delegate the evaluation, use OOP or a closure.
+ * @returns {string} value that can be passed to `eval` in order to be evaluated as a template.
+ *
+ */
+export function makeTemplate(s: string): string { return `\`${s}\`` }
+
+/**
+ *
  * @returns true on finite values, false on Infinity
  *          returns false on anything that is not convertible to a number (when not a number type), see isConvertibleToNumber
  */
