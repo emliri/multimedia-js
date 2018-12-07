@@ -28,6 +28,7 @@ import { MPEGTSDemuxProcessor } from './src/processors/mpeg-ts-demux.processor';
 import { BroadwayProcessor } from './src/processors/broadway.processor';
 
 import { HttpToMediaSourceFlow } from './src/flows/http-to-media-source.flow';
+import { CombineMp4sToMovFlow } from './src/flows/combine-mp4s-to-mov.flow';
 
 import * as Utils from './src/common-utils';
 import * as Crypto from './src/common-crypto';
@@ -50,6 +51,7 @@ import { Flow } from './src/core/flow';
 import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
 import { HTML5MediaSourceBufferSocket } from './src/io-sockets/html5-media-source-buffer.socket';
 import { WebFileDownloadSocket } from './src/io-sockets/web-file-download.socket';
+import { EnvironmentVars } from './src/core/env';
 
 export const Common = {
   Utils,
@@ -94,6 +96,11 @@ export const IoSockets = {
   // NodeFsWriteSocket
 };
 
-export const Flows = { HttpToMediaSourceFlow };
+export const Flows = {
+  HttpToMediaSourceFlow,
+  CombineMp4sToMovFlow
+};
+
+export {EnvironmentVars} from './src/core/env';
 
 
