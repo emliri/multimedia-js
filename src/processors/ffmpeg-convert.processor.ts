@@ -25,10 +25,11 @@ export class FFmpegConvertProcessor extends Processor {
     }
 
     if (!(self as any).ffmpeg) {
-      throw new Error('`ffmpeg` not found in global scope');
+      //throw new Error('`ffmpeg` not found in global scope');
+      console.warn('`ffmpeg` not found in global scope');
+    } else {
+      this.ffmpeg_ = new FFmpegTool(ffmpeg);
     }
-
-    this.ffmpeg_ = new FFmpegTool(ffmpeg);
 
     this.createInput();
     this.createOutput();
