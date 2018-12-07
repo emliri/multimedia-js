@@ -12,6 +12,7 @@ import { getLogger } from '../logger';
 import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
 import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
 import { makeTemplate } from '../common-utils';
+import { EnvironmentVars } from "../core/env";
 
 const { log } = getLogger('CombineMp4sToMovFlow');
 
@@ -29,7 +30,6 @@ export class CombineMp4sToMovFlow extends Flow {
     );
 
     {
-      debugger;
       let ffmpegAacTranscodeProc = null;
       if (isMp3Audio) { // the url might point to a blob so the file extension is not a criteria
 
@@ -39,10 +39,12 @@ export class CombineMp4sToMovFlow extends Flow {
           targetFiletypeExt: 'mp4'
         }
 
+        log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH)
+
         ffmpegAacTranscodeProc = newProcessorWorkerShell(
           unsafeProcessorType(FFmpegConvertProcessor),
           [audioConfig, null],
-          ['/vendor/ffmpeg.js/ffmpeg-mp4.js']
+          [EnvironmentVars.FFMPEG_BIN_PATH]
         );
 
       }

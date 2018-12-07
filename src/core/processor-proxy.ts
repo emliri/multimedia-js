@@ -5,8 +5,7 @@ import { InputSocket, SocketDescriptor, SocketType, Socket } from "./socket";
 import { Packet, PacketSymbol } from "./packet";
 import { createProcessorFromShellName } from "./processor-factory";
 import { VoidCallback } from "../common-types";
-
-const PROXY_WORKER_PATH = '/dist/MMProcessorProxyWorker.umd.js'; // FIXME nasty HACK!! -> make this configurable
+import {EnvironmentVars} from "../core/env";
 
 const { log, debug, warn, error } = getLogger(`ProcessorProxy`, LoggerLevels.LOG);
 
@@ -67,6 +66,8 @@ export class ProcessorProxyWorker {
     private _onMethodReturn: (retValue: any) => void,
     private _onEvent: (event: ProcessorEvent) => void
   ) {
+
+    const PROXY_WORKER_PATH = EnvironmentVars.PROXY_WORKER_PATH;
 
     try {
       this._worker = new Worker(PROXY_WORKER_PATH);
