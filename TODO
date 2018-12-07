@@ -1,3 +1,7 @@
+# Build
+
+- Analyze package size
+
 # Bugs
 
 - Clone PayloadDetails when cloning BufferProps (and also add clone method to underlying PayloadDescription)
