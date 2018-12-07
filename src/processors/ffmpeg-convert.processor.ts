@@ -25,9 +25,9 @@ export class FFmpegConvertProcessor extends Processor {
     }
 
     if (!(self as any).ffmpeg) {
-      //throw new Error('`ffmpeg` not found in global scope');
       console.warn('`ffmpeg` not found in global scope');
     } else {
+      // TODO: allow to set/init this in a deferred way and with deps-injection
       this.ffmpeg_ = new FFmpegTool(ffmpeg);
     }
 
@@ -44,6 +44,10 @@ export class FFmpegConvertProcessor extends Processor {
     let inputFileExt: string = p.defaultPayloadInfo.getMediaSubtype();
     if (inputFileExt === '*') {
       inputFileExt = this._defaultInputFileExt;
+    }
+
+    if (!this.ffmpeg_) {
+      throw new Error(`FFmpeg tool wrapper not initialized`);
     }
 
     p.forEachBufferSlice((bs) => {
