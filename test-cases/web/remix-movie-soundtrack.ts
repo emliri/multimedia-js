@@ -61,7 +61,7 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
       const audioUrl = audioFile ? URL.createObjectURL(audioFile) : '/test-data/mp4/KickOutTheJams.mp4';
 
       // "good guess"
-      const isMp3Audio = audioFile.name.endsWith('.mp3');
+      const isMp3Audio = audioFile && audioFile.name.endsWith('.mp3');
 
       this._flow = new CombineMp4sToMovFlow(
         videoUrl,

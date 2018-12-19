@@ -8,7 +8,7 @@ import { getLogger } from "../logger";
 import * as FileSaver from 'file-saver';
 
 export const DEFAULT_FILENAME_TEMPLATE = makeTemplate("buffer${counter}-${Date.now()}.data");
-export const DEFAULT_HTML_TEMPLATE = makeTemplate("<p>Download ${fileName}</p>");
+export const DEFAULT_HTML_TEMPLATE = makeTemplate("<p>Download ${filename}</p>");
 
 const {debug} = getLogger('FileDownloadSocket');
 
@@ -21,7 +21,7 @@ export class WebFileDownloadSocket extends InputSocket {
    *
    * @param _downloadLinkContainer an HTML element to create a link in with the given templates or `null` and then FileSaver will spawn a dialog @see https://github.com/eligrey/FileSaver.js
    * @param _fileNameTemplate can contain the local var `counter` as well as access public and private members via `this`, see default
-   * @param _htmlTemplate can contain the local var `fileName` which will be whatever the respective template string has eval'd to, see default
+   * @param _htmlTemplate can contain the local var `filename` which will be whatever the respective template string has eval'd to, see default
    * @param _mimeType
    */
   constructor (private _downloadLinkContainer: HTMLElement | null,
