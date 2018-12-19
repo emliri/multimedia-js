@@ -13,21 +13,22 @@ VENDOR_LIB_NAME_FFMPEG = ffmpeg.js
 all: dist vendor/$(VENDOR_LIB_NAME_FFMPEG)
 
 clean:
-	rm -Rf package-lock.json
+	rm -f package-lock.json.lock
 	rm -Rf node_modules
 	rm -Rf dist
 
 # TARGET FILES
 
-dist: $(SRC_FILES) package-lock.json
+dist: $(SRC_FILES) package-lock.json.lock
 	rm -Rf dist
 	npm run build
 
-package-lock.json: package.json
-	rm -Rf package-lock.json
+package-lock.json.lock: package.json
+	rm -f package-lock.json.lock
 	npm install
+	touch package-lock.json.lock
 
-vendor/$(VENDOR_LIB_NAME_FFMPEG): vendor package-lock.json
+vendor/$(VENDOR_LIB_NAME_FFMPEG): vendor package-lock.json.lock
 	rm -Rf vendor/$(VENDOR_LIB_NAME_FFMPEG)
 	cp -R node_modules/$(VENDOR_LIB_NAME_FFMPEG) vendor
 
@@ -37,7 +38,7 @@ vendor/$(VENDOR_LIB_NAME_FFMPEG): vendor package-lock.json
 	sed -i -e 's/module.exports=/self.ffmpeg=/' vendor/ffmpeg.js/ffmpeg-webm.js
 	rm vendor/ffmpeg.js/*-e
 
-vendor: package-lock.json
+vendor: package-lock.json.lock
 	mkdir -p vendor
 
 
