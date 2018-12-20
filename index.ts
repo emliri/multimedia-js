@@ -51,7 +51,6 @@ import { Flow } from './src/core/flow';
 import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
 import { HTML5MediaSourceBufferSocket } from './src/io-sockets/html5-media-source-buffer.socket';
 import { WebFileDownloadSocket } from './src/io-sockets/web-file-download.socket';
-import { EnvironmentVars } from './src/core/env';
 
 export const Common = {
   Utils,
@@ -101,6 +100,6 @@ export const Flows = {
   CombineMp4sToMovFlow
 };
 
-export {EnvironmentVars} from './src/core/env';
+export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
 

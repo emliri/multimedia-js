@@ -19,6 +19,9 @@ export function setEnvironmentVar(name: keyof EnvironmentVars, value: string) {
 }
 
 export function getEnvironmentVar(name: keyof EnvironmentVars): string {
+  if (!EnvironmentVars[name]) {
+    throw new Error('No such environment variable exists: ' + name);
+  }
   return EnvironmentVars[name];
 }
 
