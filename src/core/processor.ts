@@ -4,16 +4,11 @@ import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collec
 import { EventEmitter } from 'eventemitter3';
 import { ProcessorTask } from './processor-task';
 import { getLogger } from '../logger';
-import { ProcessorProxy } from './processor-proxy';
-import { VoidCallback } from '../common-types';
-import { noop } from '../common-utils';
+import { EnvironmentVars } from './env';
 
 const {debug, error} = getLogger("Processor");
 
 // import WorkerLoader from "worker-loader!../base.worker";
-
-// HACK: DIRTY-way worker loading :)
-const TASK_WORKER_PATH = '/dist/MMProcessorTaskWorker.umd.js';
 
 export enum ProcessorEvent {
     ANY_SOCKET_CREATED = 'processor:socket-created',
@@ -216,7 +211,7 @@ export abstract class Processor extends EventEmitter implements SocketOwner, Sig
 
     private getTaskWorker (): Worker {
       if (!this.taskWorker_) {
-        this.taskWorker_ = new Worker(TASK_WORKER_PATH);
+        this.taskWorker_ = new Worker(EnvironmentVars.TASK_WORKER_PATH);
         this.taskWorker_.addEventListener('message', (event) => {
           this.onTaskWorkerMessage(event);
         });
