@@ -35,7 +35,7 @@ vendor/$(VENDOR_LIB_NAME_FFMPEG): vendor package-lock.json.alias
 	# we need to replace module.exports to make this work in global scope as non-module external DOM-like script
 	# because this gets imported dynamically via Worker.importScripts
 
-	#
+	# doesn't work with GNU (or posix?) shell
 	# sed -i "" -e 's/module.exports=/self.ffmpeg=/' vendor/ffmpeg.js/ffmpeg-mp4.js
 	# sed -i "" -e 's/module.exports=/self.ffmpeg=/' vendor/ffmpeg.js/ffmpeg-webm.js
 
