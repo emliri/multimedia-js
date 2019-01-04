@@ -22,7 +22,7 @@ export class WebFileDownloadSocket extends InputSocket {
    * @param _downloadLinkContainer an HTML element to create a link in with the given templates or `null` and then FileSaver will spawn a dialog @see https://github.com/eligrey/FileSaver.js
    * @param _fileNameTemplate can contain the local var `counter` as well as access public and private members via `this`, see default
    * @param _htmlTemplate can contain the local var `filename` which will be whatever the respective template string has eval'd to, see default
-   * @param _mimeType
+   * @param _mimeType mime-type string for the blob object to be created (this sometimes matters for platforms to understand what file-type it is), @see https://developer.mozilla.org/en-US/docs/Web/API/Blob
    */
   constructor (private _downloadLinkContainer: HTMLElement | null,
     private _mimeType: string = UNKNOWN_MIMETYPE, // FIXME: this can be a default when packet has no mime-type but we should read the mime-type from the defaultPayload info of the packet
@@ -51,6 +51,8 @@ export class WebFileDownloadSocket extends InputSocket {
       const filename = eval(this._fileNameTemplate);
 
       if (!this._downloadLinkContainer) {
+
+        log('invoking save-as function with blob/filename', blob, filename)
 
         FileSaver.saveAs(blob, filename);
 
