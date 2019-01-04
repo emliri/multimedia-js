@@ -1,11 +1,12 @@
+import { EventEmitter } from 'eventemitter3';
+
 import { PayloadDescriptor } from './payload-description';
-import { Packet, PacketReceiveCallback } from './packet';
+import { Packet, PacketReceiveCallback, PacketSymbol } from './packet';
 
 import { getLogger, makeLogTimestamped, LoggerLevels } from '../logger';
 import { Signal, SignalHandler, SignalReceiver, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 
 import { dispatchAsyncTask } from '../common-utils';
-import { Output } from 'webpack';
 
 const { log, error } = getLogger('Socket', LoggerLevels.ERROR);
 
@@ -13,6 +14,14 @@ export enum SocketType {
   INPUT,
   OUTPUT
 }
+
+export enum SocketEvent {
+  ANY_PACKET_RECEIVED = 'any-packet-received',
+  DATA_PACKET_RECEIVED = 'data-packet-received', // "non-symbolic"
+  EOS_PACKET_RECEIVED = 'eos-packet-received'
+}
+
+export type SocketEventHandler = (event: SocketEvent) => void
 
 export class SocketState {
   transferring: boolean;
@@ -25,6 +34,7 @@ export class SocketState {
 export type SocketTemplateGenerator = (st: SocketType) => SocketDescriptor;
 
 export class SocketDescriptor {
+
   static fromMimeType(mimeType: string): SocketDescriptor {
     return SocketDescriptor.fromMimeTypes(mimeType);
   }
@@ -48,6 +58,7 @@ export class SocketDescriptor {
 
   constructor (payloads?: PayloadDescriptor[]) {
     this.payloads = payloads || [];
+
   }
 
   isVoid(): boolean {
@@ -60,7 +71,7 @@ export abstract class SocketOwner implements SignalReceiver {
   abstract cast(signal: Signal): SignalReceiverCastResult;
 }
 
-export abstract class Socket implements SignalReceiver {
+export abstract class Socket extends EventEmitter<SocketEvent> implements SignalReceiver {
   private type_: SocketType;
   private state_: SocketState;
   private descriptor_: SocketDescriptor;
@@ -72,6 +83,7 @@ export abstract class Socket implements SignalReceiver {
   protected owner: SocketOwner = null;
 
   constructor (type: SocketType, descriptor: SocketDescriptor) {
+    super();
     this.type_ = type;
     this.descriptor_ = descriptor;
     this.state_ = new SocketState();
@@ -170,6 +182,7 @@ export abstract class Socket implements SignalReceiver {
    * @param p
    */
   transfer (p: Packet): Promise<boolean> {
+    this._onTransfer(p);
     return new Promise((resolve, reject) => {
       dispatchAsyncTask(() => {
         try {
@@ -229,6 +242,44 @@ export abstract class Socket implements SignalReceiver {
 
   getOwner (): SocketOwner {
     return this.owner;
+  }
+
+  emit(e: SocketEvent, ...args: any[]): boolean {
+    throw new Error('Illegal call');
+  }
+
+  on (event: SocketEvent, handler: SocketEventHandler) {
+    super.on(event, handler);
+    return this;
+  }
+
+  once (event: SocketEvent, handler: SocketEventHandler) {
+    super.once(event, handler);
+    return this;
+  }
+
+  off (event: SocketEvent, handler: SocketEventHandler) {
+    super.off(event, handler);
+    return this;
+  }
+
+  private _emit(event: SocketEvent) {
+    super.emit(event, event);
+  }
+
+  private _onTransfer(p: Packet) {
+    this._emit(SocketEvent.ANY_PACKET_RECEIVED);
+    if (p.isSymbolic()) {
+      switch(p.symbol) {
+      case PacketSymbol.EOS:
+        this._emit(SocketEvent.EOS_PACKET_RECEIVED);
+        break;
+      default:
+        break;
+      }
+    } else {
+      this._emit(SocketEvent.DATA_PACKET_RECEIVED);
+    }
   }
 }
 
@@ -402,7 +453,6 @@ export class OutputSocket extends Socket {
   }
 
   private onPacketTransferredToPeerInput_ (peerTransferReturnVal: boolean) {}
-
   private onPacketTransferredToPeerOutput_ (peerTransferReturnVal: boolean) {}
 }
 
