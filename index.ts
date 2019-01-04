@@ -39,8 +39,8 @@ import { XhrSocket } from './src/io-sockets/xhr.socket';
 import { NodeFsWriteSocket } from './src/io-sockets/node-fs-write.socket';
 import { NodeFsReadSocket } from './src/io-sockets/node-fs-read.socket';
 
-import { Processor } from './src/core/processor';
-import { InputSocket, Socket, OutputSocket, SocketDescriptor } from './src/core/socket';
+import { Processor, ProcessorEvent } from './src/core/processor';
+import { InputSocket, Socket, OutputSocket, SocketDescriptor, SocketEvent } from './src/core/socket';
 import { Packet } from './src/core/packet';
 import { BufferSlice } from './src/core/buffer';
 import { BufferProperties } from './src/core/buffer-props';
@@ -61,7 +61,9 @@ export const Common = {
 
 export const Core = {
   Processor,
+  ProcessorEvent,
   Socket,
+  SocketEvent,
   SocketDescriptor,
   InputSocket,
   OutputSocket,
