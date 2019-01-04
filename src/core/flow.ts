@@ -7,19 +7,28 @@ export enum FlowState {
   FLOWING = 'flowing'
 }
 
+/*
+export enum FlowEvent {
+
+}
+*/
+
 export type FlowStateChangeCallback = (previousState: FlowState, newState: FlowState) => void;
 
 // TODO: create generic set class in objec-ts
 export abstract class Flow {
+
   constructor (
     public onStateChangePerformed: FlowStateChangeCallback,
     public onStateChangeAborted: (reason: string) => void
   ) {}
 
-  private _processors: Set<Processor> = new Set();
   private _state: FlowState = FlowState.VOID;
   private _pendingState: FlowState | null = null;
   private _prevState: FlowState | null = null;
+
+  private _processors: Set<Processor> = new Set();
+  private _extSockets: Set<Socket> = new Set();
 
   add (...p: Processor[]) {
     p.forEach((proc) => {
@@ -39,7 +48,7 @@ export abstract class Flow {
     return Array.from(this._processors);
   }
 
-  get extSockets (): Socket[] {
+  get externalSockets (): Socket[] {
     return Array.from(this.getExternalSockets());
   }
 
@@ -102,7 +111,7 @@ export abstract class Flow {
   }
 
   getExternalSockets (): Set<Socket> {
-    return new Set();
+    return this._extSockets;
   }
 
   private onStateChangePerformed_ (newState) {
