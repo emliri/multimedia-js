@@ -4,7 +4,7 @@ import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
-import { OutputSocket } from '../core/socket';
+import { OutputSocket, SocketEvent } from '../core/socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
 import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-factory';
@@ -122,6 +122,8 @@ export class CombineMp4sToMovFlow extends Flow {
       });
 
       mp4MuxProc.out[0].connect(destinationSocket);
+
+      this.getExternalSockets().add(destinationSocket);
 
     }
 
