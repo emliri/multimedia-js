@@ -31,7 +31,7 @@ export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
 export const PROCESSOR_RPC_INVOKE_PACKET_HANDLER = 'mmjs:processor:RPC:invokePacketHandler';
 
-export abstract class Processor extends EventEmitter implements SocketOwner, SignalReceiver {
+export abstract class Processor extends EventEmitter<ProcessorEvent> implements SocketOwner, SignalReceiver {
 
     static getName(): string { return null; }
 
