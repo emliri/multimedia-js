@@ -10,7 +10,7 @@ import * as FileSaver from 'file-saver';
 export const DEFAULT_FILENAME_TEMPLATE = makeTemplate("buffer${counter}-${Date.now()}.data");
 export const DEFAULT_HTML_TEMPLATE = makeTemplate("<p>Download ${filename}</p>");
 
-const {debug} = getLogger('FileDownloadSocket');
+const {log, debug} = getLogger('WebFileDownloadSocket');
 
 export class WebFileDownloadSocket extends InputSocket {
 
