@@ -183,10 +183,10 @@ export class MP4MuxProcessor extends Processor {
       const data = bufferSlice.getUint8Array();
 
       if (bufferSlice.props.isBitstreamHeader) {
-        log('got video codec init data');
+        log('got bitstream header at:', p.toString())
+      } else {
+        debug('video packet:', p.toString());
       }
-
-      debug('video packet:', p.toString());
 
       if(bufferSlice.props.isKeyframe) {
         log('got keyframe at:', p.toString())
@@ -230,7 +230,7 @@ export class MP4MuxProcessor extends Processor {
         log('got audio codec init data');
       }
 
-      debug('audio packet timestamp/cto:', p.timestamp, p.presentationTimeOffset);
+      debug('audio packet:', p.toString());
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.AUDIO_PACKET,
@@ -285,7 +285,7 @@ export class MP4MuxProcessor extends Processor {
       this._initMuxer();
     }
 
-    log('processing video packet queue');
+    log('processing video packet queue', this.videoPacketQueue_);
 
     this.videoPacketQueue_.forEach((packet: Packet) => {
       this._processVideoPacket(packet);
