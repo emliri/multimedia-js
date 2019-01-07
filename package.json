@@ -19,7 +19,7 @@
     "bootstrap": "^4.1.3",
     "bowser": "^1.9.4",
     "ffmpeg.js": "^3.1.9001",
-    "file-saver": "^2.0.0",
+    "file-saver": "eligrey/FileSaver.js#4a73fd7a2dcdc6ce2947433af3d3fbad56a019fa",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
