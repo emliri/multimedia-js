@@ -182,7 +182,6 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * @param p
    */
   transfer (p: Packet): Promise<boolean> {
-    this._onTransfer(p);
     return new Promise((resolve, reject) => {
       dispatchAsyncTask(() => {
         try {
@@ -208,7 +207,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
 
   /**
    * Passes the signal to the handler.
-   * The default implementation is a synchrneous call,
+   * The default implementation is a synchroneous call,
    * but this may be anything asynchrneous and/or RPC'd in sub-classes,
    * since the SignalHandler is designed to return a Promise.
    *
@@ -263,23 +262,8 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this;
   }
 
-  private _emit(event: SocketEvent) {
+  protected _emit(event: SocketEvent) {
     super.emit(event, event);
-  }
-
-  private _onTransfer(p: Packet) {
-    this._emit(SocketEvent.ANY_PACKET_RECEIVED);
-    if (p.isSymbolic()) {
-      switch(p.symbol) {
-      case PacketSymbol.EOS:
-        this._emit(SocketEvent.EOS_PACKET_RECEIVED);
-        break;
-      default:
-        break;
-      }
-    } else {
-      this._emit(SocketEvent.DATA_PACKET_RECEIVED);
-    }
   }
 }
 
@@ -303,6 +287,7 @@ export class InputSocket extends Socket {
   transferSync (p: Packet): boolean {
     this.setTransferring_(true);
     const b = this.onReceive_(p);
+    this._onTransfer(p);
     this.setTransferring_(false);
     return b;
   }
@@ -316,6 +301,21 @@ export class InputSocket extends Socket {
       this.owner.cast(s),
       super.cast(s)
     ]);
+  }
+
+  private _onTransfer(p: Packet) {
+    this._emit(SocketEvent.ANY_PACKET_RECEIVED);
+    if (p.isSymbolic()) {
+      switch(p.symbol) {
+      case PacketSymbol.EOS:
+        this._emit(SocketEvent.EOS_PACKET_RECEIVED);
+        break;
+      default:
+        break;
+      }
+    } else {
+      this._emit(SocketEvent.DATA_PACKET_RECEIVED);
+    }
   }
 }
 
