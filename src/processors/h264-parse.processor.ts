@@ -14,7 +14,7 @@ import { NALU } from './h264/nalu';
 
 import { getLogger, LoggerLevels } from '../logger';
 
-const {debug, log, warn, error} = getLogger("H264ParseProcessor", LoggerLevels.DEBUG);
+const {debug, log, warn, error} = getLogger("H264ParseProcessor", LoggerLevels.LOG);
 
 export class H264ParseProcessor extends Processor {
 
