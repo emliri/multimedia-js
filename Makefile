@@ -39,8 +39,8 @@ vendor/$(VENDOR_LIB_NAME_FFMPEG): vendor package-lock.json.alias
 	# sed -i "" -e 's/module.exports=/self.ffmpeg=/' vendor/ffmpeg.js/ffmpeg-mp4.js
 	# sed -i "" -e 's/module.exports=/self.ffmpeg=/' vendor/ffmpeg.js/ffmpeg-webm.js
 
-	cat vendor/ffmpeg.js/ffmpeg-webm.js | sed -e 's/module.exports=/self.ffmpeg=/' > vendor/ffmpeg.js/ffmpeg-webm.js
-	cat vendor/ffmpeg.js/ffmpeg-mp4.js | sed -e 's/module.exports=/self.ffmpeg=/' > vendor/ffmpeg.js/ffmpeg-mp4.js
+	sed -e 's/module.exports=/self.ffmpeg=/' node_modules/$(VENDOR_LIB_NAME_FFMPEG)/ffmpeg-webm.js > vendor/ffmpeg.js/ffmpeg-webm.js
+	sed -e 's/module.exports=/self.ffmpeg=/' node_modules/$(VENDOR_LIB_NAME_FFMPEG)/ffmpeg-mp4.js > vendor/ffmpeg.js/ffmpeg-mp4.js
 
 vendor: package-lock.json.alias
 	mkdir -p vendor
