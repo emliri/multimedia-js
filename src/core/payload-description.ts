@@ -222,6 +222,8 @@ export class PayloadDetails {
   }
   */
 
+  sequenceDurationInSeconds: number = NaN;
+
   // place to put generic codec init-data // TODO: get rid of number[] here
   codecConfigurationData: Uint8Array | number[] = null
 
