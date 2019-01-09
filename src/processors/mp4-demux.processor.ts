@@ -181,6 +181,8 @@ export class MP4DemuxProcessor extends Processor {
             samplesCount
           );
 
+          protoProps.details.sequenceDurationInSeconds = track.getDurationInSeconds();
+
           if (track.isVideo()) {
             protoProps.details.width = track.getResolution()[0];
             protoProps.details.height = track.getResolution()[1];

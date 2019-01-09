@@ -118,7 +118,7 @@ export class MP4MuxProcessor extends Processor {
         p.defaultPayloadInfo.getSamplingRate(),
         p.defaultPayloadInfo.sampleDepth,
         p.defaultPayloadInfo.details.numChannels,
-        0
+        p.defaultPayloadInfo.details.sequenceDurationInSeconds
       );
 
       return true;
@@ -142,7 +142,7 @@ export class MP4MuxProcessor extends Processor {
         p.defaultPayloadInfo.getSamplingRate(), // fps
         p.defaultPayloadInfo.details.width,
         p.defaultPayloadInfo.details.height, // resolution
-        0 // duration
+        p.defaultPayloadInfo.details.sequenceDurationInSeconds
       );
 
       return true;
