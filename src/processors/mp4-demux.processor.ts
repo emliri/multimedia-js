@@ -2,7 +2,7 @@ import { Processor } from '../core/processor';
 import { Packet, PacketSymbol } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType, OutputSocket, SocketTemplateGenerator } from '../core/socket';
 
-import { getLogger, LoggerLevels } from '../logger';
+import { getLogger, LoggerLevel } from '../logger';
 
 import { createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom } from '../ext-mod/inspector.js/src';
 import { Mp4Track } from '../ext-mod/inspector.js/src/demuxer/mp4/mp4-track';
@@ -15,7 +15,7 @@ import { PayloadDescriptor } from '../core/payload-description';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 
-const { log, warn, debug } = getLogger('MP4DemuxProcessor', LoggerLevels.LOG);
+const { log, warn, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.LOG);
 
 export const AUDIO_SAMPLING_RATES_LUT = [5500, 11025, 22050, 44100];
 export const AAC_SAMPLES_PER_FRAME = 1024;

@@ -6,11 +6,11 @@ import { CommonMimeTypes } from '../core/payload-description';
 
 import { MP3Parser, MP3ParserResult } from './mp3/mp3-parser';
 import { BufferSlice } from '../core/buffer';
-import { getLogger, LoggerLevels } from '../logger';
+import { getLogger, LoggerLevel } from '../logger';
 import { MPEGAudioFrame } from './mp3/mpeg-audio-parser';
 import { BufferProperties } from '../core/buffer-props';
 
-const {log, debug, error} = getLogger('MP3ParseProcessor', LoggerLevels.LOG);
+const {log, debug, error} = getLogger('MP3ParseProcessor', LoggerLevel.LOG);
 
 export class MP3ParseProcessor extends Processor {
 

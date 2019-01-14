@@ -16,9 +16,9 @@ import {
 } from './mozilla-rtmpjs/mp4mux';
 
 import { isNumber } from '../common-utils';
-import { getLogger, LoggerLevels } from '../logger';
+import { getLogger, LoggerLevel } from '../logger';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor(Moz)', LoggerLevels.LOG);
+const { log, debug, warn } = getLogger('MP4MuxProcessor(Moz)', LoggerLevel.LOG);
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {

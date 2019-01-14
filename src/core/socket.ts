@@ -3,12 +3,12 @@ import { EventEmitter } from 'eventemitter3';
 import { PayloadDescriptor } from './payload-description';
 import { Packet, PacketReceiveCallback, PacketSymbol } from './packet';
 
-import { getLogger, makeLogTimestamped, LoggerLevels } from '../logger';
+import { getLogger, makeLogTimestamped, LoggerLevel } from '../logger';
 import { Signal, SignalHandler, SignalReceiver, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 
 import { dispatchAsyncTask } from '../common-utils';
 
-const { log, error } = getLogger('Socket', LoggerLevels.ERROR);
+const { log, error } = getLogger('Socket', LoggerLevel.ERROR);
 
 export enum SocketType {
   INPUT,

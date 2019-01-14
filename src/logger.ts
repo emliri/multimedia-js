@@ -29,7 +29,7 @@ export type Logger = {
   error: LoggerFunc
 };
 
-export enum LoggerLevels {
+export enum LoggerLevel {
   ON = Infinity,
   DEBUG = 5,
   LOG = 4,

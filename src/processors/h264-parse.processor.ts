@@ -12,9 +12,9 @@ import { BitReader } from '../ext-mod/inspector.js/src/utils/bit-reader';
 import { H264Parser } from './h264/h264';
 import { NALU } from './h264/nalu';
 
-import { getLogger, LoggerLevels } from '../logger';
+import { getLogger, LoggerLevel } from '../logger';
 
-const {debug, log, warn, error} = getLogger("H264ParseProcessor", LoggerLevels.LOG);
+const {debug, log, warn, error} = getLogger("H264ParseProcessor", LoggerLevel.LOG);
 
 export class H264ParseProcessor extends Processor {
 
