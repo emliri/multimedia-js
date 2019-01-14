@@ -9,7 +9,7 @@ import { OutputSocket, InputSocket } from "./socket";
 import { Packet } from "./packet";
 
 import { makeUUID_v1 } from "../common-crypto";
-import { getLogger, LoggerLevels } from "../logger";
+import { getLogger, LoggerLevel } from "../logger";
 
 import { Processors } from '../../index';
 
@@ -19,7 +19,7 @@ import { Processors } from '../../index';
 declare var importScripts: (...paths: string[]) => void
 
 const workerId = makeUUID_v1();
-const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevels.LOG);
+const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.LOG);
 
 log('setting new worker instance up ...');
 
@@ -133,6 +133,7 @@ log('setting new worker instance up ...');
       subContext.processor.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onEvent);
       subContext.processor.on(ProcessorEvent.SYMBOLIC_PACKET, onEvent);
       subContext.processor.on(ProcessorEvent.SIGNAL, onEvent);
+      subContext.processor.on(ProcessorEvent.ERROR, onEvent);
 
       const onOutputSockeTransfer = (outputIndex: number, p: Packet) => {
         if (p.isSymbolic()) {

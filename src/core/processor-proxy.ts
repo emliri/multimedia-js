@@ -1,5 +1,5 @@
 import { makeUUID_v1 } from "../common-crypto";
-import { getLogger, LoggerLevels } from "../logger";
+import { getLogger, LoggerLevel } from "../logger";
 import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from "./processor";
 import { InputSocket, SocketDescriptor, SocketType, Socket } from "./socket";
 import { Packet, PacketSymbol } from "./packet";
@@ -7,7 +7,7 @@ import { createProcessorFromShellName } from "./processor-factory";
 import { VoidCallback } from "../common-types";
 import {EnvironmentVars} from "../core/env";
 
-const { log, debug, warn, error } = getLogger(`ProcessorProxy`, LoggerLevels.LOG);
+const { log, debug, warn, error } = getLogger(`ProcessorProxy`, LoggerLevel.LOG);
 
 export enum ProcessorProxyWorkerMessage {
   SPAWN = 'spawn',
@@ -64,7 +64,8 @@ export class ProcessorProxyWorker {
     private _onCreated: VoidCallback,
     private _onTransfer: (value: ProcessorProxyWorkerCallbackTransferValue) => void,
     private _onMethodReturn: (retValue: any) => void,
-    private _onEvent: (event: ProcessorEvent) => void
+    private _onEvent: (event: ProcessorEvent) => void,
+    private _onWorkerError: (event: ErrorEvent) => void
   ) {
 
     const PROXY_WORKER_PATH = EnvironmentVars.PROXY_WORKER_PATH;
@@ -77,8 +78,10 @@ export class ProcessorProxyWorker {
       return this;
     }
 
-    this._worker.addEventListener('error', (event: Event) => {
-      error('error on worker:', event);
+    this._worker.addEventListener('error', (event: ErrorEvent) => {
+      // trigger error event here to shell proc instance using event callback
+      error(`error-event on worker: "${event.message}"`);
+      this._onWorkerError(event);
     })
 
     this._worker.addEventListener('message', (event: MessageEvent) => {
@@ -224,6 +227,10 @@ export class ProcessorProxy extends Processor {
     const onEvent = (event: ProcessorEvent) => {
       let data: ProcessorEventData;
       let socket: Socket;
+
+      // we don't need to reproduce this event, it will be triggered organically from creating the sockets here
+      // just as all other events except error
+
       switch(event) {
       case ProcessorEvent.INPUT_SOCKET_CREATED:
         socket = super.createInput()
@@ -231,15 +238,22 @@ export class ProcessorProxy extends Processor {
       case ProcessorEvent.OUTPUT_SOCKET_CREATED:
         socket = super.createOutput()
         break;
+      case ProcessorEvent.ERROR:
+        this.emit(ProcessorEvent.ERROR, {
+          processor: this,
+          event: ProcessorEvent.ERROR
+        })
+        break;
       }
-      /*
-      data = {
-        event,
+    }
+
+    const onWorkerError = (event: ErrorEvent) => {
+
+      this.emit(ProcessorEvent.ERROR, {
+        event: ProcessorEvent.ERROR,
         processor: this,
-        socket
-      }
-      this.emit(event, data);
-      */
+        socket: null
+      });
     }
 
     this._worker = new ProcessorProxyWorker(
@@ -247,7 +261,8 @@ export class ProcessorProxy extends Processor {
       onCreated,
       onTransfer,
       onMethodReturn,
-      onEvent
+      onEvent,
+      onWorkerError
     );
 
     // all these "commands" will get queued by the worker thread anyway, we don't need to worry about synchronization at this point

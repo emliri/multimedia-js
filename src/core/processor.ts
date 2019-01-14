@@ -15,17 +15,34 @@ export enum ProcessorEvent {
     INPUT_SOCKET_CREATED = 'processor:input-socket-created',
     OUTPUT_SOCKET_CREATED = 'processor:output-socket-created',
     SYMBOLIC_PACKET = 'processor:symbolic-packet',
-    SIGNAL = 'processor:signal'
+    SIGNAL = 'processor:signal',
+    ERROR = 'processor:error'
 }
+
+export enum ProcessorErrorCode {
+    GENERIC = 0
+}
+
+export type ProcessorError = {
+    processor: Processor,
+    code: ProcessorErrorCode
+    message: string
+    nestedError?: Error,
+    customData?: any,
+}
+
+export type ProcessorEventDataProps = Partial<{
+  socket: Socket
+  symbol: PacketSymbol,
+  packet: Packet,
+  signal: Signal,
+  error: ProcessorError
+}>
 
 export type ProcessorEventData = {
     event: ProcessorEvent,
     processor: Processor
-    socket?: Socket
-    symbol?: PacketSymbol,
-    packet?: Packet,
-    signal?: Signal
-};
+} & ProcessorEventDataProps;
 
 export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
@@ -92,9 +109,26 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return this.socketTemplate_(socketType);
     }
 
+    createEvent(event: ProcessorEvent, eventProps: ProcessorEventDataProps): ProcessorEventData {
+      return Object.assign({
+        event,
+        processor: this,
+      }, eventProps);
+    }
+
+    createErrorEvent(code: ProcessorErrorCode): ProcessorEventData {
+      return Object.assign({
+        event: ProcessorEvent.ERROR,
+        processor: this,
+      }, { code });
+    }
+
     emit (event: ProcessorEvent, data: ProcessorEventData) {
       if (event !== data.event) {
         throw new Error('Event emitted must be identic the one carried in event data');
+      }
+      if (data.processor !== this) {
+        throw new Error('Event data must point to this');
       }
       return super.emit(event, data);
     }
