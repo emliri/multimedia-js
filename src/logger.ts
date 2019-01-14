@@ -122,7 +122,6 @@ export function getConfiguredLoggerLevelForCategory(
 }
 
 export const getLogger = function (category: string, level: number = LoggerLevel.ON): Logger {
-  const window = self; // Needed for WebWorker compat --> FIXME: it's much more complex if we want to support other cases like Node or other platforms
 
   level = getConfiguredLoggerLevelForCategory(category, level);
 
@@ -131,11 +130,11 @@ export const getLogger = function (category: string, level: number = LoggerLevel
   }
 
   return {
-    debug: checkLogLevel(level, LoggerLevel.DEBUG) ? console.debug.bind(window['console'], getPrefix('d', category)) : noop,
-    log: checkLogLevel(level, LoggerLevel.LOG) ? console.log.bind(window['console'], getPrefix('l', category)) : noop,
-    info: checkLogLevel(level, LoggerLevel.INFO) ? console.info.bind(window['console'], getPrefix('i', category)) : noop,
-    warn: checkLogLevel(level, LoggerLevel.WARN) ? console.warn.bind(window['console'], getPrefix('w', category)) : noop,
-    error: checkLogLevel(level, LoggerLevel.ERROR) ? console.error.bind(window['console'], getPrefix('e', category)) : noop
+    debug: checkLogLevel(level, LoggerLevel.DEBUG) ? console.debug.bind(console, getPrefix('d', category)) : noop,
+    log: checkLogLevel(level, LoggerLevel.LOG) ? console.log.bind(console, getPrefix('l', category)) : noop,
+    info: checkLogLevel(level, LoggerLevel.INFO) ? console.info.bind(console, getPrefix('i', category)) : noop,
+    warn: checkLogLevel(level, LoggerLevel.WARN) ? console.warn.bind(console, getPrefix('w', category)) : noop,
+    error: checkLogLevel(level, LoggerLevel.ERROR) ? console.error.bind(console, getPrefix('e', category)) : noop
   };
 };
 
