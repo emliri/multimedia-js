@@ -120,7 +120,7 @@ export function getConfiguredLoggerLevelForCategory(
 }
 
 export const getLogger = function (category: string, level: number = LoggerLevel.ON): Logger {
-  //const window = self; // Needed for WebWorker compat --> it's even more complex but we don't need to access console scopped
+  const window = self; // Needed for WebWorker compat --> FIXME: it's much more complex if we want to support other cases like Node or other platforms
 
   level = getConfiguredLoggerLevelForCategory(category, level);
 
