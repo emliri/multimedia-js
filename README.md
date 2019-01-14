@@ -1,8 +1,8 @@
 # multimedia-js | MM-JS 
 
-A toolkit and collection library for all things multimedia in JavaScript. Data-flow pipelines for processing. 
+## A toolkit and collection library for all things multimedia in JavaScript. Data-flow pipelines for processing. 
 
-The framework allows to decouple processing steps being performed in workers via media-aware data-structures. The details of transferring data across worker instances and synchronizing it is however dealt-with by the core framework itself. Implementors of `processors` don't need to know about the execution context and application details.
+Our framework allows to decouple processing steps being performed in workers via media-aware data-structures. The details of transferring data across worker instances and synchronizing it is however dealt-with by the core framework itself. Implementors of `processors` don't need to know about the execution context and application details.
 
 Processors can access generic metadata to handle various input flows and generate output data flows (packets), independent of the sources and destinations or the actual application. Every processor serves a specific processing purpose with maximum reusability in mind.
 
