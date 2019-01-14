@@ -2,6 +2,8 @@
 
 const DEBUG = false;
 
+const DEFAULT_GLOBAL_LEVEL = 0;
+
 const PREFIX_ROOT = 'mm';
 
 const LOGGER_CONFIG_STORAGE_KEY = 'mmjs:LoggerConfig';
@@ -47,7 +49,7 @@ export type LoggerConfig = {
   [catMatcher: string]: LoggerLevel
 };
 
-export const defaultGlobalConfig: LoggerConfig = {'*': 0};
+export const defaultGlobalConfig: LoggerConfig = {'*': DEFAULT_GLOBAL_LEVEL};
 
 export const loggerConfig: LoggerConfig = getLocalLoggerConfig();
 
