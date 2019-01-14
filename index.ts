@@ -104,4 +104,6 @@ export const Flows = {
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
+export {setLocalLoggerLevel, getLocalLoggerConfig, removeLocalLoggerConfig} from './src/logger';
+
 
