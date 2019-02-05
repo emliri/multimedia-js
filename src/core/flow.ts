@@ -2,6 +2,7 @@ import { Processor } from './processor';
 import { Socket } from './socket';
 import { ErrorInfo } from './error';
 import { VoidCallback } from '../common-types';
+import { EventEmitter } from 'eventemitter3';
 
 export enum FlowState {
   VOID = 'void', // the initial state
@@ -28,15 +29,23 @@ export type FlowError = ErrorInfo & {
   type: FlowErrorType
 }
 
+export enum FlowEvent {
+  STATE_CHANGE_PENDING = 'flow:state-change-pending',
+  STATE_CHANGE_ABORTED = 'flow:state-change-aborted',
+  STATE_CHANGED = 'flow:state-changed'
+}
+
 export type FlowStateChangeCallback = (previousState: FlowState, newState: FlowState) => void;
 
 // TODO: create generic Set class in objec-ts
-export abstract class Flow {
+export abstract class Flow extends EventEmitter<FlowEvent> {
 
   constructor (
     public onStateChangePerformed: FlowStateChangeCallback,
     public onStateChangeAborted: (reason: string) => void
   ) {
+
+    super();
 
     this._whenDone = new Promise((resolve, reject) => {
       this._whenDoneResolve = resolve;
@@ -56,6 +65,14 @@ export abstract class Flow {
   private _whenDoneReject: (reason: FlowError) => void = null;
   private _completionResult: FlowCompletionResult = FlowCompletionResult.NONE;
 
+  get procList (): Processor[] {
+    return Array.from(this._processors);
+  }
+
+  get externalSockets (): Socket[] {
+    return Array.from(this.getExternalSockets());
+  }
+
   add (...p: Processor[]) {
     p.forEach((proc) => {
       this._processors.add(proc);
@@ -74,14 +91,6 @@ export abstract class Flow {
     return this._whenDone;
   }
 
-  get procList (): Processor[] {
-    return Array.from(this._processors);
-  }
-
-  get externalSockets (): Socket[] {
-    return Array.from(this.getExternalSockets());
-  }
-
   getCurrentState(): FlowState {
     return this._state;
   }
@@ -98,6 +107,8 @@ export abstract class Flow {
     this.onStateChangeAborted_(reason);
     this._pendingState = null;
     this.onStateChangeAborted(reason);
+
+    this.emit(FlowEvent.STATE_CHANGE_ABORTED);
   }
 
   getExternalSockets (): Set<Socket> {
@@ -128,6 +139,8 @@ export abstract class Flow {
     if (this._pendingState) {
       throw new Error('Flow state-change still pending: ' + this._pendingState);
     }
+
+    this.emit(FlowEvent.STATE_CHANGE_PENDING);
 
     const cb: VoidCallback = this.onStateChangePerformed_.bind(this, this._state, newState);
 
@@ -178,6 +191,8 @@ export abstract class Flow {
     this._state = newState;
     this._pendingState = null;
     this.onStateChangePerformed(this._prevState, this._state);
+
+    this.emit(FlowEvent.STATE_CHANGED);
   }
 
   protected abstract onVoidToWaiting_(done: VoidCallback);
