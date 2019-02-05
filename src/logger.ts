@@ -1,12 +1,10 @@
 // TODO: Move to Objec-TS long-term
 
-const DEBUG = false;
-
-const DEFAULT_GLOBAL_LEVEL = 0;
-
 const PREFIX_ROOT = 'mm';
 
 const LOGGER_CONFIG_STORAGE_KEY = 'mmjs:LoggerConfig';
+
+const DEBUG = false;
 
 const noop = () => {};
 
@@ -15,15 +13,28 @@ const getPrefix = function (type: string, category: string): string {
   return prefix;
 };
 
-export function checkLogLevel (level: number, catLevel: number) {
-  switch (catLevel) {
-  case LoggerLevel.DEBUG: return (level >= LoggerLevel.DEBUG) && console.debug;
-  case LoggerLevel.LOG: return (level >= LoggerLevel.LOG) && console.log;
-  case LoggerLevel.INFO: return (level >= LoggerLevel.INFO) && console.info;
-  case LoggerLevel.WARN: return (level >= LoggerLevel.WARN) && console.warn;
-  case LoggerLevel.ERROR: return (level >= LoggerLevel.ERROR) && console.error;
+const regExpEscape = function(s: string): string {
+  return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+};
+
+function persistConfig(config: LoggerConfig): boolean {
+  if (window && !localStorage) {
+    console.error('mmjs:Logger (ERROR) > Failed to persist configuration, no localStorage API found');
+    return false;
+  } else if (!localStorage) {
+    // might happen in Worker
+    return false;
   }
+  try {
+    localStorage.setItem(LOGGER_CONFIG_STORAGE_KEY, JSON.stringify(config));
+  } catch(err) {
+    console.error('mmjs:Logger (ERROR) > Failed to persist configuration, internal error:', err);
+    return false;
+  }
+  return true;
 }
+
+let DEFAULT_GLOBAL_LEVEL: LoggerLevel;
 
 export type LoggerFunc = (...args: any[]) => void;
 
@@ -49,19 +60,13 @@ export type LoggerConfig = {
   [catMatcher: string]: LoggerLevel
 };
 
+DEFAULT_GLOBAL_LEVEL = LoggerLevel.ON;
+
 export const defaultGlobalConfig: LoggerConfig = {'*': DEFAULT_GLOBAL_LEVEL};
 
-export const loggerConfig: LoggerConfig = getLocalLoggerConfig();
+export const loggerConfig: LoggerConfig = createAndGetLocalLoggerConfig();
 
-function persistConfig(config: LoggerConfig): boolean {
-  if (localStorage) { //re-persist
-    localStorage.setItem(LOGGER_CONFIG_STORAGE_KEY, JSON.stringify(config));
-    return true;
-  }
-  return false;
-}
-
-export function getLocalLoggerConfig(): LoggerConfig {
+export function createAndGetLocalLoggerConfig(): LoggerConfig {
 
   let config: LoggerConfig;
 
@@ -73,9 +78,9 @@ export function getLocalLoggerConfig(): LoggerConfig {
     try {
       config = JSON.parse(object);
     } catch(err) {
-      console.warn('LOGGER: Got most likely corrupt logger config data! Running recovery routine...');
+      console.warn('mmjs:Logger (WARN) > Got most likely corrupt logger config data! Running recovery routine...');
       removeLocalLoggerConfig();
-      return getLocalLoggerConfig();
+      return createAndGetLocalLoggerConfig();
     }
 
     // persist if creating state first time
@@ -95,7 +100,7 @@ export function removeLocalLoggerConfig() {
 }
 
 export function setLocalLoggerLevel(categoryMatcher: string, level: LoggerLevel): LoggerConfig {
-  const config = getLocalLoggerConfig();
+  const config = createAndGetLocalLoggerConfig();
   config[categoryMatcher] = level;
   // store with changes
   persistConfig(config);
@@ -105,10 +110,14 @@ export function setLocalLoggerLevel(categoryMatcher: string, level: LoggerLevel)
 export function getConfiguredLoggerLevelForCategory(
   category: string,
   defaultLevel: LoggerLevel = LoggerLevel.OFF,
-  config: LoggerConfig = getLocalLoggerConfig()): LoggerLevel {
+  config: LoggerConfig = createAndGetLocalLoggerConfig()): LoggerLevel {
 
   let retLevel = defaultLevel
-  Object.getOwnPropertyNames(config).forEach((catMatcher: string) => {
+
+  Object.keys(config).forEach((catMatcher: string) => {
+
+    // to avoid any possible error or regex-dos
+    catMatcher = regExpEscape(catMatcher);
 
     const level: LoggerLevel = config[catMatcher];
     const isCatMatching = (new RegExp("^" + catMatcher.split("*").join(".*") + "$")).test(category);
@@ -121,12 +130,22 @@ export function getConfiguredLoggerLevelForCategory(
   return retLevel;
 }
 
+export function checkLogLevel (level: number, catLevel: number) {
+  switch (catLevel) {
+  case LoggerLevel.DEBUG: return (level >= LoggerLevel.DEBUG) && console.debug;
+  case LoggerLevel.LOG: return (level >= LoggerLevel.LOG) && console.log;
+  case LoggerLevel.INFO: return (level >= LoggerLevel.INFO) && console.info;
+  case LoggerLevel.WARN: return (level >= LoggerLevel.WARN) && console.warn;
+  case LoggerLevel.ERROR: return (level >= LoggerLevel.ERROR) && console.error;
+  }
+}
+
 export const getLogger = function (category: string, level: number = LoggerLevel.ON): Logger {
 
   level = getConfiguredLoggerLevelForCategory(category, level);
 
   if (DEBUG) {
-    console.log(`Set-up log category <${category}> with level ${level}`);
+    console.log(`mmjs:Logger (DEBUG mode) > Set-up category <${category}> with level ${level}`);
   }
 
   return {
