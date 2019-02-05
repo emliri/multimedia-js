@@ -140,6 +140,11 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
       throw new Error('Flow state-change still pending: ' + this._pendingState);
     }
 
+    if (newState === FlowState.COMPLETED
+      && this._completionResult === FlowCompletionResult.NONE) {
+        throw new Error('state change to COMPLETED has to be triggered by setCompleted');
+      }
+
     this.emit(FlowEvent.STATE_CHANGE_PENDING);
 
     const cb: VoidCallback = this.onStateChangePerformed_.bind(this, this._state, newState);
