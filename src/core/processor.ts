@@ -5,6 +5,7 @@ import { EventEmitter } from 'eventemitter3';
 import { ProcessorTask } from './processor-task';
 import { getLogger } from '../logger';
 import { EnvironmentVars } from './env';
+import { ErrorInfo } from './error';
 
 const {debug, error} = getLogger("Processor");
 
@@ -20,15 +21,13 @@ export enum ProcessorEvent {
 }
 
 export enum ProcessorErrorCode {
-    GENERIC = 0
+    GENERIC = 0,
+    BAD_FORMAT = 1
 }
 
-export type ProcessorError = {
+export type ProcessorError = ErrorInfo & {
     processor: Processor,
     code: ProcessorErrorCode
-    message: string
-    nestedError?: Error,
-    customData?: any,
 }
 
 export type ProcessorEventDataProps = Partial<{

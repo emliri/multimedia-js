@@ -46,7 +46,7 @@ import { BufferSlice } from './src/core/buffer';
 import { BufferProperties } from './src/core/buffer-props';
 import { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails } from './src/core/payload-description';
 import { Signal } from './src/core/signal';
-import { Flow } from './src/core/flow';
+import { Flow, FlowErrorType, FlowEvent, FlowState } from './src/core/flow';
 
 import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
 import { HTML5MediaSourceBufferSocket } from './src/io-sockets/html5-media-source-buffer.socket';
@@ -73,7 +73,7 @@ export const Core = {
   PayloadDescriptor,
   PayloadDetails,
   Signal,
-  Flow
+  Flow, FlowErrorType, FlowEvent, FlowState
 }
 
 export const Processors = {
