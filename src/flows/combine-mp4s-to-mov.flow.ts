@@ -13,6 +13,7 @@ import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
 import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
 import { makeTemplate } from '../common-utils';
 import { EnvironmentVars } from "../core/env";
+import { VoidCallback } from '../common-types';
 
 const { log } = getLogger('CombineMp4sToMovFlow');
 
@@ -129,13 +130,15 @@ export class CombineMp4sToMovFlow extends Flow {
 
   }
 
-  protected onVoidToWaiting_ (cb: FlowStateChangeCallback) {}
+  protected onVoidToWaiting_ (cb: VoidCallback) {}
 
-  protected onWaitingToVoid_ (cb: FlowStateChangeCallback) {}
+  protected onWaitingToVoid_ (cb: VoidCallback) {}
 
-  protected onWaitingToFlowing_ (cb: FlowStateChangeCallback) {}
+  protected onWaitingToFlowing_ (cb: VoidCallback) {}
 
-  protected onFlowingToWaiting_ (cb: FlowStateChangeCallback) {}
+  protected onFlowingToWaiting_ (cb: VoidCallback) {}
+
+  protected onCompleted_(done: VoidCallback) {}
 
   protected onStateChangeAborted_ (reason: string) {}
 }
