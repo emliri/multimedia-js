@@ -10,10 +10,12 @@ import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { MP4MuxHlsjsProcessor } from '../processors/mp4-mux-hlsjs.processor';
 import { getLogger } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
+import { VoidCallback } from '../common-types';
 
 const {log} = getLogger("HttpToMediaSourceFlow");
 
 export class HttpToMediaSourceFlow extends Flow {
+
   private _xhrSocket: XhrSocket;
 
   private _haveVideo = false;
@@ -99,13 +101,15 @@ export class HttpToMediaSourceFlow extends Flow {
     return new Set([this._xhrSocket]);
   }
 
-  protected onVoidToWaiting_ (cb: FlowStateChangeCallback) {}
+  protected onCompleted_(done: VoidCallback) {}
 
-  protected onWaitingToVoid_ (cb: FlowStateChangeCallback) {}
+  protected onVoidToWaiting_ (done: VoidCallback) {}
 
-  protected onWaitingToFlowing_ (cb: FlowStateChangeCallback) {}
+  protected onWaitingToVoid_ (done: VoidCallback) {}
 
-  protected onFlowingToWaiting_ (cb: FlowStateChangeCallback) {}
+  protected onWaitingToFlowing_ (done: VoidCallback) {}
+
+  protected onFlowingToWaiting_ (done: VoidCallback) {}
 
   protected onStateChangeAborted_ (reason: string) {}
 }

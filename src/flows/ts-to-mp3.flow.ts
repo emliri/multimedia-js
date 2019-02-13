@@ -3,8 +3,10 @@ import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MPEGTSDemuxProcessor } from '../processors/mpeg-ts-demux.processor';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { ProcessorEvent } from '../core/processor';
+import { VoidCallback } from '../common-types';
 
 export class TsToMp3Flow extends Flow {
+
   private _xhrSocket: XhrSocket = null;
 
   constructor (url: string) {
@@ -26,15 +28,19 @@ export class TsToMp3Flow extends Flow {
     tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, () => {
       tsDemuxProc.out[0].connect(mp3ParseProc.in[0]);
     });
+
   }
 
-  protected onVoidToWaiting_ (cb: FlowStateChangeCallback) {}
+  protected onCompleted_(done: VoidCallback) {}
 
-  protected onWaitingToVoid_ (cb: FlowStateChangeCallback) {}
+  protected onVoidToWaiting_ (done: VoidCallback) {}
 
-  protected onWaitingToFlowing_ (cb: FlowStateChangeCallback) {}
+  protected onWaitingToVoid_ (done: VoidCallback) {}
 
-  protected onFlowingToWaiting_ (cb: FlowStateChangeCallback) {}
+  protected onWaitingToFlowing_ (done: VoidCallback) {}
+
+  protected onFlowingToWaiting_ (done: VoidCallback) {}
 
   protected onStateChangeAborted_ (reason: string) {}
+
 }
