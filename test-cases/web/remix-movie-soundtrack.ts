@@ -1,5 +1,6 @@
 import { MmjsTestCase } from '../mmjs-test-case';
 import { CombineMp4sToMovFlow } from '../../src/flows/combine-mp4s-to-mov.flow';
+import { FlowCompletionResult, FlowState } from '../../src/core/flow';
 
 export class RemixMovieSoundtrack extends MmjsTestCase {
 
@@ -58,7 +59,7 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
       console.log('selected video file:', videoFile)
 
       const videoUrl = videoFile ? URL.createObjectURL(videoFile) : '/test-data/mp4/v-0576p-1400k-libx264.mov';
-      const audioUrl = audioFile ? URL.createObjectURL(audioFile) : '/test-data/mp4/KickOutTheJams.mp4';
+      const audioUrl = audioFile ? URL.createObjectURL(audioFile) : '/test-data/mp4/guitars.m4a';
 
       // "good guess"
       const isMp3Audio = audioFile && audioFile.name.endsWith('.mp3');
@@ -66,9 +67,26 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
       this._flow = new CombineMp4sToMovFlow(
         videoUrl,
         audioUrl,
+        appCallback,
+        true,
         document.querySelector('#root'),
         isMp3Audio
       );
+
+      function appCallback(blob: Blob) {
+
+        console.log('new file blob:', blob);
+
+      }
+
+      this._flow.whenCompleted().then((result: FlowCompletionResult) => {
+
+        console.log('flow completed with result:', result);
+
+      });
+
+      this._flow.state = FlowState.WAITING;
+      this._flow.state = FlowState.FLOWING;
 
     }
 
