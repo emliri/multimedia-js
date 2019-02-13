@@ -119,6 +119,68 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return this._completionResult;
   }
 
+  set state (newState: FlowState) {
+    if (this._pendingState) {
+      throw new Error('Flow state-change still pending: ' + this._pendingState);
+    }
+
+    if (newState === FlowState.COMPLETED
+      && this._completionResult === FlowCompletionResult.NONE) {
+        throw new Error('state change to COMPLETED has to be triggered by setCompleted');
+      }
+
+    // update pending state
+    this._pendingState = newState;
+    this.emit(FlowEvent.STATE_CHANGE_PENDING);
+
+    const cb: VoidCallback = this.onStateChangePerformed_.bind(this, this._state, newState);
+
+    // we can go to completed from any state
+    if (newState === FlowState.COMPLETED) {
+      this.onCompleted_(cb);
+      return;
+    }
+
+    const currentState = this._state;
+    switch (currentState) {
+    case FlowState.COMPLETED:
+      fail();
+      break;
+    case FlowState.VOID:
+      if (newState !== FlowState.WAITING) {
+        fail();
+      }
+      this.onVoidToWaiting_(cb);
+      break;
+    case FlowState.WAITING:
+      if (newState === FlowState.FLOWING) {
+        this.onWaitingToFlowing_(cb);
+      } else if (newState === FlowState.VOID) {
+        this.onWaitingToVoid_(cb);
+      } else {
+        fail();
+      }
+      break;
+    case FlowState.FLOWING:
+      if (newState !== FlowState.WAITING) {
+        fail();
+      }
+      this.onFlowingToWaiting_(cb);
+      break;
+    }
+
+    function fail () {
+      this._pendingState = null;
+      throw new Error(`Can not transition from flow state ${currentState} to ${newState}`);
+    }
+  }
+
+  // more of a convenience since the setter exists but can't be public therefore
+  // (Typescript wants accessors to agree in visibility)
+  get state (): FlowState {
+    return this._state;
+  }
+
   protected setCompleted(completionResult: FlowCompletionResult, error: FlowError = null) {
     this._completionResult = completionResult;
     // enforce state change to completed
@@ -133,62 +195,6 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
       this._whenDoneReject(error);
       break;
     }
-  }
-
-  protected set state (newState: FlowState) {
-    if (this._pendingState) {
-      throw new Error('Flow state-change still pending: ' + this._pendingState);
-    }
-
-    if (newState === FlowState.COMPLETED
-      && this._completionResult === FlowCompletionResult.NONE) {
-        throw new Error('state change to COMPLETED has to be triggered by setCompleted');
-      }
-
-    this.emit(FlowEvent.STATE_CHANGE_PENDING);
-
-    const cb: VoidCallback = this.onStateChangePerformed_.bind(this, this._state, newState);
-
-    const currentState = this._state;
-    switch (currentState) {
-    case FlowState.COMPLETED:
-      this.onCompleted_(cb);
-      break;
-    case FlowState.VOID:
-      if (newState !== FlowState.WAITING) {
-        fail();
-      }
-      this.onVoidToWaiting_(cb);
-      break;
-    case FlowState.WAITING:
-      if (newState === FlowState.FLOWING) {
-        this._pendingState = newState;
-        this.onWaitingToFlowing_(cb);
-      } else if (newState === FlowState.VOID) {
-        this._pendingState = newState;
-        this.onWaitingToVoid_(cb);
-      } else {
-        fail();
-      }
-      break;
-    case FlowState.FLOWING:
-      if (newState !== FlowState.WAITING) {
-        fail();
-      }
-      this._pendingState = newState;
-      this.onFlowingToWaiting_(cb);
-      break;
-    }
-
-    function fail () {
-      throw new Error(`Can not transition from flow state ${currentState} to ${newState}`);
-    }
-  }
-
-  // more of a convenience since the setter exists but can't be public therefore
-  // (Typescript wants accessors to agree in visibility)
-  protected get state (): FlowState {
-    return this._state;
   }
 
   private onStateChangePerformed_ (previousState: FlowState, newState: FlowState) {
