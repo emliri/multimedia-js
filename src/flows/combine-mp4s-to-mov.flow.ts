@@ -32,7 +32,6 @@ export class CombineMp4sToMovFlow extends Flow {
   constructor (
     private _videoMp4Url: string,
     private _audioUrl: string,
-    private _appInputCallback: AppInputCallback,
     private _useFileDonwloadSocket: boolean = false,
     private _downloadLinkContainer: HTMLElement = null,
     private _isMp3Audio: boolean = false
@@ -92,8 +91,6 @@ export class CombineMp4sToMovFlow extends Flow {
 
       const appInputSocket: AppInputSocket
         = new AppInputSocket((blob: Blob) => {
-
-          this._appInputCallback(blob);
 
           this.setCompleted({code: FlowCompletionResultCode.OK, data: blob});
 
