@@ -13,10 +13,15 @@ export enum FlowState {
                           // or otherwise not available anymore, and the last EOS has reached the terminating output sockets
 }
 
-export enum FlowCompletionResult {
+export enum FlowCompletionResultCode {
   NONE = 'none',
   OK = 'ok',
   FAILED = 'failed'
+}
+
+export type FlowCompletionResult = {
+  code: FlowCompletionResultCode
+  data: Blob
 }
 
 export enum FlowErrorType {
@@ -63,7 +68,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   private _whenDone: Promise<FlowCompletionResult>;
   private _whenDoneResolve: (value: FlowCompletionResult) => void = null;
   private _whenDoneReject: (reason: FlowError) => void = null;
-  private _completionResult: FlowCompletionResult = FlowCompletionResult.NONE;
+  private _completionResultCode: FlowCompletionResultCode = FlowCompletionResultCode.NONE;
 
   get procList (): Processor[] {
     return Array.from(this._processors);
@@ -115,8 +120,8 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return this._extSockets;
   }
 
-  getCompletionResult(): FlowCompletionResult {
-    return this._completionResult;
+  getCompletionResult(): FlowCompletionResultCode {
+    return this._completionResultCode;
   }
 
   set state (newState: FlowState) {
@@ -125,7 +130,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     }
 
     if (newState === FlowState.COMPLETED
-      && this._completionResult === FlowCompletionResult.NONE) {
+      && this._completionResultCode === FlowCompletionResultCode.NONE) {
         throw new Error('state change to COMPLETED has to be triggered by setCompleted');
       }
 
@@ -182,16 +187,17 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   }
 
   protected setCompleted(completionResult: FlowCompletionResult, error: FlowError = null) {
-    this._completionResult = completionResult;
+    this._completionResultCode = completionResult.code;
+
     // enforce state change to completed
     this.state = FlowState.COMPLETED;
-    switch(completionResult) {
-    case FlowCompletionResult.NONE:
+    switch(this._completionResultCode) {
+    case FlowCompletionResultCode.NONE:
       throw new Error('Can not complete with no result');
-    case FlowCompletionResult.OK:
+    case FlowCompletionResultCode.OK:
       this._whenDoneResolve(completionResult);
       break;
-    case FlowCompletionResult.FAILED:
+    case FlowCompletionResultCode.FAILED:
       this._whenDoneReject(error);
       break;
     }
