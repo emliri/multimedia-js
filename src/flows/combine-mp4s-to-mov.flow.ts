@@ -1,4 +1,4 @@
-import { Flow, FlowStateChangeCallback, FlowCompletionResult, FlowState } from '../core/flow';
+import { Flow, FlowStateChangeCallback, FlowCompletionResult, FlowState, FlowCompletionResultCode } from '../core/flow';
 import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
@@ -20,6 +20,15 @@ const { log } = getLogger('CombineMp4sToMovFlow');
 
 export class CombineMp4sToMovFlow extends Flow {
 
+  /**
+   *
+   * @param _videoMp4Url
+   * @param _audioUrl
+   * @param _appInputCallback
+   * @param _useFileDonwloadSocket
+   * @param _downloadLinkContainer
+   * @param _isMp3Audio
+   */
   constructor (
     private _videoMp4Url: string,
     private _audioUrl: string,
@@ -86,7 +95,7 @@ export class CombineMp4sToMovFlow extends Flow {
 
           this._appInputCallback(blob);
 
-          this.setCompleted(FlowCompletionResult.OK);
+          this.setCompleted({code: FlowCompletionResultCode.OK, data: blob});
 
       }, true, true, 'video/quicktime')
 
