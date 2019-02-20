@@ -67,17 +67,10 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
       this._flow = new CombineMp4sToMovFlow(
         videoUrl,
         audioUrl,
-        appCallback,
         true,
         document.querySelector('#root'),
         isMp3Audio
       );
-
-      function appCallback(blob: Blob) {
-
-        console.log('new file blob:', blob);
-
-      }
 
       this._flow.whenCompleted().then((result: FlowCompletionResult) => {
 
