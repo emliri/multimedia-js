@@ -124,6 +124,25 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return this._completionResultCode;
   }
 
+  /**
+   * Sets the state of the flow. State-changes are asynchroenous in principle, but can be sync if the
+   * implementation does it so.
+   *
+   * State-changes can only be performed in the orders of VOID<->WAITING<->FLOWING
+   *
+   * The COMPLETED state is special in that it can be reached from any previous state.
+   * However it has to be reached by calling setCompleted with some valid FlowCompletionResultCode value (not NONE).
+   *
+   * In principle as all state-changes are async (also the one to COMPLETED).
+   *
+   * Therefore, if the application wants to reach a "target" state (for example FLOWING) from an initial state VOID,
+   * it should take care of listening to the state-change events in order to know when
+   * to be able to set the next state-change, as to perform every asynchroneous state-change phase.
+   *
+   * NOTE/TODO: Generic convenience functions can easily be provided for travelling back and forth
+   * through the flow-states.
+   *
+   */
   set state (newState: FlowState) {
     if (this._pendingState) {
       throw new Error('Flow state-change still pending: ' + this._pendingState);
@@ -138,6 +157,13 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     this._pendingState = newState;
     this.emit(FlowEvent.STATE_CHANGE_PENDING);
 
+    // this callback is passed to the flow implementators
+    // state-transition validators. this is to allow async state transitions for implementors.
+    // the implementor calls back once the state transition actually happens,
+    // which will call our private onStateChangePerformed_ bound to the
+    // respective argument values of current and new state to actually
+    // update the state and call specific events. the implementation can of course
+    // also callback synchroneously.
     const cb: VoidCallback = this.onStateChangePerformed_.bind(this, this._state, newState);
 
     // we can go to completed from any state
@@ -180,8 +206,6 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     }
   }
 
-  // more of a convenience since the setter exists but can't be public therefore
-  // (Typescript wants accessors to agree in visibility)
   get state (): FlowState {
     return this._state;
   }
@@ -189,7 +213,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   protected setCompleted(completionResult: FlowCompletionResult, error: FlowError = null) {
     this._completionResultCode = completionResult.code;
 
-    // enforce state change to completed
+    // now initiate state change to completed
     this.state = FlowState.COMPLETED;
     switch(this._completionResultCode) {
     case FlowCompletionResultCode.NONE:
