@@ -18,7 +18,7 @@ import {
 import { isNumber } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor(Moz)', LoggerLevel.LOG);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.LOG);
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -142,7 +142,8 @@ export class MP4MuxProcessor extends Processor {
         p.defaultPayloadInfo.getSamplingRate(), // fps
         p.defaultPayloadInfo.details.width,
         p.defaultPayloadInfo.details.height, // resolution
-        p.defaultPayloadInfo.details.sequenceDurationInSeconds
+        p.defaultPayloadInfo.details.sequenceDurationInSeconds,
+        p.getTimescale()
       );
 
       return true;
@@ -307,7 +308,8 @@ export class MP4MuxProcessor extends Processor {
 
   private _addAudioTrack (
     audioCodec: MP4MuxProcessorSupportedCodecs,
-    sampleRate: number, sampleSize: number,
+    sampleRate: number,
+    sampleSize: number,
     numChannels: number,
     durationSeconds: number,
     language: string = 'und'): MP4Track {
@@ -337,10 +339,11 @@ export class MP4MuxProcessor extends Processor {
 
   private _addVideoTrack (
     videoCodec: MP4MuxProcessorSupportedCodecs,
-    frameRate: number,
+    framerate: number,
     width: number,
     height: number,
-    durationSeconds: number
+    durationSeconds: number,
+    timescale: number = framerate
     ): MP4Track {
 
     if (!isVideoCodec(videoCodec)) {
@@ -348,13 +351,13 @@ export class MP4MuxProcessor extends Processor {
     }
 
     let videoTrack: MP4Track = {
-      duration: durationSeconds >= 0 ? durationSeconds * frameRate : -1,
+      duration: durationSeconds >= 0 ? durationSeconds * timescale : -1,
       codecDescription: videoCodec,
       codecId: getCodecId(videoCodec),
-      timescale: frameRate,
-      framerate: frameRate,
-      width: width,
-      height: height,
+      timescale,
+      framerate,
+      width,
+      height,
       language: 'und'
     };
 
