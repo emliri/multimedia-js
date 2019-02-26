@@ -335,7 +335,9 @@ export class MP4Mux {
           };
 
         } else {
+
           audioPacket = parseAudiodata(data);
+
         }
 
         if (!audioTrack || audioTrack.trackInfo.codecId !== audioPacket.codecId) {
@@ -512,6 +514,9 @@ export class MP4Mux {
 
           for (var j = 0; j < trackPackets.length; j++) {
 
+            // FIXME: re-use logic for audio & video
+            // FIXME: enforce DTS/CTS gap of 1/sample-rate
+
             const audioPacket: AudioPacket = trackPackets[j].packet;
             const audioFrameDuration = Math.round(audioPacket.samples * trackInfo.timescale / trackInfo.samplerate);
 
@@ -544,12 +549,13 @@ export class MP4Mux {
           for (var j = 0; j < trackPackets.length; j++) {
 
             const videoPacket: VideoPacket = trackPackets[j].packet;
-            const nextDecodeTime = Math.round(samplesProcessed * trackInfo.timescale / trackInfo.framerate);
+            const videoFrameRateScaled = trackInfo.timescale / trackInfo.framerate;
+            const nextDecodeTime = Math.round(samplesProcessed * videoFrameRateScaled);
             const videoFrameDuration = nextDecodeTime - lastDecodeTime;
 
             lastDecodeTime = nextDecodeTime;
 
-            const compositionTime = (trackInfo.timescale / trackInfo.framerate) + videoPacket.compositionTime;
+            const compositionTime = videoPacket.compositionTime + videoFrameDuration;
 
             const s: StblSample = {
               size: videoPacket.data.length,
@@ -562,7 +568,8 @@ export class MP4Mux {
             chunks[i].push(videoPacket.data);
 
             samplesProcessed++;
-            dts += videoFrameDuration;
+            dts += videoFrameDuration || videoFrameRateScaled;
+
           }
 
           trackState.cachedDuration = lastDecodeTime;
