@@ -118,9 +118,24 @@ export class MP4DemuxProcessor extends Processor {
             const avcCodecData = avcC.data;
             const spsParsed = avcC.spsParsed[0];
 
+            /*
+            // we should not rely on this information since it might not be present (it's optional data inside the SPS)
             sampleRate = spsParsed.frameRate.fpsNum;
             sampleDurationNum = spsParsed.frameRate.fpsDen;
+            */
+
             sampleDepth = spsParsed.bitDepth;
+
+            sampleDurationNum = 1;
+
+            if (track.getFrames().length > 1) {
+              sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds()
+              - track.getFrames()[0].getDecodingTimestampInSeconds());
+              log('estimated FPS:', sampleRate);
+            } else {
+              warn('only found 1 single frame in video track, setting FPS to zero');
+              sampleRate = 0
+            }
 
             if (avcC.numOfSequenceParameterSets > 1) {
               warn('more than one SPS found, but only handling one here');
@@ -199,7 +214,9 @@ export class MP4DemuxProcessor extends Processor {
             const initProps: BufferProperties = protoProps.clone();
             initProps.isBitstreamHeader = true;
             log('created/transferring codec data packet; flagged bitstream header')
-            output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(codecData, initProps)));
+            const initPacket = Packet.fromSlice(BufferSlice.fromTypedArray(codecData, initProps))
+            initPacket.setTimescale(track.getTimescale());
+            output.transfer(initPacket);
           }
 
           track.getFrames().forEach((frame: Frame) => {
