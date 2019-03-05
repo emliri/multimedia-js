@@ -5,11 +5,11 @@ import { FFmpegTool, FFmpegConversionTargetInfo } from './ffmpeg/ffmpeg-tool';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 
-let var ffmpeg: any;
+var ffmpeg: any;
 
 export class FFmpegConvertProcessor extends Processor {
   static getName (): string {
- return 'FFmpegConvertProcessor' 
+ return 'FFmpegConvertProcessor'
 }
 
   private ffmpeg_: FFmpegTool = null;

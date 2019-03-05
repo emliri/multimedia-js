@@ -16,7 +16,7 @@ import { Processors } from '../../index';
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/importScripts
  */
-let var importScripts: (...paths: string[]) => void;
+var importScripts: (...paths: string[]) => void;
 
 const workerId = makeUUID_v1();
 const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.LOG);

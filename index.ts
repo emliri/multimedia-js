@@ -73,8 +73,11 @@ export const Core = {
   PayloadDescriptor,
   PayloadDetails,
   Signal,
-  Flow, FlowErrorType, FlowEvent, FlowState
-}
+  Flow,
+  FlowErrorType,
+  FlowEvent,
+  FlowState
+};
 
 export const Processors = {
   H264ParseProcessor,
@@ -92,7 +95,7 @@ export const IoSockets = {
   XhrSocket,
   WebFileChooserSocket,
   WebFileDownloadSocket,
-  HTML5MediaSourceBufferSocket,
+  HTML5MediaSourceBufferSocket
   // NodeFsReadSocket,
   // NodeFsWriteSocket
 };
@@ -104,6 +107,4 @@ export const Flows = {
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
-export {setLocalLoggerLevel, createAndGetLocalLoggerConfig as getLocalLoggerConfig, removeLocalLoggerConfig} from './src/logger';
-
-
+export { setLocalLoggerLevel, createAndGetLocalLoggerConfig as getLocalLoggerConfig, removeLocalLoggerConfig } from './src/logger';
