@@ -6,7 +6,7 @@
   "scripts": {
     "build": "ts-node ./node_modules/.bin/webpack --progress",
     "build:watch": "npm run build -- --watch",
-    "lint": "eslint index.ts src --ext .ts --ext .js",
+    "lint": "eslint index.ts src test-cases --ext .ts --ext .js",
     "lint-fix": "npm run lint -- --fix",
     "start": "ts-node ./node_modules/.bin/webpack-dev-server --progress",
     "test": "jest"
