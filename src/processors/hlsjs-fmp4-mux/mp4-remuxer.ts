@@ -1,6 +1,6 @@
 
-import {AACUtils} from './aac-utils';
-import {MP4Generator} from './mp4-generator';
+import { AACUtils } from './aac-utils';
+import { MP4Generator } from './mp4-generator';
 
 import { getLogger } from '../../logger';
 import { isBrowserBrand, BrowserBrandname } from '../../browser-utils';
@@ -137,7 +137,6 @@ export type Fmp4RemuxerPayloadSegmentData = {
 }
 
 export class Fmp4Remuxer {
-
   private readonly _observer: {
     trigger: Fmp4RemuxerEventHandler
   };
@@ -155,11 +154,10 @@ export class Fmp4Remuxer {
     onEvent: Fmp4RemuxerEventHandler,
     config: Fmp4RemuxerConfig,
     typeSupported: Fmp4RemuxerTypesSupported = {}
-    )
-  {
+  ) {
     this._observer = {
       trigger: (event: Fmp4RemuxerEvent, data?: any) => {
-        //logger.log('event:', event, data);
+        // logger.log('event:', event, data);
         onEvent(event, data);
       }
     };
@@ -261,7 +259,7 @@ export class Fmp4Remuxer {
     let containerMimetype = 'audio/mp4';
     let tracks: Partial<Fmp4RemuxerTrackState> = {};
     let data = { tracks };
-    let computeInitialSyncTime: boolean = (this._initPts === null)
+    let computeInitialSyncTime: boolean = (this._initPts === null);
     let initPTS: number;
     let initDTS: number;
 
@@ -334,7 +332,6 @@ export class Fmp4Remuxer {
 
   private _remuxVideo (track: Fmp4RemuxerVideoTrack,
     timeOffset: number, contiguous: boolean, audioTrackLength: number, accurateTimeOffset: boolean) {
-
     let offset = 8;
     let timeScale = track.timescale;
     let mp4SampleDuration;
@@ -613,7 +610,6 @@ export class Fmp4Remuxer {
     timeOffset: number,
     contiguous: boolean,
     accurateTimeOffset?): Fmp4RemuxerPayloadSegmentData {
-
     const inputTimeScale = track.inputTimeScale;
     const mp4timeScale = track.timescale;
     const scaleFactor = inputTimeScale / mp4timeScale;
@@ -745,7 +741,7 @@ export class Fmp4Remuxer {
       let unit = audioSample.units[0].data;
       let pts = audioSample.pts;
 
-      //logger.log(`Audio PTS: ${Math.round(pts)}`);
+      // logger.log(`Audio PTS: ${Math.round(pts)}`);
 
       // if not first sample
       if (lastPTS !== undefined) {
@@ -863,7 +859,6 @@ export class Fmp4Remuxer {
     }
 
     if (nbSamples) {
-
       // next audio sample PTS should be equal to last sample PTS + duration
       this._nextAudioPts = nextAudioPts = lastPTS + scaleFactor * lastSampleDuration;
       // logger.log('Audio/PTS/PTSend:' + audioSample.pts.toFixed(0) + '/' + this.nextAacDts.toFixed(0));
@@ -895,7 +890,6 @@ export class Fmp4Remuxer {
       this._observer.trigger(Event.WROTE_PAYLOAD_SEGMENT, audioData);
 
       return audioData;
-
     }
 
     return null;

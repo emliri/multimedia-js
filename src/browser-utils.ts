@@ -6,15 +6,14 @@ export enum BrowserBrandname {
   SAFARI = 'safari',
   IE = 'ie',
   EDGE = 'edge'
-};
+}
 
 // ADD browser rendering-engines detection; see https://github.com/lancedikson/bowser/tree/v1.x
 
-export function isBrowserBrand(brandName: BrowserBrandname) {
+export function isBrowserBrand (brandName: BrowserBrandname) {
   return bowser[brandName];
 }
 
-export function isMseSupported(): boolean {
+export function isMseSupported (): boolean {
   return !!(window as any).MediaSource;
 }
-

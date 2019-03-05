@@ -7,22 +7,21 @@ import { BufferProperties } from './buffer-props';
  * information on the stream of packets.
  */
 export enum PacketSymbol {
-  VOID = 0,           // void: a placeholder
-  WAIT = 1,           // further data received should not be processed (or transferred)
-  WAIT_BUT_Q = 2,     // further data received may be processed but must be queued until transferred (wait for resume)
-  RESUME = 3,         // further data received should be processed now and pipelined
-  FLUSH = 4,          // data received before should now be flushed (meaning it should be transferred when already processed)
-  GAP = 5,            // a time-plane discontinuity in this sync-id domain will arrive after this (this may also mean a lack of data for present processing)
-  EOS = 6,            // no more data will be transferred after this
-  DROP = 7,           // data received before (already processed or not) should be dropped (and thus not transferred)
-  DROP_Q = 8,         // data received before that was queued (not yet processed) should be dropped
-  SYNC = 9            // after this, a new packet sync-id may appear (the symbolic packet SHOULD carry its value already)
+  VOID = 0, // void: a placeholder
+  WAIT = 1, // further data received should not be processed (or transferred)
+  WAIT_BUT_Q = 2, // further data received may be processed but must be queued until transferred (wait for resume)
+  RESUME = 3, // further data received should be processed now and pipelined
+  FLUSH = 4, // data received before should now be flushed (meaning it should be transferred when already processed)
+  GAP = 5, // a time-plane discontinuity in this sync-id domain will arrive after this (this may also mean a lack of data for present processing)
+  EOS = 6, // no more data will be transferred after this
+  DROP = 7, // data received before (already processed or not) should be dropped (and thus not transferred)
+  DROP_Q = 8, // data received before that was queued (not yet processed) should be dropped
+  SYNC = 9 // after this, a new packet sync-id may appear (the symbolic packet SHOULD carry its value already)
 }
 
 export type PacketReceiveCallback = ((p: Packet) => boolean);
 
 export class Packet {
-
   /**
    * used to recover a packet that was transferred from a another thread (worker) context (passed via a message-event).
    * the object is then a "dead" structure of metadata and needs to be reconstructed so it has "methods"
@@ -41,7 +40,7 @@ export class Packet {
    * the message is attached a copy of the original data which was processed in the thread in this case.
    * @param p
    */
-  static makeTransferableCopy(p: Packet) {
+  static makeTransferableCopy (p: Packet) {
     return Packet.fromData(p, p.data.map((bs) => BufferSlice.copy(bs)));
   }
 
@@ -52,7 +51,6 @@ export class Packet {
    * @param data
    */
   private static fromData (p: Packet, data: BufferSlice[]) {
-
     const newPacket: Packet = new Packet(
       data,
       p.timestamp,
@@ -61,9 +59,9 @@ export class Packet {
       p.synchronizationId
     );
     if (p._symbol > 0) { // we need to access the private member here because the properties
-                         // and methods are not present when the prototype wasn't called
-                         // same for the methods below
-                         // note: if we would apply the constructor on `p` it would also reset the values
+      // and methods are not present when the prototype wasn't called
+      // same for the methods below
+      // note: if we would apply the constructor on `p` it would also reset the values
       newPacket.symbol = p._symbol;
     }
     newPacket.setTimestampOffset(p._timestampOffset);
@@ -75,7 +73,6 @@ export class Packet {
     arrayBuffer: ArrayBuffer,
     mimeType?: string,
     bufferProps: BufferProperties = new BufferProperties(mimeType)): Packet {
-
     return Packet.fromSlice(new BufferSlice(
       arrayBuffer,
       0,
@@ -92,7 +89,7 @@ export class Packet {
     return p;
   }
 
-  static fromSlices(timestamp: number, pto: number, ...bufferSlices: BufferSlice[]): Packet {
+  static fromSlices (timestamp: number, pto: number, ...bufferSlices: BufferSlice[]): Packet {
     const p = new Packet([], timestamp, pto);
     Array.prototype.push.apply(p.data, bufferSlices);
     return p;
@@ -132,11 +129,9 @@ export class Packet {
     public createdAt: Date = new Date(),
     public readonly synchronizationId: number = null
   ) {
-
     if (synchronizationId !== null && !Number.isSafeInteger(synchronizationId)) {
       throw new Error('Synchronization-id must be a safe integer value');
     }
-
   }
 
   mapArrayBuffers (): ArrayBuffer[] {
@@ -196,28 +191,28 @@ export class Packet {
   }
 
   // TODO: check if other buffers have other infos etc..
-  get hasDefaultPayloadInfo(): boolean {
+  get hasDefaultPayloadInfo (): boolean {
     return this._hasDefaultBufferProps;
   }
 
   /**
    * alias for presentationTimeOffset
    */
-  get cto() {
+  get cto () {
     return this.presentationTimeOffset;
   }
 
   /**
    * alias for presentationTimeOffset
    */
-  get pto() {
+  get pto () {
     return this.presentationTimeOffset;
   }
 
   /**
    * alias for timestamp (caution: not including timestamp-offset)
    */
-  get dts() {
+  get dts () {
     return this.timestamp;
   }
 
@@ -234,53 +229,53 @@ export class Packet {
     return this._timestampOffset + this.timestamp;
   }
 
-  setTimescale(timescale: number) {
+  setTimescale (timescale: number) {
     this._timescale = timescale;
   }
 
-  getTimescale(): number {
+  getTimescale (): number {
     return this._timescale;
   }
 
-  setTimestampOffset(tOffset: number) {
+  setTimestampOffset (tOffset: number) {
     this._timestampOffset = tOffset;
   }
 
-  getTimestampOffset(): number {
+  getTimestampOffset (): number {
     return this._timestampOffset;
   }
 
   /**
    * CTO == PTO == presentationTimeOffset
    */
-  getNormalizedCto(): number {
+  getNormalizedCto (): number {
     return this.presentationTimeOffset / this._timescale;
   }
 
-  getNormalizedTimestampOffset(): number {
+  getNormalizedTimestampOffset (): number {
     return this._timestampOffset / this._timescale;
   }
 
-  getNormalizedPts(): number {
+  getNormalizedPts (): number {
     return this.getPresentationTimestamp() / this._timescale;
   }
 
-  getNormalizedDts() {
+  getNormalizedDts () {
     return this.getDecodingTimestamp() / this._timescale;
   }
 
-  getScaledPts(timescale: number): number {
+  getScaledPts (timescale: number): number {
     return this.getNormalizedPts() * timescale;
   }
 
-  getScaledDts(timescale: number): number {
+  getScaledDts (timescale: number): number {
     return this.getNormalizedDts() * timescale;
   }
 
   /**
    * CTO == PTO == presentationTimeOffset
    */
-  getScaledCto(timescale): number {
+  getScaledCto (timescale): number {
     return this.getNormalizedCto() * timescale;
   }
 
@@ -294,12 +289,12 @@ export class Packet {
     return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
 
-  toString(): string {
+  toString (): string {
     const p = this;
-    const description
-      = `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>`
-      + ` #{(@${p.getTimestampOffset()} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.getTimescale()}`
-      + ` -> ${p.getNormalizedDts()} + ∂${p.getNormalizedCto()} [s]} `
+    const description =
+      `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>` +
+      ` #{(@${p.getTimestampOffset()} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.getTimescale()}` +
+      ` -> ${p.getNormalizedDts()} + ∂${p.getNormalizedCto()} [s]} `;
     return description;
   }
 
@@ -308,5 +303,4 @@ export class Packet {
     throw new Error('not implemented');
   }
   */
-
 }

@@ -22,13 +22,14 @@ export const AAC_SAMPLES_PER_FRAME = 1024;
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
-      SocketDescriptor.fromMimeTypes('audio/mp4', 'video/mp4'), // valid inputs
-      SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac') // output
-      );
+    SocketDescriptor.fromMimeTypes('audio/mp4', 'video/mp4'), // valid inputs
+    SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac') // output
+  );
 
 export class MP4DemuxProcessor extends Processor {
-
-    static getName(): string { return "MP4DemuxProcessor" }
+  static getName (): string {
+    return 'MP4DemuxProcessor';
+  }
 
     private _demuxer: Mp4Demuxer;
 
@@ -58,22 +59,19 @@ export class MP4DemuxProcessor extends Processor {
       return this._trackIdToOutputs[track.id];
     }
 
-    protected handleSymbolicPacket_(s: PacketSymbol) {
-      log('handling symbol:', s)
+    protected handleSymbolicPacket_ (s: PacketSymbol) {
+      log('handling symbol:', s);
       return super.handleSymbolicPacket_(s);
     }
 
     protected processTransfer_ (inS: InputSocket, p: Packet) {
-
       p.data.forEach((bufferSlice) => {
-
         this._demuxer.append(bufferSlice.getUint8Array());
         this._demuxer.end();
 
         const tracks: TracksHash = this._demuxer.tracks;
 
         for (const trackId in tracks) {
-
           const track: Mp4Track = <Mp4Track> tracks[trackId];
 
           log(
@@ -95,7 +93,7 @@ export class MP4DemuxProcessor extends Processor {
 
           const output: OutputSocket = this._ensureOutputForTrack(track);
 
-          //let frameRate: number = NaN; // add a Mp4Track property for this and extract inside inspector.js
+          // let frameRate: number = NaN; // add a Mp4Track property for this and extract inside inspector.js
           let sampleDepth: number = NaN;
           let sampleRate: number = NaN;
           let sampleDurationNum: number = 1;
@@ -105,7 +103,6 @@ export class MP4DemuxProcessor extends Processor {
           let codecData: Uint8Array = null;
 
           if (track.type === Mp4Track.TYPE_VIDEO) {
-
             const videoAtom = <VideoAtom> track.getMetadataAtom();
             // FIXME: support HEVC too
             const avcC = (<AvcC> track.getReferenceAtom());
@@ -113,7 +110,6 @@ export class MP4DemuxProcessor extends Processor {
               warn('no codec data found for video track with id:', track.id);
               continue;
             }
-
 
             const avcCodecData = avcC.data;
             const spsParsed = avcC.spsParsed[0];
@@ -129,12 +125,12 @@ export class MP4DemuxProcessor extends Processor {
             sampleDurationNum = 1;
 
             if (track.getFrames().length > 1) {
-              sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds()
-              - track.getFrames()[0].getDecodingTimestampInSeconds());
+              sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds() -
+              track.getFrames()[0].getDecodingTimestampInSeconds());
               log('estimated FPS:', sampleRate);
             } else {
               warn('only found 1 single frame in video track, setting FPS to zero');
-              sampleRate = 0
+              sampleRate = 0;
             }
 
             if (avcC.numOfSequenceParameterSets > 1) {
@@ -155,9 +151,7 @@ export class MP4DemuxProcessor extends Processor {
             console.log('pushing PPS data')
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
-
           } else if (track.type === Mp4Track.TYPE_AUDIO) {
-
             const audioAtom = <AudioAtom> track.getMetadataAtom();
             sampleDepth = audioAtom.sampleSize;
             numChannels = audioAtom.channelCount;
@@ -177,8 +171,8 @@ export class MP4DemuxProcessor extends Processor {
 
             constantBitrate = audioDecoderConfig.avgBitrate;
 
-            log('cbr:', constantBitrate,'b/s')
-            log('flagged ESDS-atom-data packet as bitstream header')
+            log('cbr:', constantBitrate, 'b/s');
+            log('flagged ESDS-atom-data packet as bitstream header');
 
             const esdsData = esds.data;
             codecData = esdsData;
@@ -186,7 +180,7 @@ export class MP4DemuxProcessor extends Processor {
 
           let sampleDuration = track.getDefaults() ? track.getDefaults().sampleDuration : 1;
 
-          log('sample-duration found:', sampleDuration)
+          log('sample-duration found:', sampleDuration);
 
           const protoProps: BufferProperties = new BufferProperties(
             track.mimeType,
@@ -213,18 +207,17 @@ export class MP4DemuxProcessor extends Processor {
           if (codecData) {
             const initProps: BufferProperties = protoProps.clone();
             initProps.isBitstreamHeader = true;
-            log('created/transferring codec data packet; flagged bitstream header')
-            const initPacket = Packet.fromSlice(BufferSlice.fromTypedArray(codecData, initProps))
+            log('created/transferring codec data packet; flagged bitstream header');
+            const initPacket = Packet.fromSlice(BufferSlice.fromTypedArray(codecData, initProps));
             initPacket.setTimescale(track.getTimescale());
             output.transfer(initPacket);
           }
 
           track.getFrames().forEach((frame: Frame) => {
-
             let props = protoProps;
 
             if (frame.frameType === Frame.IDR_FRAME) {
-              log('got idr-frame at:', frame.timeUs, '[us]')
+              log('got idr-frame at:', frame.timeUs, '[us]');
               props = protoProps.clone();
               props.isKeyframe = true;
             }
@@ -242,7 +235,7 @@ export class MP4DemuxProcessor extends Processor {
             p.presentationTimeOffset = frame.scaledPresentationTimeOffset;
             p.setTimescale(frame.timescale);
 
-            //log('timescale:', frame.timescale)
+            // log('timescale:', frame.timescale)
 
             debug('pushing packet with:', frameSlice.toString());
 

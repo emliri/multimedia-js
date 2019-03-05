@@ -19,7 +19,6 @@ export type SourceBufferQueueUpdateCallbackData = {
 export type SourceBufferQueueUpdateCallback = (SourceBufferQueue, SourceBufferQueueUpdateCallbackData) => void;
 
 export class SourceBufferQueue {
-
   private updateStartedTime_: number = null;
   private queue_: SourceBufferQueueItem[] = [];
 
@@ -27,15 +26,14 @@ export class SourceBufferQueue {
   private sourceBuffer_: SourceBuffer = null;
   private initialMode_: string = null;
 
-  //private bufferMap_: any[];
+  // private bufferMap_: any[];
 
   constructor (
     mediaSource: MediaSource,
     private mimeType_: string,
     trackDefaults = null,
     private onUpdate_: SourceBufferQueueUpdateCallback = (() => {})) {
-
-    //this.bufferMap_ = [];
+    // this.bufferMap_ = [];
 
     this.sourceBuffer_ = mediaSource.addSourceBuffer(mimeType_);
     this.initialMode_ = this.sourceBuffer_.mode;
@@ -137,7 +135,7 @@ export class SourceBufferQueue {
     const bufferSlice = packet.data[0];
 
     const start = bufferSlice.props.timestampDelta;
-    const end = bufferSlice.props.timestampDelta + bufferSlice.props.getSampleDuration()
+    const end = bufferSlice.props.timestampDelta + bufferSlice.props.getSampleDuration();
     const arrayBuffer = bufferSlice.arrayBuffer;
     const timestampOffset = 0;
 
@@ -200,7 +198,7 @@ export class SourceBufferQueue {
 
     switch (method) {
     case 'appendBuffer':
-      log('appending', this.mimeType ,'buffer of', item.arrayBuffer.byteLength, 'bytes');
+      log('appending', this.mimeType, 'buffer of', item.arrayBuffer.byteLength, 'bytes');
       this.sourceBuffer_[method](arrayBuffer);
 
       // this.incrBufferedBytesCnt_(arrayBuffer.bytesLength);
@@ -208,7 +206,7 @@ export class SourceBufferQueue {
 
       break;
     case 'remove':
-      log('pruning', this.mimeType, 'buffer on time-interval', start, '-', end)
+      log('pruning', this.mimeType, 'buffer on time-interval', start, '-', end);
       this.sourceBuffer_[method](start, end);
       break;
     case 'drop':
@@ -233,7 +231,7 @@ export class SourceBufferQueue {
   }
 
   private onUpdateStart_ () {
-    //log('onUpdateStart_');
+    // log('onUpdateStart_');
 
     if (this.updateStartedTime_ !== null) {
       throw new Error('updateStartedTime_ should be null');

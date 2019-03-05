@@ -22,7 +22,6 @@ import { BufferProperties } from './buffer-props';
  *
  */
 export class BufferSlice {
-
   static mapArrayBuffers (bufferSlices: BufferSlices): ArrayBuffer[] {
     return bufferSlices.map((bs) => bs.arrayBuffer);
   }
@@ -48,7 +47,7 @@ export class BufferSlice {
     );
   }
 
-   /**
+  /**
      * original existing BufferSlice representing a data window into an existing ArrayBuffer
      * @returns a new slice with a newly allocated underlying ArrayBuffer that is a copy of the original slice window data
      */
@@ -225,12 +224,11 @@ export class BufferSlice {
       return allocAndCopyTypedArraySlice(this.getDataView());
     }
 
-    toString(): string {
+    toString (): string {
       return `slice @${this.offset} of length ${this.length} in buffer of ${this.arrayBuffer.byteLength} bytes`;
     }
 
-    // TODO: method to create "grow" new BufferSlice from original data and (list of) additional slices
-
+  // TODO: method to create "grow" new BufferSlice from original data and (list of) additional slices
 }
 
 export type BufferSlices = BufferSlice[];

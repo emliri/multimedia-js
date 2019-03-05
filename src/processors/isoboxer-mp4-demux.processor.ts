@@ -12,7 +12,9 @@ import { dispatchAsyncTask } from '../common-utils';
 const { log, debug } = getLogger('CodemIsoboxerMP4DemuxProcessor');
 
 export class IsoboxerMP4DemuxProcessor extends Processor {
-  static getName(): string { return "IsoboxerMP4DemuxProcessor" }
+  static getName (): string {
+    return 'IsoboxerMP4DemuxProcessor';
+  }
 
   constructor () {
     super();

@@ -1,41 +1,37 @@
-import { Packet } from "./packet";
-import { InputSocket, SocketDescriptor } from "./socket";
-import { VoidCallback } from "../common-types";
+import { Packet } from './packet';
+import { InputSocket, SocketDescriptor } from './socket';
+import { VoidCallback } from '../common-types';
 
 export class Fifo extends InputSocket {
-
   private _packets: Packet[] = [];
 
-  constructor(
+  constructor (
     private _onPacketWasQueued: VoidCallback = () => {},
     descr: SocketDescriptor = new SocketDescriptor()) {
-
     super((p: Packet) => this._onReceive(p), descr);
   }
 
-  peek(): Packet {
+  peek (): Packet {
     if (this._packets.length === 0) {
       return null;
     }
     return this._packets[this._packets.length - 1];
   }
 
-  pop(): Packet {
+  pop (): Packet {
     if (this._packets.length === 0) {
       return null;
     }
     return this._packets.pop();
   }
 
-  private _onReceive(p: Packet): boolean {
+  private _onReceive (p: Packet): boolean {
     this._push(p);
     return true;
   }
 
-  private _push(p: Packet) {
+  private _push (p: Packet) {
     this._packets.push(p);
     this._onPacketWasQueued();
   }
-
-
 }

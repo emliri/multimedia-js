@@ -1,4 +1,4 @@
-import { PayloadDescriptor, UNKNOWN_MIMETYPE } from "./payload-description";
+import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './payload-description';
 
 /**
  * @class
@@ -11,8 +11,7 @@ import { PayloadDescriptor, UNKNOWN_MIMETYPE } from "./payload-description";
  *
  */
 export class BufferProperties extends PayloadDescriptor {
-
-  static clone(props: BufferProperties) {
+  static clone (props: BufferProperties) {
     const newProps = new BufferProperties(
       props.mimeType,
       props.sampleRateInteger,
@@ -31,7 +30,7 @@ export class BufferProperties extends PayloadDescriptor {
     return newProps;
   }
 
-  static fromTransferable(props: BufferProperties) {
+  static fromTransferable (props: BufferProperties) {
     return BufferProperties.clone(props);
   }
 
@@ -51,7 +50,7 @@ export class BufferProperties extends PayloadDescriptor {
     this.samplesCount = samplesCount;
   }
 
-  clone(): BufferProperties {
+  clone (): BufferProperties {
     const newProps = BufferProperties.clone(this);
     return newProps;
   }
@@ -63,7 +62,7 @@ export class BufferProperties extends PayloadDescriptor {
     return this.samplesCount * this.getSampleDuration();
   }
 
-  toString() {
+  toString () {
     const payloadToString = super.toString();
     return `[[#${this.samplesCount} x ${this.isKeyframe ? 'KEY' : 'P/B'}-${this.isBitstreamHeader ? 'HEADER(s)' : 'FRAME(s)'} => ${payloadToString}]]`;
   }

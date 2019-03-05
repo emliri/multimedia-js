@@ -10,13 +10,14 @@ const { log } = getLogger('MPEGTSDemuxProcessor');
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
-      SocketDescriptor.fromMimeTypes('video/mp2t'), // valid inputs
-      SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
-      );
+    SocketDescriptor.fromMimeTypes('video/mp2t'), // valid inputs
+    SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
+  );
 
 export class MPEGTSDemuxProcessor extends Processor {
-
-  static getName(): string { return "MPEGTSDemuxProcessor" }
+  static getName (): string {
+    return 'MPEGTSDemuxProcessor';
+  }
 
   private _programMap: {[pid: number]: OutputSocket} = {};
   private _haveAudio: boolean = false;
@@ -32,7 +33,6 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected onTaskWorkerMessage (event: Event) {
-
     const p = Packet.fromTransferable((event as any).data.packet);
 
     if (p.isSymbolic()) {
@@ -41,11 +41,9 @@ export class MPEGTSDemuxProcessor extends Processor {
     }
 
     this._processDemuxerOutputPacket(p);
-
   }
 
-  private _processDemuxerOutputPacket(p: Packet) {
-
+  private _processDemuxerOutputPacket (p: Packet) {
     const bs = p.data[0];
 
     if (!this._haveVideo && PayloadCodec.isAvc(bs.props.codec)) {
@@ -60,7 +58,7 @@ export class MPEGTSDemuxProcessor extends Processor {
     this._getOutputForPayload(bs.props).transfer(p);
   }
 
-  private _getOutputForPayload(payloadDescriptor: PayloadDescriptor): OutputSocket {
+  private _getOutputForPayload (payloadDescriptor: PayloadDescriptor): OutputSocket {
     const pid = payloadDescriptor.elementaryStreamId;
     if (this._programMap[pid]) {
       return this._programMap[pid];
@@ -71,10 +69,8 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet) {
-
     this.dispatchTask('tsdemuxer', p);
 
     return true;
   }
-
 }

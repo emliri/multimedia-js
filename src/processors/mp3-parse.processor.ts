@@ -10,11 +10,12 @@ import { getLogger, LoggerLevel } from '../logger';
 import { MPEGAudioFrame } from './mp3/mpeg-audio-parser';
 import { BufferProperties } from '../core/buffer-props';
 
-const {log, debug, error} = getLogger('MP3ParseProcessor', LoggerLevel.LOG);
+const { log, debug, error } = getLogger('MP3ParseProcessor', LoggerLevel.LOG);
 
 export class MP3ParseProcessor extends Processor {
-
-  static getName(): string { return "MP3ParseProcessor" }
+  static getName (): string {
+    return 'MP3ParseProcessor';
+  }
 
   constructor () {
     super();
@@ -42,7 +43,7 @@ export class MP3ParseProcessor extends Processor {
   }
 
   private _onBufferSlice (bufferSlice: BufferSlice) {
-    //log('onBufferSlice');
+    // log('onBufferSlice');
 
     const res: MP3ParserResult = MP3Parser.parse(bufferSlice.getUint8Array());
 
@@ -53,7 +54,6 @@ export class MP3ParseProcessor extends Processor {
     debug('parser result:', res);
 
     res.mp3Frames.forEach((frame: MPEGAudioFrame) => {
-
       const p: Packet = Packet.fromSlice(BufferSlice.fromTypedArray(frame.data), timestamp, 0);
 
       const samplesPerFrame = frame.frameDuration / frame.sampleDuration;
@@ -69,7 +69,7 @@ export class MP3ParseProcessor extends Processor {
       props.codec = 'mp3a'; // .mp3?
       props.details.samplesPerFrame = samplesPerFrame;
       props.details.numChannels = frame.headerRef.channelCount;
-      props.details.constantBitrate = (8 * frame.data.byteLength) / (samplesPerFrame/sampleRate);
+      props.details.constantBitrate = (8 * frame.data.byteLength) / (samplesPerFrame / sampleRate);
 
       log('new mp3 frame props:', props.toString());
 
@@ -77,7 +77,7 @@ export class MP3ParseProcessor extends Processor {
 
       timestamp += frame.frameDuration;
 
-      log('created new mp3 packet @:', p.timestamp)
+      log('created new mp3 packet @:', p.timestamp);
 
       this.out[0].transfer(p);
     });

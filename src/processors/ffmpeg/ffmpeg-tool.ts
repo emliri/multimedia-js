@@ -1,6 +1,6 @@
 // would be nice but webpack takes looong to compile this :)
 
-//import ffmpegMp4Toolchain from 'ffmpeg.js/ffmpeg-mp4';
+// import ffmpegMp4Toolchain from 'ffmpeg.js/ffmpeg-mp4';
 /*
 import ffmpegWebmToolchain from 'ffmpeg.js/ffmpeg-webm';
 */
@@ -9,7 +9,7 @@ import ffmpegWebmToolchain from 'ffmpeg.js/ffmpeg-webm';
 import { getLogger } from '../../logger';
 import { noop, lastOfArray } from '../../common-utils';
 
-const {debug, log, warn, error} = getLogger('ffmpeg-tool');
+const { debug, log, warn, error } = getLogger('ffmpeg-tool');
 
 export type FFmpegToolchainExeWrapper = any; // FIXME: any as placeholder (need to create type-definitions or wrapper of ffmpeg.js API)
 
@@ -36,23 +36,21 @@ export class FFmpegStdPipeBuffer {
 }
 
 export class FFmpegTool {
-
   /*
   static get MP4Toolchain(): FFmpegToolchainExeWrapper {
     return ffmpegMp4Toolchain;
   }
-
 
   static get WEBMToolchain(): FFmpegToolchainBuild {
     return ffmpegWebmToolchain;
   }
   */
 
-  constructor(
+  constructor (
     public ffmpeg: FFmpegToolchainExeWrapper,
     private _onStdErrPipeByte: (newByte: number, bytesCount: number) => void = null,
     private _onStdOutPipeByte: (newByte: number, bytesCount: number) => void = null
-    ) {}
+  ) {}
 
   /**
    * Slightly low-level method, better use a more convenient wrapper if it can fit your purpose.
@@ -68,8 +66,7 @@ export class FFmpegTool {
    * @param fileName
    * @param ffmpegArguments
    */
-  runWithOneInputFile(inputFile: FFmpegFileItem, ffmpegArguments: string[]): FFmpegFileItem {
-
+  runWithOneInputFile (inputFile: FFmpegFileItem, ffmpegArguments: string[]): FFmpegFileItem {
     // TODO: use FFmpegStdPipeBuffer class
 
     let stdErrBytesCount = 0;
@@ -78,11 +75,11 @@ export class FFmpegTool {
       stdErrBytesCount++;
       stderrData.push(byte);
 
-      //debug(`wrote ${stdErrBytesCount} bytes to stderr`);
+      // debug(`wrote ${stdErrBytesCount} bytes to stderr`);
       if (this._onStdErrPipeByte) {
         this._onStdErrPipeByte(byte, stdErrBytesCount);
       }
-    }
+    };
 
     let stdOutBytesCount = 0;
     const stdoutData: number[] = [];
@@ -94,9 +91,9 @@ export class FFmpegTool {
       if (this._onStdOutPipeByte) {
         this._onStdOutPipeByte(byte, stdErrBytesCount);
       }
-    }
+    };
 
-    const {ffmpeg} = this;
+    const { ffmpeg } = this;
     let out = null;
     try {
       const result = ffmpeg({
@@ -108,11 +105,11 @@ export class FFmpegTool {
         stderr: onStdErrChar
       });
       out = result.MEMFS[0];
-    } catch(err) {
+    } catch (err) {
       error('Running FFmpeg conversion tool failed with an error:', err);
     }
 
-    debug('dumping stderr temp-buffer:', String.fromCharCode(...stderrData))
+    debug('dumping stderr temp-buffer:', String.fromCharCode(...stderrData));
 
     if (!out) {
       // FIXME: this seems to happen with certain x-wav files for some reason
@@ -145,14 +142,13 @@ export class FFmpegTool {
    * @param videoConfig
    * @param extraArgs
    */
-  convertAVFile(
+  convertAVFile (
     inputFileData: Uint8Array,
     inputExtension: string,
     audioConfig: FFmpegConversionTargetInfo | null,
     videoConfig: FFmpegConversionTargetInfo | null,
     extraArgs: string[] = []): Uint8Array {
-
-    const inputFile: FFmpegFileItem = {name: `input.${inputExtension}`, data: inputFileData};
+    const inputFile: FFmpegFileItem = { name: `input.${inputExtension}`, data: inputFileData };
 
     let outputFileExt = null;
     if (videoConfig) {
@@ -168,7 +164,7 @@ export class FFmpegTool {
     let args: string[] = ['-i', inputFile.name];
 
     if (audioConfig) {
-      args = args.concat(['-c:a', audioConfig.targetCodec, '-b:a', `${audioConfig.targetBitrateKbps}k`])
+      args = args.concat(['-c:a', audioConfig.targetCodec, '-b:a', `${audioConfig.targetBitrateKbps}k`]);
     }
 
     if (videoConfig) {
@@ -194,41 +190,40 @@ export class FFmpegTool {
    * @param targetCodec ffmpeg codec identifier, defaults to 'aac'
    * @param targetFiletypeExt without dot, defaults to 'mp4'
    */
-  convertAudioFile(inputFileData: Uint8Array, inputExtension: string,
+  convertAudioFile (inputFileData: Uint8Array, inputExtension: string,
     targetCodec: string = 'aac', targetFiletypeExt: string = 'mp4', targetBitrateKbps: number = 128): Uint8Array {
-    const inputFile: FFmpegFileItem = {name: `input.${inputExtension}`, data: inputFileData};
+    const inputFile: FFmpegFileItem = { name: `input.${inputExtension}`, data: inputFileData };
     const outFilename = `output.${targetFiletypeExt}`;
-    const args = ['-i', inputFile.name, '-c:a', targetCodec, '-b:a', `${targetBitrateKbps}k`, outFilename]
+    const args = ['-i', inputFile.name, '-c:a', targetCodec, '-b:a', `${targetBitrateKbps}k`, outFilename];
     const outFile = this.runWithOneInputFile(inputFile, args);
     return outFile.data;
   }
 
-  getVersion(): Promise<string> {
-    let stdout = "";
-    let stderr = "";
-    const {ffmpeg} = this;
+  getVersion (): Promise<string> {
+    let stdout = '';
+    let stderr = '';
+    const { ffmpeg } = this;
     return new Promise<string>((resolve, reject) => {
       // Print FFmpeg's version
       ffmpeg({
-        arguments: ["-version"],
-        print: function(data) {
-          stdout += data + "\n";
-          debug (data);
+        arguments: ['-version'],
+        print: function (data) {
+          stdout += data + '\n';
+          debug(data);
         },
-        printErr: function(data) {
-          stderr += data + "\n";
+        printErr: function (data) {
+          stderr += data + '\n';
           error(data);
         },
-        onExit: function(code) {
-          log("Virtual process exited with code " + code);
+        onExit: function (code) {
+          log('Virtual process exited with code ' + code);
           if (code === 0) {
             resolve(stdout);
           } else {
             reject(stderr);
           }
-        },
+        }
       });
     });
   }
 }
-

@@ -1,4 +1,4 @@
-import { isIntegerIEEE754, isInteger } from "../common-utils";
+import { isIntegerIEEE754, isInteger } from '../common-utils';
 
 export type MimeType = string;
 export type MimeTypes = MimeType[];
@@ -51,7 +51,7 @@ function appendCodecToMimeType (mimeType: MimeType, codec: string): string {
   return mimeType + '; codecs=' + codec;
 }
 
-function doesMimetypeHaveCodec(mimeType: string): boolean {
+function doesMimetypeHaveCodec (mimeType: string): boolean {
   return mimeType.indexOf('codecs=') >= 0;
 }
 
@@ -62,7 +62,7 @@ export class PayloadDescriptor {
   readonly mimeType: MimeType = null;
 
   /**
-   * unit-less factor to deal with arbitrary integer sample-rates without loosing precision [1]
+   * unit-less factor to deal with arbitrary integer sample-rates without loosing precision
    */
   readonly sampleDurationNumerator: number;
 
@@ -98,7 +98,6 @@ export class PayloadDescriptor {
     sampleRateInteger: number = 0,
     sampleDepth: number = 0,
     sampleDurationNumerator: number = 1) {
-
     if (!isIntegerIEEE754(sampleRateInteger) || !isInteger(sampleDurationNumerator)) {
       throw new Error(`sample-rate has to be safe-int (=${sampleRateInteger}) and duration-numerator has to be int too (=${this.sampleDurationNumerator}).`);
     }
@@ -115,7 +114,7 @@ export class PayloadDescriptor {
 
   // TODO: put mime-type specific stuff in child object that specializes on mime-types?
 
-  getFullMimeType(): string {
+  getFullMimeType (): string {
     if (!this.codec) {
       return this.mimeType;
     }
@@ -125,23 +124,23 @@ export class PayloadDescriptor {
     return appendCodecToMimeType(this.mimeType, this.codec);
   }
 
-  getMediaSubtype(): string {
+  getMediaSubtype (): string {
     return this._getMimeTypePart(1);
   }
 
-  getMediaType(): string {
+  getMediaType (): string {
     return this._getMimeTypePart(0);
   }
 
-  protected _getMimeTypePart(i: number) {
+  protected _getMimeTypePart (i: number) {
     try {
       return this.mimeType.split('/')[i];
-    } catch(err) {
+    } catch (err) {
       throw new Error('Malformed mime-type: ' + this.mimeType);
     }
   }
 
-  hasCodec(): boolean {
+  hasCodec (): boolean {
     return !!this.codec;
   }
 
@@ -157,7 +156,7 @@ export class PayloadDescriptor {
    *
    * Also floating point values may be used but this may yield precision loss when computing the duration here.
    */
-  getSampleDuration() {
+  getSampleDuration () {
     return this.sampleDurationNumerator / this.sampleRateInteger;
   }
 
@@ -173,49 +172,48 @@ export class PayloadDescriptor {
   /**
    * Returns size of one sample in bytes
    */
-  getSampleSize(): number {
+  getSampleSize (): number {
     return this.sampleDepth / 8;
   }
 
-  isAudio() {
+  isAudio () {
     return this.mimeType.startsWith('audio/');
   }
 
-  isVideo() {
+  isVideo () {
     return this.mimeType.startsWith('video/');
   }
 
-  isText() {
+  isText () {
     return this.mimeType.startsWith('text/');
   }
 
-  isImage() {
+  isImage () {
     return this.mimeType.startsWith('image/');
   }
 
-  isApplicationSpecific() {
+  isApplicationSpecific () {
     return this.mimeType.startsWith('application/');
   }
 
-  isFont() {
+  isFont () {
     return this.mimeType.startsWith('font/');
   }
 
-  isJson() {
+  isJson () {
     return this.mimeType === ('application/json');
   }
 
-  isXml() {
+  isXml () {
     return this.mimeType === ('application/xml');
   }
 
-  toString() {
+  toString () {
     return `[<${this.mimeType} codec="${this.codec}"> @${this.getSamplingRate()}[Hz]|1/(${this.getSampleDuration().toExponential()}[s]) * ${this.sampleDepth}bit #{${this.details.toString()}}]`;
   }
 }
 
 export class PayloadDetails {
-
   /*
   clone(details: PayloadDetails) {
 
@@ -245,21 +243,21 @@ export class PayloadDetails {
   // time-vs-frequency domains
   // ...
 
-  toString() {
-    return `width=${this.width}[px];height=${this.height}[px];samplesPerFrame=${this.samplesPerFrame};cbr=${this.constantBitrate}[b/s];numChannels=${this.numChannels};codecConfigSize=${this.codecConfigurationData ? this.codecConfigurationData.length : 0}`
+  toString () {
+    return `width=${this.width}[px];height=${this.height}[px];samplesPerFrame=${this.samplesPerFrame};cbr=${this.constantBitrate}[b/s];numChannels=${this.numChannels};codecConfigSize=${this.codecConfigurationData ? this.codecConfigurationData.length : 0}`;
   }
 }
 
 export class PayloadCodec {
-  static isAvc(codec: string) {
+  static isAvc (codec: string) {
     return codec.startsWith('avc1');
   }
 
-  static isAac(codec: string) {
+  static isAac (codec: string) {
     return codec.startsWith('mp4a');
   }
 
-  static isMp3(codec: string) {
+  static isMp3 (codec: string) {
     return codec.startsWith('mp3a');
   }
 }
@@ -287,6 +285,3 @@ export enum SampleBitDepth {
   SIXTEEN = 16,
   THIRTYTWO = 32
 }
-
-
-

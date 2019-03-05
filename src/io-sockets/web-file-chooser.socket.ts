@@ -1,18 +1,16 @@
-import { OutputSocket, SocketDescriptor } from "../core/socket";
-import { XhrSocket } from "./xhr.socket";
-import { getLogger } from "../logger";
+import { OutputSocket, SocketDescriptor } from '../core/socket';
+import { XhrSocket } from './xhr.socket';
+import { getLogger } from '../logger';
 
-const {warn} = getLogger('WebFileChooserSocket');
+const { warn } = getLogger('WebFileChooserSocket');
 
 export class WebFileChooserSocket extends OutputSocket {
-
   private _xhrSocket: XhrSocket = null;
 
-  constructor(
+  constructor (
     private _domRootEl: HTMLElement,
     _accepts: string = '*',
-    _label: string = "") {
-
+    _label: string = '') {
     super(new SocketDescriptor());
 
     const input = document.createElement('input');
@@ -20,7 +18,6 @@ export class WebFileChooserSocket extends OutputSocket {
     input.accept = _accepts;
     input.multiple = false;
     input.addEventListener('change', () => {
-
       if (!input.files[0]) {
         warn('No file selected after change event');
         return;
@@ -43,7 +40,5 @@ export class WebFileChooserSocket extends OutputSocket {
     label.appendChild(input);
 
     this._domRootEl.appendChild(label);
-
   }
-
 }

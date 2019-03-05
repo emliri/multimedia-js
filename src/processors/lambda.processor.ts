@@ -10,8 +10,9 @@ const defaultLsdProvider: LambdaSocketDescriptorProvider = () => new SocketDescr
 export const defaultLambdaSocketDescriptorProvider = defaultLsdProvider;
 
 export class LambdaProcessor extends Processor {
-
-  static getName(): string { return "LambdaProcessor" }
+  static getName (): string {
+    return 'LambdaProcessor';
+  }
 
   private transferFunc_: LambdaTransferFunction;
   private lsd_: LambdaSocketDescriptorProvider;

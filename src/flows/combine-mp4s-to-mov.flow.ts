@@ -12,14 +12,13 @@ import { getLogger } from '../logger';
 import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
 import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
 import { makeTemplate } from '../common-utils';
-import { EnvironmentVars } from "../core/env";
+import { EnvironmentVars } from '../core/env';
 import { VoidCallback } from '../common-types';
 import { AppInputSocket, AppInputCallback } from '../io-sockets/app-input-socket';
 
 const { log } = getLogger('CombineMp4sToMovFlow');
 
 export class CombineMp4sToMovFlow extends Flow {
-
   /**
    *
    * @param _videoMp4Url
@@ -35,8 +34,7 @@ export class CombineMp4sToMovFlow extends Flow {
     private _useFileDonwloadSocket: boolean = false,
     private _downloadLinkContainer: HTMLElement = null,
     private _isMp3Audio: boolean = false
-    ) {
-
+  ) {
     super(
       (prevState, newState) => {
         console.log('previous state:', prevState, 'new state:', newState);
@@ -45,31 +43,28 @@ export class CombineMp4sToMovFlow extends Flow {
         console.log('state change aborted. reason:', reason);
       }
     );
-
   }
 
-  private _setup() {
+  private _setup () {
     {
       let ffmpegAacTranscodeProc = null;
       if (this._isMp3Audio) { // the url might point to a blob so the file extension is not a criteria
-
         const audioConfig: FFmpegConversionTargetInfo = {
           targetBitrateKbps: 256,
           targetCodec: 'aac',
           targetFiletypeExt: 'mp4'
-        }
+        };
 
-        log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH)
+        log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
 
         ffmpegAacTranscodeProc = newProcessorWorkerShell(
           unsafeProcessorType(FFmpegConvertProcessor),
           [audioConfig, null],
           [EnvironmentVars.FFMPEG_BIN_PATH]
         );
-
       }
 
-      const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor)
+      const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor);
       const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
       const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
 
@@ -86,15 +81,13 @@ export class CombineMp4sToMovFlow extends Flow {
           = new HTML5MediaSourceBufferSocket(new MediaSource()); // avc1.4d401f 'video/mp4; codecs=avc1.64001f'
       */
 
-      const downloadSocket: WebFileDownloadSocket
-        = new WebFileDownloadSocket(this._downloadLinkContainer, 'video/quicktime', makeTemplate('buffer${counter}-${Date.now()}.mp4'));
+      const downloadSocket: WebFileDownloadSocket =
+        new WebFileDownloadSocket(this._downloadLinkContainer, 'video/quicktime', makeTemplate('buffer${counter}-${Date.now()}.mp4'));
 
-      const appInputSocket: AppInputSocket
-        = new AppInputSocket((blob: Blob) => {
-
-          this.setCompleted({code: FlowCompletionResultCode.OK, data: blob});
-
-      }, true, true, 'video/quicktime')
+      const appInputSocket: AppInputSocket =
+        new AppInputSocket((blob: Blob) => {
+          this.setCompleted({ code: FlowCompletionResultCode.OK, data: blob });
+        }, true, true, 'video/quicktime');
 
       let mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
 
@@ -125,7 +118,6 @@ export class CombineMp4sToMovFlow extends Flow {
       // set up
 
       mp4DemuxProcVideo.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
-
         // FIXME: check the socket-descriptor actually is video
         log('mp4 video demux output socket created');
 
@@ -136,11 +128,9 @@ export class CombineMp4sToMovFlow extends Flow {
       });
 
       mp4DemuxProcAudio.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
-
         log('mp4 video demux output socket created');
 
         OutputSocket.fromUnsafe(eventData.socket).connect(muxerAudioInput);
-
       });
 
       mp4MuxProc.out[0].connect(appInputSocket);
@@ -149,8 +139,7 @@ export class CombineMp4sToMovFlow extends Flow {
         mp4MuxProc.out[0].connect(downloadSocket);
       }
 
-      this.getExternalSockets().add(appInputSocket)
-
+      this.getExternalSockets().add(appInputSocket);
     }
   }
 
@@ -171,7 +160,7 @@ export class CombineMp4sToMovFlow extends Flow {
     cb();
   }
 
-  protected onCompleted_(cb: VoidCallback) {
+  protected onCompleted_ (cb: VoidCallback) {
     cb();
   }
 

@@ -6,9 +6,9 @@ import {
   SourceBufferQueueUpdateCallbackData
 } from './source-buffer-queue';
 
-import {getLogger} from '../../logger';
+import { getLogger } from '../../logger';
 
-const {error} = getLogger('MediaSourceController');
+const { error } = getLogger('MediaSourceController');
 
 export enum MediaSourceControllerEvents {
   MEDIA_CLOCK_UPDATED = 'media-clock-updated',
@@ -84,8 +84,8 @@ export class MediaSourceController extends EventEmitter {
     return true;
   }
 
-  hasSourceBufferQueuesForMimeType(mimeType: string): boolean {
-    return !!this.getSourceBufferQueuesByMimeType(mimeType).length
+  hasSourceBufferQueuesForMimeType (mimeType: string): boolean {
+    return !!this.getSourceBufferQueuesByMimeType(mimeType).length;
   }
 
   getSourceBufferQueuesByMimeType (mimeType): SourceBufferQueue[] {

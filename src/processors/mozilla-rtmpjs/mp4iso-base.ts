@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { writeInt32, decodeInt32 } from "../../common-utils";
+import { writeInt32, decodeInt32 } from '../../common-utils';
 
 export class Box {
   public offset: number;
@@ -117,5 +117,3 @@ export class FullBox extends Box {
     return offset + 4;
   }
 }
-
-

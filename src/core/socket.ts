@@ -34,34 +34,32 @@ export class SocketState {
 export type SocketTemplateGenerator = (st: SocketType) => SocketDescriptor;
 
 export class SocketDescriptor {
-
-  static fromMimeType(mimeType: string): SocketDescriptor {
+  static fromMimeType (mimeType: string): SocketDescriptor {
     return SocketDescriptor.fromMimeTypes(mimeType);
   }
 
-  static fromMimeTypes(...mimeTypes: string[]): SocketDescriptor {
+  static fromMimeTypes (...mimeTypes: string[]): SocketDescriptor {
     return new SocketDescriptor(mimeTypes.map((mimeType) => new PayloadDescriptor(mimeType)));
   }
 
   // TODO: also allow to directly bind this to proc templateSocketDescriptor method on construction
-  static createTemplateGenerator(
+  static createTemplateGenerator (
     inputSd: SocketDescriptor, outputSd: SocketDescriptor): SocketTemplateGenerator {
-    return ((st: SocketType) => {
-      switch(st) {
+    return (st: SocketType) => {
+      switch (st) {
       case SocketType.INPUT: return inputSd;
       case SocketType.OUTPUT: return outputSd;
       }
-    });
+    };
   }
 
   readonly payloads: PayloadDescriptor[];
 
   constructor (payloads?: PayloadDescriptor[]) {
     this.payloads = payloads || [];
-
   }
 
-  isVoid(): boolean {
+  isVoid (): boolean {
     return this.payloads.length === 0;
   }
 }
@@ -89,17 +87,17 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     this.state_ = new SocketState();
   }
 
-  close() {}
+  close () {}
 
   type (): SocketType {
     return this.type_;
   }
 
-  descriptor(): SocketDescriptor {
+  descriptor (): SocketDescriptor {
     return this.descriptor_;
   }
 
-  payload(index: number = 0): PayloadDescriptor {
+  payload (index: number = 0): PayloadDescriptor {
     return this.descriptor_.payloads[index];
   }
 
@@ -119,7 +117,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * For every socket-instance we are then retrieving the whenReady promise
    * *once* and tracking the ready-state through it.
    */
-  isReady(): boolean {
+  isReady (): boolean {
     if (!this.isReadyArmed_) {
       this.whenReady().then(() => {
         this.isReady_ = true;
@@ -160,7 +158,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * FIXME: implement "dispose" method
    *
    */
-  whenReady(): Promise<void> {
+  whenReady (): Promise<void> {
     return Promise.resolve();
   }
 
@@ -186,7 +184,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       dispatchAsyncTask(() => {
         try {
           resolve(this.transferSync(p));
-        } catch(e) {
+        } catch (e) {
           error('Error upon packet-transfer execution:', e);
           reject(e);
         }
@@ -243,7 +241,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this.owner;
   }
 
-  emit(e: SocketEvent, ...args: any[]): boolean {
+  emit (e: SocketEvent, ...args: any[]): boolean {
     throw new Error('Illegal call');
   }
 
@@ -262,18 +260,17 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this;
   }
 
-  protected _emit(event: SocketEvent) {
+  protected _emit (event: SocketEvent) {
     super.emit(event, event);
   }
 }
 
 export class InputSocket extends Socket {
-
-  static fromUnsafe(s: Socket): InputSocket {
+  static fromUnsafe (s: Socket): InputSocket {
     return (<InputSocket> s);
   }
 
-  static fromFunction(func: PacketReceiveCallback): InputSocket {
+  static fromFunction (func: PacketReceiveCallback): InputSocket {
     return new InputSocket(func, new SocketDescriptor());
   }
 
@@ -303,10 +300,10 @@ export class InputSocket extends Socket {
     ]);
   }
 
-  private _onTransfer(p: Packet) {
+  private _onTransfer (p: Packet) {
     this._emit(SocketEvent.ANY_PACKET_RECEIVED);
     if (p.isSymbolic()) {
-      switch(p.symbol) {
+      switch (p.symbol) {
       case PacketSymbol.EOS:
         this._emit(SocketEvent.EOS_PACKET_RECEIVED);
         break;
@@ -320,8 +317,7 @@ export class InputSocket extends Socket {
 }
 
 export class OutputSocket extends Socket {
-
-  static fromUnsafe(s: Socket): OutputSocket {
+  static fromUnsafe (s: Socket): OutputSocket {
     return (<OutputSocket> s);
   }
 
@@ -394,11 +390,11 @@ export class OutputSocket extends Socket {
     return this.peers_;
   }
 
-  getNumberOfPeers(): number {
+  getNumberOfPeers (): number {
     return this.peers_.length;
   }
 
-  hasPeers(): boolean {
+  hasPeers (): boolean {
     return this.getNumberOfPeers() > 0;
   }
 

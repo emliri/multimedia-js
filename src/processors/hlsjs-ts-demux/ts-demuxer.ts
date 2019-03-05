@@ -42,7 +42,6 @@ export type TSDemuxerConfig = {
 export type TSDemuxerCallback = (audioTrack, avcTrack, id3Track, txtTrack, timeOffset, contiguous, accurateTimeOffset) => {};
 
 export class TSDemuxer {
-
   static probe (data): boolean {
     const syncOffset = TSDemuxer.findSyncOffset(data);
     if (syncOffset < 0) {
@@ -64,7 +63,7 @@ export class TSDemuxer {
       // a TS fragment should contain at least 3 TS packets, a PAT, a PMT, and one PID, each starting with 0x47
       if (data[i] === 0x47 && data[i + 188] === 0x47 && data[i + 2 * 188] === 0x47) {
         if (i > 0) {
-          log('sync-offset at:', i)
+          log('sync-offset at:', i);
         }
         return i;
       } else {
@@ -157,7 +156,6 @@ export class TSDemuxer {
 
   // feed incoming data to the front of the parsing pipeline
   append (data, timeOffset, contiguous, accurateTimeOffset) {
-
     let start = 0;
     let len = data.length;
     let stt;
@@ -203,7 +201,6 @@ export class TSDemuxer {
 
     // loop through TS packets
     for (start = syncOffset; start < len; start += 188) {
-
       if (data[start] !== 0x47) { // try to skip until next sync-byte
         for (let i = start; i < len; i++) {
           if (data[i] === 0x47) {
@@ -596,7 +593,6 @@ export class TSDemuxer {
   }
 
   _parseAVCPES (pes, last) {
-
     const debug = false;
 
     // log('parse new PES');

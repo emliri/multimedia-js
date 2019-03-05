@@ -40,8 +40,9 @@ BroadwayPlayer.prototype._createBasicCanvasObj = function (options) {
 };
 
 export class BroadwayProcessor extends Processor {
-
-  static getName(): string { return "BroadwayProcessor" }
+  static getName (): string {
+    return 'BroadwayProcessor';
+  }
 
   private _player: any = new BroadwayPlayer({
     useWorker: false,

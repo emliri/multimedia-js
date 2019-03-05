@@ -14,11 +14,12 @@ import { NALU } from './h264/nalu';
 
 import { getLogger, LoggerLevel } from '../logger';
 
-const {debug, log, warn, error} = getLogger("H264ParseProcessor", LoggerLevel.LOG);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.LOG);
 
 export class H264ParseProcessor extends Processor {
-
-  static getName(): string { return "H264ParseProcessor" }
+  static getName (): string {
+    return 'H264ParseProcessor';
+  }
 
   // private h264Reader: H264Reader;
 
@@ -27,7 +28,7 @@ export class H264ParseProcessor extends Processor {
   constructor () {
     super();
 
-    //this.on(ProcessorEvent.ANY_SOCKET_CREATED, () => {debugger});
+    // this.on(ProcessorEvent.ANY_SOCKET_CREATED, () => {debugger});
 
     this.createInput();
     this.createOutput();
@@ -43,7 +44,7 @@ export class H264ParseProcessor extends Processor {
       this._onProcessingError.bind(this),
       this);
 
-    debug('transfer packet:', p.toString())
+    debug('transfer packet:', p.toString());
 
     // NOTE: atm the h264 parser only "inspects" the data and then passes through each packet unmodified
 
@@ -79,8 +80,8 @@ export class H264ParseProcessor extends Processor {
 
       if (length > avcStream.length) {
         warn('no NALUs found in this packet! Forwarding and ignoring:', p);
-        debug('transfer ignored packet:', p.toString())
-        //this.out[0].transfer(p);
+        debug('transfer ignored packet:', p.toString());
+        // this.out[0].transfer(p);
         break;
       }
 
@@ -105,7 +106,6 @@ export class H264ParseProcessor extends Processor {
       }
 
       naluSlice.props.isKeyframe = (type === NALU.IDR);
-
     }
   }
 }

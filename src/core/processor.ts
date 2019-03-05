@@ -7,7 +7,7 @@ import { getLogger } from '../logger';
 import { EnvironmentVars } from './env';
 import { ErrorInfo } from './error';
 
-const {debug, error} = getLogger("Processor");
+const { debug, error } = getLogger('Processor');
 
 // import WorkerLoader from "worker-loader!../base.worker";
 
@@ -48,11 +48,12 @@ export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 export const PROCESSOR_RPC_INVOKE_PACKET_HANDLER = 'mmjs:processor:RPC:invokePacketHandler';
 
 export abstract class Processor extends EventEmitter<ProcessorEvent> implements SocketOwner, SignalReceiver {
+  static getName (): string {
+    return null;
+  }
 
-    static getName(): string { return null; }
-
-    // FIXME: crashes with "Object prototype may only be an Object or null"
-    /*
+  // FIXME: crashes with "Object prototype may only be an Object or null"
+  /*
     static createWorkerShell(onReady: VoidCallback = noop): ProcessorProxy {
       const name = this.getName();
       if (!name) {
@@ -67,7 +68,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     private taskWorker_: Worker = null;
 
     // TODO: internalize EE instance to avoid polluting interface (we should only expose on/once/off)
-    //private eventEmitter_: typeof EventEmitter = new EventEmitter();
+    // private eventEmitter_: typeof EventEmitter = new EventEmitter();
 
     public enableSymbolProxying: boolean = true;
     public muteSymbolProcessing: boolean = false;
@@ -75,8 +76,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     constructor (
       private onSignal_: SignalHandler = null,
       private socketTemplate_: SocketTemplateGenerator = null
-      ) {
-
+    ) {
       super();
 
       /**
@@ -91,7 +91,6 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       this[PROCESSOR_RPC_INVOKE_PACKET_HANDLER] = (p: Packet, inputIndex: number) => {
         this.onReceiveFromInput_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
       };
-
     }
 
     terminate () {
@@ -101,24 +100,24 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     }
 
     // maybe better call protoSocketDescriptor as in prototype pattern?
-    templateSocketDescriptor(socketType: SocketType): SocketDescriptor {
+    templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
       if (!this.socketTemplate_) {
         throw new Error('No socket-template generator function set');
       }
       return this.socketTemplate_(socketType);
     }
 
-    createEvent(event: ProcessorEvent, eventProps: ProcessorEventDataProps): ProcessorEventData {
+    createEvent (event: ProcessorEvent, eventProps: ProcessorEventDataProps): ProcessorEventData {
       return Object.assign({
         event,
-        processor: this,
+        processor: this
       }, eventProps);
     }
 
-    createErrorEvent(code: ProcessorErrorCode): ProcessorEventData {
+    createErrorEvent (code: ProcessorErrorCode): ProcessorEventData {
       return Object.assign({
         event: ProcessorEvent.ERROR,
-        processor: this,
+        processor: this
       }, { code });
     }
 
@@ -366,9 +365,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
      * Needed by proxy shell
      * @param st
      */
-    protected overrideSocketTemplate(st: SocketTemplateGenerator) {
+    protected overrideSocketTemplate (st: SocketTemplateGenerator) {
       this.socketTemplate_ = st;
     }
-
 }
-

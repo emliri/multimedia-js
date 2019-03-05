@@ -12,10 +12,9 @@ import { getLogger } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
 import { VoidCallback } from '../common-types';
 
-const {log} = getLogger("HttpToMediaSourceFlow");
+const { log } = getLogger('HttpToMediaSourceFlow');
 
 export class HttpToMediaSourceFlow extends Flow {
-
   private _xhrSocket: XhrSocket;
 
   private _haveVideo = false;
@@ -39,8 +38,8 @@ export class HttpToMediaSourceFlow extends Flow {
 
     const xhrSocket = this._xhrSocket = new XhrSocket(url);
 
-    const mediaSourceSocket: HTML5MediaSourceBufferSocket
-      = new HTML5MediaSourceBufferSocket(mediaSource); // avc1.4d401f
+    const mediaSourceSocket: HTML5MediaSourceBufferSocket =
+      new HTML5MediaSourceBufferSocket(mediaSource); // avc1.4d401f
 
     const onDemuxOutputCreated = (data: ProcessorEventData) => {
       const demuxOutputSocket = <OutputSocket> data.socket;
@@ -52,32 +51,24 @@ export class HttpToMediaSourceFlow extends Flow {
       const payloadDescriptor = demuxOutputSocket.payload();
 
       if (data.processor === mp4DemuxProc) {
-
         demuxOutputSocket.connect(h264ParseProc.in[0]);
         muxerInputSocket = mp4MuxHlsjsProc.createInput();
         h264ParseProc.out[0].connect(muxerInputSocket);
-
       } else if (data.processor === tsDemuxProc) {
-
-        if (!this._haveVideo
-            && PayloadCodec.isAvc(payloadDescriptor.codec)) {
-
+        if (!this._haveVideo &&
+            PayloadCodec.isAvc(payloadDescriptor.codec)) {
           this._haveVideo = true;
           muxerInputSocket = mp4MuxHlsjsProc.createInput();
           h264ParseProc.out[0].connect(muxerInputSocket);
           demuxOutputSocket.connect(h264ParseProc.in[0]);
-
-        } else if (!this._haveAudio
-            && PayloadCodec.isAac(payloadDescriptor.codec)) {
-
+        } else if (!this._haveAudio &&
+            PayloadCodec.isAac(payloadDescriptor.codec)) {
           this._haveAudio = true;
           muxerInputSocket = mp4MuxHlsjsProc.createInput();
           demuxOutputSocket.connect(muxerInputSocket);
-
         }
       }
-
-    }
+    };
 
     this.add(mp4DemuxProc, mp4MuxHlsjsProc, tsDemuxProc, mp4MuxProc);
 
@@ -101,7 +92,7 @@ export class HttpToMediaSourceFlow extends Flow {
     return new Set([this._xhrSocket]);
   }
 
-  protected onCompleted_(done: VoidCallback) {}
+  protected onCompleted_ (done: VoidCallback) {}
 
   protected onVoidToWaiting_ (done: VoidCallback) {}
 

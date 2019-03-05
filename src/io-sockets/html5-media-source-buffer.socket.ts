@@ -8,7 +8,6 @@ const { log, warn, error } = getLogger('HTML5MediaSourceBufferSocket');
 const MEDIA_SOURCE_OPEN_FAILURE_TIMEOUT_MS = 4000;
 
 export class HTML5MediaSourceBufferSocket extends InputSocket {
-
   private mediaSourceController: MediaSourceController;
 
   private _readyPromise: Promise<void>;
@@ -17,43 +16,35 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
     super((p: Packet) => this._onPacketReceived(p), new SocketDescriptor());
 
     this._readyPromise = new Promise((resolve, reject) => {
-
       if (mediaSource.readyState === 'open') {
-
         resolve();
-
       } else {
-
         const mediaSourceFailureTimeout = setTimeout(() => {
-          reject("MediaSource open-failure timeout");
+          reject('MediaSource open-failure timeout');
         }, MEDIA_SOURCE_OPEN_FAILURE_TIMEOUT_MS);
 
         mediaSource.addEventListener('sourceopen', () => {
           clearTimeout(mediaSourceFailureTimeout);
           resolve();
         });
-
       }
     });
 
     this._readyPromise.then(() => {
-
       this.mediaSourceController = new MediaSourceController(mediaSource);
       this.mediaSourceController.setMediaDuration(60, true); // HACK !!
 
       if (defaultFullMimetype) {
         this._enableOneSourceBufferForFullMimetype(defaultFullMimetype);
       }
-
     });
-
   }
 
-  whenReady(): Promise<void> {
+  whenReady (): Promise<void> {
     return this._readyPromise;
   }
 
-  private _enableOneSourceBufferForFullMimetype(fullMimeType: string): boolean {
+  private _enableOneSourceBufferForFullMimetype (fullMimeType: string): boolean {
     if (this.mediaSourceController.hasSourceBufferQueuesForMimeType(fullMimeType)) {
       return false;
     }
@@ -63,7 +54,7 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
       return false;
     }
 
-    log('attempting to create an MSE source-buffer for fully-qualified mime-type:', fullMimeType)
+    log('attempting to create an MSE source-buffer for fully-qualified mime-type:', fullMimeType);
 
     if (!this.mediaSourceController.addSourceBufferQueue(fullMimeType)) {
       throw new Error('Failed to create SourceBuffer for mime-type: ' + fullMimeType);
@@ -73,7 +64,6 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
   }
 
   private _onPacketReceived (p: Packet): boolean {
-
     const defaultBufferProps = p.defaultPayloadInfo;
 
     // TODO: add default handling for this in base-class for easing impl these kind of subclasses
@@ -90,12 +80,11 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
 
     const fullMimeType = defaultBufferProps.getFullMimeType();
 
-    log('received packet with fully-qualified mime-type:', fullMimeType)
+    log('received packet with fully-qualified mime-type:', fullMimeType);
 
     this._enableOneSourceBufferForFullMimetype(fullMimeType);
 
     p.forEachBufferSlice((bs) => {
-
       const buffer = bs.arrayBuffer;
 
       const sourceBufferQueue = this.mediaSourceController.getSourceBufferQueuesByMimeType(fullMimeType)[0];
@@ -105,10 +94,8 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
         return;
       }
       sourceBufferQueue.appendBuffer(buffer, 0);
-
-    })
+    });
 
     return true;
   }
-
 }

@@ -44,12 +44,10 @@ export type FlowStateChangeCallback = (previousState: FlowState, newState: FlowS
 
 // TODO: create generic Set class in objec-ts
 export abstract class Flow extends EventEmitter<FlowEvent> {
-
   constructor (
     public onStateChangePerformed: FlowStateChangeCallback,
     public onStateChangeAborted: (reason: string) => void
   ) {
-
     super();
 
     this._whenDone = new Promise((resolve, reject) => {
@@ -92,11 +90,11 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     });
   }
 
-  whenCompleted(): Promise<FlowCompletionResult> {
+  whenCompleted (): Promise<FlowCompletionResult> {
     return this._whenDone;
   }
 
-  getCurrentState(): FlowState {
+  getCurrentState (): FlowState {
     return this._state;
   }
 
@@ -120,7 +118,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return this._extSockets;
   }
 
-  getCompletionResult(): FlowCompletionResultCode {
+  getCompletionResult (): FlowCompletionResultCode {
     return this._completionResultCode;
   }
 
@@ -148,10 +146,10 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
       throw new Error('Flow state-change still pending: ' + this._pendingState);
     }
 
-    if (newState === FlowState.COMPLETED
-      && this._completionResultCode === FlowCompletionResultCode.NONE) {
-        throw new Error('state change to COMPLETED has to be triggered by setCompleted');
-      }
+    if (newState === FlowState.COMPLETED &&
+      this._completionResultCode === FlowCompletionResultCode.NONE) {
+      throw new Error('state change to COMPLETED has to be triggered by setCompleted');
+    }
 
     // update pending state
     this._pendingState = newState;
@@ -210,12 +208,12 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return this._state;
   }
 
-  protected setCompleted(completionResult: FlowCompletionResult, error: FlowError = null) {
+  protected setCompleted (completionResult: FlowCompletionResult, error: FlowError = null) {
     this._completionResultCode = completionResult.code;
 
     // now initiate state change to completed
     this.state = FlowState.COMPLETED;
-    switch(this._completionResultCode) {
+    switch (this._completionResultCode) {
     case FlowCompletionResultCode.NONE:
       throw new Error('Can not complete with no result');
     case FlowCompletionResultCode.OK:
@@ -243,5 +241,4 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   protected abstract onCompleted_(done: VoidCallback);
 
   protected abstract onStateChangeAborted_(reason: string);
-
 }

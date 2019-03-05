@@ -18,9 +18,9 @@ import {
   concatArrays, writeUint32, writeInt32, decodeInt32,
   encodeDate, encodeFloat_16_16, encodeFloat_8_8,
   encodeFloat_2_30, encodeLang, utf8decode
-} from "../../common-utils";
+} from '../../common-utils';
 
-import { Box, BoxContainerBox, FullBox } from "./mp4iso-base";
+import { Box, BoxContainerBox, FullBox } from './mp4iso-base';
 
 export let START_DATE = -2082844800000; /* midnight after Jan. 1, 1904 */
 export let DEFAULT_MOVIE_MATRIX: number[] = [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0];
@@ -59,12 +59,11 @@ export class MovieBox extends BoxContainerBox {
                 public tracks: Box[],
                 public extendsBox: MovieExtendsBox,
                 public userData: Box) {
-
     super('moov', concatArrays<Box>(
       [header],
       tracks,
       extendsBox ? [extendsBox] : [],
-      userData ? [userData]: []));
+      userData ? [userData] : []));
   }
 }
 
@@ -358,7 +357,6 @@ export type DecodingTimeToSampleEntry = {
 }
 
 export class DecodingTimeToSampleBox extends FullBox {
-
   constructor (flags: number, public entries: DecodingTimeToSampleEntry[]) {
     super('stts', 0, flags);
   }
@@ -377,7 +375,6 @@ export class DecodingTimeToSampleBox extends FullBox {
     }
     return offset;
   }
-
 }
 
 /**
@@ -396,7 +393,6 @@ export type CompositionTimeToSampleEntry = {
 }
 
 export class CompositionTimeToSampleBox extends FullBox {
-
   constructor (flags: number, public entries: CompositionTimeToSampleEntry[]) {
     super('ctts', 0, flags);
   }
@@ -415,7 +411,6 @@ export class CompositionTimeToSampleBox extends FullBox {
     }
     return offset;
   }
-
 }
 
 /**
@@ -425,15 +420,14 @@ export class CompositionTimeToSampleBox extends FullBox {
  */
 
 export class SampleSizeBox extends FullBox {
-  constructor(
+  constructor (
     public sampleSizes: number[] = [],
     public sampleCount: number = sampleSizes.length,
     public defaultSampleSize: number = 0) {
-
     super('stsz', 0, 0);
 
     if (sampleSizes.length > 0 && defaultSampleSize !== 0) {
-      throw new Error('Should not have default sample size unequal zero but sample-size list length > 0')
+      throw new Error('Should not have default sample size unequal zero but sample-size list length > 0');
     }
   }
 
@@ -453,7 +447,6 @@ export class SampleSizeBox extends FullBox {
     }
     return offset;
   }
-
 }
 
 /**
@@ -476,7 +469,7 @@ export type SampleToChunkEntry = {
 };
 
 export class SampleToChunkBox extends FullBox {
-  constructor(public entries: SampleToChunkEntry[]) {
+  constructor (public entries: SampleToChunkEntry[]) {
     super('stsc', 0, 0);
   }
 
@@ -497,7 +490,6 @@ export class SampleToChunkBox extends FullBox {
 
     return offset;
   }
-
 }
 
 /**
@@ -514,8 +506,7 @@ export class SampleToChunkBox extends FullBox {
  */
 
 export class ChunkOffsetBox extends FullBox {
-
-  constructor(public chunkOffsets: number[]) {
+  constructor (public chunkOffsets: number[]) {
     super('stco', 0, 0);
   }
 
@@ -537,8 +528,7 @@ export class ChunkOffsetBox extends FullBox {
 }
 
 export class SyncSampleBox extends FullBox {
-
-  constructor(public syncSampleNumbers: number[]) {
+  constructor (public syncSampleNumbers: number[]) {
     super('stss', 0, 0);
   }
 
@@ -578,7 +568,6 @@ export type StblSample = {
  * sample_number gives the numbers of the samples that are random access points in the stream.
  */
 export class SampleTableBox extends BoxContainerBox {
-
   constructor (public sampleDescriptions: SampleDescriptionBox,
                 public timeToSample: Box,
                 public compositionOffsetBox: Box,
@@ -586,10 +575,9 @@ export class SampleTableBox extends BoxContainerBox {
                 public sampleSizes: Box,
                 public chunkOffset: Box,
                 public syncSamples?: Box) {
-
     super('stbl',
-      syncSamples ?
-        [sampleDescriptions, timeToSample, compositionOffsetBox, sampleToChunk, sampleSizes, chunkOffset, syncSamples]
+      syncSamples
+        ? [sampleDescriptions, timeToSample, compositionOffsetBox, sampleToChunk, sampleSizes, chunkOffset, syncSamples]
         : [sampleDescriptions, timeToSample, compositionOffsetBox, sampleToChunk, sampleSizes, chunkOffset]);
   }
 }

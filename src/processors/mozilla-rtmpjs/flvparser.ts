@@ -1,4 +1,4 @@
-import { VoidCallback } from "../../common-types";
+import { VoidCallback } from '../../common-types';
 
 /**
  * Copyright 2015 Mozilla Foundation

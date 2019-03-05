@@ -1,23 +1,23 @@
-import { Processor } from "../core/processor";
-import { InputSocket, SocketType, SocketDescriptor } from "../core/socket";
-import { Packet } from "../core/packet";
-import { FFmpegTool, FFmpegConversionTargetInfo } from "./ffmpeg/ffmpeg-tool";
-import { BufferSlice } from "../core/buffer";
-import { BufferProperties } from "../core/buffer-props";
+import { Processor } from '../core/processor';
+import { InputSocket, SocketType, SocketDescriptor } from '../core/socket';
+import { Packet } from '../core/packet';
+import { FFmpegTool, FFmpegConversionTargetInfo } from './ffmpeg/ffmpeg-tool';
+import { BufferSlice } from '../core/buffer';
+import { BufferProperties } from '../core/buffer-props';
 
-declare var ffmpeg: any;
+let var ffmpeg: any;
 
 export class FFmpegConvertProcessor extends Processor {
-
-  static getName(): string { return "FFmpegConvertProcessor" }
+  static getName (): string {
+ return 'FFmpegConvertProcessor' 
+}
 
   private ffmpeg_: FFmpegTool = null;
 
-  constructor(
+  constructor (
     private _audioConfig: FFmpegConversionTargetInfo = null,
     private _videoConfig: FFmpegConversionTargetInfo = null,
     private _defaultInputFileExt: string = 'dat') {
-
     super();
 
     if (!_audioConfig && !_videoConfig) {
@@ -35,23 +35,21 @@ export class FFmpegConvertProcessor extends Processor {
     this.createOutput();
   }
 
-  templateSocketDescriptor(socketType: SocketType) {
+  templateSocketDescriptor (socketType: SocketType) {
     return new SocketDescriptor();
   }
 
-  protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
-
+  protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
     let inputFileExt: string = p.defaultPayloadInfo.getMediaSubtype();
     if (inputFileExt === '*') {
       inputFileExt = this._defaultInputFileExt;
     }
 
     if (!this.ffmpeg_) {
-      throw new Error(`FFmpeg tool wrapper not initialized`);
+      throw new Error('FFmpeg tool wrapper not initialized');
     }
 
     p.forEachBufferSlice((bs) => {
-
       const outData: Uint8Array = this.ffmpeg_.convertAVFile(
         bs.getUint8Array(),
         inputFileExt,

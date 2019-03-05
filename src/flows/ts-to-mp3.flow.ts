@@ -6,7 +6,6 @@ import { ProcessorEvent } from '../core/processor';
 import { VoidCallback } from '../common-types';
 
 export class TsToMp3Flow extends Flow {
-
   private _xhrSocket: XhrSocket = null;
 
   constructor (url: string) {
@@ -28,10 +27,9 @@ export class TsToMp3Flow extends Flow {
     tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, () => {
       tsDemuxProc.out[0].connect(mp3ParseProc.in[0]);
     });
-
   }
 
-  protected onCompleted_(done: VoidCallback) {}
+  protected onCompleted_ (done: VoidCallback) {}
 
   protected onVoidToWaiting_ (done: VoidCallback) {}
 
@@ -42,5 +40,4 @@ export class TsToMp3Flow extends Flow {
   protected onFlowingToWaiting_ (done: VoidCallback) {}
 
   protected onStateChangeAborted_ (reason: string) {}
-
 }

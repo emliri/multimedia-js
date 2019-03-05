@@ -1,19 +1,18 @@
-import { InputSocket, SocketDescriptor, SocketEvent } from "../core/socket";
+import { InputSocket, SocketDescriptor, SocketEvent } from '../core/socket';
 
-import { Packet } from "../core/packet";
-import { concatArrayBuffers, makeTemplate } from "../common-utils";
-import { UNKNOWN_MIMETYPE } from "../core/payload-description";
-import { getLogger } from "../logger";
+import { Packet } from '../core/packet';
+import { concatArrayBuffers, makeTemplate } from '../common-utils';
+import { UNKNOWN_MIMETYPE } from '../core/payload-description';
+import { getLogger } from '../logger';
 
 import * as FileSaver from 'file-saver';
 
-export const DEFAULT_FILENAME_TEMPLATE = makeTemplate("buffer${counter}-${Date.now()}.data");
-export const DEFAULT_HTML_TEMPLATE = makeTemplate("<p>Download ${filename}</p>");
+export const DEFAULT_FILENAME_TEMPLATE = makeTemplate('buffer${counter}-${Date.now()}.data');
+export const DEFAULT_HTML_TEMPLATE = makeTemplate('<p>Download ${filename}</p>');
 
-const {log, debug} = getLogger('WebFileDownloadSocket');
+const { log, debug } = getLogger('WebFileDownloadSocket');
 
 export class WebFileDownloadSocket extends InputSocket {
-
   private _accuBuffer: ArrayBuffer = null;
   private _bufferDownloadCnt = 0;
 
@@ -30,22 +29,19 @@ export class WebFileDownloadSocket extends InputSocket {
     private _fileNameTemplate: string = DEFAULT_FILENAME_TEMPLATE,
     private _htmlTemplate = DEFAULT_HTML_TEMPLATE,
     private _fallbackToSaveAs: boolean = true) {
-
     super((p: Packet) => this._onPacketReceived(p), new SocketDescriptor());
 
-    ///*
+    /// *
     this.on(SocketEvent.DATA_PACKET_RECEIVED, () => {
-      console.warn('data packet received event', this)
-    })
-    //*/
+      console.warn('data packet received event', this);
+    });
+    //* /
   }
 
-  private _onPacketReceived(p: Packet): boolean {
-
+  private _onPacketReceived (p: Packet): boolean {
     debug('received:', p.toString(), 'total bytes:', p.getTotalBytes());
 
     p.forEachBufferSlice((bs) => {
-
       debug('accumulating slice data', bs.size());
 
       this._accuBuffer = concatArrayBuffers(this._accuBuffer, bs.newArrayBuffer());
@@ -58,24 +54,18 @@ export class WebFileDownloadSocket extends InputSocket {
       const filename = eval(this._fileNameTemplate);
 
       if (!this._downloadLinkContainer && this._fallbackToSaveAs) {
-
-        log('invoking save-as function with blob/filename', blob, filename)
+        log('invoking save-as function with blob/filename', blob, filename);
 
         FileSaver.saveAs(blob, filename);
-
       } else {
-
         const link = document.createElement('a');
         link.href = objectUrl;
         link.download = filename;
         link.innerHTML = eval(this._htmlTemplate);
         this._downloadLinkContainer.appendChild(link);
-
       }
     });
 
     return true;
-
   }
-
 }
