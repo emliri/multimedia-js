@@ -1,4 +1,4 @@
-import { Processor } from '../core/processor';
+import { Processor, ProcessorEvent, ProcessorErrorCode } from '../core/processor';
 import { Packet, PacketSymbol } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType, OutputSocket, SocketTemplateGenerator } from '../core/socket';
 
@@ -14,8 +14,9 @@ import { VideoAtom } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/helpers
 import { PayloadDescriptor } from '../core/payload-description';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
+import { ErrorCode } from '../core/error';
 
-const { log, warn, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.LOG);
+const { log, warn, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.ERROR);
 
 export const AUDIO_SAMPLING_RATES_LUT = [5500, 11025, 22050, 44100];
 export const AAC_SAMPLES_PER_FRAME = 1024;
@@ -32,6 +33,8 @@ export class MP4DemuxProcessor extends Processor {
   }
 
     private _demuxer: Mp4Demuxer;
+
+    private _haveStreamStart: boolean = false;
 
     private _trackIdToOutputs: { [id: number] : OutputSocket} = {};
 
@@ -61,10 +64,20 @@ export class MP4DemuxProcessor extends Processor {
 
     protected handleSymbolicPacket_ (s: PacketSymbol) {
       log('handling symbol:', s);
+
+      if (!this._haveStreamStart && s === PacketSymbol.EOS) {
+        this.emit(ProcessorEvent.ERROR,
+          this.createErrorEvent(ErrorCode.PROC_EARLY_EOS,
+            'Got EOS without any previous data. Input socket may have failed to consume.'));
+      }
+
       return super.handleSymbolicPacket_(s);
     }
 
     protected processTransfer_ (inS: InputSocket, p: Packet) {
+
+      this._haveStreamStart = true;
+
       p.data.forEach((bufferSlice) => {
         this._demuxer.append(bufferSlice.getUint8Array());
         this._demuxer.end();
