@@ -8,11 +8,11 @@
 
 import { ByteRange } from './byte-range';
 
-import { getLogger } from '../../logger';
+import { getLogger, LoggerLevel } from '../../logger';
 
 const {
   log
-} = getLogger('xhr');
+} = getLogger('xhr', LoggerLevel.DEBUG);
 
 const PROGRESS_UPDATES_ENABLED = true;
 

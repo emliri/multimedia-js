@@ -1,10 +1,10 @@
 import { SeekableOutputSocket, OutputSocket, SocketDescriptor } from '../core/socket';
 
 import { XHR, XHRCallbackFunction, XHRState, XHRMethod, XHRResponseType } from './xhr/xhr';
-import { Packet } from '../core/packet';
-import { getLogger } from '../logger';
+import { Packet, PacketSymbol } from '../core/packet';
+import { getLogger, LoggerLevel } from '../logger';
 
-const { log, warn, error } = getLogger('XhrSocket');
+const { log, warn, error } = getLogger('XhrSocket', LoggerLevel.DEBUG);
 
 export class XhrSocket extends SeekableOutputSocket {
   private _xhr: XHR = null;
@@ -24,12 +24,27 @@ export class XhrSocket extends SeekableOutputSocket {
       return; // TODO
     }
 
+    log(xhr)
+
+    if (xhr.error) {
+      error('got error for url:', this._xhr.responseURL);
+      this.transfer(Packet.newEos());
+      return;
+    }
+
+    if (xhr.status >= 400 || (xhr.xhrState >= XHRState.OPENED && xhr.status === 0)) {
+      error('request failed for url:', this._xhr.responseURL, 'with status:', xhr.status);
+      this.transfer(Packet.newEos());
+      return;
+    }
+
     if (xhr.xhrState === XHRState.DONE) {
       log('got data for url:', this._xhr.responseURL);
       this.transfer(Packet.fromArrayBuffer(<ArrayBuffer> xhr.responseData));
       log('transferring EOS symbol');
       // EOS
       this.transfer(Packet.newEos());
+      return;
     }
   }
 }
