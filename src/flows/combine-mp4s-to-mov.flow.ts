@@ -14,7 +14,7 @@ import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
 import { makeTemplate } from '../common-utils';
 import { EnvironmentVars } from '../core/env';
 import { VoidCallback } from '../common-types';
-import { AppInputSocket, AppInputCallback } from '../io-sockets/app-input-socket';
+import { AppInputSocket } from '../io-sockets/app-input-socket';
 
 const { log } = getLogger('CombineMp4sToMovFlow');
 
@@ -69,6 +69,8 @@ export class CombineMp4sToMovFlow extends Flow {
       const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
 
       const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
+
+      this.add(mp4DemuxProcVideo, h264ParseProc, mp3ParseProc, mp4MuxProc);
 
       const muxerVideoInput = mp4MuxProc.createInput();
       const muxerAudioInput = mp4MuxProc.createInput();
