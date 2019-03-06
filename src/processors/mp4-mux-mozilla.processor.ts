@@ -18,7 +18,7 @@ import {
 import { isNumber } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.LOG);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ERROR);
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
