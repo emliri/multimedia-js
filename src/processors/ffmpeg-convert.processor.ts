@@ -8,9 +8,10 @@ import { BufferProperties } from '../core/buffer-props';
 declare var ffmpeg: any;
 
 export class FFmpegConvertProcessor extends Processor {
+
   static getName (): string {
- return 'FFmpegConvertProcessor'
-}
+    return 'FFmpegConvertProcessor'
+  }
 
   private ffmpeg_: FFmpegTool = null;
 
