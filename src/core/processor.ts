@@ -5,9 +5,9 @@ import { EventEmitter } from 'eventemitter3';
 import { ProcessorTask } from './processor-task';
 import { getLogger } from '../logger';
 import { EnvironmentVars } from './env';
-import { ErrorInfo } from './error';
+import { ErrorInfo, ErrorDataType, ErrorCode } from './error';
 
-const { debug, error } = getLogger('Processor');
+const { debug, log, error } = getLogger('Processor');
 
 // import WorkerLoader from "worker-loader!../base.worker";
 
@@ -21,13 +21,12 @@ export enum ProcessorEvent {
 }
 
 export enum ProcessorErrorCode {
-    GENERIC = 0,
-    BAD_FORMAT = 1
+
 }
 
 export type ProcessorError = ErrorInfo & {
     processor: Processor,
-    code: ProcessorErrorCode
+    dataType: ErrorDataType.PROC
 }
 
 export type ProcessorEventDataProps = Partial<{
@@ -108,17 +107,27 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     }
 
     createEvent (event: ProcessorEvent, eventProps: ProcessorEventDataProps): ProcessorEventData {
-      return Object.assign({
+      const eventData = Object.assign({
         event,
         processor: this
       }, eventProps);
+      return eventData;
     }
 
-    createErrorEvent (code: ProcessorErrorCode): ProcessorEventData {
-      return Object.assign({
-        event: ProcessorEvent.ERROR,
-        processor: this
-      }, { code });
+    createErrorEvent (code: ErrorCode, message: string): ProcessorEventData {
+      if (code < ErrorCode.PROC_GENERIC) {
+        throw new Error('Error-code is not for proc-type');
+      }
+      error('creating error event with code:', code, 'message:', message)
+      const event = this.createEvent(ProcessorEvent.ERROR, {
+        error: {
+          code,
+          dataType: ErrorDataType.PROC,
+          message,
+          processor: this
+        }
+      });
+      return event;
     }
 
     emit (event: ProcessorEvent, data: ProcessorEventData) {

@@ -19,7 +19,7 @@ import { Processors } from '../../index';
 declare var importScripts: (...paths: string[]) => void;
 
 const workerId = makeUUID_v1();
-const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.LOG);
+const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.ERROR);
 
 log('setting new worker instance up ...');
 
@@ -116,12 +116,23 @@ log('setting new worker instance up ...');
       }
 
       const onEvent = (eventData: ProcessorEventData) => {
+
+        // first do a shallow clone
+        const eventDataClone = Object.assign({}, eventData);
+        // remove the non-transferrable proc and packet refs
+        eventDataClone.processor = null;
+        eventDataClone.packet = null;
+        eventDataClone.socket = null;
+        if (eventData.error) {
+          eventData.error.processor = null;
+        }
+
         const callbackData: ProcessorProxyWorkerCallbackData = {
           callback: ProcessorProxyWorkerCallback.EVENT,
           subContextId: subContext.id,
           processorName: subContext.name,
           workerId,
-          value: eventData.event
+          value: eventDataClone
         };
 
         context.postMessage(callbackData);

@@ -7,7 +7,7 @@ import { createProcessorFromShellName } from './processor-factory';
 import { VoidCallback } from '../common-types';
 import { EnvironmentVars } from '../core/env';
 
-const { log, debug, warn, error } = getLogger('ProcessorProxy', LoggerLevel.LOG);
+const { log, debug, warn, error } = getLogger('ProcessorProxy', LoggerLevel.ERROR);
 
 export enum ProcessorProxyWorkerMessage {
   SPAWN = 'spawn',
@@ -63,7 +63,7 @@ export class ProcessorProxyWorker {
     private _onCreated: VoidCallback,
     private _onTransfer: (value: ProcessorProxyWorkerCallbackTransferValue) => void,
     private _onMethodReturn: (retValue: any) => void,
-    private _onEvent: (event: ProcessorEvent) => void,
+    private _onEvent: (event: ProcessorEventData) => void,
     private _onWorkerError: (event: ErrorEvent) => void
   ) {
     const PROXY_WORKER_PATH = EnvironmentVars.PROXY_WORKER_PATH;
@@ -220,14 +220,14 @@ export class ProcessorProxy extends Processor {
     }
     */
 
-    const onEvent = (event: ProcessorEvent) => {
+    const onEvent = (eventData: ProcessorEventData) => {
       let data: ProcessorEventData;
       let socket: Socket;
 
       // we don't need to reproduce this event, it will be triggered organically from creating the sockets here
       // just as all other events except error
 
-      switch (event) {
+      switch (eventData.event) {
       case ProcessorEvent.INPUT_SOCKET_CREATED:
         socket = super.createInput();
         break;
@@ -235,9 +235,13 @@ export class ProcessorProxy extends Processor {
         socket = super.createOutput();
         break;
       case ProcessorEvent.ERROR:
+        // patch the proc ref back up with this proxys
+        eventData.error.processor = this;
+        // emit the synthesized proxied event
         this.emit(ProcessorEvent.ERROR, {
           processor: this,
-          event: ProcessorEvent.ERROR
+          event: ProcessorEvent.ERROR,
+          error: eventData.error
         });
         break;
       }

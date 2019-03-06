@@ -1,8 +1,11 @@
-import { Processor } from './processor';
+import { Processor, ProcessorEvent, ProcessorEventData } from './processor';
 import { Socket } from './socket';
-import { ErrorInfo } from './error';
+import { ErrorInfo, assignErrorInfo, ErrorDataType, ErrorCode } from './error';
 import { VoidCallback } from '../common-types';
 import { EventEmitter } from 'eventemitter3';
+import { getLogger, LoggerLevel } from '../logger';
+
+const {error} = getLogger('Flow', LoggerLevel.DEBUG);
 
 export enum FlowState {
   VOID = 'void', // the initial state
@@ -31,6 +34,7 @@ export enum FlowErrorType {
 }
 
 export type FlowError = ErrorInfo & {
+  dataType: ErrorDataType.FLOW,
   type: FlowErrorType
 }
 
@@ -79,6 +83,8 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   add (...p: Processor[]) {
     p.forEach((proc) => {
       this._processors.add(proc);
+
+      proc.on(ProcessorEvent.ERROR, (data: ProcessorEventData) => this._onProcError(data));
     });
   }
 
@@ -232,6 +238,17 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     this.onStateChangePerformed(this._prevState, this._state);
 
     this.emit(FlowEvent.STATE_CHANGED);
+  }
+
+  private _onProcError(data: ProcessorEventData): void {
+    error('got processor error event:', data);
+    this._whenDoneReject({
+      dataType: ErrorDataType.FLOW,
+      type: FlowErrorType.PROC,
+      code: ErrorCode.FLOW_INTERNAL,
+      message: "A processor part of this flow emitted an error event",
+      innerError: data.error
+    });
   }
 
   protected abstract onVoidToWaiting_(done: VoidCallback);

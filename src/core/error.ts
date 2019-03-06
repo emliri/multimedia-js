@@ -1,7 +1,9 @@
 export type ErrorInfo = {
-  code: number,
+  dataType: ErrorDataType,
+  code: ErrorCode,
   message: string,
-  nestedError?: Error,
+  innerError?: ErrorInfo,
+  nativeError?: Error,
   customData?: any,
 };
 
@@ -20,4 +22,21 @@ export function cloneErrorInfo (errorInfo: ErrorInfo): ErrorInfo {
  */
 export function assignErrorInfo<E extends ErrorInfo> (errorInfoOut: E, errorInfoIn: ErrorInfo): ErrorInfo {
   return Object.assign(errorInfoOut, errorInfoIn);
+}
+
+export enum ErrorCode {
+
+  GENERIC = 0x0000,
+
+  FLOW_GENERIC = 0x1000,
+  FLOW_INTERNAL = 0x1001,
+
+  PROC_GENERIC = 0x2000,
+  PROC_BAD_FORMAT = 0x2001,
+  PROC_EARLY_EOS = 0x2002
+}
+
+export enum ErrorDataType {
+  FLOW = 'flow',
+  PROC = 'proc'
 }
