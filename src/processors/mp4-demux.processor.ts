@@ -1,4 +1,4 @@
-import { Processor, ProcessorEvent, ProcessorErrorCode } from '../core/processor';
+import { Processor, ProcessorEvent } from '../core/processor';
 import { Packet, PacketSymbol } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType, OutputSocket, SocketTemplateGenerator } from '../core/socket';
 
@@ -84,6 +84,11 @@ export class MP4DemuxProcessor extends Processor {
 
         const tracks: TracksHash = this._demuxer.tracks;
 
+        if (Object.keys(tracks).length === 0) {
+          this.emitErrorEvent(ErrorCode.PROC_BAD_FORMAT, "No tracks were found in the parsed data (expecting MP4/MOV)");
+          return;
+        }
+
         for (const trackId in tracks) {
           const track: Mp4Track = <Mp4Track> tracks[trackId];
 
@@ -164,6 +169,7 @@ export class MP4DemuxProcessor extends Processor {
             console.log('pushing PPS data')
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
+
           } else if (track.type === Mp4Track.TYPE_AUDIO) {
             const audioAtom = <AudioAtom> track.getMetadataAtom();
             sampleDepth = audioAtom.sampleSize;
