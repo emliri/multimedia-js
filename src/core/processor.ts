@@ -5,7 +5,7 @@ import { EventEmitter } from 'eventemitter3';
 import { ProcessorTask } from './processor-task';
 import { getLogger } from '../logger';
 import { EnvironmentVars } from './env';
-import { ErrorInfo, ErrorDataType, ErrorCode } from './error';
+import { ErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 
 const { debug, log, error } = getLogger('Processor');
 
@@ -20,13 +20,8 @@ export enum ProcessorEvent {
     ERROR = 'processor:error'
 }
 
-export enum ProcessorErrorCode {
-
-}
-
-export type ProcessorError = ErrorInfo & {
-    processor: Processor,
-    dataType: ErrorDataType.PROC
+export type ProcessorError = ErrorInfoSpace<ErrorCodeSpace.PROC> & {
+    processor: Processor
 }
 
 export type ProcessorEventDataProps = Partial<{
@@ -122,12 +117,16 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       const event = this.createEvent(ProcessorEvent.ERROR, {
         error: {
           code,
-          dataType: ErrorDataType.PROC,
+          space: ErrorCodeSpace.PROC,
           message,
           processor: this
         }
       });
       return event;
+    }
+
+    emitErrorEvent(code: ErrorCode, message: string) {
+      this.emit(ProcessorEvent.ERROR, this.createErrorEvent(code, message));
     }
 
     emit (event: ProcessorEvent, data: ProcessorEventData) {

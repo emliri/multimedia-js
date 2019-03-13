@@ -1,6 +1,6 @@
 import { Processor, ProcessorEvent, ProcessorEventData } from './processor';
 import { Socket } from './socket';
-import { ErrorInfo, assignErrorInfo, ErrorDataType, ErrorCode } from './error';
+import { ErrorInfo, assignErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 import { VoidCallback } from '../common-types';
 import { EventEmitter } from 'eventemitter3';
 import { getLogger, LoggerLevel } from '../logger';
@@ -33,12 +33,12 @@ export enum FlowErrorType {
   RUNTIME = 'runtime'
 }
 
-export type FlowError = ErrorInfo & {
-  dataType: ErrorDataType.FLOW,
+export type FlowError = ErrorInfoSpace<ErrorCodeSpace.FLOW> & {
   type: FlowErrorType
 }
 
 export enum FlowEvent {
+  ERROR = 'flow:error',
   STATE_CHANGE_PENDING = 'flow:state-change-pending',
   STATE_CHANGE_ABORTED = 'flow:state-change-aborted',
   STATE_CHANGED = 'flow:state-changed'
@@ -241,14 +241,19 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   }
 
   private _onProcError(data: ProcessorEventData): void {
+
     error('got processor error event:', data);
+
     this._whenDoneReject({
-      dataType: ErrorDataType.FLOW,
+      space: ErrorCodeSpace.FLOW,
       type: FlowErrorType.PROC,
       code: ErrorCode.FLOW_INTERNAL,
       message: "A processor part of this flow emitted an error event",
       innerError: data.error
     });
+
+    // error data can be retrieved by app from whenDone().catch(...) when needed
+    this.emit(FlowEvent.ERROR)
   }
 
   protected abstract onVoidToWaiting_(done: VoidCallback);

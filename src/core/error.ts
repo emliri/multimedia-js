@@ -1,11 +1,15 @@
 export type ErrorInfo = {
-  dataType: ErrorDataType,
+  space: ErrorCodeSpace,
   code: ErrorCode,
   message: string,
   innerError?: ErrorInfo,
   nativeError?: Error,
   customData?: any,
 };
+
+export type ErrorInfoSpace<T extends ErrorCodeSpace> = ErrorInfo & {
+  space: T
+}
 
 /**
  * Caution: This does shallow clone. May matter if you have custom data.
@@ -24,19 +28,37 @@ export function assignErrorInfo<E extends ErrorInfo> (errorInfoOut: E, errorInfo
   return Object.assign(errorInfoOut, errorInfoIn);
 }
 
+export enum ErrorCodeSpace {
+  NONE = 0,
+  FLOW = 1,
+  PROC = 2
+}
+
+// allows for 99 positions in total for each error space, increase at will
+// "i got 99 errors but a space aint' one" ;P
+const ERROR_CODE_SPACE_SCALE = 100;
+
+function getErrorCodeValue(space: ErrorCodeSpace, position: number): number {
+  return ERROR_CODE_SPACE_SCALE * space + position;
+}
+
+export function isErrorCodeSpace(errCode: ErrorCode, space: ErrorCodeSpace): boolean {
+  return (space * ERROR_CODE_SPACE_SCALE <= errCode)
+    && ((space + 1) * ERROR_CODE_SPACE_SCALE > errCode)
+}
+
 export enum ErrorCode {
+  GENERIC = getErrorCodeValue(ErrorCodeSpace.NONE, 0),
 
-  GENERIC = 0x0000,
+  FLOW_GENERIC = getErrorCodeValue(ErrorCodeSpace.FLOW, 0),
+  FLOW_INTERNAL = getErrorCodeValue(ErrorCodeSpace.FLOW, 1),
 
-  FLOW_GENERIC = 0x1000,
-  FLOW_INTERNAL = 0x1001,
-
-  PROC_GENERIC = 0x2000,
-  PROC_BAD_FORMAT = 0x2001,
-  PROC_EARLY_EOS = 0x2002
+  PROC_GENERIC = getErrorCodeValue(ErrorCodeSpace.PROC, 0),
+  PROC_BAD_FORMAT = getErrorCodeValue(ErrorCodeSpace.PROC, 1),
+  PROC_EARLY_EOS = getErrorCodeValue(ErrorCodeSpace.PROC, 2)
 }
 
-export enum ErrorDataType {
-  FLOW = 'flow',
-  PROC = 'proc'
+export function getErrorNameByCode(errCode: ErrorCode): string {
+  return ErrorCode[errCode];
 }
+

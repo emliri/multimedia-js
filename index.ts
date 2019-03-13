@@ -51,6 +51,7 @@ import { Flow, FlowErrorType, FlowEvent, FlowState } from './src/core/flow';
 import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
 import { HTML5MediaSourceBufferSocket } from './src/io-sockets/html5-media-source-buffer.socket';
 import { WebFileDownloadSocket } from './src/io-sockets/web-file-download.socket';
+import { ErrorCode, ErrorCodeSpace, getErrorNameByCode } from './src/core/error';
 
 export const Common = {
   Utils,
@@ -76,7 +77,10 @@ export const Core = {
   Flow,
   FlowErrorType,
   FlowEvent,
-  FlowState
+  FlowState,
+  ErrorCode,
+  ErrorCodeSpace,
+  getErrorNameByCode
 };
 
 export const Processors = {
@@ -107,4 +111,6 @@ export const Flows = {
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
-export { setLocalLoggerLevel, createAndGetLocalLoggerConfig as getLocalLoggerConfig, removeLocalLoggerConfig } from './src/logger';
+export {
+  setLocalLoggerLevel,
+  createAndGetLocalLoggerConfig as getLocalLoggerConfig, removeLocalLoggerConfig } from './src/logger';
