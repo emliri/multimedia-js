@@ -1,6 +1,6 @@
 import { Processor, ProcessorEvent, ProcessorEventData } from './processor';
 import { Socket } from './socket';
-import { ErrorInfo, assignErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
+import { ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 import { VoidCallback } from '../common-types';
 import { EventEmitter } from 'eventemitter3';
 import { getLogger, LoggerLevel } from '../logger';
