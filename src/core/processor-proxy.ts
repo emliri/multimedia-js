@@ -227,12 +227,17 @@ export class ProcessorProxy extends Processor {
       // we don't need to reproduce this event, it will be triggered organically from creating the sockets here
       // just as all other events except error
 
+      let sd;
+      if (eventData.socket) {
+        sd = SocketDescriptor.fromJson(<any> eventData.socket);
+      }
+
       switch (eventData.event) {
       case ProcessorEvent.INPUT_SOCKET_CREATED:
-        socket = super.createInput();
+        socket = super.createInput(sd);
         break;
       case ProcessorEvent.OUTPUT_SOCKET_CREATED:
-        socket = super.createOutput();
+        socket = super.createOutput(sd);
         break;
       case ProcessorEvent.ERROR:
         // patch the proc ref back up with this proxys
