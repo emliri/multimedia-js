@@ -46,10 +46,6 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
     this.domMountPoint.appendChild(videoEl);
 
-    const mediaSource = new MediaSource();
-
-    videoEl.src = URL.createObjectURL(mediaSource);
-
     processButton.onclick = () => {
 
       const audioFile: File = audioFileInput.files[0];
@@ -58,8 +54,16 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
       console.log('selected audio file:', audioFile)
       console.log('selected video file:', videoFile)
 
-      const videoUrl = videoFile ? URL.createObjectURL(videoFile) : '/test-data/mp4/v-0576p-1400k-libx264.mov';
-      const audioUrl = audioFile ? URL.createObjectURL(audioFile) : '/test-data/mp4/guitars.m4a';
+      /**
+       *
+       * SampleVideo_1280x720_5mb.mp4
+       *
+       * v-0576p-1400k-libx264.mov
+       *
+       */
+
+      const videoUrl = videoFile ? URL.createObjectURL(videoFile) : '/test-data/mp4/SampleVideo_1280x720_5mb.mp4';
+      const audioUrl = audioFile ? URL.createObjectURL(audioFile) : '/test-data/mp3/shalafon.mp3';
 
       // "good guess"
       const isMp3Audio = audioUrl.endsWith('.mp3');
@@ -67,12 +71,16 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
       this._flow = new CombineMp4sToMovFlow(
         videoUrl,
         audioUrl,
-        true,
-        document.querySelector('#root'),
+        false, // call saveAs when done
+        null,
         isMp3Audio
       );
 
       this._flow.whenCompleted().then((result: FlowCompletionResult) => {
+
+        videoEl.src = URL.createObjectURL(result.data);
+
+        videoEl.play()
 
         console.log('flow completed with result:', result);
 
