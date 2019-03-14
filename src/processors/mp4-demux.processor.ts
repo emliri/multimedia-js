@@ -16,7 +16,7 @@ import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 import { ErrorCode } from '../core/error';
 
-const { log, warn, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.ERROR);
+const { log, warn, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.DEBUG);
 
 export const AUDIO_SAMPLING_RATES_LUT = [5500, 11025, 22050, 44100];
 export const AAC_SAMPLES_PER_FRAME = 1024;
@@ -56,6 +56,7 @@ export class MP4DemuxProcessor extends Processor {
       ]);
 
       if (!this._trackIdToOutputs[track.id]) {
+        log('creating ouput socket with mime-type:', track.mimeType, 'socket-descriptor:', sd);
         this._trackIdToOutputs[track.id] = this.createOutput(sd);
       }
 
