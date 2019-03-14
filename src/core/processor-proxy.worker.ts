@@ -122,7 +122,7 @@ log('setting new worker instance up ...');
         // remove the non-transferrable proc and packet refs
         eventDataClone.processor = null;
         eventDataClone.packet = null;
-        eventDataClone.socket = null;
+        eventDataClone.socket = eventData.socket ? <any> eventData.socket.descriptor().toJson() : null;
         if (eventData.error) {
           eventData.error.processor = null;
         }
