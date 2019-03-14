@@ -118,8 +118,13 @@ export class CombineMp4sToMovFlow extends Flow {
       xhrSocketMovFile.connect(mp4DemuxProcVideo.in[0]);
 
       // set up
-
       mp4DemuxProcVideo.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
+
+        if (!eventData.socket.descriptor().payload().isVideo()) {
+          // ignore
+          return;
+        }
+
         // FIXME: check the socket-descriptor actually is video
         log('mp4 video demux output socket created');
 
