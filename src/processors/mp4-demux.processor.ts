@@ -145,7 +145,8 @@ export class MP4DemuxProcessor extends Processor {
 
             if (track.getFrames().length > 1) {
               sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds() -
-              track.getFrames()[0].getDecodingTimestampInSeconds());
+                                  track.getFrames()[0].getDecodingTimestampInSeconds());
+              sampleRate = Math.round(sampleRate);
               log('estimated FPS:', sampleRate);
             } else {
               warn('only found 1 single frame in video track, setting FPS to zero');
@@ -200,7 +201,7 @@ export class MP4DemuxProcessor extends Processor {
 
           let sampleDuration = track.getDefaults() ? track.getDefaults().sampleDuration : 1;
 
-          log('sample-duration found:', sampleDuration);
+          log('sample-duration found:', sampleDuration, 'numerator:', sampleDurationNum);
 
           const protoProps: BufferProperties = new BufferProperties(
             track.mimeType,
