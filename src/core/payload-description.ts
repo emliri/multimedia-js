@@ -99,7 +99,7 @@ export class PayloadDescriptor {
     sampleDepth: number = 0,
     sampleDurationNumerator: number = 1) {
     if (!isIntegerIEEE754(sampleRateInteger) || !isInteger(sampleDurationNumerator)) {
-      throw new Error(`sample-rate has to be safe-int (=${sampleRateInteger}) and duration-numerator has to be int too (=${this.sampleDurationNumerator}).`);
+      throw new Error(`sample-rate has to be safe-int (=${sampleRateInteger}) and duration-numerator has to be int too (=${sampleDurationNumerator}).`);
     }
 
     this.mimeType = mimeType.toLowerCase();
