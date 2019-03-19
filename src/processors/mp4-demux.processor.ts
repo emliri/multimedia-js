@@ -4,7 +4,7 @@ import { InputSocket, SocketDescriptor, SocketType, OutputSocket, SocketTemplate
 
 import { getLogger, LoggerLevel } from '../logger';
 
-import { createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash, Atom } from '../ext-mod/inspector.js/src';
+import { createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash } from '../ext-mod/inspector.js/src';
 import { Mp4Track } from '../ext-mod/inspector.js/src/demuxer/mp4/mp4-track';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { Esds } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/esds';
