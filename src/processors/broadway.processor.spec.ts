@@ -16,9 +16,8 @@ const path = require('path');
 describe('BroadwayProcessor', () => {
   const testData: ArrayBuffer[] = [];
   const files = [
-    './src/processors/mp4/fixtures/v-0576p-1400k-libx264.baseline-profile.fragmented.mp4',
-    './src/processors/mp4/fixtures/v-0576p-1400k-libx264.mp4',
-    './src/processors/mp4/fixtures/ToS-4k-1920.mov'
+    './src/processors/mp4/fixtures/KickOutTheJams.mp4',
+    './src/processors/mp4/fixtures/v-0576p-1400k-libx264.mp4'
   ];
 
   beforeAll((done) => {
