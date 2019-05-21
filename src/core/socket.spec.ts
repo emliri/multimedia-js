@@ -2,7 +2,7 @@ import 'should';
 
 import { Socket, SocketType, SocketDescriptor, InputSocket, OutputSocket } from './socket';
 import { Packet, PacketReceiveCallback } from './packet';
-import { PayloadDescriptor } from './mime-type';
+import { PayloadDescriptor } from './payload-description';
 import { Signal, SignalDirection } from './signal';
 
 describe('SocketDescriptor', () => {
@@ -100,7 +100,7 @@ describe('InputSocket', () => {
     is.payloads().should.be.equal(sd.payloads);
   });
 
-  it('should transfer a packet to the callback and set the transferring state flag during transfer accordingly', () => {
+  it('should transfer a packet to the callback and set the transferring state flag during transfer accordingly', async () => {
     let packet = new Packet();
     let cbRetVal = true;
     let is;
@@ -118,11 +118,11 @@ describe('InputSocket', () => {
     is.payloads().should.be.equal(sd.payloads);
 
     is.isTransferring().should.be.equal(false);
-    is.transfer(packet).should.be.equal(cbRetVal);
+    (await is.transfer(packet)).should.be.equal(cbRetVal);
     is.isTransferring().should.be.equal(false);
   });
 
-  it('should transfer a packet to the callback and set the transferring state flag during transfer accordingly (with falsy callback return val)', () => {
+  it('should transfer a packet to the callback and set the transferring state flag during transfer accordingly (with falsy callback return val)', async () => {
     let packet = new Packet();
     let cbRetVal = false;
     let is;
@@ -136,7 +136,7 @@ describe('InputSocket', () => {
     is = new InputSocket(cb, new SocketDescriptor());
 
     is.isTransferring().should.be.equal(false);
-    is.transfer(packet).should.be.equal(cbRetVal);
+    (await is.transfer(packet)).should.be.equal(cbRetVal);
     is.isTransferring().should.be.equal(false);
   });
 
@@ -259,7 +259,7 @@ describe('OutputSocket', () => {
     os.getPeerSockets().length.should.be.equal(0);
   });
 
-  it('should be able to transfer a Packet to a peer InputSocket', (done) => {
+  it('should be able to transfer a Packet to a peer InputSocket', async () => {
     let is;
     let packetCount = 0;
     let sd = new SocketDescriptor();
@@ -267,10 +267,6 @@ describe('OutputSocket', () => {
     let packet = new Packet();
 
     const cb = (p: Packet) => {
-      setTimeout(() => {
-        done();
-      }, 0);
-
       p.should.be.equal(packet);
 
       (packetCount++).should.be.equal(0);
@@ -282,10 +278,10 @@ describe('OutputSocket', () => {
 
     os.connect(is).should.be.equal(os);
 
-    os.transfer(packet).should.be.true;
+    (await os.transfer(packet)).should.be.true;
   });
 
-  it('should be able to transfer a Packet to a peer OutputSocket (and on to its peers)', (done) => {
+  it('should be able to transfer a Packet to a peer OutputSocket (and on to its peers)', async () => {
     let is;
     let packetCount = 0;
     let sd = new SocketDescriptor();
@@ -296,10 +292,6 @@ describe('OutputSocket', () => {
     let cbRetVal = false;
 
     const cb = (p: Packet) => {
-      setTimeout(() => {
-        done();
-      }, 0);
-
       p.should.be.equal(packet);
 
       (packetCount++).should.be.equal(0);
@@ -313,6 +305,6 @@ describe('OutputSocket', () => {
 
     os2.connect(is).should.be.equal(os2);
 
-    os.transfer(packet).should.be.equal(cbRetVal);
+    (await os.transfer(packet)).should.be.equal(cbRetVal);
   });
 });

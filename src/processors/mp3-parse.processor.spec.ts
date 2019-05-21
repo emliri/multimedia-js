@@ -26,7 +26,7 @@ describe('MP3ParseProcessor', () => {
     });
   });
 
-  it('should process an mp3 file as one input packet and output one packet per frame', (done) => {
+  xit('should process an mp3 file as one input packet and output one packet per frame', (done) => {
     const outputPackets = [];
 
     const termination: LambdaProcessor = new LambdaProcessor((s, p) => {
