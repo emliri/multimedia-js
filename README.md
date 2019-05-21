@@ -16,6 +16,7 @@ There exists a `v0.x` with various releases. Please see comment at bottom if you
  
  ```
  npm install
+ git submodule update --init
  npm start // starts webpack dev-server
  // or
  npm run build // runs build and exits
