@@ -109,20 +109,18 @@ export function getConfiguredLoggerLevelForCategory (
   category: string,
   defaultLevel: LoggerLevel = LoggerLevel.OFF,
   config: LoggerConfig = createAndGetLocalLoggerConfig()): LoggerLevel {
-  let retLevel = defaultLevel;
+  let retLevel: LoggerLevel;
 
   Object.keys(config).forEach((catMatcher: string) => {
-    // to avoid any possible error or regex-dos
-    catMatcher = regExpEscape(catMatcher);
-
     const level: LoggerLevel = config[catMatcher];
-    const isCatMatching = (new RegExp('^' + catMatcher.split('*').join('.*') + '$')).test(category);
+    const parsedMatcher: string = catMatcher.split('*').map(regExpEscape).join('.*');
+    const isCatMatching = (new RegExp('^' + parsedMatcher + '$')).test(category);
 
-    if (isCatMatching && level < retLevel) { // we are enforcing the lowest level specified by any matching category wildcard
+    if (isCatMatching && (retLevel == null || level < retLevel)) { // we are enforcing the lowest level specified by any matching category wildcard
       retLevel = level;
     }
   });
-  return retLevel;
+  return retLevel == null ? defaultLevel : retLevel;
 }
 
 export function checkLogLevel (level: number, catLevel: number) {
