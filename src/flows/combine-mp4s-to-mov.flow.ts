@@ -35,14 +35,7 @@ export class CombineMp4sToMovFlow extends Flow {
     private _downloadLinkContainer: HTMLElement = null,
     private _isMp3Audio: boolean = false
   ) {
-    super(
-      (prevState, newState) => {
-        console.log('previous state:', prevState, 'new state:', newState);
-      },
-      (reason) => {
-        console.log('state change aborted. reason:', reason);
-      }
-    );
+    super();
   }
 
   private _setup () {
@@ -58,7 +51,7 @@ export class CombineMp4sToMovFlow extends Flow {
         log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
 
         ffmpegAacTranscodeProc = newProcessorWorkerShell(
-          unsafeProcessorType(FFmpegConvertProcessor),
+          unsafeProcessorType(FFmpegConvertProcessor), // WHY ?
           [audioConfig, null],
           [EnvironmentVars.FFMPEG_BIN_PATH]
         );
@@ -95,7 +88,9 @@ export class CombineMp4sToMovFlow extends Flow {
 
       // hook up transcoding stage
       let mp4AudioOutSocket = xhrSocketAudioFile;
+
       if (ffmpegAacTranscodeProc) {
+        
         xhrSocketAudioFile.connect(ffmpegAacTranscodeProc.in[0]);
         mp4AudioOutSocket = ffmpegAacTranscodeProc.out[0];
       }
