@@ -97,10 +97,23 @@ export function copyArrayBuffer (
 }
 
 /**
+ * Iterate over copyArrayBuffer with array of ArrayBuffer as input, offset on each pass is shifted so
+ * that the buffers content are concatenated in the destination. If destination size is too low
+ * `copyArrayBuffer` (i.e this function) will throw an error.
+ * @param src
+ * @param dest
+ */
+export function copyArrayBuffers(src: ArrayBuffer[], dest: ArrayBuffer) {
+  for (let i = 0; i < src.length; i++) {
+    copyArrayBuffer(src[i], dest, src[i].byteLength, 0, i === 0 ? 0 : src[i - 1].byteLength);
+  }
+}
+
+/**
  * Copies all data from one buffer into a new one, optionnally with offset and size arguments
  * @param buffer
- * @param begin
- * @param end
+ * @param offset
+ * @param size
  */
 export function copyToNewArrayBuffer (buffer: ArrayBuffer, offset: number = 0, size?: number): ArrayBuffer {
   if (offset >= buffer.byteLength || offset + size > buffer.byteLength) {
