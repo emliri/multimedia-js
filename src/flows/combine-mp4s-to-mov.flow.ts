@@ -1,10 +1,10 @@
-import { Flow, FlowStateChangeCallback, FlowCompletionResult, FlowState, FlowCompletionResultCode } from '../core/flow';
+import { Flow, FlowCompletionResultCode } from '../core/flow';
 import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
-import { OutputSocket, SocketEvent } from '../core/socket';
+import { OutputSocket } from '../core/socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
 import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-factory';
@@ -90,7 +90,7 @@ export class CombineMp4sToMovFlow extends Flow {
       let mp4AudioOutSocket = xhrSocketAudioFile;
 
       if (ffmpegAacTranscodeProc) {
-        
+
         xhrSocketAudioFile.connect(ffmpegAacTranscodeProc.in[0]);
         mp4AudioOutSocket = ffmpegAacTranscodeProc.out[0];
       }
