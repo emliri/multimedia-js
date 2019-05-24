@@ -9,6 +9,7 @@ describe('Logger', () => {
   beforeEach(() => {
     global.console = Object.assign(global.console, {
       debug: jest.fn(),
+      warn: jest.fn(),
       error: jest.fn()
     })
   })
@@ -181,30 +182,59 @@ describe('Logger', () => {
     it('should use the default log level', () => {
       logger.debug('foo');
       logger.error('bar');
+      logger.warn('foobar');
       (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(0);
+      (global.console.warn as jest.Mock).mock.calls.length.should.be.equal(1);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(1);
     });
   })
 
-  describe('overriding a logger with a default level', () => {
+  describe('overriding the default level of a category with the wildcard config ', () => {
     let logger: Logger
 
     beforeEach(() => {
       (global as any).localStorage = {
         getItem () {
-          return '{"*": 5}'
+          return '{"*": 2}'
         },
         setItem () {
         }
       }
-      logger = getLogger('CategoryWithDefaultLevel', LoggerLevel.WARN)
+      logger = getLogger('CategoryWithDefaultLevel', LoggerLevel.ON)
     })
 
-    it('should use the logger-default log level', () => {
+    it('should use the level specified by user configuration (not the default)', () => {
       logger.debug('foo');
+      logger.warn('foobar');
       logger.error('bar');
-      (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(1);
+      (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(0);
+      (global.console.warn as jest.Mock).mock.calls.length.should.be.equal(1);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(1);
     });
   })
+
+  describe('overriding the default level of a category with the wildcard config disabling all logging', () => {
+    let logger: Logger
+
+    beforeEach(() => {
+      (global as any).localStorage = {
+        getItem () {
+          return '{"*": 0}'
+        },
+        setItem () {
+        }
+      }
+      logger = getLogger('CategoryWithDefaultLevel', Infinity)
+    })
+
+    it('should use the level specified by user configuration (not the default), and thus nothing should be logged', () => {
+      logger.debug('foo');
+      logger.warn('foobar');
+      logger.error('bar');
+      (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(0);
+      (global.console.warn as jest.Mock).mock.calls.length.should.be.equal(0);
+      (global.console.error as jest.Mock).mock.calls.length.should.be.equal(0);
+    });
+  })
+
 });
