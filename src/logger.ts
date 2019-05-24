@@ -60,7 +60,7 @@ export type LoggerConfig = {
   [catMatcher: string]: LoggerLevel
 };
 
-DEFAULT_GLOBAL_LEVEL = LoggerLevel.ON;
+DEFAULT_GLOBAL_LEVEL = LoggerLevel.OFF;
 
 export const defaultGlobalConfig: LoggerConfig = { '*': DEFAULT_GLOBAL_LEVEL };
 
@@ -108,19 +108,29 @@ export function setLocalLoggerLevel (categoryMatcher: string, level: LoggerLevel
 export function getConfiguredLoggerLevelForCategory (
   category: string,
   defaultLevel: LoggerLevel = LoggerLevel.OFF,
-  config: LoggerConfig = createAndGetLocalLoggerConfig()): LoggerLevel {
-  let retLevel: LoggerLevel;
+  config: LoggerConfig = createAndGetLocalLoggerConfig(),
+  overrideWithDefault: boolean = false
+  ): LoggerLevel {
 
+  if (overrideWithDefault) {
+    return defaultLevel;
+  }
+
+  let retLevel: LoggerLevel = null;
   Object.keys(config).forEach((catMatcher: string) => {
+
     const level: LoggerLevel = config[catMatcher];
     const parsedMatcher: string = catMatcher.split('*').map(regExpEscape).join('.*');
     const isCatMatching = (new RegExp('^' + parsedMatcher + '$')).test(category);
 
-    if (isCatMatching && (retLevel == null || level < retLevel)) { // we are enforcing the lowest level specified by any matching category wildcard
+    if (isCatMatching
+      && (retLevel === null || level < retLevel)) { // we are enforcing the lowest level specified by any matching category wildcard
       retLevel = level;
     }
+
   });
-  return retLevel == null ? defaultLevel : retLevel;
+
+  return retLevel === null ? defaultLevel : retLevel;
 }
 
 export function checkLogLevel (level: number, catLevel: number) {
@@ -133,8 +143,13 @@ export function checkLogLevel (level: number, catLevel: number) {
   }
 }
 
-export const getLogger = function (category: string, level: number = LoggerLevel.ON): Logger {
-  level = getConfiguredLoggerLevelForCategory(category, level);
+export const getLogger = function (category: string, level: number = LoggerLevel.ON, overrideWithDefault: boolean = false): Logger {
+  level = getConfiguredLoggerLevelForCategory(
+    category,
+    level,
+    createAndGetLocalLoggerConfig(),
+    overrideWithDefault
+  );
 
   if (DEBUG) {
     console.log(`mmjs:Logger (DEBUG mode) > Set-up category <${category}> with level ${level}`);
