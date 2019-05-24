@@ -16,6 +16,7 @@ export enum SocketType {
 }
 
 export enum SocketEvent {
+  ANY_PACKET_TRANSFERED = 'packet-transfered',
   ANY_PACKET_RECEIVED = 'any-packet-received',
   DATA_PACKET_RECEIVED = 'data-packet-received', // "non-symbolic"
   EOS_PACKET_RECEIVED = 'eos-packet-received'
@@ -223,6 +224,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       dispatchAsyncTask(() => {
         try {
           resolve(this.transferSync(p));
+          super.emit(SocketEvent.ANY_PACKET_TRANSFERED);
         } catch (e) {
           error('Error upon packet-transfer execution:', e);
           reject(e);
@@ -280,7 +282,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this.owner;
   }
 
-  emit (e: SocketEvent, ...args: any[]): boolean {
+  emit (e: SocketEvent): boolean {
     throw new Error('Illegal call');
   }
 
