@@ -307,6 +307,7 @@ export class MP4MuxProcessor extends Processor {
     numChannels: number,
     durationSeconds: number,
     language: string = 'und'): MP4Track {
+
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec);
     }
@@ -322,7 +323,7 @@ export class MP4MuxProcessor extends Processor {
       samplesize: sampleSize
     };
 
-    log('creating audio track:', audioCodec);
+    log('creating audio track:', audioCodec, audioTrack.duration / audioTrack.timescale, 'secs');
 
     this.mp4Metadata_.audioTrackId = this._getNextTrackId();
     this.mp4Metadata_.tracks.push(audioTrack);
@@ -338,6 +339,7 @@ export class MP4MuxProcessor extends Processor {
     durationSeconds: number,
     timescale: number = framerate
   ): MP4Track {
+
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec);
     }
@@ -353,7 +355,7 @@ export class MP4MuxProcessor extends Processor {
       language: 'und'
     };
 
-    log('creating video track:', videoCodec);
+    log('creating video track:', videoCodec, 'duration:', videoTrack.duration / timescale, 'secs');
 
     this.mp4Metadata_.videoTrackId = this._getNextTrackId();
     this.mp4Metadata_.tracks.push(videoTrack);

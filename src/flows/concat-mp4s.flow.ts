@@ -1,13 +1,20 @@
 import { Flow } from "../core/flow";
 import { VoidCallback } from "../common-types";
 import { XhrSocket } from "../io-sockets/xhr.socket";
-import { newProcessorWorkerShell } from "../core/processor-factory";
+import { newProcessorWorkerShell, unsafeProcessorType } from "../core/processor-factory";
 import { MP4DemuxProcessor } from "../processors/mp4-demux.processor";
 import { ProcessorEvent, ProcessorEventData } from "../core/processor";
-import { OutputSocket, SocketEvent } from "../core/socket";
+import { OutputSocket, SocketEvent, InputSocket, Socket } from "../core/socket";
 import { FifoValve, wrapOutputSocketWithValve } from "../core/fifo";
 import { getLogger, LoggerLevel } from "../logger";
 import { PayloadDescriptor } from "../core/payload-description";
+import { FFmpegConversionTargetInfo } from "../processors/ffmpeg/ffmpeg-tool";
+import { EnvironmentVars } from "../core/env";
+import { FFmpegConvertProcessor } from "../processors/ffmpeg-convert.processor";
+import { MP4MuxProcessor } from "../processors/mp4-mux-mozilla.processor";
+import { PacketSymbol } from "../core/packet";
+import { WebFileDownloadSocket } from "../io-sockets/web-file-download.socket";
+import { makeTemplate } from "../common-utils";
 
 const { log } = getLogger("ConcatMp4sFlow", LoggerLevel.ON, true);
 
@@ -36,40 +43,189 @@ export class ConcatMp4sFlow extends Flow {
 
       let fifoVideoA: FifoValve = null;
       let fifoAudioA: FifoValve = null;
+
+      let fifoVideoB: FifoValve = null;
+      let fifoAudioB: FifoValve = null;
+
+      const mp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
+      const mp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
+
+      const mp4Muxer = newProcessorWorkerShell(MP4MuxProcessor);
+
+      let mp4MuxerVideoIn: InputSocket = mp4Muxer.createInput();
+      let mp4MuxerAudioIn: InputSocket; // = mp4Muxer.createInput();
+
+      const transcoderAudioConfig: FFmpegConversionTargetInfo = {
+        targetBitrateKbps: 256,
+        targetCodec: 'aac',
+        targetFiletypeExt: 'mp4'
+      };
+
+      const transcoderVideoConfig: FFmpegConversionTargetInfo = {
+        targetBitrateKbps: 256,
+        targetCodec: 'libx264',
+        targetFiletypeExt: 'h264'
+      };
+
+      log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
+
+      const ffmpegTranscoder = newProcessorWorkerShell(
+        unsafeProcessorType(FFmpegConvertProcessor), // WHY ?
+        [transcoderAudioConfig, transcoderVideoConfig],
+        [EnvironmentVars.FFMPEG_BIN_PATH]
+      );
+
       let payloadDescrVideoA: PayloadDescriptor = null;
       let payloadDescrAudioA: PayloadDescriptor = null;
 
-      const mp4Demux = newProcessorWorkerShell(MP4DemuxProcessor);
+      let payloadDescrVideoB: PayloadDescriptor = null;
+      let payloadDescrAudioB: PayloadDescriptor = null;
 
-      mp4Demux.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
+      let durationA: number;
+      let durationB: number;
 
-        if (data.socket.payload().isVideo()) {
+      let videoBeosReceived = false;
+      let videoAeosDroped = false;
 
-          fifoVideoA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(data.socket), () => {});
+      function attemptDrainVideoBFifo() {
+        if (videoAeosDroped && videoBeosReceived) {
 
-          data.socket.on(SocketEvent.ANY_PACKET_TRANSFERED, () => {
+          durationA = Math.max(payloadDescrAudioA ? payloadDescrAudioA.details.sequenceDurationInSeconds : 0,
+                                payloadDescrVideoA ? payloadDescrVideoA.details.sequenceDurationInSeconds : 0);
+
+          log('max duration of primary payload (input A):', durationA, 'secs')
+
+          durationB = Math.max(payloadDescrAudioB ? payloadDescrAudioB.details.sequenceDurationInSeconds : 0,
+            payloadDescrVideoB ? payloadDescrVideoB.details.sequenceDurationInSeconds : 0);
+
+          log('max duration of secondary payload (input B):', durationB, 'secs')
+
+          payloadDescrVideoA.details.sequenceDurationInSeconds = durationA + durationB;
+
+          // TODO:
+          //payloadDescrAudioA.details.sequenceDurationInSeconds = durationA + durationB;
+
+          fifoVideoB.drain();
+        }
+      }
+
+      mp4DemuxA.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
+
+        const socket: Socket = data.socket;
+
+        if (socket.payload().isVideo()) {
+
+          fifoVideoA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+          fifoVideoA.connect(mp4MuxerVideoIn)
+
+          fifoVideoA.addPacketFilterPass((p) => {
+
+            if (p.symbol === PacketSymbol.EOS) {
+              p.symbol = PacketSymbol.SYNC;
+
+              videoAeosDroped = true;
+
+              attemptDrainVideoBFifo()
+
+            }
+            return p;
+
+          });
+
+          fifoVideoA.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
+            log('video A EOS received on fifo queue')
+
+            fifoVideoA.drain();
+          });
+
+          // could move that into valve CB ?
+          socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
+
             if (!payloadDescrVideoA) {
               payloadDescrVideoA = fifoVideoA.queue.peek().defaultPayloadInfo;
               log('got primary video payload description:', payloadDescrVideoA)
             }
+
           });
 
-        } else if (data.socket.payload().isAudio()) {
+        } else if (socket.payload().isAudio()) {
 
-          fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(data.socket), () => {});
+          fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+          fifoAudioA.connect(mp4MuxerAudioIn)
 
-          data.socket.on(SocketEvent.ANY_PACKET_TRANSFERED, () => {
+          // could move that into valve CB ?
+          socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
+
             if (!payloadDescrAudioA) {
               payloadDescrAudioA = fifoAudioA.queue.peek().defaultPayloadInfo;
-              log('got primary audio payload description:', payloadDescrVideoA)
+              log('got primary audio payload description:', payloadDescrAudioA)
             }
+
           });
 
         }
 
       });
 
-      xhrSocketMovA.connect(mp4Demux.in[0])
+      mp4DemuxB.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
+
+        const socket: Socket = data.socket;
+
+        if (socket.payload().isVideo()) {
+
+          fifoVideoB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+          fifoVideoB.connect(mp4MuxerVideoIn)
+
+          fifoVideoB.addPacketFilterPass((p) => {
+
+            p.timestamp = p.timestamp
+              + (p.getTimescale() * durationA)
+
+            return p;
+          })
+
+          fifoVideoB.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
+            log('video B EOS received on fifo queue')
+
+            videoBeosReceived = true;
+
+            attemptDrainVideoBFifo()
+
+          });
+
+          // could move that into valve CB ?
+          socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
+
+            if (!payloadDescrVideoB) {
+              payloadDescrVideoB = fifoVideoB.queue.peek().defaultPayloadInfo;
+              log('got secondary video payload description:', payloadDescrVideoB)
+            }
+
+          });
+
+        } else if (socket.payload().isAudio()) {
+
+          fifoAudioB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+          fifoAudioB.connect(mp4MuxerAudioIn)
+
+          // could move that into valve CB ?
+          socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
+
+            if (!payloadDescrAudioB) {
+              payloadDescrAudioB = fifoAudioB.queue.peek().defaultPayloadInfo;
+              log('got primary audio payload description:', payloadDescrAudioB)
+            }
+
+          });
+        }
+
+      });
+
+      xhrSocketMovA.connect(mp4DemuxA.in[0])
+      xhrSocketMovB.connect(mp4DemuxB.in[0])
+
+      mp4Muxer.out[0].connect(new WebFileDownloadSocket(null, 'video/mp4', makeTemplate('buffer${counter}-${Date.now()}.mp4')))
+
     }
 
     protected onVoidToWaiting_(done: VoidCallback) {
