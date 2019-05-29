@@ -16,7 +16,7 @@ export enum SocketType {
 }
 
 export enum SocketEvent {
-  ANY_PACKET_TRANSFERED = 'packet-transfered',
+  ANY_PACKET_TRANSFERRED = 'any-packet-transferred',
   ANY_PACKET_RECEIVED = 'any-packet-received',
   DATA_PACKET_RECEIVED = 'data-packet-received', // "non-symbolic"
   EOS_PACKET_RECEIVED = 'eos-packet-received'
@@ -224,7 +224,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       dispatchAsyncTask(() => {
         try {
           resolve(this.transferSync(p));
-          super.emit(SocketEvent.ANY_PACKET_TRANSFERED);
+          super.emit(SocketEvent.ANY_PACKET_TRANSFERRED);
         } catch (e) {
           error('Error upon packet-transfer execution:', e);
           reject(e);
@@ -325,7 +325,7 @@ export class InputSocket extends Socket {
   transferSync (p: Packet): boolean {
     this.setTransferring_(true);
     const b = this.onReceive_(p);
-    this._onTransfer(p);
+    this._onTransferred(p);
     this.setTransferring_(false);
     return b;
   }
@@ -341,7 +341,7 @@ export class InputSocket extends Socket {
     ]);
   }
 
-  private _onTransfer (p: Packet) {
+  private _onTransferred (p: Packet) {
     this._emit(SocketEvent.ANY_PACKET_RECEIVED);
     if (p.isSymbolic()) {
       switch (p.symbol) {
