@@ -3,6 +3,7 @@ import { InputSocket, SocketDescriptor, OutputSocket } from './socket';
 import { VoidCallback } from '../common-types';
 
 export class FifoQueue extends InputSocket {
+
   private _packets: Packet[] = [];
 
   constructor (
@@ -53,6 +54,8 @@ export class FifoQueue extends InputSocket {
 
 export class FifoValve extends OutputSocket {
 
+  private _filters: FifoPacketFilter[] = [];
+
   constructor(
     private _queue: FifoQueue,
     sd: SocketDescriptor
@@ -62,16 +65,37 @@ export class FifoValve extends OutputSocket {
 
   get queue() { return this._queue; }
 
-  passOne() {
-    this.transfer(this._queue.pop());
+  get filters() { return this._filters; }
+
+  addPacketFilterPass(filter: FifoPacketFilter): FifoValve {
+    this._filters.push(filter);
+    return this;
+  }
+
+  transferOne() {
+    let p = this._queue.pop();
+
+    if (!p) {
+      return;
+    }
+
+    // apply filters
+    for (let i = 0; i < this._filters.length ; i++) {
+      p = this._filters[i](p);
+    }
+
+    this.transfer(p);
   }
 
   drain() {
     while(this._queue.length) {
-      this.passOne();
+      this.transferOne();
     }
   }
+
 }
+
+export type FifoPacketFilter = (p: Packet) => Packet;
 
 export function wrapOutputSocketWithValve(
   output: OutputSocket,
