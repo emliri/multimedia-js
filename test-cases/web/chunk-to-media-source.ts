@@ -20,7 +20,9 @@ export class ChunkToMediaSource extends MmjsTestCase {
     this._videoEl = document.createElement('video');
     this._videoEl.controls = true;
     this._videoEl.addEventListener('error', () => {
+
       error(this._videoEl.error);
+
     })
 
     this.domMountPoint.appendChild(this._videoEl);
@@ -41,6 +43,7 @@ export class ChunkToMediaSource extends MmjsTestCase {
 
   }
 
+  // TODO: create a generic flow-testbench
   run() {
     this._fmp4ToMediaSource.state = FlowState.WAITING;
     this._fmp4ToMediaSource.state = FlowState.FLOWING;

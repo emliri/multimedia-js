@@ -86,12 +86,14 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
       });
 
-      this._flow.state = FlowState.WAITING;
-      this._flow.state = FlowState.FLOWING;
 
     }
 
+    done();
   }
 
-  run() {}
+  run() {
+    this._flow.state = FlowState.WAITING;
+    this._flow.state = FlowState.FLOWING;
+  }
 }
