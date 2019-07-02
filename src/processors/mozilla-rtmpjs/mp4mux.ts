@@ -262,7 +262,7 @@ export class MP4Mux {
     private fragmentedMode: boolean = true;
 
     oncodecinfo: (codecs: string[]) => void = function (codecs: string[]) {
-      throw new Error('MP4Mux.oncodecdata is not set');
+      throw new Error('MP4Mux.oncodecinfo is not set');
     };
 
     ondata: (data) => void = function (data) {
@@ -304,6 +304,7 @@ export class MP4Mux {
       cto: number = 0,
       audioDetails: {sampleRate: number, sampleDepth: number, samplesPerFrame: number, numChannels: number} = null
     ) {
+
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._attemptToGenerateMovieHeader();
       }
@@ -513,7 +514,8 @@ export class MP4Mux {
               size: audioPacket.data.length,
               dts,
               cts: dts,
-              isRap: true
+              isRap: true,
+              sampleDescriptionIndex: 0
             };
 
             samples.push(s);
@@ -548,10 +550,12 @@ export class MP4Mux {
               size: videoPacket.data.length,
               dts,
               cts: compositionTime,
-              isRap: videoPacket.frameType === VideoFrameType.KEY
+              isRap: videoPacket.frameType === VideoFrameType.KEY,
+              sampleDescriptionIndex: 0
             };
 
             samples.push(s);
+
             chunks[i].push(videoPacket.data);
 
             samplesProcessed++;
@@ -560,6 +564,7 @@ export class MP4Mux {
 
           trackState.cachedDuration = lastDecodeTime;
           trackState.samplesProcessed = samplesProcessed;
+
           break;
         }
 
@@ -604,20 +609,24 @@ export class MP4Mux {
       const videoDataReferenceIndex = 1;
       const traks: TrackBox[] = [];
       const trexs: TrackExtendsBox[] = [];
-      const traksData: {trakFlags: number, trackState: MP4TrackState, trackInfo: MP4Track, sampleDescEntry: SampleEntry}[] = [];
+      const traksData: {trakFlags: number, trackState: MP4TrackState, trackInfo: MP4Track, sampleDescEntry: SampleEntry[]}[] = [];
 
       for (let i = 0; i < this.trackStates.length; i++) {
         let trackState = this.trackStates[i];
         let trackInfo = trackState.trackInfo;
-        let sampleDescEntry: SampleEntry;
+        let sampleDescEntry: SampleEntry[] = [];
+
+        let sampleEntry;
 
         switch (trackInfo.codecId) {
         case AAC_SOUND_CODEC_ID:
           const audioSpecificConfig = trackState.initializationData[0];
 
-          sampleDescEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
-
+          sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
           const esdsData = audioSpecificConfig;
+          sampleEntry.otherBoxes = [
+            new RawTag('esds', esdsData)
+          ];
 
           // FIXME: instead of taking the data inside the ES_Descriptor we are using the data contained in esds atom directly
           // i.e the "framed" ES_Descriptor data
@@ -633,34 +642,53 @@ export class MP4Mux {
           esdsData.set(hexToBytes('068080800102'), 35 + audioSpecificConfig.length);
           */
 
-          (<AudioSampleEntry>sampleDescEntry).otherBoxes = [
-            new RawTag('esds', esdsData)
-          ];
-
           var objectType = (audioSpecificConfig[0] >> 3); // TODO 31
           // mp4a.40.objectType
           trackState.mimeTypeCodec = 'mp4a.40.' + objectType; // 'mp4a.40.2'
           break;
         case MP3_SOUND_CODEC_ID:
-          sampleDescEntry = new AudioSampleEntry('.mp3', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
+
+          sampleEntry = new AudioSampleEntry('.mp3', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
+
+          sampleDescEntry.push(sampleEntry);
+
           trackState.mimeTypeCodec = 'mp3';
           break;
+
         case AVC_VIDEO_CODEC_ID:
-          var avcC = trackState.initializationData[0];
-          sampleDescEntry = new VideoSampleEntry('avc1', videoDataReferenceIndex, trackInfo.width, trackInfo.height);
-          (<VideoSampleEntry>sampleDescEntry).otherBoxes = [
-            new RawTag('avcC', avcC)
-          ];
-          var codecProfile = (avcC[1] << 16) | (avcC[2] << 8) | avcC[3];
-          // avc1.XXYYZZ -- XX - profile + YY - constraints + ZZ - level
-          trackState.mimeTypeCodec = 'avc1.' + (0x1000000 | codecProfile).toString(16).substr(1);
+
+          // For AVC, support multiple video codec data entries
+          trackState.initializationData.forEach((codecInitData) => {
+
+            var avcC = codecInitData;
+
+            sampleEntry = new VideoSampleEntry('avc1', videoDataReferenceIndex, trackInfo.width, trackInfo.height)
+            sampleEntry.otherBoxes = [
+              new RawTag('avcC', avcC)
+            ];
+
+            sampleDescEntry.push(sampleEntry);
+
+            // FIXME: we are overriding previous writes here with the last entry of init datas.
+            //        the problem with that is that we are only making one call to oncodecinfo callback
+            //        so this could be changed to making several calls or passing an array of strings instead
+            //        and making mimeTypeCodec field an array then.
+            var codecProfile = (avcC[1] << 16) | (avcC[2] << 8) | avcC[3];
+            // avc1.XXYYZZ -- XX - profile + YY - constraints + ZZ - level
+            trackState.mimeTypeCodec = 'avc1.' + (0x1000000 | codecProfile).toString(16).substr(1);
+          });
+
+
           brands.push('iso2', 'avc1', 'mp41');
           break;
         case VP6_VIDEO_CODEC_ID:
-          sampleDescEntry = new VideoSampleEntry('VP6F', videoDataReferenceIndex, trackInfo.width, trackInfo.height);
-          (<VideoSampleEntry>sampleDescEntry).otherBoxes = [
+          sampleEntry = new VideoSampleEntry('VP6F', videoDataReferenceIndex, trackInfo.width, trackInfo.height);
+          sampleEntry.otherBoxes = [
             new RawTag('glbl', hexToBytes('00'))
           ];
+
+          sampleDescEntry.push(sampleEntry);
+
           // TODO to lie about codec to get it playing in MSE?
           trackState.mimeTypeCodec = 'avc1.42001E';
           break;
@@ -729,9 +757,15 @@ export class MP4Mux {
       traksData.forEach(({ trakFlags, trackInfo, trackState, sampleDescEntry }, i) => {
         debug('creating sample table with mdat offset:', mdatOffset);
 
-        let sampleTable: SampleTableBox = fragmentedMode
-          ? SampleTablePackager.createEmptyForFragmentedMode([sampleDescEntry])
-          : SampleTablePackager.createFromSamplesInSingleChunk(sampleDescEntry, samples[i], mdatOffset);
+        let sampleTable: SampleTableBox;
+
+        if (fragmentedMode) {
+          sampleTable = SampleTablePackager.createEmptyForFragmentedMode(sampleDescEntry);
+        } else {
+
+          sampleTable = SampleTablePackager.createFromSamplesInSingleChunk(sampleDescEntry, samples[i], mdatOffset);
+
+        }
 
         // sum up all sample-sizes and add them up mdat offset now to shift the offset for the next track
         mdatOffset += samples[i].reduce((totalSize, sample) => {
@@ -748,7 +782,9 @@ export class MP4Mux {
         if (!trak) {
           throw new Error('There should be a new trak box created, but got null');
         }
+
         traks.push(trak);
+
       });
 
       // and now we can create the moov box

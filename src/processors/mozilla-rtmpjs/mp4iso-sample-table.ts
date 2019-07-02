@@ -40,7 +40,7 @@ export class SampleTablePackager {
    * @param chunkOffset
    */
   static createFromSamplesInSingleChunk (
-    sampleDescriptionEntry: Box,
+    sampleDescriptionEntry: Box[],
     samples: StblSample[],
     chunkOffset: number
   ): SampleTableBox {
@@ -167,7 +167,7 @@ export class SampleTablePackager {
     }];
 
     return new SampleTableBox(
-      new SampleDescriptionBox([sampleDescriptionEntry]),
+      new SampleDescriptionBox(sampleDescriptionEntry),
       new DecodingTimeToSampleBox(0, stts),
       new CompositionTimeToSampleBox(0, ctts),
       new SampleToChunkBox(stsc),
