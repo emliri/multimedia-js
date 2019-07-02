@@ -88,6 +88,7 @@ export class ConcatMp4sFlow extends Flow {
       let videoAeosDroped = false;
 
       function attemptDrainVideoBFifo() {
+
         if (videoAeosDroped && videoBeosReceived) {
 
           durationA = Math.max(payloadDescrAudioA ? payloadDescrAudioA.details.sequenceDurationInSeconds : 0,
@@ -107,6 +108,7 @@ export class ConcatMp4sFlow extends Flow {
 
           fifoVideoB.drain();
         }
+
       }
 
       mp4DemuxA.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
@@ -213,7 +215,7 @@ export class ConcatMp4sFlow extends Flow {
 
             if (!payloadDescrAudioB) {
               payloadDescrAudioB = fifoAudioB.queue.peek().defaultPayloadInfo;
-              log('got primary audio payload description:', payloadDescrAudioB)
+              log('got secondary audio payload description:', payloadDescrAudioB)
             }
 
           });
@@ -224,7 +226,8 @@ export class ConcatMp4sFlow extends Flow {
       xhrSocketMovA.connect(mp4DemuxA.in[0])
       xhrSocketMovB.connect(mp4DemuxB.in[0])
 
-      mp4Muxer.out[0].connect(new WebFileDownloadSocket(null, 'video/mp4', makeTemplate('buffer${counter}-${Date.now()}.mp4')))
+      mp4Muxer.out[0].connect(
+        new WebFileDownloadSocket(null, 'video/mp4', makeTemplate('buffer${counter}-${Date.now()}.mp4')))
 
     }
 
