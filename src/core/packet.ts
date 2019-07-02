@@ -298,9 +298,4 @@ export class Packet {
     return description;
   }
 
-  /*
-  isPayloadInfoConsistent(): boolean {
-    throw new Error('not implemented');
-  }
-  */
 }
