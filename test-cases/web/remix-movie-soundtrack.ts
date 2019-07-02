@@ -86,6 +86,8 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
       });
 
+      this._flow.state = FlowState.WAITING;
+      this._flow.state = FlowState.FLOWING;
 
     }
 
@@ -93,7 +95,6 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
   }
 
   run() {
-    this._flow.state = FlowState.WAITING;
-    this._flow.state = FlowState.FLOWING;
+
   }
 }
