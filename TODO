@@ -4,6 +4,10 @@
 
 # Bugs
 
+- Logging mask in workers
+
+- XHR 404 error propagation in concat use-cases or others
+
 - Clone PayloadDetails when cloning BufferProps (and also add clone method to underlying PayloadDescription)
 
 - Move TS-demuxer to worker-proxy mode
