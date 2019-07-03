@@ -517,7 +517,7 @@ export class MP4Mux {
               dts,
               cts: dts,
               isRap: true,
-              sampleDescriptionIndex: 0
+              sampleDescriptionIndex: 1
             };
 
             samples.push(s);
@@ -631,6 +631,7 @@ export class MP4Mux {
           sampleEntry.otherBoxes = [
             new RawTag('esds', esdsData)
           ];
+          sampleDescEntry.push(sampleEntry);
 
           // FIXME: instead of taking the data inside the ES_Descriptor we are using the data contained in esds atom directly
           // i.e the "framed" ES_Descriptor data
