@@ -180,6 +180,10 @@ export class ConcatMp4sFlow extends Flow {
 
           fifoVideoB.addPacketFilterPass((p) => {
 
+            if (p.defaultPayloadInfo && p.defaultPayloadInfo.isBitstreamHeader) {
+              log('found secondary payload bitstream header')
+            }
+
             p.timestamp = p.timestamp
               + (p.getTimescale() * durationA)
 

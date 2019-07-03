@@ -117,6 +117,7 @@ export type VideoPacket = {
   compositionTime: number;
   horizontalOffset?: number;
   verticalOffset?: number;
+  sampleDescriptionIndex: number;
 }
 
 export function parseAudiodata (data: Uint8Array): AudioPacket {
@@ -360,9 +361,10 @@ export class MP4Mux {
             frameType: isKeyframe ? VideoFrameType.KEY : VideoFrameType.INNER,
             codecId: AVC_VIDEO_CODEC_ID,
             codecDescription: VIDEOCODECS[AVC_VIDEO_CODEC_ID],
-            data: data,
+            data,
             packetType: isInitData ? VideoPacketType.HEADER : VideoPacketType.NALU,
-            compositionTime: timestamp + cto
+            compositionTime: timestamp + cto,
+            sampleDescriptionIndex: videoTrack.initializationData.length
           };
         } else {
           videoPacket = parseVideodata(data);
@@ -537,6 +539,7 @@ export class MP4Mux {
           let lastDecodeTime = Math.round(decodeTime);
 
           for (var j = 0; j < trackPackets.length; j++) {
+
             const videoPacket: VideoPacket = trackPackets[j].packet;
             const videoFrameRateScaled = trackInfo.timescale / trackInfo.framerate;
             const nextDecodeTime = Math.round(samplesProcessed * videoFrameRateScaled);
@@ -551,7 +554,7 @@ export class MP4Mux {
               dts,
               cts: compositionTime,
               isRap: videoPacket.frameType === VideoFrameType.KEY,
-              sampleDescriptionIndex: 0
+              sampleDescriptionIndex: videoPacket.sampleDescriptionIndex
             };
 
             samples.push(s);
@@ -559,6 +562,7 @@ export class MP4Mux {
             chunks[i].push(videoPacket.data);
 
             samplesProcessed++;
+
             dts += videoFrameDuration || videoFrameRateScaled;
           }
 
@@ -762,9 +766,7 @@ export class MP4Mux {
         if (fragmentedMode) {
           sampleTable = SampleTablePackager.createEmptyForFragmentedMode(sampleDescEntry);
         } else {
-
           sampleTable = SampleTablePackager.createFromSamplesInSingleChunk(sampleDescEntry, samples[i], mdatOffset);
-
         }
 
         // sum up all sample-sizes and add them up mdat offset now to shift the offset for the next track
