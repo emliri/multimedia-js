@@ -30,7 +30,6 @@ export class ConcatMp4sFlow extends Flow {
     constructor(
         private _movUrlA: string,
         private _movUrlB:  string,
-        private _allowReencode: boolean = true,
         private _toggleConcatOrder: boolean = false
     ) {
         super();
@@ -38,42 +37,14 @@ export class ConcatMp4sFlow extends Flow {
 
     private _setup() {
 
-      const xhrSocketMovA = new XhrSocket(this._movUrlA);
-      const xhrSocketMovB = new XhrSocket(this._movUrlB);
-
       let fifoVideoA: FifoValve = null;
       let fifoAudioA: FifoValve = null;
 
       let fifoVideoB: FifoValve = null;
       let fifoAudioB: FifoValve = null;
 
-      const mp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
-      const mp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
-
-      const mp4Muxer = newProcessorWorkerShell(MP4MuxProcessor);
-
-      let mp4MuxerVideoIn: InputSocket = mp4Muxer.createInput();
-      let mp4MuxerAudioIn: InputSocket; // = mp4Muxer.createInput();
-
-      const transcoderAudioConfig: FFmpegConversionTargetInfo = {
-        targetBitrateKbps: 256,
-        targetCodec: 'aac',
-        targetFiletypeExt: 'mp4'
-      };
-
-      const transcoderVideoConfig: FFmpegConversionTargetInfo = {
-        targetBitrateKbps: 256,
-        targetCodec: 'libx264',
-        targetFiletypeExt: 'h264'
-      };
-
-      log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
-
-      const ffmpegTranscoder = newProcessorWorkerShell(
-        unsafeProcessorType(FFmpegConvertProcessor), // WHY ?
-        [transcoderAudioConfig, transcoderVideoConfig],
-        [EnvironmentVars.FFMPEG_BIN_PATH]
-      );
+      let mp4MuxerVideoIn: InputSocket = null;
+      let mp4MuxerAudioIn: InputSocket = null;
 
       let payloadDescrVideoA: PayloadDescriptor = null;
       let payloadDescrAudioA: PayloadDescriptor = null;
@@ -81,41 +52,50 @@ export class ConcatMp4sFlow extends Flow {
       let payloadDescrVideoB: PayloadDescriptor = null;
       let payloadDescrAudioB: PayloadDescriptor = null;
 
-      let durationA: number;
-      let durationB: number;
+      let videoDurationA: number;
+      let videoDurationB: number;
+
+      let audioDurationA: number;
+      let audioDurationB: number;
 
       let videoBeosReceived = false;
       let videoAeosDroped = false;
 
-      function attemptDrainVideoBFifo() {
+      let audioBeosReceived = false;
+      let audioAeosDroped = false;
 
-        if (videoAeosDroped && videoBeosReceived) {
+      const mp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
+      const mp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
 
-          durationA = Math.max(payloadDescrAudioA ? payloadDescrAudioA.details.sequenceDurationInSeconds : 0,
-                                payloadDescrVideoA ? payloadDescrVideoA.details.sequenceDurationInSeconds : 0);
-
-          log('max duration of primary payload (input A):', durationA, 'secs')
-
-          durationB = Math.max(payloadDescrAudioB ? payloadDescrAudioB.details.sequenceDurationInSeconds : 0,
-            payloadDescrVideoB ? payloadDescrVideoB.details.sequenceDurationInSeconds : 0);
-
-          log('max duration of secondary payload (input B):', durationB, 'secs')
-
-          payloadDescrVideoA.details.sequenceDurationInSeconds = durationA + durationB;
-
-          // TODO:
-          //payloadDescrAudioA.details.sequenceDurationInSeconds = durationA + durationB;
-
-          fifoVideoB.drain();
-        }
-
-      }
+      const mp4Muxer = newProcessorWorkerShell(MP4MuxProcessor);
 
       mp4DemuxA.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
-
         const socket: Socket = data.socket;
+        onDemuxASocketCreated(socket);
+      });
+
+      mp4DemuxB.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
+        const socket: Socket = data.socket;
+        onDemuxBSocketCreated(socket);
+      });
+
+      const xhrSocketMovA = new XhrSocket(this._movUrlA);
+      const xhrSocketMovB = new XhrSocket(this._movUrlB);
+
+      xhrSocketMovA.connect(mp4DemuxA.in[0])
+      xhrSocketMovB.connect(mp4DemuxB.in[0])
+
+      mp4Muxer.out[0].connect(
+        new WebFileDownloadSocket(null, 'video/mp4', makeTemplate('buffer${counter}-${Date.now()}.mp4'))
+      )
+
+      function onDemuxASocketCreated(socket: Socket) {
 
         if (socket.payload().isVideo()) {
+
+          if (!mp4MuxerVideoIn) {
+            mp4MuxerVideoIn = mp4Muxer.createInput();
+          }
 
           fifoVideoA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
           fifoVideoA.connect(mp4MuxerVideoIn)
@@ -152,8 +132,32 @@ export class ConcatMp4sFlow extends Flow {
 
         } else if (socket.payload().isAudio()) {
 
+          if (!mp4MuxerAudioIn) {
+            mp4MuxerAudioIn = mp4Muxer.createInput();
+          }
+
           fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
           fifoAudioA.connect(mp4MuxerAudioIn)
+
+          fifoAudioA.addPacketFilterPass((p) => {
+
+            if (p.symbol === PacketSymbol.EOS) {
+              p.symbol = PacketSymbol.SYNC;
+
+              audioAeosDroped = true;
+
+              attemptDrainAudioBFifo()
+
+            }
+            return p;
+
+          });
+
+          fifoAudioA.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
+            log('audio A EOS received on fifo queue')
+
+            fifoAudioA.drain();
+          });
 
           // could move that into valve CB ?
           socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
@@ -166,14 +170,14 @@ export class ConcatMp4sFlow extends Flow {
           });
 
         }
+      }
 
-      });
-
-      mp4DemuxB.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
-
-        const socket: Socket = data.socket;
-
+      function onDemuxBSocketCreated(socket: Socket) {
         if (socket.payload().isVideo()) {
+
+          if (!mp4MuxerVideoIn) {
+            mp4MuxerVideoIn = mp4Muxer.createInput();
+          }
 
           fifoVideoB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
           fifoVideoB.connect(mp4MuxerVideoIn)
@@ -181,11 +185,11 @@ export class ConcatMp4sFlow extends Flow {
           fifoVideoB.addPacketFilterPass((p) => {
 
             if (p.defaultPayloadInfo && p.defaultPayloadInfo.isBitstreamHeader) {
-              log('found secondary payload bitstream header')
+              log('found secondary payload video bitstream header')
             }
 
             p.timestamp = p.timestamp
-              + (p.getTimescale() * durationA)
+              + (p.getTimescale() * videoDurationA)
 
             return p;
           })
@@ -211,8 +215,33 @@ export class ConcatMp4sFlow extends Flow {
 
         } else if (socket.payload().isAudio()) {
 
+          if (!mp4MuxerAudioIn) {
+            mp4MuxerAudioIn = mp4Muxer.createInput();
+          }
+
           fifoAudioB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
           fifoAudioB.connect(mp4MuxerAudioIn)
+
+          fifoAudioB.addPacketFilterPass((p) => {
+
+            if (p.defaultPayloadInfo && p.defaultPayloadInfo.isBitstreamHeader) {
+              log('found secondary payload audio bitstream header')
+            }
+
+            p.timestamp = p.timestamp
+              + (p.getTimescale() * audioDurationA)
+
+            return p;
+          })
+
+          fifoAudioB.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
+            log('audio B EOS received on fifo queue')
+
+            audioBeosReceived = true;
+
+            attemptDrainAudioBFifo()
+
+          });
 
           // could move that into valve CB ?
           socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
@@ -224,14 +253,33 @@ export class ConcatMp4sFlow extends Flow {
 
           });
         }
+      }
 
-      });
+      function attemptDrainVideoBFifo() {
 
-      xhrSocketMovA.connect(mp4DemuxA.in[0])
-      xhrSocketMovB.connect(mp4DemuxB.in[0])
+        if (videoAeosDroped && videoBeosReceived) {
+          videoDurationA = payloadDescrVideoA.details.sequenceDurationInSeconds;
+          log('video duration of primary payload (input A):', videoDurationA, 'secs')
+          videoDurationB = payloadDescrVideoB.details.sequenceDurationInSeconds;
+          log('video duration of secondary payload (input B):', videoDurationB, 'secs')
+          payloadDescrVideoA.details.sequenceDurationInSeconds = videoDurationA + videoDurationB;
+          fifoVideoB.drain();
+        }
 
-      mp4Muxer.out[0].connect(
-        new WebFileDownloadSocket(null, 'video/mp4', makeTemplate('buffer${counter}-${Date.now()}.mp4')))
+      }
+
+      function attemptDrainAudioBFifo() {
+
+        if (audioAeosDroped && audioBeosReceived) {
+          audioDurationA = payloadDescrAudioA.details.sequenceDurationInSeconds;
+          log('audio duration of primary payload (input A):', audioDurationA, 'secs')
+          audioDurationB = payloadDescrAudioB.details.sequenceDurationInSeconds;
+          log('audio duration of secondary payload (input B):', audioDurationB, 'secs')
+          payloadDescrAudioA.details.sequenceDurationInSeconds = audioDurationA + audioDurationB;
+          fifoAudioB.drain();
+        }
+
+      }
 
     }
 
