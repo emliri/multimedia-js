@@ -12,6 +12,8 @@ import { makeUUID_v1 } from '../common-crypto';
 import { getLogger, LoggerLevel } from '../logger';
 
 import { Processors } from '../../index';
+// FIXME: import this importScripts so that logger categories can apply to self config
+// AND collect the config from localStorage at worker init (on SPAWN message)
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/importScripts
