@@ -60,8 +60,8 @@ export function flattenOneDeepNestedArray<T> (a: OneDeepNestedArray<T>): T[] {
   return [].concat(...a);
 }
 
-export function unsafeFlattenAnyNestedArray<T> (arr: any[]): T[] {
-  return arr.reduce(function (flat, toFlatten) {
+export function unsafeFlattenAnyNestedArray<T> (array: any[]): T[] {
+  return array.reduce(function (flat, toFlatten) {
     return flat.concat(Array.isArray(toFlatten) ? unsafeFlattenAnyNestedArray(toFlatten) : toFlatten);
   }, []);
 }
