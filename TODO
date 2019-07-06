@@ -4,6 +4,8 @@
 
 # Bugs
 
+- Something horrible happens with CPU when error thrown inside Packet.prototype.forEachBufferSlice
+
 - Logging mask in workers
 
 - XHR 404 error propagation in concat use-cases or others
