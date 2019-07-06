@@ -83,11 +83,12 @@ export function copyArrayBuffer (
   src: ArrayBuffer, dest: ArrayBuffer,
   length: number = src.byteLength,
   srcOffset: number = 0, destOffset: number = 0) {
-  if (srcOffset + length >= src.byteLength) {
+
+  if (srcOffset + length > src.byteLength) {
     throw new Error(`Source buffer is too small for copy target of ${length} bytes at offset ${srcOffset}`);
   }
 
-  if (destOffset + length >= dest.byteLength) {
+  if (destOffset + length > dest.byteLength) {
     throw new Error(`Destination buffer is too small for copy target of ${length} bytes to offset at ${destOffset}`);
   }
 
@@ -157,8 +158,8 @@ export function concatArrayBuffers (buffer1: ArrayBuffer, buffer2: ArrayBuffer):
  */
 export function concatTypedArraySlice(typedArray1: ArrayBufferView, typedArray2: ArrayBufferView): ArrayBuffer {
   const newBuffer = new ArrayBuffer(typedArray1.byteLength + typedArray2.byteLength);
-  copyArrayBuffer(typedArray1.buffer, newBuffer, typedArray1.byteOffset, typedArray1.byteLength, 0);
-  copyArrayBuffer(typedArray2.buffer, newBuffer, typedArray2.byteOffset, typedArray2.byteLength, typedArray1.byteLength);
+  copyArrayBuffer(typedArray1.buffer, newBuffer, typedArray1.byteLength, typedArray1.byteOffset, 0);
+  copyArrayBuffer(typedArray2.buffer, newBuffer, typedArray2.byteLength, typedArray2.byteOffset, typedArray1.byteLength);
   return newBuffer;
 }
 
