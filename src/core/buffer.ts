@@ -172,6 +172,27 @@ export class BufferSlice {
     }
 
     /**
+     * Appends the buffer data to this object s data and returns a new BufferSlice.
+     * @param buffer
+     * @param props
+     * @returns new BufferSlice
+     */
+    append (buffer: BufferSlice, props?: BufferProperties): BufferSlice {
+      const newBuffer = concatTypedArraySlice(this.getDataView(), buffer.getDataView());
+      return new BufferSlice(newBuffer, 0, newBuffer.byteLength, props);
+    }
+
+    /**
+     * Inverse of `append` method. Prepends the buffer data to this object s data and returns a new BufferSlice.
+     * @param buffer
+     * @param props
+     * @returns new BufferSlice
+     */
+    prepend(buffer: BufferSlice, props?: BufferProperties): BufferSlice {
+      return buffer.append(this, props);
+    }
+
+    /**
      * Copies the actual underlying data and creates a new slice with the same properties.
      *
      * @see BufferSlice.copy (static method)
