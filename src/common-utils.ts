@@ -132,14 +132,6 @@ export function copyArrayBufferCollection (abs: ArrayBuffer[]) {
 }
 
 /**
- * Copies only the window that the view points to into a new buffer
- * @param typedArray
- */
-export function allocAndCopyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
-  return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
-}
-
-/**
  * Concatenates two existing buffers into a newly allocated third one
  * @param buffer1
  * @param buffer2
@@ -155,6 +147,28 @@ export function concatArrayBuffers (buffer1: ArrayBuffer, buffer2: ArrayBuffer):
   view.set(new Uint8Array(buffer1), 0);
   view.set(new Uint8Array(buffer2), buffer1.byteLength);
   return newBuffer;
+}
+
+/**
+ * Concatenate the data slices from two ArrayBufferView objects
+ * @param typedArray1
+ * @param typedArray2
+ * @returns A new ArrayBuffer containing the concatenated data from both view windows in the specific order
+ */
+export function concatTypedArraySlice(typedArray1: ArrayBufferView, typedArray2: ArrayBufferView): ArrayBuffer {
+  const newBuffer = new ArrayBuffer(typedArray1.byteLength + typedArray2.byteLength);
+  copyArrayBuffer(typedArray1.buffer, newBuffer, typedArray1.byteOffset, typedArray1.byteLength, 0);
+  copyArrayBuffer(typedArray2.buffer, newBuffer, typedArray2.byteOffset, typedArray2.byteLength, typedArray1.byteLength);
+  return newBuffer;
+}
+
+/**
+ * Copies only the window that the view points to into a new buffer
+ * @param typedArray
+ * @returns A newly allocated ArrayBuffer
+ */
+export function copyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
+  return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
 }
 
 export function concatArrays<T> (arg0: T[], ...args: T[][]): T[] {
