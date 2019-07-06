@@ -191,22 +191,21 @@ export class MP4MuxProcessor extends Processor {
         log('got video bitstream header at:', p.toString());
         this.videoBitstreamHeader_ = bufferSlice;
       } else {
-        debug('video packet:', p.toString());
+        //debug('video packet:', p.toString());
       }
 
       if (bufferSlice.props.isKeyframe) {
         log('got keyframe at:', p.toString());
 
-        /*
-        if (false && this.embedCodecDataOnKeyframes_) {
+        if (this.embedCodecDataOnKeyframes_) {
 
           if (!this.videoBitstreamHeader_) {
             throw new Error('not video bitstream header found to embed')
           }
 
           bufferSlice = bufferSlice.prepend(this.videoBitstreamHeader_, bufferSlice.props);
+
         }
-        */
 
       }
 
