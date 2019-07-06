@@ -1,4 +1,4 @@
-import { allocAndCopyTypedArraySlice, copyToNewArrayBuffer } from '../common-utils';
+import { copyToNewArrayBuffer, copyTypedArraySlice, concatTypedArraySlice } from '../common-utils';
 import { BufferProperties } from './buffer-props';
 
 /**
@@ -242,7 +242,7 @@ export class BufferSlice {
      * allocates a new ArrayBuffer from the current slice
      */
     newArrayBuffer (): ArrayBuffer {
-      return allocAndCopyTypedArraySlice(this.getDataView());
+      return copyTypedArraySlice(this.getDataView());
     }
 
     toString (): string {
