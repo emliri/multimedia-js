@@ -91,7 +91,10 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
     }
 
+    done();
   }
 
-  run() {}
+  run() {
+
+  }
 }

@@ -20,7 +20,7 @@ export class WebFileDownloadSocket extends InputSocket {
    *
    * @param _downloadLinkContainer an HTML element to create a link in with the given templates or `null` and then FileSaver will spawn a dialog @see https://github.com/eligrey/FileSaver.js
    * @param _fileNameTemplate can contain the local var `counter` as well as access public and private members via `this`, see default
-   * @param _htmlTemplate can contain the local var `filename` which will be whatever the respective template string has eval'd to, see default
+   * @param _htmlTemplate can contain the local var `filename` which will be whatever the respective template string has eval'd to, see default for example (or like `makeTemplate('buffer${counter}-${Date.now()}.mp4'`)
    * @param _mimeType mime-type string for the blob object to be created (this sometimes matters for platforms to understand what file-type it is), @see https://developer.mozilla.org/en-US/docs/Web/API/Blob
    * @param _fallbackToSaveAs when no downloadLinkContainer set, we can call the `saveAs` function to trigger a download dialog (if running in a web-like window context)
    */

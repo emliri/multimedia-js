@@ -60,8 +60,8 @@ export function flattenOneDeepNestedArray<T> (a: OneDeepNestedArray<T>): T[] {
   return [].concat(...a);
 }
 
-export function unsafeFlattenAnyNestedArray<T> (arr: any[]): T[] {
-  return arr.reduce(function (flat, toFlatten) {
+export function unsafeFlattenAnyNestedArray<T> (array: any[]): T[] {
+  return array.reduce(function (flat, toFlatten) {
     return flat.concat(Array.isArray(toFlatten) ? unsafeFlattenAnyNestedArray(toFlatten) : toFlatten);
   }, []);
 }
@@ -83,11 +83,12 @@ export function copyArrayBuffer (
   src: ArrayBuffer, dest: ArrayBuffer,
   length: number = src.byteLength,
   srcOffset: number = 0, destOffset: number = 0) {
-  if (srcOffset + length >= src.byteLength) {
+
+  if (srcOffset + length > src.byteLength) {
     throw new Error(`Source buffer is too small for copy target of ${length} bytes at offset ${srcOffset}`);
   }
 
-  if (destOffset + length >= dest.byteLength) {
+  if (destOffset + length > dest.byteLength) {
     throw new Error(`Destination buffer is too small for copy target of ${length} bytes to offset at ${destOffset}`);
   }
 
@@ -97,10 +98,23 @@ export function copyArrayBuffer (
 }
 
 /**
+ * Iterate over copyArrayBuffer with array of ArrayBuffer as input, offset on each pass is shifted so
+ * that the buffers content are concatenated in the destination. If destination size is too low
+ * `copyArrayBuffer` (i.e this function) will throw an error.
+ * @param src
+ * @param dest
+ */
+export function copyArrayBuffers(src: ArrayBuffer[], dest: ArrayBuffer) {
+  for (let i = 0; i < src.length; i++) {
+    copyArrayBuffer(src[i], dest, src[i].byteLength, 0, i === 0 ? 0 : src[i - 1].byteLength);
+  }
+}
+
+/**
  * Copies all data from one buffer into a new one, optionnally with offset and size arguments
  * @param buffer
- * @param begin
- * @param end
+ * @param offset
+ * @param size
  */
 export function copyToNewArrayBuffer (buffer: ArrayBuffer, offset: number = 0, size?: number): ArrayBuffer {
   if (offset >= buffer.byteLength || offset + size > buffer.byteLength) {
@@ -119,14 +133,6 @@ export function copyArrayBufferCollection (abs: ArrayBuffer[]) {
 }
 
 /**
- * Copies only the window that the view points to into a new buffer
- * @param typedArray
- */
-export function allocAndCopyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
-  return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
-}
-
-/**
  * Concatenates two existing buffers into a newly allocated third one
  * @param buffer1
  * @param buffer2
@@ -142,6 +148,28 @@ export function concatArrayBuffers (buffer1: ArrayBuffer, buffer2: ArrayBuffer):
   view.set(new Uint8Array(buffer1), 0);
   view.set(new Uint8Array(buffer2), buffer1.byteLength);
   return newBuffer;
+}
+
+/**
+ * Concatenate the data slices from two ArrayBufferView objects
+ * @param typedArray1
+ * @param typedArray2
+ * @returns A new ArrayBuffer containing the concatenated data from both view windows in the specific order
+ */
+export function concatTypedArraySlice(typedArray1: ArrayBufferView, typedArray2: ArrayBufferView): ArrayBuffer {
+  const newBuffer = new ArrayBuffer(typedArray1.byteLength + typedArray2.byteLength);
+  copyArrayBuffer(typedArray1.buffer, newBuffer, typedArray1.byteLength, typedArray1.byteOffset, 0);
+  copyArrayBuffer(typedArray2.buffer, newBuffer, typedArray2.byteLength, typedArray2.byteOffset, typedArray1.byteLength);
+  return newBuffer;
+}
+
+/**
+ * Copies only the window that the view points to into a new buffer
+ * @param typedArray
+ * @returns A newly allocated ArrayBuffer
+ */
+export function copyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
+  return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
 }
 
 export function concatArrays<T> (arg0: T[], ...args: T[][]): T[] {

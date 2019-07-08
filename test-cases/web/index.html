@@ -17,13 +17,24 @@
 
     <script src="/vendor/ffmpeg.js/ffmpeg-mp4.js"></script>
 
+    <script type="text/javascript">
+
+      localStorage.setItem('mmjs:LoggerConfig', '{"*": 0}')
+      self["mmjs:LoggerConfig"] = '{"*": 0}'
+
+    </script>
+
     <script src="/dist/MMTestCasesWeb.umd.js"></script>
 
     <script src="load-test-cases.js"></script>
 
     <script>
+
       printTestCases();
 
-      setupTestCase(MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0);
+      var index = MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0;
+      setupTestCase(index, function() {
+        runTestCase(index)
+      });
     </script>
 </html>

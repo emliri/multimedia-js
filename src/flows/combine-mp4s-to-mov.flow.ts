@@ -1,10 +1,10 @@
-import { Flow, FlowStateChangeCallback, FlowCompletionResult, FlowState, FlowCompletionResultCode } from '../core/flow';
+import { Flow, FlowCompletionResultCode } from '../core/flow';
 import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
-import { OutputSocket, SocketEvent } from '../core/socket';
+import { OutputSocket } from '../core/socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
 import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-factory';
@@ -35,14 +35,7 @@ export class CombineMp4sToMovFlow extends Flow {
     private _downloadLinkContainer: HTMLElement = null,
     private _isMp3Audio: boolean = false
   ) {
-    super(
-      (prevState, newState) => {
-        console.log('previous state:', prevState, 'new state:', newState);
-      },
-      (reason) => {
-        console.log('state change aborted. reason:', reason);
-      }
-    );
+    super();
   }
 
   private _setup () {
@@ -58,7 +51,7 @@ export class CombineMp4sToMovFlow extends Flow {
         log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
 
         ffmpegAacTranscodeProc = newProcessorWorkerShell(
-          unsafeProcessorType(FFmpegConvertProcessor),
+          unsafeProcessorType(FFmpegConvertProcessor), // WHY ?
           [audioConfig, null],
           [EnvironmentVars.FFMPEG_BIN_PATH]
         );
@@ -95,7 +88,9 @@ export class CombineMp4sToMovFlow extends Flow {
 
       // hook up transcoding stage
       let mp4AudioOutSocket = xhrSocketAudioFile;
+
       if (ffmpegAacTranscodeProc) {
+
         xhrSocketAudioFile.connect(ffmpegAacTranscodeProc.in[0]);
         mp4AudioOutSocket = ffmpegAacTranscodeProc.out[0];
       }

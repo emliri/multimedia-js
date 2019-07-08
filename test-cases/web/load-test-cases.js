@@ -11,14 +11,14 @@ for (var caseName in MMTestCasesWeb) {
   testCases.push([new TestCase(rootEl), caseName]);
 }
 
-function setupTestCase(i) {
+function setupTestCase(i, done) {
   if (i >= testCases.length) {
     console.error('Bad test-case index:', i);
     window.alert('Query a valid test case please.');
     return;
   }
   console.log('Calling setup for test-case index:', i)
-  testCases[i][0].setup();
+  testCases[i][0].setup(done);
 }
 
 function runTestCase(i) {

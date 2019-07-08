@@ -37,15 +37,15 @@ export class SampleTablePackager {
    *
    * @param sampleDescriptionEntry
    * @param samples
-   * @param chunkOffset
+   * @param firstChunkOffset
    */
   static createFromSamplesInSingleChunk (
-    sampleDescriptionEntry: Box,
+    sampleDescriptionEntry: Box[],
     samples: StblSample[],
-    chunkOffset: number
+    firstChunkOffset: number
   ): SampleTableBox {
     log('creating sample table from samples:',
-      samples, 'at offset:', chunkOffset, 'sample description entry:', sampleDescriptionEntry);
+      samples, 'at offset:', firstChunkOffset, 'sample description entry:', sampleDescriptionEntry);
 
     const stts: DecodingTimeToSampleEntry[] = [];
     const ctts: CompositionTimeToSampleEntry[] = [];
@@ -160,19 +160,42 @@ export class SampleTablePackager {
 
     }
 
-    const stsc: SampleToChunkEntry[] = [{
-      firstChunk: 1,
-      samplesPerChunk: samples.length,
-      sampleDescriptionIndex: 1
-    }];
+    const stsc: SampleToChunkEntry[] = [];
+    const stco: number[] = [];
+
+    let chunkOffset: number = firstChunkOffset;
+
+    sampleDescriptionEntry.forEach((sampleDescriptionBox, index) => {
+
+      const oneBasedIndex = index + 1;
+      const samplesInCodingSequenceChunk = samples.filter((sample) => sample.sampleDescriptionIndex === oneBasedIndex);
+
+      stsc.push({
+        firstChunk: oneBasedIndex,
+        samplesPerChunk: samplesInCodingSequenceChunk.length,
+        sampleDescriptionIndex: oneBasedIndex
+      });
+
+      stco.push(chunkOffset)
+
+      chunkOffset += samplesInCodingSequenceChunk.reduce((accu: number, sample: StblSample) => accu + sample.size, 0)
+
+    })
+
+
+
+
+
+
+
 
     return new SampleTableBox(
-      new SampleDescriptionBox([sampleDescriptionEntry]),
+      new SampleDescriptionBox(sampleDescriptionEntry),
       new DecodingTimeToSampleBox(0, stts),
       new CompositionTimeToSampleBox(0, ctts),
       new SampleToChunkBox(stsc),
       new SampleSizeBox(stsz),
-      new ChunkOffsetBox([chunkOffset]),
+      new ChunkOffsetBox(stco),
       new SyncSampleBox(stss)
     );
   }

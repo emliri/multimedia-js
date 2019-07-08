@@ -17,8 +17,9 @@ import {
 
 import { isNumber } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
+import { BufferSlice } from '../core/buffer';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ERROR);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -72,6 +73,12 @@ export class MP4MuxProcessor extends Processor {
 
   private videoPacketQueue_: Packet[] = [];
   private audioPacketQueue_: Packet[] = [];
+
+  private audioBitstreamHeader_: BufferSlice = null;
+  private videoBitstreamHeader_: BufferSlice = null;
+
+  private embedCodecDataOnKeyframes_: boolean = true;
+
   private socketToTrackIndexMap_: {[i: number]: number} = {};
   // this simpler approach will restrict us to have only one audio and one video track for now
   private videoTrackIndex_: number;
@@ -121,6 +128,7 @@ export class MP4MuxProcessor extends Processor {
       );
 
       return true;
+
     } else if (p.defaultPayloadInfo.isVideo()) {
       this.videoPacketQueue_.push(p);
 
@@ -143,6 +151,7 @@ export class MP4MuxProcessor extends Processor {
       );
 
       return true;
+
     }
 
     return true;
@@ -179,13 +188,25 @@ export class MP4MuxProcessor extends Processor {
       const data = bufferSlice.getUint8Array();
 
       if (bufferSlice.props.isBitstreamHeader) {
-        log('got bitstream header at:', p.toString());
+        log('got video bitstream header at:', p.toString());
+        this.videoBitstreamHeader_ = bufferSlice;
       } else {
-        debug('video packet:', p.toString());
+        //debug('video packet:', p.toString());
       }
 
       if (bufferSlice.props.isKeyframe) {
         log('got keyframe at:', p.toString());
+
+        if (this.embedCodecDataOnKeyframes_) {
+
+          if (!this.videoBitstreamHeader_) {
+            throw new Error('not video bitstream header found to embed')
+          }
+
+          bufferSlice = bufferSlice.prepend(this.videoBitstreamHeader_, bufferSlice.props);
+
+        }
+
       }
 
       mp4Muxer.pushPacket(
@@ -222,7 +243,8 @@ export class MP4MuxProcessor extends Processor {
       const data = bufferSlice.getUint8Array();
 
       if (bufferSlice.props.isBitstreamHeader) {
-        log('got audio codec init data');
+        log('got audio bitstream header');
+        this.audioBitstreamHeader_ = bufferSlice;
       }
 
       debug('audio packet:', p.toString());
@@ -307,6 +329,7 @@ export class MP4MuxProcessor extends Processor {
     numChannels: number,
     durationSeconds: number,
     language: string = 'und'): MP4Track {
+
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec);
     }
@@ -322,7 +345,7 @@ export class MP4MuxProcessor extends Processor {
       samplesize: sampleSize
     };
 
-    log('creating audio track:', audioCodec);
+    log('creating audio track:', audioCodec, audioTrack.duration / audioTrack.timescale, 'secs');
 
     this.mp4Metadata_.audioTrackId = this._getNextTrackId();
     this.mp4Metadata_.tracks.push(audioTrack);
@@ -338,6 +361,7 @@ export class MP4MuxProcessor extends Processor {
     durationSeconds: number,
     timescale: number = framerate
   ): MP4Track {
+
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec);
     }
@@ -353,7 +377,7 @@ export class MP4MuxProcessor extends Processor {
       language: 'und'
     };
 
-    log('creating video track:', videoCodec);
+    log('creating video track:', videoCodec, 'duration:', videoTrack.duration / timescale, 'secs');
 
     this.mp4Metadata_.videoTrackId = this._getNextTrackId();
     this.mp4Metadata_.tracks.push(videoTrack);

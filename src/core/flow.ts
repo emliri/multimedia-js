@@ -49,8 +49,8 @@ export type FlowStateChangeCallback = (previousState: FlowState, newState: FlowS
 // TODO: create generic Set class in objec-ts
 export abstract class Flow extends EventEmitter<FlowEvent> {
   constructor (
-    public onStateChangePerformed: FlowStateChangeCallback,
-    public onStateChangeAborted: (reason: string) => void
+    public onStateChangePerformed: FlowStateChangeCallback = () => {},
+    public onStateChangeAborted: (reason: string) => void = () => {}
   ) {
     super();
 

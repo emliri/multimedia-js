@@ -4,6 +4,12 @@
 
 # Bugs
 
+- Something horrible happens with CPU when error thrown inside Packet.prototype.forEachBufferSlice
+
+- Logging mask in workers
+
+- XHR 404 error propagation in concat use-cases or others
+
 - Clone PayloadDetails when cloning BufferProps (and also add clone method to underlying PayloadDescription)
 
 - Move TS-demuxer to worker-proxy mode

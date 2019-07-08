@@ -225,6 +225,8 @@ export class PayloadDetails {
   // place to put generic codec init-data // TODO: get rid of number[] here
   codecConfigurationData: Uint8Array | number[] = null
 
+  codecProfile: number = NaN;
+
   // video
   width: number = 0;
   height: number = 0;

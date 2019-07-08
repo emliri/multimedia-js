@@ -3,6 +3,7 @@ import { RemixMovieSoundtrack } from './remix-movie-soundtrack'
 import { TsToMp3 } from './ts-to-mp3'
 import { FFmpegBasic } from './ffmpeg-basic';
 import { FFmpegFlow } from './ffmpeg-flow';
+import { ConcatMp4s } from './concat-mp4s';
 
 import * as mmjs from '../../index';
 
@@ -14,5 +15,6 @@ export {
   RemixMovieSoundtrack,
   TsToMp3,
   FFmpegBasic,
-  FFmpegFlow
+  FFmpegFlow,
+  ConcatMp4s
 }

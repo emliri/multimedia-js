@@ -28,14 +28,13 @@ const getSocketDescriptor: SocketTemplateGenerator =
   );
 
 export class MP4DemuxProcessor extends Processor {
-  static getName (): string {
-    return 'MP4DemuxProcessor';
-  }
+
+    static getName (): string {
+      return 'MP4DemuxProcessor';
+    }
 
     private _demuxer: Mp4Demuxer;
-
     private _haveStreamStart: boolean = false;
-
     private _trackIdToOutputs: { [id: number] : OutputSocket} = {};
 
     constructor () {
@@ -50,6 +49,7 @@ export class MP4DemuxProcessor extends Processor {
     }
 
     private _ensureOutputForTrack (track: Track): OutputSocket {
+
       const payloadDescriptor = new PayloadDescriptor(track.mimeType);
       const sd = new SocketDescriptor([
         payloadDescriptor
@@ -120,6 +120,7 @@ export class MP4DemuxProcessor extends Processor {
           let samplesCount: number = 1;
           let constantBitrate: number = NaN;
           let codecData: Uint8Array = null;
+          let codecProfile: number = NaN;
 
           if (track.type === Mp4Track.TYPE_VIDEO) {
             const videoAtom = <VideoAtom> track.getMetadataAtom();
@@ -132,6 +133,8 @@ export class MP4DemuxProcessor extends Processor {
 
             const avcCodecData = avcC.data;
             const spsParsed = avcC.spsParsed[0];
+
+            codecProfile = avcC.profile;
 
             /*
             // we should not rely on this information since it might not be present (it's optional data inside the SPS)
@@ -173,6 +176,7 @@ export class MP4DemuxProcessor extends Processor {
             */
 
           } else if (track.type === Mp4Track.TYPE_AUDIO) {
+
             const audioAtom = <AudioAtom> track.getMetadataAtom();
             sampleDepth = audioAtom.sampleSize;
             numChannels = audioAtom.channelCount;
@@ -217,6 +221,7 @@ export class MP4DemuxProcessor extends Processor {
             protoProps.details.width = track.getResolution()[0];
             protoProps.details.height = track.getResolution()[1];
             protoProps.details.samplesPerFrame = 1;
+            protoProps.details.codecProfile = codecProfile;
             protoProps.codec = 'avc';
           } else if (track.isAudio()) {
             protoProps.details.numChannels = numChannels;

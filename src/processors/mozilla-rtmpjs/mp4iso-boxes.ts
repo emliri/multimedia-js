@@ -552,6 +552,7 @@ export type StblSample = {
   dts: number
   cts: number
   isRap: boolean // "random access point" -> appears in sync-samples box
+  sampleDescriptionIndex: number
 }
 
 /**
