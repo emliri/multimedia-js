@@ -9,7 +9,6 @@ import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-
 import { BitReader } from '../ext-mod/inspector.js/src/utils/bit-reader';
 */
 
-import { H264Parser } from './h264/h264';
 import { NALU } from './h264/nalu';
 
 import { getLogger, LoggerLevel } from '../logger';
@@ -20,10 +19,6 @@ export class H264ParseProcessor extends Processor {
   static getName (): string {
     return 'H264ParseProcessor';
   }
-
-  // private h264Reader: H264Reader;
-
-  private h264Parser: H264Parser = new H264Parser();
 
   constructor () {
     super();
