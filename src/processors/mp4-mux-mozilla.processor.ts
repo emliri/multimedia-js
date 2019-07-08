@@ -18,6 +18,9 @@ import {
 import { isNumber } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { BufferSlice } from '../core/buffer';
+import { makeNALUFromH264RbspData, makeAnnexBAccessUnitFromNALUs } from './h264/h264-tools';
+import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
+import { NALU } from './h264/nalu';
 
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
@@ -203,7 +206,27 @@ export class MP4MuxProcessor extends Processor {
             throw new Error('not video bitstream header found to embed')
           }
 
-          bufferSlice = bufferSlice.prepend(this.videoBitstreamHeader_, bufferSlice.props);
+          const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
+
+          const auDelimiterNalu = makeNALUFromH264RbspData(
+            BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AUD, 3)
+
+          const endOfSeq = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 10, 3)
+          const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
+
+          const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0]), NALU.SPS, 3);
+          const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0]), NALU.PPS, 3);
+
+          /*
+          debugNALU(auDelimiterNalu)
+          debugNALU(spsNalu)
+          debugNALU(ppsNalu)
+          */
+
+          const codecInitAu: BufferSlice
+             = makeAnnexBAccessUnitFromNALUs([endOfSeq, endOfStream, auDelimiterNalu, spsNalu, ppsNalu]);
+
+          bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
 
         }
 
