@@ -18,7 +18,7 @@ import {
 import { isNumber } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { BufferSlice } from '../core/buffer';
-import { makeNALUFromH264RbspData, makeAnnexBAccessUnitFromNALUs } from './h264/h264-tools';
+import { makeNALUFromH264RbspData, makeAnnexBAccessUnitFromNALUs, debugAccessUnit } from './h264/h264-tools';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { NALU } from './h264/nalu';
 
@@ -188,7 +188,6 @@ export class MP4MuxProcessor extends Processor {
 
     p.forEachBufferSlice((bufferSlice) => {
       const mp4Muxer = this.mp4Muxer_;
-      const data = bufferSlice.getUint8Array();
 
       if (bufferSlice.props.isBitstreamHeader) {
         log('got video bitstream header at:', p.toString());
@@ -209,7 +208,7 @@ export class MP4MuxProcessor extends Processor {
           const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
 
           const auDelimiterNalu = makeNALUFromH264RbspData(
-            BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AUD, 3)
+            BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
 
           const endOfSeq = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 10, 3)
           const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
@@ -217,20 +216,20 @@ export class MP4MuxProcessor extends Processor {
           const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0]), NALU.SPS, 3);
           const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0]), NALU.PPS, 3);
 
-          /*
-          debugNALU(auDelimiterNalu)
-          debugNALU(spsNalu)
-          debugNALU(ppsNalu)
-          */
-
           const codecInitAu: BufferSlice
-             = makeAnnexBAccessUnitFromNALUs([endOfSeq, endOfStream, auDelimiterNalu, spsNalu, ppsNalu]);
+             = makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
+
+          debugAccessUnit(codecInitAu)
 
           bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
 
         }
 
       }
+
+      //debugAccessUnit(bufferSlice);
+
+      const data = bufferSlice.getUint8Array()
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.VIDEO_PACKET,
