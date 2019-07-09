@@ -1,14 +1,22 @@
+# Use-case: Concatenation
+
+- Fix inverted order case (duration bug?)
+
+- How does ffmpeg do stream copy?
+
+- Several SPS/PPS inside AVCc data? Replace pps/sps ID in NAL units?
+
+- Why does embedding SPS/PPS in frames not work? Missing SEI or other delimiter? Unwrap AVCc data further?
+
 # Build
 
 - Analyze package size
 
+- Rename src to lib
+
+- Seperate compile of procs and core
+
 # Bugs
-
-- Something horrible happens with CPU when error thrown inside Packet.prototype.forEachBufferSlice
-
-- Logging mask in workers
-
-- XHR 404 error propagation in concat use-cases or others
 
 - Clone PayloadDetails when cloning BufferProps (and also add clone method to underlying PayloadDescription)
 
@@ -22,9 +30,11 @@
 
 - Method to create "grow" new BufferSlice from original data and (list of) additional slices
 
-- Tool for "online" mp4 / TS / web analysis and diff :)
+- Inspect files and their bitsreams (mp4, ...). Tool for "online" mp4 / TS / web analysis and diff :)
 
-- AAC parse-proc (like for h264)
+- Inspect AAC (like for h264)
+
+- Essentialize/Cleanup Hlsjs-parser/muxer-parts
 
 # Model design
 
@@ -63,7 +73,5 @@
 
 - Automate running web test-cases
 
-- Seperate compile of procs and core
 
-- Essentialize/Cleanup Hlsjs-parser/muxer-parts
 
