@@ -9,11 +9,11 @@ import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-
 import { BitReader } from '../ext-mod/inspector.js/src/utils/bit-reader';
 */
 
-import { NALU } from './h264/nalu';
-
 import { getLogger, LoggerLevel } from '../logger';
+import { debugAccessUnit } from './h264/h264-tools';
+import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.LOG);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
 
 export class H264ParseProcessor extends Processor {
   static getName (): string {
@@ -34,12 +34,15 @@ export class H264ParseProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet) {
+
+    log('parsing packet:', p.toString());
+
+
+
     p.forEachBufferSlice(
       this._onBufferSlice.bind(this, p),
       this._onProcessingError.bind(this),
       this);
-
-    debug('transfer packet:', p.toString());
 
     // NOTE: atm the h264 parser only "inspects" the data and then passes through each packet unmodified
 
@@ -63,44 +66,23 @@ export class H264ParseProcessor extends Processor {
   }
 
   private _onBufferSlice (p: Packet, bufferSlice: BufferSlice) {
-    const avcStream = bufferSlice.getUint8Array();
-    const avcView = bufferSlice.getDataView();
 
-    let length;
+    if (p.defaultPayloadInfo) {
+      if (p.defaultPayloadInfo.isBitstreamHeader) {
+        log('packet has bitstream header flag')
 
-    // console.log('got buffer of length:', avcStream.length)
+        const avcC: AvcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
 
-    for (let i = 0; i < avcStream.length; i += length) {
-      length = avcView.getUint32(i);
-
-      if (length > avcStream.length) {
-        warn('no NALUs found in this packet! Forwarding and ignoring:', p);
-        debug('transfer ignored packet:', p.toString());
-        // this.out[0].transfer(p);
-        break;
+        log('parsed MP4 video-atom:', avcC);
       }
-
-      i += 4;
-
-      const naluSlice = bufferSlice.unwrap(i, length);
-      const naluBytes = naluSlice.getUint8Array();
-      const nalu = new NALU(naluBytes);
-
-      const type = nalu.type();
-
-      // console.log(naluBytes.byteLength)
-      // console.log(nalu.toString())
-
-      if (type === NALU.IDR || type === NALU.SPS || type === NALU.PPS) {
-        log(nalu.toString(), p.toString());
+      if (p.defaultPayloadInfo.isKeyframe) {
+        log('packet has keyframe flag')
       }
-
-      if (type === NALU.IDR) {
-        p.data[0].props = p.data[0].props.clone();
-        p.data[0].props.isKeyframe = true;
-      }
-
-      naluSlice.props.isKeyframe = (type === NALU.IDR);
+    } else {
+      warn('no default payload info')
     }
+
+    debugAccessUnit(bufferSlice, true);
+
   }
 }

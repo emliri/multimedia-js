@@ -1,19 +1,26 @@
 import { BufferSlice } from "../../core/buffer";
-import { NALU } from "./nalu";
-import { copyArrayBuffer, copyTypedArraySlice, writeTypedArraySlice } from "../../common-utils";
 import { BufferProperties } from "../../core/buffer-props";
+import { copyArrayBuffer, copyTypedArraySlice, writeTypedArraySlice } from "../../common-utils";
+import { getLogger, LoggerLevel } from "../../logger";
+
+import { NALU } from "./nalu";
+import { SPSParser } from "../../ext-mod/inspector.js/src/codecs/h264/sps-parser";
+import { Sps } from "../../ext-mod/inspector.js/src/codecs/h264/nal-units";
+
+const {log} = getLogger('H264Tools', LoggerLevel.ON, true);
 
 export function debugNALU(bufferSlice: BufferSlice) {
   const nalu: NALU = new NALU(bufferSlice.getUint8Array());
-  console.log(nalu);
+  log('NALU details:', nalu);
 }
 
-export function debugAccessUnit(bufferSlice: BufferSlice) {
+export function debugAccessUnit(bufferSlice: BufferSlice, debugRbspData: boolean = false) {
 
   const avcStream = bufferSlice.getUint8Array();
   const avcView = bufferSlice.getDataView();
 
   let length;
+  let count = 0;
 
   for (let i = 0; i < avcStream.byteLength; i += length) {
     length = avcView.getUint32(i);
@@ -29,10 +36,24 @@ export function debugAccessUnit(bufferSlice: BufferSlice) {
     const naluBytes = naluSlice.getUint8Array();
     const nalu = new NALU(naluBytes);
 
-    // console.log(naluBytes.byteLength)
-    // console.log(nalu.toString())
+    count++;
 
-    console.log('Found NALU:', nalu);
+    log('In access-unit, found NALU of length ' + length + ' bytes, #' + count + ':', nalu);
+
+    if (debugRbspData) {
+
+      switch(nalu.ntype) {
+      case NALU.SPS:
+        // we need to skip first byte of NALU data
+        const sps: Sps = SPSParser.parseSPS(nalu.payload.subarray(1))
+
+        log ('Parsed SPS:', sps);
+        break;
+      case NALU.PPS:
+        break;
+      }
+
+    }
 
   }
 
