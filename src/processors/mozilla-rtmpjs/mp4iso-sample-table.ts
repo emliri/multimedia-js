@@ -182,13 +182,6 @@ export class SampleTablePackager {
 
     })
 
-
-
-
-
-
-
-
     return new SampleTableBox(
       new SampleDescriptionBox(sampleDescriptionEntry),
       new DecodingTimeToSampleBox(0, stts),

@@ -683,7 +683,6 @@ export class MP4Mux {
             trackState.mimeTypeCodec = 'avc1.' + (0x1000000 | codecProfile).toString(16).substr(1);
           });
 
-
           brands.push('iso2', 'avc1', 'mp41');
           break;
         case VP6_VIDEO_CODEC_ID:
