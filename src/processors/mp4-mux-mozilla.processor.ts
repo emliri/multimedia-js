@@ -213,8 +213,8 @@ export class MP4MuxProcessor extends Processor {
           const endOfSeq = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 10, 3)
           const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
 
-          const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0]), NALU.SPS, 3);
-          const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0]), NALU.PPS, 3);
+          const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0].subarray(1)), NALU.SPS, 3);
+          const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
 
           const codecInitAu: BufferSlice
              = makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
