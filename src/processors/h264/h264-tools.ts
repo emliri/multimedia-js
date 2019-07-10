@@ -5,9 +5,9 @@ import { getLogger, LoggerLevel } from "../../logger";
 
 import { NALU } from "./nalu";
 import { SPSParser } from "../../ext-mod/inspector.js/src/codecs/h264/sps-parser";
-import { Sps } from "../../ext-mod/inspector.js/src/codecs/h264/nal-units";
+import { Sps, Pps } from "../../ext-mod/inspector.js/src/codecs/h264/nal-units";
 
-const {log} = getLogger('H264Tools', LoggerLevel.ON, true);
+const {log, warn} = getLogger('H264Tools', LoggerLevel.ON, true);
 
 export function debugNALU(bufferSlice: BufferSlice) {
   const nalu: NALU = new NALU(bufferSlice.getUint8Array());
@@ -22,39 +22,39 @@ export function debugAccessUnit(bufferSlice: BufferSlice, debugRbspData: boolean
   let length;
   let count = 0;
 
-  for (let i = 0; i < avcStream.byteLength; i += length) {
-    length = avcView.getUint32(i);
+  for (let offset = 0; offset < avcStream.byteLength; offset += length) {
+    length = avcView.getUint32(offset);
 
     if (length > avcStream.length) {
-      console.warn('no NALUs found in this data!');
+      warn('no NALUs found in this data! (not an access-unit)');
       break;
     }
 
-    i += 4;
+    offset += 4;
 
-    const naluSlice = bufferSlice.unwrap(i, length);
+    const naluSlice = bufferSlice.unwrap(offset, length);
     const naluBytes = naluSlice.getUint8Array();
     const nalu = new NALU(naluBytes);
 
     count++;
 
-    log('In access-unit, found NALU of length ' + length + ' bytes, #' + count + ':', nalu);
+    log('In access-unit, found NALU of type ', nalu.getTypeName(), ', of length ' + length + ' bytes, #' + count + ':', nalu);
 
     if (debugRbspData) {
 
-      switch(nalu.ntype) {
+      switch(nalu.nalType) {
       case NALU.SPS:
         // we need to skip first byte of NALU data
         const sps: Sps = SPSParser.parseSPS(nalu.payload.subarray(1))
-
         log ('Parsed SPS:', sps);
         break;
       case NALU.PPS:
+        // we need to skip first byte of NALU data
+        const pps: Pps = SPSParser.parsePPS(nalu.payload.subarray(1))
+        log ('Parsed PPS:', pps);
         break;
       }
-
     }
-
   }
 
 }
