@@ -4,7 +4,7 @@ import { copyArrayBuffer, copyTypedArraySlice, writeTypedArraySlice } from "../.
 import { getLogger, LoggerLevel } from "../../logger";
 
 import { NALU } from "./nalu";
-import { SPSParser } from "../../ext-mod/inspector.js/src/codecs/h264/sps-parser";
+import { ParameterSetParser } from "../../ext-mod/inspector.js/src/codecs/h264/param-set-parser";
 import { Sps, Pps } from "../../ext-mod/inspector.js/src/codecs/h264/nal-units";
 
 const {log, warn} = getLogger('H264Tools', LoggerLevel.ON, true);
@@ -45,12 +45,12 @@ export function debugAccessUnit(bufferSlice: BufferSlice, debugRbspData: boolean
       switch(nalu.nalType) {
       case NALU.SPS:
         // we need to skip first byte of NALU data
-        const sps: Sps = SPSParser.parseSPS(nalu.payload.subarray(1))
+        const sps: Sps = ParameterSetParser.parseSPS(nalu.payload.subarray(1))
         log ('Parsed SPS:', sps);
         break;
       case NALU.PPS:
         // we need to skip first byte of NALU data
-        const pps: Pps = SPSParser.parsePPS(nalu.payload.subarray(1))
+        const pps: Pps = ParameterSetParser.parsePPS(nalu.payload.subarray(1))
         log ('Parsed PPS:', pps);
         break;
       }
