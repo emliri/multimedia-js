@@ -1,3 +1,11 @@
+export enum H264SliceType {
+  P = 0,
+  B,
+  I,
+  SP,
+  SI
+}
+
 export class NALU {
 
   // TODO: make enum
@@ -5,6 +13,8 @@ export class NALU {
   static get NON_IDR () {
     return 1;
   }
+
+  // TODO: add types 2 to 4
 
   static get IDR () {
     return 5;
@@ -34,14 +44,42 @@ export class NALU {
     return 11;
   }
 
+  static getNALUnitTypeName(nalType: number): string {
+    switch (nalType) {
+        case NALU.NON_IDR:
+            return 'NON_IDR_SLICE';
+        case NALU.SEI:
+            return 'SEI';
+        case NALU.PPS:
+            return 'PPS';
+        case NALU.SPS:
+            return 'SPS';
+        case NALU.AU_DELIM:
+            return 'AUD';
+        case NALU.IDR:
+            return 'IDR';
+        case NALU.SEQ_END:
+            return 'END SEQUENCE';
+        case NALU.STREAM_END:
+            return 'END STREAM';
+        default:
+            return 'Unknown NALU type: ' + nalType;
+            //throw new Error('Unknown NALU type: ' + nalType);
+    }
+  }
+
   payload: Uint8Array;
-  nri: number;
-  ntype: number;
+  refIdc: number;
+  nalType: number;
 
   constructor (data: Uint8Array) {
     this.payload = data;
-    this.nri = (this.payload[0] & 0x60) >> 5;
-    this.ntype = this.payload[0] & 0x1f;
+    this.refIdc = (this.payload[0] & 0x60) >> 5;
+    this.nalType = this.payload[0] & 0x1f;
+  }
+
+  getTypeName(): string {
+    return NALU.getNALUnitTypeName(this.nalType);
   }
 
   getAnnexBnalUnitSize () {
