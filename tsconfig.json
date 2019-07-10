@@ -15,6 +15,7 @@
         "node_modules",
         "test-data",
         "**/*.spec.ts",
+        "src/ext-mod/fdk-aac.js/*",
         "src/ext-mod/Broadway",
         "src/ext-mod/codem-isoboxer",
         "src/ext-mod/mp4box.js" // there are some nasty hoisted global vars in here
