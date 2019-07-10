@@ -28,7 +28,14 @@ export class InspectMp4 extends MmjsTestCase {
 
     });
 
-    const xhrSocket: XhrSocket = new XhrSocket('/test-data/mp4/ffmpeg-concat-out.mp4');
+    const xhrSocket: XhrSocket = new XhrSocket(
+      //'/test-data/mp4/SampleVideo_720x480_10mb.mp4',
+      //'/test-data/mp4/SampleVideo_1280x720_5mb.mp4'
+      '/test-data/mp4/buffer0-1562764964156.mp4',
+      //'/test-data/mp4/ffmpeg-concat-out.mp4',
+      //'/test-data/mp4/v-0576p-1400k-libx264.mp4'
+      //'/test-data/mp4/180312_unicorn_hütte2_s.mp4'
+    );
 
     xhrSocket.connect(mp4Demux.createInput())
 
