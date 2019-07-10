@@ -13,7 +13,7 @@ import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit } from './h264/h264-tools';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
+const { log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
 
 export class H264ParseProcessor extends Processor {
   static getName (): string {
@@ -22,8 +22,6 @@ export class H264ParseProcessor extends Processor {
 
   constructor () {
     super();
-
-    // this.on(ProcessorEvent.ANY_SOCKET_CREATED, () => {debugger});
 
     this.createInput();
     this.createOutput();
@@ -37,23 +35,13 @@ export class H264ParseProcessor extends Processor {
 
     log('parsing packet:', p.toString());
 
-
-
     p.forEachBufferSlice(
       this._onBufferSlice.bind(this, p),
       this._onProcessingError.bind(this),
       this);
 
-    // NOTE: atm the h264 parser only "inspects" the data and then passes through each packet unmodified
-
     this.out[0].transfer(
       p
-      /*
-        Packet.fromSlice(
-          bufferSlice // naluSlice // <- that would "unframe" the NALU bytes, like this we just pass through after parsing
-        )
-        // */
-      // Packet.fromArrayBuffer()
     );
 
     return true;
