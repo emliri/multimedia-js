@@ -4,8 +4,10 @@ import { TsToMp3 } from './ts-to-mp3'
 import { FFmpegBasic } from './ffmpeg-basic';
 import { FFmpegFlow } from './ffmpeg-flow';
 import { ConcatMp4s } from './concat-mp4s';
+import { InspectMp4 } from './inspect-mp4';
 
 import * as mmjs from '../../index';
+
 
 export {
   mmjs,
@@ -16,5 +18,6 @@ export {
   TsToMp3,
   FFmpegBasic,
   FFmpegFlow,
-  ConcatMp4s
+  ConcatMp4s,
+  InspectMp4
 }

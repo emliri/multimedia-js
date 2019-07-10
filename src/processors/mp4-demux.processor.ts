@@ -15,6 +15,7 @@ import { PayloadDescriptor } from '../core/payload-description';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 import { ErrorCode } from '../core/error';
+import { debugAccessUnit } from './h264/h264-tools';
 
 const { log, warn, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.ERROR);
 
@@ -119,52 +120,56 @@ export class MP4DemuxProcessor extends Processor {
           let numChannels: number = NaN;
           let samplesCount: number = 1;
           let constantBitrate: number = NaN;
-          let codecData: Uint8Array = null;
+          let codecDataList: Uint8Array[] = [];
           let codecProfile: number = NaN;
 
           if (track.type === Mp4Track.TYPE_VIDEO) {
             const videoAtom = <VideoAtom> track.getMetadataAtom();
             // FIXME: support HEVC too
-            const avcC = (<AvcC> track.getReferenceAtom());
-            if (!avcC) {
+            const avcCList: AvcC[] = (<AvcC[]> track.getReferenceAtoms());
+            if (!avcCList.length) {
               warn('no codec data found for video track with id:', track.id);
               continue;
             }
 
-            const avcCodecData = avcC.data;
-            const spsParsed = avcC.spsParsed[0];
+            avcCList.forEach((avcC: AvcC) => {
 
-            codecProfile = avcC.profile;
+              const avcCodecData = avcC.data;
+              const spsParsed = avcC.spsParsed[0];
 
-            /*
-            // we should not rely on this information since it might not be present (it's optional data inside the SPS)
-            sampleRate = spsParsed.frameRate.fpsNum;
-            sampleDurationNum = spsParsed.frameRate.fpsDen;
-            */
+              codecProfile = avcC.profile;
 
-            sampleDepth = spsParsed.bitDepth;
+              /*
+              // we should not rely on this information since it might not be present (it's optional data inside the SPS)
+              sampleRate = spsParsed.frameRate.fpsNum;
+              sampleDurationNum = spsParsed.frameRate.fpsDen;
+              */
 
-            sampleDurationNum = 1;
+              sampleDepth = spsParsed.bitDepth;
 
-            if (track.getFrames().length > 1) {
-              sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds() -
-                                  track.getFrames()[0].getDecodingTimestampInSeconds());
-              sampleRate = Math.round(sampleRate);
-              log('estimated FPS:', sampleRate);
-            } else {
-              warn('only found 1 single frame in video track, setting FPS to zero');
-              sampleRate = 0;
-            }
+              sampleDurationNum = 1;
 
-            if (avcC.numOfSequenceParameterSets > 1) {
-              warn('more than one SPS found, but only handling one here');
-            }
+              if (track.getFrames().length > 1) {
+                sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds() -
+                                    track.getFrames()[0].getDecodingTimestampInSeconds());
+                sampleRate = Math.round(sampleRate);
+                log('estimated FPS:', sampleRate);
+              } else {
+                warn('only found 1 single frame in video track, setting FPS to zero');
+                sampleRate = 0;
+              }
 
-            if (avcC.numOfPictureParameterSets > 1 || avcC.numOfSequenceParameterSets > 1) {
-              throw new Error('No support for more than one sps/pps pair');
-            }
+              if (avcC.numOfSequenceParameterSets > 1) {
+                warn('more than one SPS found, but only handling one here');
+              }
 
-            codecData = avcCodecData;
+              if (avcC.numOfPictureParameterSets > 1 || avcC.numOfSequenceParameterSets > 1) {
+                throw new Error('No support for more than one sps/pps pair');
+              }
+
+              codecDataList.push(avcCodecData);
+
+            })
 
             /*
             const sps: Uint8Array[] = avcC.sps;
@@ -185,7 +190,7 @@ export class MP4DemuxProcessor extends Processor {
             log('channels:', numChannels, 'sample-rate:', sampleRate, 'sample-depth:', sampleDepth);
 
             // FIXME: support MP3 too (this is for AAC only)
-            const esds = (<Esds> track.getReferenceAtom());
+            const esds = (<Esds> track.getReferenceAtoms()[0]);
             if (!esds) {
               warn('no codec data found for audio track with id:', track.id);
               continue;
@@ -200,7 +205,7 @@ export class MP4DemuxProcessor extends Processor {
             log('flagged ESDS-atom-data packet as bitstream header');
 
             const esdsData = esds.data;
-            codecData = esdsData;
+            codecDataList.push(esdsData);
           }
 
           let sampleDuration = track.getDefaults() ? track.getDefaults().sampleDuration : 1;
@@ -230,14 +235,14 @@ export class MP4DemuxProcessor extends Processor {
             protoProps.codec = 'aac';
           }
 
-          if (codecData) {
+          codecDataList.forEach((codecData: Uint8Array) => {
             const initProps: BufferProperties = protoProps.clone();
             initProps.isBitstreamHeader = true;
             log('created/transferring codec data packet; flagged bitstream header');
             const initPacket = Packet.fromSlice(BufferSlice.fromTypedArray(codecData, initProps));
             initPacket.setTimescale(track.getTimescale());
             output.transfer(initPacket);
-          }
+          })
 
           track.getFrames().forEach((frame: Frame) => {
             let props = protoProps;

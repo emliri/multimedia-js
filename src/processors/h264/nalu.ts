@@ -1,77 +1,95 @@
+export enum H264SliceType {
+  P = 0,
+  B,
+  I,
+  SP,
+  SI
+}
+
 export class NALU {
-  static get NDR () {
+
+  // TODO: make enum
+
+  static get NON_IDR () {
     return 1;
   }
+
+  // TODO: add types 2 to 4
+
   static get IDR () {
     return 5;
   }
+
   static get SEI () {
     return 6;
   }
+
   static get SPS () {
     return 7;
   }
+
   static get PPS () {
     return 8;
   }
-  static get AUD () {
+
+  static get AU_DELIM () {
     return 9;
   }
 
-  static get TYPES () {
-    return {
-      [NALU.IDR]: 'IDR',
-      [NALU.SEI]: 'SEI',
-      [NALU.SPS]: 'SPS',
-      [NALU.PPS]: 'PPS',
-      [NALU.NDR]: 'NDR',
-      [NALU.AUD]: 'AUD'
-    };
+  static get SEQ_END () {
+    return 10;
   }
 
-  static type (nalu: NALU): string {
-    if (nalu.ntype in NALU.TYPES) {
-      return NALU.TYPES[nalu.ntype];
-    } else {
-      return 'UNKNOWN';
+  static get STREAM_END () {
+    return 11;
+  }
+
+  static getNALUnitTypeName(nalType: number): string {
+    switch (nalType) {
+        case NALU.NON_IDR:
+            return 'NON_IDR_SLICE';
+        case NALU.SEI:
+            return 'SEI';
+        case NALU.PPS:
+            return 'PPS';
+        case NALU.SPS:
+            return 'SPS';
+        case NALU.AU_DELIM:
+            return 'AUD';
+        case NALU.IDR:
+            return 'IDR';
+        case NALU.SEQ_END:
+            return 'END SEQUENCE';
+        case NALU.STREAM_END:
+            return 'END STREAM';
+        default:
+            return 'Unknown NALU type: ' + nalType;
+            //throw new Error('Unknown NALU type: ' + nalType);
     }
   }
 
   payload: Uint8Array;
-  nri: number;
-  ntype: number;
+  refIdc: number;
+  nalType: number;
 
   constructor (data: Uint8Array) {
     this.payload = data;
-    this.nri = (this.payload[0] & 0x60) >> 5;
-    this.ntype = this.payload[0] & 0x1f;
+    this.refIdc = (this.payload[0] & 0x60) >> 5;
+    this.nalType = this.payload[0] & 0x1f;
   }
 
-  toString (): string {
-    return `${NALU.type(this)}: NRI: ${this.getNri()}`;
+  getTypeName(): string {
+    return NALU.getNALUnitTypeName(this.nalType);
   }
 
-  getNri () {
-    return this.nri >> 6;
-  }
-
-  type (): number {
-    return this.ntype;
-  }
-
-  isKeyframe () {
-    return this.ntype == NALU.IDR;
-  }
-
-  getSize () {
+  getAnnexBnalUnitSize () {
     return 4 + this.payload.byteLength;
   }
 
-  getData () {
-    const result = new Uint8Array(this.getSize());
+  copyToAnnexBnalUnit (): Uint8Array {
+    const result = new Uint8Array(this.getAnnexBnalUnitSize());
     const view = new DataView(result.buffer);
-    view.setUint32(0, this.getSize() - 4);
-
+    view.setUint32(0, this.getAnnexBnalUnitSize() - 4);
     result.set(this.payload, 4);
     return result;
   }

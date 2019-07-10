@@ -1,4 +1,4 @@
-import { copyToNewArrayBuffer, copyTypedArraySlice, concatTypedArraySlice } from '../common-utils';
+import { copyToNewArrayBuffer, copyTypedArraySlice, concatTypedArraySlice, writeTypedArraySlice } from '../common-utils';
 import { BufferProperties } from './buffer-props';
 
 /**
@@ -22,6 +22,11 @@ import { BufferProperties } from './buffer-props';
  *
  */
 export class BufferSlice {
+
+  static allocateNew(byteLength: number): BufferSlice {
+    return new BufferSlice(new ArrayBuffer(byteLength));
+  }
+
   static mapArrayBuffers (bufferSlices: BufferSlices): ArrayBuffer[] {
     return bufferSlices.map((bs) => bs.arrayBuffer);
   }
@@ -55,6 +60,14 @@ export class BufferSlice {
     const slice = new BufferSlice(copyToNewArrayBuffer(original.arrayBuffer, original.offset, original.length));
     slice.props = original.props;
     return slice;
+  }
+
+  static write(src: BufferSlice, dest: ArrayBuffer, offset: number) {
+    writeTypedArraySlice(src.getDataView(), dest, offset);
+  }
+
+  static getTotalSize(slices: BufferSlice[], characterSizeBits?: number): number {
+    return slices.reduce((prevValue, buf: BufferSlice) => prevValue + buf.size(characterSizeBits), 0);
   }
 
     /**
@@ -193,12 +206,22 @@ export class BufferSlice {
     }
 
     /**
-     * Copies the actual underlying data and creates a new slice with the same properties.
+     * Copies the slice data and creates a new slice with the same properties.
      *
      * @see BufferSlice.copy (static method)
      */
     copy (): BufferSlice {
       return BufferSlice.copy(this);
+    }
+
+    /**
+     * Copies the slice data into an existing buffer at the given offset
+     * @param dest
+     * @param offset
+     */
+    write(dest: ArrayBuffer, offset: number): BufferSlice {
+      BufferSlice.write(this, dest, offset);
+      return this;
     }
 
     /**

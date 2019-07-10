@@ -172,6 +172,10 @@ export function copyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
   return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
 }
 
+export function writeTypedArraySlice (typedArray: ArrayBufferView, dest: ArrayBuffer, offset?: number) {
+  copyArrayBuffer(typedArray.buffer, dest, typedArray.byteLength, typedArray.byteOffset, offset)
+}
+
 export function concatArrays<T> (arg0: T[], ...args: T[][]): T[] {
   return Array.prototype.concat.apply(arg0, args);
 }
