@@ -4,11 +4,6 @@ import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
 import { BufferSlice } from '../core/buffer';
 
-/*
-import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
-import { BitReader } from '../ext-mod/inspector.js/src/utils/bit-reader';
-*/
-
 import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit } from './h264/h264-tools';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
@@ -37,7 +32,8 @@ export class H264ParseProcessor extends Processor {
 
     p.forEachBufferSlice(
       this._onBufferSlice.bind(this, p),
-      this._onProcessingError.bind(this),
+      null,
+      //this._onProcessingError.bind(this),
       this);
 
     this.out[0].transfer(
@@ -73,4 +69,5 @@ export class H264ParseProcessor extends Processor {
     debugAccessUnit(bufferSlice, true);
 
   }
+
 }
