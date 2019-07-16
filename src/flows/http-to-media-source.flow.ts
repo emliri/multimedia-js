@@ -7,7 +7,6 @@ import { Socket, OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
-import { MP4MuxHlsjsProcessor } from '../processors/mp4-mux-hlsjs.processor';
 import { getLogger } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
 import { VoidCallback } from '../common-types';
@@ -34,7 +33,6 @@ export class HttpToMediaSourceFlow extends Flow {
     const tsDemuxProc = new MPEGTSDemuxProcessor();
     const h264ParseProc = new H264ParseProcessor();
     const mp4MuxProc = new MP4MuxProcessor();
-    const mp4MuxHlsjsProc = new MP4MuxHlsjsProcessor();
 
     const xhrSocket = this._xhrSocket = new XhrSocket(url);
 
@@ -52,31 +50,31 @@ export class HttpToMediaSourceFlow extends Flow {
 
       if (data.processor === mp4DemuxProc) {
         demuxOutputSocket.connect(h264ParseProc.in[0]);
-        muxerInputSocket = mp4MuxHlsjsProc.createInput();
+        muxerInputSocket = mp4MuxProc.createInput();
         h264ParseProc.out[0].connect(muxerInputSocket);
       } else if (data.processor === tsDemuxProc) {
         if (!this._haveVideo &&
             PayloadCodec.isAvc(payloadDescriptor.codec)) {
           this._haveVideo = true;
-          muxerInputSocket = mp4MuxHlsjsProc.createInput();
+          muxerInputSocket = mp4MuxProc.createInput();
           h264ParseProc.out[0].connect(muxerInputSocket);
           demuxOutputSocket.connect(h264ParseProc.in[0]);
         } else if (!this._haveAudio &&
             PayloadCodec.isAac(payloadDescriptor.codec)) {
           this._haveAudio = true;
-          muxerInputSocket = mp4MuxHlsjsProc.createInput();
+          muxerInputSocket = mp4MuxProc.createInput();
           demuxOutputSocket.connect(muxerInputSocket);
         }
       }
     };
 
-    this.add(mp4DemuxProc, mp4MuxHlsjsProc, tsDemuxProc, mp4MuxProc);
+    this.add(mp4DemuxProc, mp4MuxProc, tsDemuxProc, mp4MuxProc);
 
     tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
     mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
 
     mp4MuxProc.out[0].connect(mediaSourceSocket);
-    mp4MuxHlsjsProc.out[0].connect(mediaSourceSocket);
+    mp4MuxProc.out[0].connect(mediaSourceSocket);
 
     if (url.endsWith('.ts')) { // FIXME use mime-type of response
       xhrSocket.connect(tsDemuxProc.in[0]);
