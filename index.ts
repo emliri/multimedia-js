@@ -22,7 +22,6 @@ import { AACParseProcessor } from './src/processors/aac-parse.processor';
 import { FFmpegConvertProcessor } from './src/processors/ffmpeg-convert.processor';
 
 import { MP4MuxProcessor } from './src/processors/mp4-mux-mozilla.processor';
-import { MP4MuxHlsjsProcessor } from './src/processors/mp4-mux-hlsjs.processor';
 import { MP4DemuxProcessor } from './src/processors/mp4-demux.processor';
 import { MPEGTSDemuxProcessor } from './src/processors/mpeg-ts-demux.processor';
 
@@ -89,7 +88,6 @@ export const Processors = {
   H264ParseProcessor,
   MP3ParseProcessor,
   MP4MuxProcessor,
-  MP4MuxHlsjsProcessor,
   MP4DemuxProcessor,
   MPEGTSDemuxProcessor,
   BroadwayProcessor,
