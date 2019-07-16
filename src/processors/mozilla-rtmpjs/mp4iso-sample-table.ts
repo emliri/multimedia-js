@@ -35,17 +35,17 @@ export class SampleTablePackager {
    * only the original offset needs to be input, and all sample offsets
    * can get derived from the aforementioned sample sizes.
    *
-   * @param sampleDescriptionEntry
+   * @param sampleDescriptionEntries
    * @param samples
    * @param firstChunkOffset
    */
   static createFromSamplesInSingleChunk (
-    sampleDescriptionEntry: Box[],
+    sampleDescriptionEntries: Box[],
     samples: StblSample[],
     firstChunkOffset: number
   ): SampleTableBox {
     log('creating sample table from samples:',
-      samples, 'at offset:', firstChunkOffset, 'sample description entry:', sampleDescriptionEntry);
+      samples, 'at offset:', firstChunkOffset, 'sample description entry:', sampleDescriptionEntries);
 
     const stts: DecodingTimeToSampleEntry[] = [];
     const ctts: CompositionTimeToSampleEntry[] = [];
@@ -165,7 +165,7 @@ export class SampleTablePackager {
 
     let chunkOffset: number = firstChunkOffset;
 
-    sampleDescriptionEntry.forEach((sampleDescriptionBox, index) => {
+    sampleDescriptionEntries.forEach((sampleDescriptionBox, index) => {
 
       const oneBasedIndex = index + 1;
       const samplesInCodingSequenceChunk = samples.filter((sample) => sample.sampleDescriptionIndex === oneBasedIndex);
@@ -183,7 +183,7 @@ export class SampleTablePackager {
     })
 
     return new SampleTableBox(
-      new SampleDescriptionBox(sampleDescriptionEntry),
+      new SampleDescriptionBox(sampleDescriptionEntries),
       new DecodingTimeToSampleBox(0, stts),
       new CompositionTimeToSampleBox(0, ctts),
       new SampleToChunkBox(stsc),
