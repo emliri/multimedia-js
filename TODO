@@ -14,6 +14,8 @@
 
 - Move TS-demuxer to worker-proxy mode
 
+- Convert all MPEGTS-demuxer code to Typescript
+
 - Use proc-task workers for crypto-like things for example
 
 - Remove hardcoded worker binary paths (make configurable)
