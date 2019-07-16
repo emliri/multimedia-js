@@ -19,8 +19,9 @@ import { isNumber } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { BufferSlice } from '../core/buffer';
 import { makeNALUFromH264RbspData, makeAnnexBAccessUnitFromNALUs, debugAccessUnit } from './h264/h264-tools';
-import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { NALU } from './h264/nalu';
+
+import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
@@ -60,6 +61,7 @@ export enum MP4MuxProcessorSupportedCodecs {
   VP6 = 'vp6f'
 }
 
+// FIXME: get rid of FORCE_MP3 flag
 const FORCE_MP3 = false;
 
 export class MP4MuxProcessor extends Processor {
@@ -121,8 +123,8 @@ export class MP4MuxProcessor extends Processor {
         this.socketToTrackIndexMap_[inputIndex] =
           this.mp4Metadata_.tracks.length;
 
-      // FIXME: get actual infos here from input packets
       this._addAudioTrack(
+        // FIXME: get rid of FORCE_MP3 flag
         FORCE_MP3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
         p.defaultPayloadInfo.getSamplingRate(),
         p.defaultPayloadInfo.sampleDepth,
@@ -207,11 +209,13 @@ export class MP4MuxProcessor extends Processor {
 
           const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
 
+          /*
           const auDelimiterNalu = makeNALUFromH264RbspData(
             BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
 
           const endOfSeq = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 10, 3)
           const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
+          */
 
           const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0].subarray(1)), NALU.SPS, 3);
           const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
@@ -227,8 +231,6 @@ export class MP4MuxProcessor extends Processor {
 
       }
 
-      //debugAccessUnit(bufferSlice);
-
       const data = bufferSlice.getUint8Array()
 
       mp4Muxer.pushPacket(
@@ -236,8 +238,8 @@ export class MP4MuxProcessor extends Processor {
         AVC_VIDEO_CODEC_ID,
         data,
         p.getScaledDts(timescale),
-        true,
-        bufferSlice.props.isBitstreamHeader,
+        true, // NOTE: Non-raw mode expects FLV-packaged data
+        bufferSlice.props.isBitstreamHeader, // NOTE: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header
         bufferSlice.props.isKeyframe,
         p.getScaledCto(timescale)
       );
@@ -253,6 +255,7 @@ export class MP4MuxProcessor extends Processor {
     const audioTrackMetadata = this.mp4Metadata_.tracks[this.audioTrackIndex_];
     const timescale = audioTrackMetadata.timescale;
 
+    // NOTE: Object-type is inherently defined by mp4mux.ts
     const audioDetails = {
       sampleDepth: audioTrackMetadata.samplesize,
       sampleRate: audioTrackMetadata.samplerate,
@@ -273,11 +276,12 @@ export class MP4MuxProcessor extends Processor {
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.AUDIO_PACKET,
+        // FIXME: get rid of FORCE_MP3 flag
         FORCE_MP3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
         data,
         p.getScaledDts(timescale),
-        true,
-        bufferSlice.props.isBitstreamHeader,
+        true, // NOTE: Non-raw mode expects FLV-packaged data
+        bufferSlice.props.isBitstreamHeader, // NOTE: we are expecting an actual MP4 `esds` ISOBMFF data atom as bitstream header
         bufferSlice.props.isKeyframe,
         p.getScaledCto(timescale),
         audioDetails
