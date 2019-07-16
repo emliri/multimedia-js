@@ -106,6 +106,7 @@ export type AudioPacket = {
   channels: number;
   samples: number;
   packetType: AudioPacketType;
+  sampleDescriptionIndex: number;
 }
 
 export type VideoPacket = {
@@ -151,7 +152,8 @@ export function parseAudiodata (data: Uint8Array): AudioPacket {
     size: sampleSize,
     channels: channels,
     samples: samples,
-    packetType: packetType
+    packetType: packetType,
+    sampleDescriptionIndex: 0
   };
 }
 
@@ -178,28 +180,29 @@ export function parseVideodata (data: Uint8Array): VideoPacket {
   let frameType = data[i] >> 4;
   let codecId = data[i] & 15;
   i++;
-  let result: any = {
-    frameType: <VideoFrameType>frameType,
+  let videoPacket: Partial<VideoPacket> = {
+    frameType: <VideoFrameType> frameType,
     codecId: codecId,
     codecDescription: VIDEOCODECS[codecId]
   };
   switch (codecId) {
   case AVC_VIDEO_CODEC_ID:
     var type = data[i++];
-    result.packetType = <VideoPacketType>type;
-    result.compositionTime = ((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8)) >> 8;
+    videoPacket.packetType = <VideoPacketType>type;
+    videoPacket.compositionTime = ((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8)) >> 8;
     i += 3;
     break;
   case VP6_VIDEO_CODEC_ID:
-    result.packetType = VideoPacketType.NALU;
-    result.horizontalOffset = (data[i] >> 4) & 15;
-    result.verticalOffset = data[i] & 15;
-    result.compositionTime = 0;
+    videoPacket.packetType = VideoPacketType.NALU;
+    videoPacket.horizontalOffset = (data[i] >> 4) & 15;
+    videoPacket.verticalOffset = data[i] & 15;
+    videoPacket.compositionTime = 0;
     i++;
     break;
   }
-  result.data = data.subarray(i);
-  return result;
+  videoPacket.data = data.subarray(i);
+  videoPacket.sampleDescriptionIndex = 0;
+  return <VideoPacket> videoPacket;
 }
 
 export enum MP4MuxPacketType {
@@ -330,7 +333,8 @@ export class MP4Mux {
             size: sampleDepth,
             channels: numChannels,
             samples: samplesPerFrame,
-            packetType: isInitData ? AudioPacketType.HEADER : AudioPacketType.RAW
+            packetType: isInitData ? AudioPacketType.HEADER : AudioPacketType.RAW,
+            sampleDescriptionIndex: audioTrack.initializationData.length
           };
         } else {
           audioPacket = parseAudiodata(data);
@@ -517,7 +521,7 @@ export class MP4Mux {
               dts,
               cts: dts,
               isRap: true,
-              sampleDescriptionIndex: 1
+              sampleDescriptionIndex: audioPacket.sampleDescriptionIndex
             };
 
             samples.push(s);
@@ -624,33 +628,43 @@ export class MP4Mux {
 
         switch (trackInfo.codecId) {
         case AAC_SOUND_CODEC_ID:
-          const audioSpecificConfig = trackState.initializationData[0];
 
-          sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
-          const esdsData = audioSpecificConfig;
-          sampleEntry.otherBoxes = [
-            new RawTag('esds', esdsData)
-          ];
-          sampleDescEntry.push(sampleEntry);
+          trackState.initializationData.forEach((audioSpecificConfig) => {
 
-          // FIXME: instead of taking the data inside the ES_Descriptor we are using the data contained in esds atom directly
-          // i.e the "framed" ES_Descriptor data
-          /*
-          var esdsData = new Uint8Array(41 + audioSpecificConfig.length);
-          esdsData.set(hexToBytes('0000000003808080'), 0);
-          esdsData[8] = 32 + audioSpecificConfig.length;
-          esdsData.set(hexToBytes('00020004808080'), 9);
-          esdsData[16] = 18 + audioSpecificConfig.length;
-          esdsData.set(hexToBytes('40150000000000FA000000000005808080'), 17);
-          esdsData[34] = audioSpecificConfig.length;
-          esdsData.set(audioSpecificConfig, 35);
-          esdsData.set(hexToBytes('068080800102'), 35 + audioSpecificConfig.length);
-          */
+            sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
+            const esdsData = audioSpecificConfig;
+            sampleEntry.otherBoxes = [
+              new RawTag('esds', esdsData)
+            ];
 
-          var objectType = (audioSpecificConfig[0] >> 3); // TODO 31
-          // mp4a.40.objectType
-          trackState.mimeTypeCodec = 'mp4a.40.' + objectType; // 'mp4a.40.2'
+            sampleDescEntry.push(sampleEntry);
+
+            // FIXME: instead of taking the data inside the ES_Descriptor we are using the data contained in esds atom directly
+            // i.e the "framed" ES_Descriptor data
+            /*
+            var esdsData = new Uint8Array(41 + audioSpecificConfig.length);
+            esdsData.set(hexToBytes('0000000003808080'), 0);
+            esdsData[8] = 32 + audioSpecificConfig.length;
+            esdsData.set(hexToBytes('00020004808080'), 9);
+            esdsData[16] = 18 + audioSpecificConfig.length;
+            esdsData.set(hexToBytes('40150000000000FA000000000005808080'), 17);
+            esdsData[34] = audioSpecificConfig.length;
+            esdsData.set(audioSpecificConfig, 35);
+            esdsData.set(hexToBytes('068080800102'), 35 + audioSpecificConfig.length);
+            */
+
+            var objectType = (audioSpecificConfig[0] >> 3); // TODO 31
+            // mp4a.40.objectType
+
+            // FIXME: we are overriding previous writes here with the last entry of init datas.
+            //        the problem with that is that we are only making one call to oncodecinfo callback
+            //        so this could be changed to making several calls or passing an array of strings instead
+            //        and making mimeTypeCodec field an array then.
+            trackState.mimeTypeCodec = 'mp4a.40.' + objectType; // 'mp4a.40.2'
+
+          });
           break;
+
         case MP3_SOUND_CODEC_ID:
 
           sampleEntry = new AudioSampleEntry('.mp3', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
