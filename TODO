@@ -2,19 +2,11 @@
 
 - Fix inverted order case (duration bug?)
 
-- How does ffmpeg do stream copy?
+- Fix example demuxing 4K video
 
-- Several SPS/PPS inside AVCc data? Replace pps/sps ID in NAL units?
+- Enable AAC codec data embedding / sample-description-indexing
 
-- Why does embedding SPS/PPS in frames not work? Missing SEI or other delimiter? Unwrap AVCc data further?
-
-# Build
-
-- Analyze package size
-
-- Rename src to lib
-
-- Seperate compile of procs and core
+(- Enable everal SPS/PPS inside AVCc data? Replace pps/sps ID in NAL units?)
 
 # Bugs
 
@@ -27,6 +19,10 @@
 - Remove hardcoded worker binary paths (make configurable)
 
 # Use-Cases
+
+- Read from file or HTTP (or other URI-based source) transparently
+
+- MPEG-TS demuxing (H264+AAC and samples-AES-encrypted)
 
 - Method to create "grow" new BufferSlice from original data and (list of) additional slices
 
@@ -72,6 +68,15 @@
 - Generalize test-case for flows that take URL as entry point
 
 - Automate running web test-cases
+
+# Build
+
+- Analyze package size
+
+- Rename src to lib
+
+- Seperate compile of procs and core
+
 
 
 
