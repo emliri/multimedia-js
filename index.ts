@@ -18,6 +18,7 @@ import { LambdaProcessor } from './src/processors/lambda.processor';
 
 import { MP3ParseProcessor } from './src/processors/mp3-parse.processor';
 import { H264ParseProcessor } from './src/processors/h264-parse.processor';
+import { AACParseProcessor } from './src/processors/aac-parse.processor';
 import { FFmpegConvertProcessor } from './src/processors/ffmpeg-convert.processor';
 
 import { MP4MuxProcessor } from './src/processors/mp4-mux-mozilla.processor';
@@ -84,6 +85,7 @@ export const Core = {
 };
 
 export const Processors = {
+  AACParseProcessor,
   H264ParseProcessor,
   MP3ParseProcessor,
   MP4MuxProcessor,
