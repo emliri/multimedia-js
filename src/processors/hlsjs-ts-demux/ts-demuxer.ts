@@ -9,7 +9,7 @@
  * upon discontinuity or level switch detection, it will also notifies the remuxer so that it can reset its state.
 */
 
-import * as ADTS from './adts-utils';
+import * as ADTS from '../aac/adts-utils';
 import MpegAudio from './mpeg-audio-parser';
 import ExpGolomb from './exp-golomb-reader';
 import SampleAesDecrypter from './sample-aes-decrypter';
@@ -40,6 +40,42 @@ export type TSDemuxerConfig = {
 };
 
 export type TSDemuxerCallback = (audioTrack, avcTrack, id3Track, txtTrack, timeOffset, contiguous, accurateTimeOffset) => {};
+
+
+function initTrackConfig (track, data, offset, audioCodec) {
+
+  if (!track.samplerate) {
+    let config = ADTS.makeAACAudioSpecificConfigMp4DataFromADTSHeader(data, offset, audioCodec);
+    track.config = config.esdsAtomData;
+    track.samplerate = config.sampleRate;
+    track.channelCount = config.channelCount;
+    track.codec = config.codec;
+  }
+
+}
+
+function appendFrameToTrack (track, data, offset, pts, frameIndex) {
+  let frameDuration = ADTS.getAACFrameDurationInMPEGTSClockTicks(track.samplerate);
+  let header = ADTS.parseAacADTSHeaderInfo(data, offset, pts, frameIndex, frameDuration);
+  if (header) {
+    let timestamp = header.timestamp;
+    let headerLength = header.headerLength;
+    let frameLength = header.frameLength;
+
+    let aacSample = {
+      unit: data.subarray(offset + headerLength, offset + headerLength + frameLength),
+      pts: timestamp,
+      dts: timestamp
+    };
+
+    track.samples.push(aacSample);
+    track.len += frameLength;
+
+    return { sample: aacSample, length: frameLength + headerLength };
+  }
+
+  return undefined;
+}
 
 export class TSDemuxer {
   static probe (data): boolean {
@@ -1015,7 +1051,7 @@ export class TSDemuxer {
     }
     // look for ADTS header (0xFFFx)
     for (offset = startOffset, len = data.length; offset < len - 1; offset++) {
-      if (ADTS.isHeader(data, offset)) {
+      if (ADTS.isADTSHeader(data, offset)) {
         break;
       }
     }
@@ -1036,9 +1072,10 @@ export class TSDemuxer {
       }
     }
 
-    ADTS.initTrackConfig(track, data, offset, null); // FIXME: pass in known audio codec info (mimetype + details) here
+    initTrackConfig(track, data, offset, null); // FIXME: pass in known audio codec info (mimetype + details) here
+
     frameIndex = 0;
-    frameDuration = ADTS.getFrameDuration(track.samplerate);
+    frameDuration = ADTS.getAACFrameDurationInMPEGTSClockTicks(track.samplerate);
 
     // if last AAC frame is overflowing, we should ensure timestamps are contiguous:
     // first sample PTS should be equal to last sample PTS + frameDuration
@@ -1052,8 +1089,8 @@ export class TSDemuxer {
 
     // scan for aac samples
     while (offset < len) {
-      if (ADTS.isHeader(data, offset) && (offset + 5) < len) {
-        let frame = ADTS.appendFrame(track, data, offset, pts, frameIndex);
+      if (ADTS.isADTSHeader(data, offset) && (offset + 5) < len) {
+        let frame = appendFrameToTrack(track, data, offset, pts, frameIndex);
         if (frame) {
           // log(`${Math.round(frame.sample.pts)} : AAC`);
           offset += frame.length;
