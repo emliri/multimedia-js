@@ -34,6 +34,13 @@
 
 - Essentialize/Cleanup Hlsjs-parser/muxer-parts
 
+# Performance
+
+- Analyze bottlenecks around:
+  * Worker message event handler in processor-proxy
+  * Socket.transfer => dispatchAsync => Socket.transferSync
+  * XHR-socket readystatechange event handler
+
 # Model design
 
 - Take care of mime-types and 4cc codec strings properly
