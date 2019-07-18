@@ -54,9 +54,9 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   ) {
     super();
 
-    this._whenDone = new Promise((resolve, reject) => {
-      this._whenDoneResolve = resolve;
-      this._whenDoneReject = reject;
+    this._whenCompleted = new Promise((resolve, reject) => {
+      this._whenCompletedResolve = resolve;
+      this._whenCompletedReject = reject;
     });
   }
 
@@ -67,9 +67,11 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   private _processors: Set<Processor> = new Set();
   private _extSockets: Set<Socket> = new Set();
 
-  private _whenDone: Promise<FlowCompletionResult>;
-  private _whenDoneResolve: (value: FlowCompletionResult) => void = null;
-  private _whenDoneReject: (reason: FlowError) => void = null;
+  private _error: FlowError = null;
+
+  private _whenCompleted: Promise<FlowCompletionResult>;
+  private _whenCompletedResolve: (value: FlowCompletionResult) => void = null;
+  private _whenCompletedReject: (reason: FlowError) => void = null;
   private _completionResultCode: FlowCompletionResultCode = FlowCompletionResultCode.NONE;
 
   get procList (): Processor[] {
@@ -78,6 +80,10 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
 
   get externalSockets (): Socket[] {
     return Array.from(this.getExternalSockets());
+  }
+
+  get error(): FlowError {
+    return this._error;
   }
 
   add (...p: Processor[]) {
@@ -97,7 +103,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   }
 
   whenCompleted (): Promise<FlowCompletionResult> {
-    return this._whenDone;
+    return this._whenCompleted;
   }
 
   getCurrentState (): FlowState {
@@ -223,10 +229,10 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     case FlowCompletionResultCode.NONE:
       throw new Error('Can not complete with no result');
     case FlowCompletionResultCode.OK:
-      this._whenDoneResolve(completionResult);
+      this._whenCompletedResolve(completionResult);
       break;
     case FlowCompletionResultCode.FAILED:
-      this._whenDoneReject(error);
+      this._whenCompletedReject(error);
       break;
     }
   }
@@ -244,15 +250,19 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
 
     error('got processor error event:', data);
 
-    this._whenDoneReject({
+    const errorData: FlowError = {
       space: ErrorCodeSpace.FLOW,
       type: FlowErrorType.PROC,
       code: ErrorCode.FLOW_INTERNAL,
       message: "A processor part of this flow emitted an error event",
       innerError: data.error
-    });
+    };
 
-    // error data can be retrieved by app from whenDone().catch(...) when needed
+    this._error = errorData
+
+    this._whenCompletedReject(errorData);
+
+    // error data can be retrieved by app from whenCompleted().catch(...) when needed
     this.emit(FlowEvent.ERROR)
   }
 
