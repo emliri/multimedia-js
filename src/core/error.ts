@@ -59,7 +59,8 @@ export enum ErrorCode {
 
   PROC_GENERIC = getErrorCodeValue(ErrorCodeSpace.PROC, 0),
   PROC_BAD_FORMAT = getErrorCodeValue(ErrorCodeSpace.PROC, 1),
-  PROC_EARLY_EOS = getErrorCodeValue(ErrorCodeSpace.PROC, 2)
+  PROC_EARLY_EOS = getErrorCodeValue(ErrorCodeSpace.PROC, 2),
+  PROC_INTERNAL = getErrorCodeValue(ErrorCodeSpace.PROC, 3)
 }
 
 export function getErrorNameByCode(errCode: ErrorCode): string {
