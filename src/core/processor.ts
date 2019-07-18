@@ -109,7 +109,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return eventData;
     }
 
-    createErrorEvent (code: ErrorCode, message: string): ProcessorEventData {
+    createErrorEvent (code: ErrorCode, message: string, nativeError?: Error): ProcessorEventData {
       if (code < ErrorCode.PROC_GENERIC) {
         throw new Error('Error-code is not for proc-type');
       }
@@ -125,8 +125,8 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return event;
     }
 
-    emitErrorEvent(code: ErrorCode, message: string) {
-      this.emit(ProcessorEvent.ERROR, this.createErrorEvent(code, message));
+    emitErrorEvent(code: ErrorCode, message: string, nativeError?: Error) {
+      this.emit(ProcessorEvent.ERROR, this.createErrorEvent(code, message, nativeError));
     }
 
     emit (event: ProcessorEvent, data: ProcessorEventData) {
@@ -296,8 +296,11 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       try {
         result = this.processTransfer_(inS, p, inputIndex);
       } catch (err) {
-        error(`There was a fatal error processing a packet: ${err.message}. Stacktrace:`);
+        const msg = `There was an fatal internal error processing a packet: ${err.message}.`
+        error(`There was an internal fatal error processing a packet: ${err.message}`);
+        debug('Stacktrace:')
         debug(err);
+        this.emitErrorEvent(ErrorCode.PROC_INTERNAL, msg, err)
       }
       return result;
     }
