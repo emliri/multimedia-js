@@ -10,10 +10,6 @@ export class AppInputSocket extends InputSocket {
     private _blobMode: boolean = false,
     private _mimeType: string = null) {
     super((p: Packet) => this._onPacketReceived(p), new SocketDescriptor());
-
-    if (_blobMode && !_mimeType) {
-      throw new Error('Can not use blob mode with unset mimetype string');
-    }
   }
 
   private _onPacketReceived (p: Packet): boolean {
@@ -21,7 +17,14 @@ export class AppInputSocket extends InputSocket {
       const buffer = this._copyMode ? bs.newArrayBuffer() : bs.arrayBuffer;
 
       if (this._blobMode) {
-        const blob = new Blob([buffer], { type: this._mimeType });
+
+        const mimeType = this._mimeType || p.defaultMimeType || null;
+
+        if (!mimeType) {
+          throw new Error('No mime-type could be determined to build output in blob mode');
+        }
+
+        const blob = new Blob([buffer], { type: mimeType });
         this._appCallback(blob);
       } else {
         this._appCallback(buffer);
