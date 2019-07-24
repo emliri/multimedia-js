@@ -190,6 +190,10 @@ export class Packet {
     return this.data[0] ? this.data[0].props : null;
   }
 
+  get defaultMimeType(): string {
+    return this.defaultPayloadInfo ? this.defaultPayloadInfo.mimeType : null;
+  }
+
   // TODO: check if other buffers have other infos etc..
   get hasDefaultPayloadInfo (): boolean {
     return this._hasDefaultBufferProps;
