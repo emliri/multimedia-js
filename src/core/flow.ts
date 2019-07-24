@@ -1,9 +1,12 @@
 import { Processor, ProcessorEvent, ProcessorEventData } from './processor';
-import { Socket } from './socket';
+import { Socket, OutputSocket } from './socket';
 import { ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 import { VoidCallback } from '../common-types';
 import { EventEmitter } from 'eventemitter3';
 import { getLogger, LoggerLevel } from '../logger';
+import { AppInputSocket } from '../io-sockets/app-input-socket';
+import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
+import { makeTemplate } from '../common-utils';
 
 const {error} = getLogger('Flow', LoggerLevel.DEBUG);
 
@@ -46,11 +49,22 @@ export enum FlowEvent {
 
 export type FlowStateChangeCallback = (previousState: FlowState, newState: FlowState) => void;
 
+export enum FlowConfigFlag {
+  NONE = 0,
+  WITH_APP_SOCKET = 1,
+  WITH_DOWNLOAD_SOCKET = 2,
+  ALL = 0xFFFFFFFF
+};
+
 // TODO: create generic Set class in objec-ts
 export abstract class Flow extends EventEmitter<FlowEvent> {
+
+
   constructor (
+    public readonly flags: FlowConfigFlag = FlowConfigFlag.NONE,
     public onStateChangePerformed: FlowStateChangeCallback = () => {},
-    public onStateChangeAborted: (reason: string) => void = () => {}
+    public onStateChangeAborted: (reason: string) => void = () => {},
+    downloadSocketParams?: {el :HTMLElement, mimeType: string, filenameTemplateBase: string}
   ) {
     super();
 
@@ -58,8 +72,32 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
       this._whenCompletedResolve = resolve;
       this._whenCompletedReject = reject;
     });
+
+    {
+      if (flags & FlowConfigFlag.WITH_APP_SOCKET) {
+        this._appSocket = new AppInputSocket((blob: Blob) => {
+          this.setCompleted({ code: FlowCompletionResultCode.OK, data: blob });
+        }, true, true)
+        this.addExternalSocket(this._appSocket);
+      }
+
+      if (flags & FlowConfigFlag.WITH_DOWNLOAD_SOCKET) {
+        if (!downloadSocketParams) {
+          throw new Error('Config has download socket enabled, but mandatory params missing');
+        }
+        this._downloadSocket = new WebFileDownloadSocket(
+          downloadSocketParams.el,
+          downloadSocketParams.mimeType,
+          makeTemplate(downloadSocketParams.filenameTemplateBase)
+        );
+        this.addExternalSocket(this._downloadSocket);
+      }
+    }
+
   }
 
+  private _downloadSocket: WebFileDownloadSocket = null;
+  private _appSocket: AppInputSocket = null;
   private _state: FlowState = FlowState.VOID;
   private _pendingState: FlowState | null = null;
   private _prevState: FlowState | null = null;
@@ -74,6 +112,14 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   private _whenCompletedReject: (reason: FlowError) => void = null;
   private _completionResultCode: FlowCompletionResultCode = FlowCompletionResultCode.NONE;
 
+  protected get extDownloadSocket(): WebFileDownloadSocket {
+    return this._downloadSocket;
+  }
+
+  protected get extAppSocket(): AppInputSocket {
+    return this._appSocket;
+  }
+
   get procList (): Processor[] {
     return Array.from(this._processors);
   }
@@ -84,6 +130,10 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
 
   get error(): FlowError {
     return this._error;
+  }
+
+  hasFlag(flag: FlowConfigFlag): boolean {
+    return !!(this.flags & flag);
   }
 
   add (...p: Processor[]) {
@@ -218,6 +268,17 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
 
   get state (): FlowState {
     return this._state;
+  }
+
+  protected addExternalSocket(s: Socket): Flow {
+    this._extSockets.add(s);
+    return this;
+  }
+
+  protected connectWithAllExternalSockets(internalOut: OutputSocket) {
+    this.getExternalSockets().forEach((extSocket) => {
+      internalOut.connect(extSocket);
+    })
   }
 
   protected setCompleted (completionResult: FlowCompletionResult, error: FlowError = null) {
