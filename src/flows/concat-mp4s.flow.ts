@@ -1,4 +1,4 @@
-import { Flow } from "../core/flow";
+import { Flow, FlowCompletionResultCode, FlowConfigFlag } from "../core/flow";
 import { VoidCallback } from "../common-types";
 import { XhrSocket } from "../io-sockets/xhr.socket";
 import { newProcessorWorkerShell, unsafeProcessorType } from "../core/processor-factory";
@@ -10,7 +10,6 @@ import { getLogger, LoggerLevel } from "../logger";
 import { PayloadDescriptor } from "../core/payload-description";
 import { MP4MuxProcessor } from "../processors/mp4-mux-mozilla.processor";
 import { PacketSymbol } from "../core/packet";
-import { WebFileDownloadSocket } from "../io-sockets/web-file-download.socket";
 import { makeTemplate } from "../common-utils";
 
 const { log } = getLogger("ConcatMp4sFlow", LoggerLevel.ON, true);
@@ -26,9 +25,19 @@ export class ConcatMp4sFlow extends Flow {
     constructor(
         private _movUrlA: string,
         private _movUrlB:  string,
-        private _toggleConcatOrder: boolean = false
+        downloadEl?: HTMLElement,
+        private _toggleConcatOrder: boolean = false,
     ) {
-        super();
+        super(
+          FlowConfigFlag.WITH_APP_SOCKET | (downloadEl && FlowConfigFlag.WITH_DOWNLOAD_SOCKET),
+          null,
+          null,
+          {
+            mimeType: 'video/mp4',
+            el: downloadEl,
+            filenameTemplateBase: 'buffer${counter}-${Date.now()}.mp4'
+          }
+        );
     }
 
     private _setup() {
@@ -81,9 +90,7 @@ export class ConcatMp4sFlow extends Flow {
       xhrSocketMovA.connect(mp4DemuxA.in[0])
       xhrSocketMovB.connect(mp4DemuxB.in[0])
 
-      mp4Muxer.out[0].connect(
-        new WebFileDownloadSocket(null, 'video/mp4', makeTemplate('buffer${counter}-${Date.now()}.mp4'))
-      )
+      this.connectWithAllExternalSockets(mp4Muxer.out[0])
 
       function onDemuxASocketCreated(socket: Socket) {
 

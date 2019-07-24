@@ -1,4 +1,4 @@
-import { Flow, FlowCompletionResultCode } from '../core/flow';
+import { Flow, FlowCompletionResultCode, FlowConfigFlag } from '../core/flow';
 import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
@@ -6,7 +6,6 @@ import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { OutputSocket } from '../core/socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
-import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
 import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-factory';
 import { getLogger } from '../logger';
 import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
@@ -14,7 +13,6 @@ import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
 import { makeTemplate } from '../common-utils';
 import { EnvironmentVars } from '../core/env';
 import { VoidCallback } from '../common-types';
-import { AppInputSocket } from '../io-sockets/app-input-socket';
 
 const { log } = getLogger('CombineMp4sToMovFlow');
 
@@ -24,18 +22,28 @@ export class CombineMp4sToMovFlow extends Flow {
    * @param _videoMp4Url
    * @param _audioUrl
    * @param _appInputCallback
-   * @param _useFileDonwloadSocket
+   * @param _useFileDownloadSocket
    * @param _downloadLinkContainer
    * @param _isMp3Audio
    */
   constructor (
     private _videoMp4Url: string,
     private _audioUrl: string,
-    private _useFileDonwloadSocket: boolean = false,
-    private _downloadLinkContainer: HTMLElement = null,
+    useFileDownloadSocket: boolean = false,
+    downloadLinkContainer: HTMLElement = null,
     private _isMp3Audio: boolean = false
   ) {
-    super();
+    super(
+      FlowConfigFlag.WITH_APP_SOCKET |
+      (useFileDownloadSocket && FlowConfigFlag.WITH_DOWNLOAD_SOCKET),
+      null,
+      null,
+      {
+        el: downloadLinkContainer,
+        mimeType: 'video/quicktime',
+        filenameTemplateBase: 'buffer${counter}-${Date.now()}.mp4'
+      }
+    )
   }
 
   private _setup () {
@@ -75,14 +83,6 @@ export class CombineMp4sToMovFlow extends Flow {
       const mediaSourceSocket: HTML5MediaSourceBufferSocket
           = new HTML5MediaSourceBufferSocket(new MediaSource()); // avc1.4d401f 'video/mp4; codecs=avc1.64001f'
       */
-
-      const downloadSocket: WebFileDownloadSocket =
-        new WebFileDownloadSocket(this._downloadLinkContainer, 'video/quicktime', makeTemplate('buffer${counter}-${Date.now()}.mp4'));
-
-      const appInputSocket: AppInputSocket =
-        new AppInputSocket((blob: Blob) => {
-          this.setCompleted({ code: FlowCompletionResultCode.OK, data: blob });
-        }, true, true, 'video/quicktime');
 
       let mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
 
@@ -135,13 +135,9 @@ export class CombineMp4sToMovFlow extends Flow {
         OutputSocket.fromUnsafe(eventData.socket).connect(muxerAudioInput);
       });
 
-      mp4MuxProc.out[0].connect(appInputSocket);
 
-      if (this._useFileDonwloadSocket) {
-        mp4MuxProc.out[0].connect(downloadSocket);
-      }
+      this.connectWithAllExternalSockets(mp4MuxProc[0])
 
-      this.getExternalSockets().add(appInputSocket);
     }
   }
 

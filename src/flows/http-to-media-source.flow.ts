@@ -2,7 +2,7 @@ import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { MPEGTSDemuxProcessor } from '../processors/mpeg-ts-demux.processor';
 import { MP4MuxProcessor, MP4MuxProcessorSupportedCodecs } from '../processors/mp4-mux-mozilla.processor';
-import { Flow, FlowStateChangeCallback } from '../core/flow';
+import { Flow, FlowStateChangeCallback, FlowConfigFlag } from '../core/flow';
 import { Socket, OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
@@ -21,6 +21,7 @@ export class HttpToMediaSourceFlow extends Flow {
 
   constructor (url: string, mediaSource: MediaSource) {
     super(
+      FlowConfigFlag.NONE,
       (prevState, newState) => {
         log('previous state:', prevState, 'new state:', newState);
       },

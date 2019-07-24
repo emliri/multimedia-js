@@ -1,4 +1,4 @@
-import { Flow, FlowStateChangeCallback } from '../core/flow';
+import { Flow, FlowStateChangeCallback, FlowConfigFlag } from '../core/flow';
 import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MPEGTSDemuxProcessor } from '../processors/mpeg-ts-demux.processor';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
@@ -10,6 +10,7 @@ export class TsToMp3Flow extends Flow {
 
   constructor (url: string) {
     super(
+      FlowConfigFlag.NONE,
       (prevState, newState) => {
         console.log('previous state:', prevState, 'new state:', newState);
       },
