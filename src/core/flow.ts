@@ -51,8 +51,8 @@ export type FlowStateChangeCallback = (previousState: FlowState, newState: FlowS
 
 export enum FlowConfigFlag {
   NONE = 0,
-  WITH_APP_SOCKET = 1,
-  WITH_DOWNLOAD_SOCKET = 2,
+  WITH_APP_SOCKET = 0b01,
+  WITH_DOWNLOAD_SOCKET = 0b10,
   ALL = 0xFFFFFFFF
 };
 
