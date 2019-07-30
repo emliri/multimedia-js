@@ -10,7 +10,6 @@ import { getLogger, LoggerLevel } from "../logger";
 import { PayloadDescriptor } from "../core/payload-description";
 import { MP4MuxProcessor } from "../processors/mp4-mux-mozilla.processor";
 import { PacketSymbol } from "../core/packet";
-import { makeTemplate } from "../common-utils";
 
 const { log } = getLogger("ConcatMp4sFlow", LoggerLevel.ON, true);
 
@@ -84,8 +83,8 @@ export class ConcatMp4sFlow extends Flow {
         onDemuxBSocketCreated(socket);
       });
 
-      const xhrSocketMovA = new XhrSocket(this._movUrlA);
-      const xhrSocketMovB = new XhrSocket(this._movUrlB);
+      const xhrSocketMovA = new XhrSocket(this._toggleConcatOrder ? this._movUrlB : this._movUrlA);
+      const xhrSocketMovB = new XhrSocket(this._toggleConcatOrder ? this._movUrlA : this._movUrlB);
 
       xhrSocketMovA.connect(mp4DemuxA.in[0])
       xhrSocketMovB.connect(mp4DemuxB.in[0])
@@ -96,80 +95,76 @@ export class ConcatMp4sFlow extends Flow {
 
         if (socket.payload().isVideo()) {
 
+          // create video input on muxer
           if (!mp4MuxerVideoIn) {
             mp4MuxerVideoIn = mp4Muxer.createInput();
           }
 
+          // wrap the demuxer output with a "valve" and connect it to muxer input
           fifoVideoA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
           fifoVideoA.connect(mp4MuxerVideoIn)
 
+          // called on fifo queue valve drain
+          // this is to replace the eos sym packets by sync ones (otherwise muxer will flush early)
           fifoVideoA.addPacketFilterPass((p) => {
-
             if (p.symbol === PacketSymbol.EOS) {
               p.symbol = PacketSymbol.SYNC;
-
-              videoAeosDroped = true;
-
-              attemptDrainVideoBFifo()
-
             }
             return p;
-
           });
 
+          // called on transfer to queue
+          // this is to check when we have extracted a whole track
           fifoVideoA.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
             log('video A EOS received on fifo queue')
-
-            fifoVideoA.drain();
+            videoAeosDroped = true;
+            attemptDrainVideoFifo()
           });
 
-          // could move that into valve CB ?
+          // called on transfer to output socket/fifo-queue/valve
+          // could move that into valve CB ...
           socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
-
             if (!payloadDescrVideoA) {
               payloadDescrVideoA = fifoVideoA.queue.peek().defaultPayloadInfo;
               log('got primary video payload description:', payloadDescrVideoA)
             }
-
           });
 
-        } else if (socket.payload().isAudio()) {
+        } else if (socket.payload().isAudio()) { // same as for video but with audio ... :)
 
+          // create audio input
           if (!mp4MuxerAudioIn) {
             mp4MuxerAudioIn = mp4Muxer.createInput();
           }
 
+          // wrap the demuxer output with a "valve" and connect it to muxer input
           fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
           fifoAudioA.connect(mp4MuxerAudioIn)
 
+          // called on fifo queue valve drain
+          // this is to replace the eos sym packets by sync ones (otherwise muxer will flush early)
           fifoAudioA.addPacketFilterPass((p) => {
-
             if (p.symbol === PacketSymbol.EOS) {
               p.symbol = PacketSymbol.SYNC;
-
-              audioAeosDroped = true;
-
-              attemptDrainAudioBFifo()
-
             }
             return p;
-
           });
 
+          // called on transfer to queue
+          // this is to check when we have extracted a whole track
           fifoAudioA.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
             log('audio A EOS received on fifo queue')
-
-            fifoAudioA.drain();
+            audioAeosDroped = true;
+            attemptDrainAudioFifo()
           });
 
-          // could move that into valve CB ?
+          // called on transfer to output socket/fifo-queue/valve
+          // could move that into valve CB ...
           socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
-
             if (!payloadDescrAudioA) {
               payloadDescrAudioA = fifoAudioA.queue.peek().defaultPayloadInfo;
               log('got primary audio payload description:', payloadDescrAudioA)
             }
-
           });
 
         }
@@ -202,7 +197,7 @@ export class ConcatMp4sFlow extends Flow {
 
             videoBeosReceived = true;
 
-            attemptDrainVideoBFifo()
+            attemptDrainVideoFifo()
 
           });
 
@@ -242,7 +237,7 @@ export class ConcatMp4sFlow extends Flow {
 
             audioBeosReceived = true;
 
-            attemptDrainAudioBFifo()
+            attemptDrainAudioFifo()
 
           });
 
@@ -258,7 +253,7 @@ export class ConcatMp4sFlow extends Flow {
         }
       }
 
-      function attemptDrainVideoBFifo() {
+      function attemptDrainVideoFifo() {
 
         if (videoAeosDroped && videoBeosReceived) {
           videoDurationA = payloadDescrVideoA.details.sequenceDurationInSeconds;
@@ -266,12 +261,14 @@ export class ConcatMp4sFlow extends Flow {
           videoDurationB = payloadDescrVideoB.details.sequenceDurationInSeconds;
           log('video duration of secondary payload (input B):', videoDurationB, 'secs')
           payloadDescrVideoA.details.sequenceDurationInSeconds = videoDurationA + videoDurationB;
+
+          fifoVideoA.drain();
           fifoVideoB.drain();
         }
 
       }
 
-      function attemptDrainAudioBFifo() {
+      function attemptDrainAudioFifo() {
 
         if (audioAeosDroped && audioBeosReceived) {
           audioDurationA = payloadDescrAudioA.details.sequenceDurationInSeconds;
@@ -279,6 +276,7 @@ export class ConcatMp4sFlow extends Flow {
           audioDurationB = payloadDescrAudioB.details.sequenceDurationInSeconds;
           log('audio duration of secondary payload (input B):', audioDurationB, 'secs')
           payloadDescrAudioA.details.sequenceDurationInSeconds = audioDurationA + audioDurationB;
+          fifoAudioA.drain();
           fifoAudioB.drain();
         }
 
