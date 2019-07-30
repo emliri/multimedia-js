@@ -59,11 +59,10 @@ export enum FlowConfigFlag {
 // TODO: create generic Set class in objec-ts
 export abstract class Flow extends EventEmitter<FlowEvent> {
 
-
   constructor (
     public readonly flags: FlowConfigFlag = FlowConfigFlag.NONE,
-    public onStateChangePerformed: FlowStateChangeCallback = () => {},
-    public onStateChangeAborted: (reason: string) => void = () => {},
+    private onStateChangePerformed: FlowStateChangeCallback = () => {},
+    private onStateChangeAborted: (reason: string) => void = () => {},
     downloadSocketParams?: {el :HTMLElement, mimeType: string, filenameTemplateBase: string}
   ) {
     super();
@@ -171,7 +170,10 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   abortPendingStateChange (reason: string) {
     this.onStateChangeAborted_(reason);
     this._pendingState = null;
-    this.onStateChangeAborted(reason);
+
+    if (this.onStateChangeAborted) {
+      this.onStateChangeAborted(reason);
+    }
 
     this.emit(FlowEvent.STATE_CHANGE_ABORTED);
   }
@@ -302,7 +304,10 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     this._prevState = previousState;
     this._state = newState;
     this._pendingState = null;
-    this.onStateChangePerformed(this._prevState, this._state);
+
+    if (this.onStateChangePerformed) {
+      this.onStateChangePerformed(this._prevState, this._state);
+    }
 
     this.emit(FlowEvent.STATE_CHANGED);
   }
