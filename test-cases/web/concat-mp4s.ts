@@ -15,6 +15,17 @@ export class ConcatMp4s extends MmjsTestCase {
       //'/test-data/mp4/v-0576p-1400k-libx264.mp4',
     );
 
+    const video = document.createElement('video')
+    video.width = 400
+    video.height = 300
+    this.domMountPoint.appendChild(video)
+
+    this._flow.whenCompleted()
+      .then((result: FlowCompletionResult) => {
+        video.src = URL.createObjectURL(result.data);
+        video.controls = true;
+      })
+
     done();
 
   }
