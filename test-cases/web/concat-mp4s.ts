@@ -1,6 +1,6 @@
 import { MmjsTestCase } from "../mmjs-test-case";
 import { ConcatMp4sFlow } from "../../src/flows/concat-mp4s.flow";
-import { FlowState } from "../../src/core/flow";
+import { FlowState, FlowCompletionResult } from "../../src/core/flow";
 
 export class ConcatMp4s extends MmjsTestCase {
 
