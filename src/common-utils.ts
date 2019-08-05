@@ -67,7 +67,7 @@ export function unsafeFlattenAnyNestedArray<T> (array: any[]): T[] {
 }
 
 export function lastOfArray<T> (a: T[]): T | null {
-  if (!a.length) {
+  if (a.length === 0) {
     return null;
   }
   return a[a.length - 1];
@@ -383,4 +383,51 @@ export function encodeFloat_8_8 (f: number): number {
 
 export function encodeLang (s: string): number {
   return ((s.charCodeAt(0) & 0x1F) << 10) | ((s.charCodeAt(1) & 0x1F) << 5) | (s.charCodeAt(2) & 0x1F);
+}
+
+export const MAX_BITMASK_WIDTH = 31 // EMCAscript runtimes use INT32 internally so if we exceed 31 width we get a negative number
+
+export function bitMaskHasFlag(value: number, flag: number): boolean {
+  return !!(value & flag)
+}
+
+export function bitMaskCombineFlags(value1: number, value2: number): number {
+  return value1 | value2
+}
+
+export function bitMaskInvertFlags(value: number,  enumSize: number = MAX_BITMASK_WIDTH): number {
+  let retValue = 0;
+  for (let i = 0; i < enumSize; i++) {
+    let maskSweepValue = (1 << i)
+    if (!(value & maskSweepValue)) {
+      retValue |=  maskSweepValue
+    }
+  }
+  return retValue
+}
+
+export function bitMaskValueOfFlagEnum(order: number): number {
+  if (order < 0) {
+    throw new Error('Enum order index must ordinal')
+  }
+  //const bitWidth: number = Math.ceil(Math.log2(enumerationMaxSize))
+  if (MAX_BITMASK_WIDTH < order) {
+    throw new Error(`Bitmask max-width (${MAX_BITMASK_WIDTH}) must be greater than given ordinal`)
+  }
+  const flagValue: number = 1 << order
+  return flagValue
+}
+
+export function bitMaskValueOfFlagEnumRange(from: number, to: number): number {
+  if (from >= to) {
+    throw new Error('Range must be strictly monotonic')
+  }
+  if (to > MAX_BITMASK_WIDTH) {
+    throw new Error('Range has to be lower than max bitwidth')
+  }
+  let value = 0;
+  for (let i = from; i <= to; i++) {
+    value |= (1 << i)
+  }
+  return value
 }
