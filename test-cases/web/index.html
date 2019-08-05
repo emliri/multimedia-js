@@ -5,6 +5,13 @@
         <title>mmjs framework - test cases</title>
         <link rel="stylesheet" href="../../node_modules/bootstrap/dist/css/bootstrap.css">
         <style>
+          #header {
+            margin-top: 1em;
+            padding-bottom: 1em;
+            text-align: center;
+            width: 100%;
+            border-bottom: 1px solid gray;
+          }
           #root {
             text-align: center;
           }
@@ -12,6 +19,9 @@
     </head>
 
     <body>
+      <div id="header">
+          <button id="runButton" onclick="onClickRun()" disabled>Run</button>
+      </div>
       <div id="root"></div>
     </body>
 
@@ -32,9 +42,17 @@
 
       printTestCases();
 
+      var runButton = document.getElementById('runButton')
+
       var index = MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0;
+
       setupTestCase(index, function() {
-        runTestCase(index)
+        console.log('Test-case setup done')
+        runButton.disabled = false;
       });
+
+      function onClickRun() {
+        runTestCase(index)
+      }
     </script>
 </html>
