@@ -16,14 +16,14 @@ const { log } = getLogger("ConcatMp4sFlow", LoggerLevel.ON, true);
 export class ConcatMp4sFlow extends Flow {
 
     /**
-     * @param _movUrlA First file URL
-     * @param _movUrlB Second file URL
+     * @param _movUrl1 First file URL
+     * @param _movUrl2 Second file URL
      * @param _allowReencode defaults to true. when true will re-encode to Bs tracks to As respective audio/video configurations
      * @param _toggleConcatOrder defaults to false. if true will toggle order of concatenation (B before A, but not changing re-encode behavior of course)
      */
     constructor(
-        private _movUrlA: string,
-        private _movUrlB:  string,
+        private _movUrl1: string,
+        private _movUrl2:  string,
         downloadEl?: HTMLElement,
         private _toggleConcatOrder: boolean = false,
     ) {
@@ -83,8 +83,11 @@ export class ConcatMp4sFlow extends Flow {
         onDemuxBSocketCreated(socket);
       });
 
-      const xhrSocketMovA = new XhrSocket(this._toggleConcatOrder ? this._movUrlB : this._movUrlA);
-      const xhrSocketMovB = new XhrSocket(this._toggleConcatOrder ? this._movUrlA : this._movUrlB);
+      const urlA = this._toggleConcatOrder ? this._movUrl2 : this._movUrl1;
+      const urlB = this._toggleConcatOrder ? this._movUrl1 : this._movUrl2;
+
+      const xhrSocketMovA = new XhrSocket(urlA);
+      const xhrSocketMovB = new XhrSocket(urlB);
 
       xhrSocketMovA.connect(mp4DemuxA.in[0])
       xhrSocketMovB.connect(mp4DemuxB.in[0])
