@@ -1,5 +1,7 @@
 # multimedia-js | MM-JS 
 
+## CI status
+
 <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://api.travis-ci.org/tchakabam/multimedia-js.svg?branch=master"></a>
 
 ## A toolkit and collection library for all things multimedia in JavaScript. Data-flow pipelines for processing. 
