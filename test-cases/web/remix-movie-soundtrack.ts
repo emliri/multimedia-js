@@ -2,6 +2,9 @@ import { MmjsTestCase } from '../mmjs-test-case';
 import { CombineMp4sToMovFlow } from '../../src/flows/combine-mp4s-to-mov.flow';
 import { FlowCompletionResult, FlowState } from '../../src/core/flow';
 
+const VIDEO_FILE = '/test-data/mp4/Jul-17-2019_12-32-47.mp4'
+const AUDIO_FILE = '/test-data/mp3/shalafon.mp3'
+
 export class RemixMovieSoundtrack extends MmjsTestCase {
 
   audioFileInput: HTMLInputElement;
@@ -31,14 +34,12 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
     this.domMountPoint.appendChild(videoFileInput);
 
     this.domMountPoint.appendChild(document.createElement('br'))
-
-    // TODO: use the bootstrap grid
-    this.domMountPoint.appendChild(document.createElement('br'))
-    this.domMountPoint.appendChild(document.createElement('br'))
     this.domMountPoint.appendChild(document.createElement('br'))
 
     const videoEl = this.videoEl = document.createElement('video');
     videoEl.controls = true;
+    videoEl.width = 800;
+    videoEl.height = 600;
     videoEl.addEventListener('error', () => {
       console.error(videoEl.error);
     });
@@ -63,10 +64,10 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
      *
      */
 
-    const videoUrl = videoFile ? URL.createObjectURL(videoFile) : '/test-data/mp4/SampleVideo_1280x720_5mb.mp4';
-    const audioUrl = audioFile ? URL.createObjectURL(audioFile) : '/test-data/mp3/shalafon.mp3';
+    const videoUrl = videoFile ? URL.createObjectURL(videoFile) : VIDEO_FILE;
+    const audioUrl = audioFile ? URL.createObjectURL(audioFile) : AUDIO_FILE;
 
-    // "good guess"
+    // "good guess (c)"
     const isMp3Audio = audioUrl.endsWith('.mp3');
 
     const flow = new CombineMp4sToMovFlow(
