@@ -296,8 +296,8 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       try {
         result = this.processTransfer_(inS, p, inputIndex);
       } catch (err) {
-        const msg = `There was an fatal internal error processing a packet: ${err.message}.`
-        error(`There was an internal fatal error processing a packet: ${err.message}`);
+        const msg = `There was an internal fatal error processing a packet: ${err.message}.`
+        error(msg, err);
         debug('Stacktrace:')
         debug(err);
         this.emitErrorEvent(ErrorCode.PROC_INTERNAL, msg, err)
