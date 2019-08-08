@@ -20,7 +20,12 @@
 
     <body>
       <div id="header">
-          <button id="runButton" onclick="onClickRun()" disabled>Run</button>
+
+        <p>
+          <b>MMjs Test-case:&nbsp;</b><label id="runButtonLabel">...</label>
+        </p>
+        <button id="runButton" onclick="onClickRun()" disabled>Run</button>
+
       </div>
       <div id="root"></div>
     </body>
@@ -36,23 +41,5 @@
 
     <script src="/dist/MMTestCasesWeb.umd.js"></script>
 
-    <script src="load-test-cases.js"></script>
-
-    <script>
-
-      printTestCases();
-
-      var runButton = document.getElementById('runButton')
-
-      var index = MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0;
-
-      setupTestCase(index, function() {
-        console.log('Test-case setup done')
-        runButton.disabled = false;
-      });
-
-      function onClickRun() {
-        runTestCase(index)
-      }
-    </script>
+    <script src="run.js"></script>
 </html>
