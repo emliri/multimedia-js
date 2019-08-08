@@ -1,12 +1,24 @@
 # Use-case: Concatenation
 
-- Fix inverted order case (duration bug?)
-
 - Fix example demuxing 4K video
 
 - Enable AAC codec data embedding / sample-description-indexing
 
+- Rewrite/encode AAC track for concatenation
+
+- Insert silent AAC soundtrack to movie file (special case of "remix")
+
 (- Enable everal SPS/PPS inside AVCc data? Replace pps/sps ID in NAL units?)
+
+# Dependencies
+
+- Hard-fork/clone inspector.js into source-tree
+
+# CI
+
+- Set up CI running lint & tests on master/PRs
+
+- Setup strict compiler mode
 
 # Bugs
 
@@ -16,11 +28,13 @@
 
 - Convert all MPEGTS-demuxer code to Typescript
 
-- Use proc-task workers for crypto-like things for example
+- Use proc-task workers for parallelizable (crypto-like or other heavy math) things
 
 - Remove hardcoded worker binary paths (make configurable)
 
 # Use-Cases
+
+- Inside flow: Proc/Proxy UID (like a PID for each to identify them across proxy vs worker instances)
 
 - Read from file or HTTP (or other URI-based source) transparently
 
