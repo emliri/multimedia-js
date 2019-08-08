@@ -1,4 +1,7 @@
 var rootEl = document.getElementById('root');
+var runButtonEl = document.getElementById('runButton')
+var runButtonLabelEl = document.getElementById('runButtonLabel')
+var testCaseIndex = MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0;
 
 var testCases = [];
 
@@ -19,16 +22,11 @@ var testCases = [];
 {
   printTestCases();
 
-  var runButtonEl = document.getElementById('runButton')
-  var runButtonLabelEl = document.getElementById('runButtonLabel')
-
-  var index = MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0;
-
-  var caseName = testCases[index][1];
+  var caseName = testCases[testCaseIndex][1];
 
   runButtonLabelEl.innerHTML = caseName;
 
-  setupTestCase(index, function() {
+  setupTestCase(testCaseIndex, function() {
     console.log('Test-case setup done')
     runButtonEl.disabled = false;
   });
@@ -40,7 +38,8 @@ function printTestCases() {
 }
 
 function onClickRun() {
-  runTestCase(index)
+  runButtonEl.disabled = true;
+  runTestCase(testCaseIndex)
 }
 
 
