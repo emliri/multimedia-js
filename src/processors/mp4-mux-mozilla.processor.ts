@@ -417,6 +417,7 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private onMp4MuxerData_ (data: Uint8Array) {
+    // FIXME: put "real" precise codec strings
     const p: Packet = Packet.fromArrayBuffer(data.buffer, 'video/mp4; codecs="avc1.64001f,mp4a.40.2"');
 
     log('transferring new mp4 data:', p);
