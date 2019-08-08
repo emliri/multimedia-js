@@ -46,99 +46,97 @@ export class CombineMp4sToMovFlow extends Flow {
     )
   }
 
-  private _setup () {
-    {
-      let ffmpegAacTranscodeProc = null;
-      if (this._isMp3Audio) { // the url might point to a blob so the file extension is not a criteria
-        const audioConfig: FFmpegConversionTargetInfo = {
-          targetBitrateKbps: 256,
-          targetCodec: 'aac',
-          targetFiletypeExt: 'mp4'
-        };
+  private _onWaitingToFlowing () {
+    let ffmpegAacTranscodeProc = null;
+    if (this._isMp3Audio) { // the url might point to a blob so the file extension is not a criteria
+      const audioConfig: FFmpegConversionTargetInfo = {
+        targetBitrateKbps: 256,
+        targetCodec: 'aac',
+        targetFiletypeExt: 'mp4'
+      };
 
-        log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
+      log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
 
-        ffmpegAacTranscodeProc = newProcessorWorkerShell(
-          unsafeProcessorType(FFmpegConvertProcessor), // WHY ?
-          [audioConfig, null],
-          [EnvironmentVars.FFMPEG_BIN_PATH]
-        );
-      }
-
-      const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor);
-      const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
-      const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
-
-      const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
-
-      this.add(mp4DemuxProcVideo, h264ParseProc, mp3ParseProc, mp4MuxProc);
-
-      const muxerVideoInput = mp4MuxProc.createInput();
-      const muxerAudioInput = mp4MuxProc.createInput();
-
-      const xhrSocketMovFile = new XhrSocket(this._videoMp4Url);
-      const xhrSocketAudioFile = new XhrSocket(this._audioUrl);
-
-      /*
-      const mediaSourceSocket: HTML5MediaSourceBufferSocket
-          = new HTML5MediaSourceBufferSocket(new MediaSource()); // avc1.4d401f 'video/mp4; codecs=avc1.64001f'
-      */
-
-      let mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
-
-      // hook up transcoding stage
-      let mp4AudioOutSocket = xhrSocketAudioFile;
-
-      if (ffmpegAacTranscodeProc) {
-
-        xhrSocketAudioFile.connect(ffmpegAacTranscodeProc.in[0]);
-        mp4AudioOutSocket = ffmpegAacTranscodeProc.out[0];
-      }
-      mp4AudioOutSocket.connect(mp4DemuxProcAudio.in[0]);
-
-      // DEPRECATED: support for mp3 ES in MP4 file (untranscoded)
-      // wire up audio data source
-      /*
-      if (audioUrl.endsWith('.mp3')) {
-        xhrSocketAudioFile.connect(mp3ParseProc.in[0]);
-        mp3ParseProc.out[0].connect(muxerAudioInput);
-      } else { // TODO: check using mimetypes from XHR
-        // assuming mp4a
-        mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
-        xhrSocketAudioFile.connect(mp4DemuxProcAudio.in[0]);
-      }
-      */
-
-      // wire up video
-      xhrSocketMovFile.connect(mp4DemuxProcVideo.in[0]);
-
-      // set up
-      mp4DemuxProcVideo.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
-
-        if (!eventData.socket.descriptor().payload().isVideo()) {
-          // ignore
-          return;
-        }
-
-        // FIXME: check the socket-descriptor actually is video
-        log('mp4 video demux output socket created');
-
-        // FIXME: avoid the unsafe cast here somehow?
-        OutputSocket.fromUnsafe(eventData.socket).connect(h264ParseProc.in[0]);
-
-        h264ParseProc.out[0].connect(muxerVideoInput);
-      });
-
-      mp4DemuxProcAudio.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
-        log('mp4 video demux output socket created');
-
-        OutputSocket.fromUnsafe(eventData.socket).connect(muxerAudioInput);
-      });
-
-
-      this.connectWithAllExternalSockets(mp4MuxProc[0])
-
+      ffmpegAacTranscodeProc = newProcessorWorkerShell(
+        unsafeProcessorType(FFmpegConvertProcessor), // WHY ?
+        [audioConfig, null],
+        [EnvironmentVars.FFMPEG_BIN_PATH]
+      );
     }
+
+    const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor);
+    const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
+    const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
+
+    const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
+
+    this.add(mp4DemuxProcVideo, h264ParseProc, mp3ParseProc, mp4MuxProc);
+
+    const muxerVideoInput = mp4MuxProc.createInput();
+    const muxerAudioInput = mp4MuxProc.createInput();
+
+    const xhrSocketMovFile = new XhrSocket(this._videoMp4Url);
+    const xhrSocketAudioFile = new XhrSocket(this._audioUrl);
+
+    /*
+    const mediaSourceSocket: HTML5MediaSourceBufferSocket
+        = new HTML5MediaSourceBufferSocket(new MediaSource()); // avc1.4d401f 'video/mp4; codecs=avc1.64001f'
+    */
+
+    let mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
+
+    // hook up transcoding stage
+    let mp4AudioOutSocket = xhrSocketAudioFile;
+
+    if (ffmpegAacTranscodeProc) {
+
+      xhrSocketAudioFile.connect(ffmpegAacTranscodeProc.in[0]);
+      mp4AudioOutSocket = ffmpegAacTranscodeProc.out[0];
+    }
+    mp4AudioOutSocket.connect(mp4DemuxProcAudio.in[0]);
+
+    // DEPRECATED: support for mp3 ES in MP4 file (untranscoded)
+    // wire up audio data source
+    /*
+    if (audioUrl.endsWith('.mp3')) {
+      xhrSocketAudioFile.connect(mp3ParseProc.in[0]);
+      mp3ParseProc.out[0].connect(muxerAudioInput);
+    } else { // TODO: check using mimetypes from XHR
+      // assuming mp4a
+      mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
+      xhrSocketAudioFile.connect(mp4DemuxProcAudio.in[0]);
+    }
+    */
+
+    // wire up video
+    xhrSocketMovFile.connect(mp4DemuxProcVideo.in[0]);
+
+    // set up
+    mp4DemuxProcVideo.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
+
+      if (!eventData.socket.descriptor().payload().isVideo()) {
+        // ignore
+        return;
+      }
+
+      // FIXME: check the socket-descriptor actually is video
+      log('mp4 video demux output socket created');
+
+      // FIXME: avoid the unsafe cast here somehow?
+      OutputSocket.fromUnsafe(eventData.socket).connect(h264ParseProc.in[0]);
+
+      h264ParseProc.out[0].connect(muxerVideoInput);
+    });
+
+    mp4DemuxProcAudio.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
+      log('mp4 video demux output socket created');
+
+      OutputSocket.fromUnsafe(eventData.socket).connect(muxerAudioInput);
+    });
+
+
+    this.connectWithAllExternalSockets(mp4MuxProc.out[0])
+
   }
 
   protected onVoidToWaiting_ (cb: VoidCallback) {
@@ -150,7 +148,7 @@ export class CombineMp4sToMovFlow extends Flow {
   }
 
   protected onWaitingToFlowing_ (cb: VoidCallback) {
-    this._setup();
+    this._onWaitingToFlowing();
     cb();
   }
 
