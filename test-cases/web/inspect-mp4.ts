@@ -4,12 +4,15 @@ import { newProcessorWorkerShell } from "../../src/core/processor-factory";
 import { XhrSocket } from "../../src/io-sockets/xhr.socket";
 import { ProcessorEvent, ProcessorEventData } from "../../src/core/processor";
 import { H264ParseProcessor } from "../../src/processors/h264-parse.processor";
-import { OutputSocket } from "../../src/core/socket";
+import { SocketEvent } from "../../src/core/socket";
 import { AACParseProcessor } from "../../src/processors/aac-parse.processor";
+import { LoggerLevel, getLogger } from "../../src/logger";
+import { OutputSocket } from "../../src/core/socket-output";
 
+const ENABLE_INSPECT_AUDIO = false;
+const ENABLE_INSPECT_VIDEO = false;
 
-const ENABLE_AUDIO = true;
-const ENABLE_VIDEO = false;
+const {log} = getLogger('InspectMp4', LoggerLevel.ON, true)
 
 export class InspectMp4 extends MmjsTestCase {
 
@@ -24,17 +27,42 @@ export class InspectMp4 extends MmjsTestCase {
     let h264Parse;
     let aacParse;
 
+    let videoTrackCnt = 0;
+    let audioTrackCnt = 0;
+
     const mp4Demux = newProcessorWorkerShell(MP4DemuxProcessor);
     mp4Demux.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
 
-      if (ENABLE_VIDEO && data.socket.payload().isVideo()) {
-        h264Parse = newProcessorWorkerShell(H264ParseProcessor);
-        OutputSocket.fromUnsafe(data.socket).connect(h264Parse.in[0])
+      if (data.socket.payload().isVideo()) {
+
+        let videoTrackNo = videoTrackCnt++;
+
+        log(`video track #${videoTrackNo} found`)
+
+        if (ENABLE_INSPECT_VIDEO) {
+          h264Parse = newProcessorWorkerShell(H264ParseProcessor);
+          OutputSocket.fromUnsafe(data.socket).connect(h264Parse.in[0])
+        }
+
+        OutputSocket.fromUnsafe(data.socket).addListener(SocketEvent.EOS_PACKET_RECEIVED, () => {
+          log(`video EOS for track #${videoTrackNo} received`)
+        })
       }
 
-      else if (ENABLE_AUDIO && data.socket.payload().isAudio()) {
-        aacParse = newProcessorWorkerShell(AACParseProcessor);
-        OutputSocket.fromUnsafe(data.socket).connect(aacParse.in[0])
+      else if (data.socket.payload().isAudio()) {
+
+        let audioTrackNo = audioTrackCnt++;
+
+        log(`audio track #${audioTrackNo} found`)
+
+        if (ENABLE_INSPECT_AUDIO) {
+          aacParse = newProcessorWorkerShell(AACParseProcessor);
+          OutputSocket.fromUnsafe(data.socket).connect(aacParse.in[0])
+        }
+
+        OutputSocket.fromUnsafe(data.socket).addListener(SocketEvent.EOS_PACKET_RECEIVED, () => {
+          log(`audio EOS for track #${audioTrackNo} received`)
+        })
       }
 
     });
