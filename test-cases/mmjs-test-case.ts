@@ -1,8 +1,12 @@
 export abstract class MmjsTestCase {
 
   constructor(
-    public domMountPoint: HTMLElement
+    public readonly domMountPoint: HTMLElement
   ) {}
+
+  protected getDomMountPoint(): HTMLElement {
+    return this.domMountPoint;
+  }
 
   abstract setup(done: () => void);
 
