@@ -12,6 +12,7 @@ import { makeUUID_v1 } from '../common-crypto';
 import { getLogger, LoggerLevel } from '../logger';
 
 import { Processors } from '../../index';
+import { cloneErrorInfo } from './error';
 // FIXME: import this importScripts so that logger categories can apply to self config
 // AND collect the config from localStorage at worker init (on SPAWN message)
 
@@ -110,6 +111,7 @@ log('setting new worker instance up ...');
       try {
         subContext.processor = new Processors[procName](...data.args);
       } catch (err) {
+        console.error('Failure calling processor-constructor; caused error:', err);
         error('Failure calling processor-constructor; caused error:', err);
       }
 
@@ -127,6 +129,11 @@ log('setting new worker instance up ...');
         eventDataClone.socket = eventData.socket ? <any> eventData.socket.descriptor().toJson() : null;
         if (eventData.error) {
           eventData.error.processor = null;
+
+          // copy clone-needy stuff over
+          const errorInfoClone = cloneErrorInfo(eventData.error, true)
+          eventData.error.innerError = errorInfoClone.innerError;
+          eventData.error.nativeError = errorInfoClone.nativeError;
         }
 
         const callbackData: ProcessorProxyWorkerCallbackData = {
@@ -241,6 +248,7 @@ log('setting new worker instance up ...');
       try {
         returnVal = (subContext.processor[methodName] as Function)(...data.args);
       } catch (err) {
+        console.error('Failure calling processor-method:', methodName, 'caused error:', err);
         error('Failure calling processor-method:', methodName, 'caused error:', err);
       }
 

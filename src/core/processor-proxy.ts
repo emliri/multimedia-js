@@ -6,6 +6,7 @@ import { Packet, PacketSymbol } from './packet';
 import { createProcessorFromShellName } from './processor-factory';
 import { VoidCallback } from '../common-types';
 import { EnvironmentVars } from '../core/env';
+import { ErrorCode } from './error';
 
 const { log, debug, warn, error } = getLogger('ProcessorProxy', LoggerLevel.ERROR);
 
@@ -53,6 +54,7 @@ export type ProcessorProxyWorkerSubContext = {
   name: string
 };
 
+// TODO: move this class to own file
 export class ProcessorProxyWorker {
   private _subContextId: number = null;
   private _gotSpawnCallback: boolean = false;
@@ -242,12 +244,21 @@ export class ProcessorProxy extends Processor {
       case ProcessorEvent.ERROR:
         // patch the proc ref back up with this proxys
         eventData.error.processor = this;
-        // emit the synthesized proxied event
-        this.emit(ProcessorEvent.ERROR, {
-          processor: this,
-          event: ProcessorEvent.ERROR,
-          error: eventData.error
-        });
+        // emit the synthesized proxied event (if we have any listeners)
+        if (this.listenerCount(ProcessorEvent.ERROR)) {
+          this.emit(ProcessorEvent.ERROR, {
+            processor: this,
+            event: ProcessorEvent.ERROR,
+            error: eventData.error
+          });
+        // if we have no listeners, make sure the error is being seen
+        } else {
+          console.error(`Unhandled error code ${eventData.error.code} (${ErrorCode[eventData.error.code]}): ${eventData.error.message}`)
+          if (eventData.error.nativeError) {
+            console.error('Native error:', eventData.error.nativeError)
+          }
+        }
+
         break;
       }
     };

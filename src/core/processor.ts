@@ -109,7 +109,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return eventData;
     }
 
-    createErrorEvent (code: ErrorCode, message: string, nativeError?: Error): ProcessorEventData {
+    createErrorEvent (code: ErrorCode, message: string, nativeError?: Error, innerError?: ErrorInfo): ProcessorEventData {
       if (code < ErrorCode.PROC_GENERIC) {
         throw new Error('Error-code is not for proc-type');
       }
@@ -119,14 +119,23 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
           code,
           space: ErrorCodeSpace.PROC,
           message,
-          processor: this
+          processor: this,
+          nativeError,
+          innerError
         }
       });
       return event;
     }
 
-    emitErrorEvent(code: ErrorCode, message: string, nativeError?: Error) {
-      this.emit(ProcessorEvent.ERROR, this.createErrorEvent(code, message, nativeError));
+    emitErrorEvent(code: ErrorCode, message: string, nativeError?: Error, innerError?: ErrorInfo) {
+      if (this.listenerCount(ProcessorEvent.ERROR)) {
+        this.emit(ProcessorEvent.ERROR, this.createErrorEvent(code, message, nativeError, innerError));
+      } else { // make sure the error is being seen if we have no listeners
+        console.error(`Unhandled error code ${code}: ${message}`)
+        if (nativeError) {
+          console.error('Native error:', nativeError)
+        }
+      }
     }
 
     emit (event: ProcessorEvent, data: ProcessorEventData) {
