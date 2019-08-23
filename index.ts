@@ -113,4 +113,6 @@ export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/cor
 
 export {
   setLocalLoggerLevel,
-  createAndGetLocalLoggerConfig as getLocalLoggerConfig, removeLocalLoggerConfig } from './src/logger';
+  createAndGetLocalLoggerConfig as getLocalLoggerConfig,
+  removeLocalLoggerConfig
+} from './src/logger';
