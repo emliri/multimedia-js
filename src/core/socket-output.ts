@@ -1,9 +1,10 @@
-import { Socket, SocketDescriptor, SocketType } from "./socket";
+import { SocketDescriptor, SocketType } from "./socket";
 import { Packet } from "./packet";
-import { log } from "util";
-import { makeLogTimestamped } from "../logger";
+import { makeLogTimestamped, getLogger, LoggerLevel } from "../logger";
 import { Signal, SignalReceiverCastResult, collectSignalReceiverCastResults } from "./signal";
+import { Socket } from "./socket-base";
 
+const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
 export class OutputSocket extends Socket {
   static fromUnsafe (s: Socket): OutputSocket {
     return (<OutputSocket> s);
