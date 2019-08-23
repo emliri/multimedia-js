@@ -12,12 +12,24 @@ export type ErrorInfoSpace<T extends ErrorCodeSpace> = ErrorInfo & {
 }
 
 /**
- * Caution: This does shallow clone. May matter if you have custom data.
+ * Caution: This does a (recursive) shallow clone. May matter if you have custom data.
  * In case you want that actually copied, take care of it yourself
  * @param errorInfo
  */
-export function cloneErrorInfo (errorInfo: ErrorInfo): ErrorInfo {
-  return Object.assign({}, errorInfo);
+export function cloneErrorInfo (errorInfo: ErrorInfo, synthesizeNativeError: boolean = false): ErrorInfo {
+  const clone = Object.assign({}, errorInfo);
+  if (synthesizeNativeError && clone.nativeError) {
+    const {message, stack, name} = clone.nativeError;
+    clone.nativeError = {
+      message,
+      stack,
+      name
+    };
+  }
+  if (clone.innerError) {
+    clone.innerError = cloneErrorInfo(errorInfo, synthesizeNativeError)
+  }
+  return clone;
 }
 
 /**
