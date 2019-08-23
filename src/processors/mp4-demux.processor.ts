@@ -17,7 +17,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { ErrorCode } from '../core/error';
 import { debugAccessUnit } from './h264/h264-tools';
 
-const { log, warn, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.ERROR);
+const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.ON, true);
 
 export const AUDIO_SAMPLING_RATES_LUT = [5500, 11025, 22050, 44100];
 export const AAC_SAMPLES_PER_FRAME = 1024;
@@ -65,7 +65,7 @@ export class MP4DemuxProcessor extends Processor {
     }
 
     protected handleSymbolicPacket_ (s: PacketSymbol) {
-      log('handling symbol:', s);
+      log('handling symbol:', PacketSymbol[s]);
 
       if (!this._haveStreamStart && s === PacketSymbol.EOS) {
         this.emit(ProcessorEvent.ERROR,
@@ -81,12 +81,14 @@ export class MP4DemuxProcessor extends Processor {
       this._haveStreamStart = true;
 
       p.data.forEach((bufferSlice) => {
+
         this._demuxer.append(bufferSlice.getUint8Array());
         this._demuxer.end();
 
         const tracks: TracksHash = this._demuxer.tracks;
 
         if (Object.keys(tracks).length === 0) {
+          error('No tracks found in input data');
           this.emitErrorEvent(ErrorCode.PROC_BAD_FORMAT, "No tracks were found in the parsed data (expecting MP4/MOV)");
           return;
         }
@@ -123,7 +125,7 @@ export class MP4DemuxProcessor extends Processor {
           let codecDataList: Uint8Array[] = [];
           let codecProfile: number = NaN;
 
-          if (track.type === Mp4Track.TYPE_VIDEO) {
+          if (track.isVideo()) {
             const videoAtom = <VideoAtom> track.getMetadataAtom();
             // FIXME: support HEVC too
             const avcCList: AvcC[] = (<AvcC[]> track.getReferenceAtoms());
@@ -180,7 +182,7 @@ export class MP4DemuxProcessor extends Processor {
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
 
-          } else if (track.type === Mp4Track.TYPE_AUDIO) {
+          } else if (track.isAudio()) {
 
             const audioAtom = <AudioAtom> track.getMetadataAtom();
             sampleDepth = audioAtom.sampleSize;
