@@ -293,6 +293,10 @@ export class Packet {
     return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
 
+  getSymbolName (): string {
+    return PacketSymbol[this.symbol]
+  }
+
   toString (): string {
     const p = this;
     const description =
