@@ -16,7 +16,7 @@ export class ChunkToMediaSource extends MmjsTestCase {
   private _videoEl: HTMLVideoElement;
   private _mediaSource: MediaSource;
 
-  setup() {
+  setup(done) {
     this._videoEl = document.createElement('video');
     this._videoEl.controls = true;
     this._videoEl.addEventListener('error', () => {
@@ -40,6 +40,8 @@ export class ChunkToMediaSource extends MmjsTestCase {
       URLs[0],
       this._mediaSource
     );
+
+    done()
 
   }
 
