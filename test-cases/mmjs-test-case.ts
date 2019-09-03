@@ -1,3 +1,5 @@
+import { VoidCallback } from "../src/common-types";
+
 export abstract class MmjsTestCase {
 
   constructor(
@@ -8,7 +10,7 @@ export abstract class MmjsTestCase {
     return this.domMountPoint;
   }
 
-  abstract setup(done: () => void);
+  abstract setup(done: VoidCallback);
 
   abstract run();
 }
