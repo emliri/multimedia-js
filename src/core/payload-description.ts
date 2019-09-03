@@ -1,4 +1,5 @@
 import { isIntegerIEEE754, isInteger } from '../common-utils';
+import { SocketDescriptor } from './socket';
 
 export type MimeType = string;
 export type MimeTypes = MimeType[];
@@ -23,6 +24,10 @@ export enum CommonMimeTypes {
   VIDEO_MP4 = 'video/mp4',
   VIDEO_AVC = 'video/avc',
   VIDEO_AAC = 'video/aac'
+}
+
+export enum CommonCodecFourCCs {
+  // TODO ...
 }
 
 export enum MimetypePrefix {
@@ -56,6 +61,12 @@ function doesMimetypeHaveCodec (mimeType: string): boolean {
 }
 
 export class PayloadDescriptor {
+
+  static fromMimeTypeParse(mimeType: string): SocketDescriptor {
+    // TODO
+    throw new Error('Not implemented')
+  }
+
   /**
    * mime-type if defined
    */
