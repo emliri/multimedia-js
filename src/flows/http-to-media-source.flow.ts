@@ -7,11 +7,12 @@ import { Socket, OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
-import { getLogger } from '../logger';
+import { getLogger, LoggerLevel } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
 import { VoidCallback } from '../common-types';
+import { newProcessorWorkerShell } from '../core/processor-factory';
 
-const { log } = getLogger('HttpToMediaSourceFlow');
+const { log } = getLogger('HttpToMediaSourceFlow', LoggerLevel.ON, true);
 
 export class HttpToMediaSourceFlow extends Flow {
   private _xhrSocket: XhrSocket;
@@ -19,7 +20,7 @@ export class HttpToMediaSourceFlow extends Flow {
   private _haveVideo = false;
   private _haveAudio = false;
 
-  constructor (url: string, mediaSource: MediaSource) {
+  constructor (private _url: string, private _mediaSource: MediaSource) {
     super(
       FlowConfigFlag.NONE,
       (prevState, newState) => {
@@ -30,15 +31,38 @@ export class HttpToMediaSourceFlow extends Flow {
       }
     );
 
-    const mp4DemuxProc = new MP4DemuxProcessor();
-    const tsDemuxProc = new MPEGTSDemuxProcessor();
-    const h264ParseProc = new H264ParseProcessor();
-    const mp4MuxProc = new MP4MuxProcessor();
+  }
 
-    const xhrSocket = this._xhrSocket = new XhrSocket(url);
+  /**
+   * @override
+   */
+  getExternalSockets (): Set<Socket> {
+    return new Set([this._xhrSocket]);
+  }
+
+  protected onCompleted_ (done: VoidCallback) {
+    done()
+  }
+
+  protected onVoidToWaiting_ (done: VoidCallback) {
+    done()
+  }
+
+  protected onWaitingToVoid_ (done: VoidCallback) {
+    done()
+  }
+
+  protected onWaitingToFlowing_ (done: VoidCallback) {
+
+    const mp4DemuxProc = newProcessorWorkerShell(MP4DemuxProcessor);
+    const tsDemuxProc = newProcessorWorkerShell(MPEGTSDemuxProcessor);
+    const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
+    const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
+
+    const xhrSocket = this._xhrSocket = new XhrSocket(this._url);
 
     const mediaSourceSocket: HTML5MediaSourceBufferSocket =
-      new HTML5MediaSourceBufferSocket(mediaSource); // avc1.4d401f
+      new HTML5MediaSourceBufferSocket(this._mediaSource); // avc1.4d401f
 
     const onDemuxOutputCreated = (data: ProcessorEventData) => {
       const demuxOutputSocket = <OutputSocket> data.socket;
@@ -54,6 +78,7 @@ export class HttpToMediaSourceFlow extends Flow {
         muxerInputSocket = mp4MuxProc.createInput();
         h264ParseProc.out[0].connect(muxerInputSocket);
       } else if (data.processor === tsDemuxProc) {
+
         if (!this._haveVideo &&
             PayloadCodec.isAvc(payloadDescriptor.codec)) {
           this._haveVideo = true;
@@ -75,31 +100,20 @@ export class HttpToMediaSourceFlow extends Flow {
     mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
 
     mp4MuxProc.out[0].connect(mediaSourceSocket);
-    mp4MuxProc.out[0].connect(mediaSourceSocket);
 
-    if (url.endsWith('.ts')) { // FIXME use mime-type of response
+    if (this._url.endsWith('.ts')) { // FIXME use mime-type of response
       xhrSocket.connect(tsDemuxProc.in[0]);
     } else { // FIXME use mime-type of response
       xhrSocket.connect(mp4DemuxProc.in[0]);
     }
+
+    done()
   }
 
-  /**
-   * @override
-   */
-  getExternalSockets (): Set<Socket> {
-    return new Set([this._xhrSocket]);
+  protected onFlowingToWaiting_ (done: VoidCallback) {
+    done()
   }
 
-  protected onCompleted_ (done: VoidCallback) {}
-
-  protected onVoidToWaiting_ (done: VoidCallback) {}
-
-  protected onWaitingToVoid_ (done: VoidCallback) {}
-
-  protected onWaitingToFlowing_ (done: VoidCallback) {}
-
-  protected onFlowingToWaiting_ (done: VoidCallback) {}
-
-  protected onStateChangeAborted_ (reason: string) {}
+  protected onStateChangeAborted_ (reason: string) {
+  }
 }
