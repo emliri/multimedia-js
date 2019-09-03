@@ -1,4 +1,3 @@
-import { ProcessorTask, postTaskMessage } from '../../core/processor-task';
 import { CommonMimeTypes } from '../../core/payload-description';
 import { Packet } from '../../core/packet';
 import { BufferSlice } from '../../core/buffer';
@@ -10,7 +9,10 @@ import { BufferProperties } from '../../core/buffer-props';
 
 const { log } = getLogger('TSDemuxerTask');
 
-export function processTSDemuxerAppend (task: ProcessorTask) {
+export function runMpegTsDemux (p: Packet): Packet[] {
+
+  const outputPacketList: Packet[] = [];
+
   const demuxer = new TSDemuxer((
     audioTrack,
     avcTrack,
@@ -33,16 +35,15 @@ export function processTSDemuxerAppend (task: ProcessorTask) {
       const mimeType = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
 
       bufferSlice.props = new BufferProperties(mimeType);
-      bufferSlice.props.codec = audioTrack.isAAC ? audioTrack.codec : 'mp3a'; // FIXME
+      bufferSlice.props.codec = audioTrack.isAAC ? /*audioTrack.codec*/ 'mp4a' : 'mp3a'; // FIXME
       bufferSlice.props.elementaryStreamId = audioTrack.pid;
 
       bufferSlice.props.details.codecConfigurationData = audioTrack.config;
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
-      postTaskMessage(task.workerContext, {
-        packet
-      });
+      outputPacketList.push(packet);
+
     });
 
     avcTrack.samples.forEach((sample) => {
@@ -54,11 +55,11 @@ export function processTSDemuxerAppend (task: ProcessorTask) {
 
         bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC);
 
-        bufferSlice.props.codec = avcTrack.codec;
+        bufferSlice.props.codec = 'avc1'; // avcTrack.codec;
         bufferSlice.props.elementaryStreamId = avcTrack.pid;
 
         bufferSlice.props.isKeyframe = sample.key || unit.type === 5; // IDR
-        bufferSlice.props.isBitstreamHeader = unit.type >= 7 && unit.type <= 8; // SPS/PPS
+        bufferSlice.props.isBitstreamHeader = unit.type === 7 || unit.type === 8; // SPS/PPS
 
         bufferSlice.props.details.width = avcTrack.width;
         bufferSlice.props.details.height = avcTrack.height;
@@ -75,24 +76,24 @@ export function processTSDemuxerAppend (task: ProcessorTask) {
 
         const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
-        postTaskMessage(task.workerContext, {
-          packet
-        });
+        outputPacketList.push(packet);
+
+
       });
     });
 
-    postTaskMessage(task.workerContext, {
-      packet: Packet.newFlush()
-    });
+    outputPacketList.push(Packet.newFlush());
 
     return void 0;
   });
 
   demuxer.reset();
 
-  const p = Packet.fromTransferable(task.packet);
+  //const p = Packet.fromTransferable(packet);
 
   p.forEachBufferSlice((bufferSlice) => {
     demuxer.append(bufferSlice.getUint8Array(), 0, true, 0);
   });
+
+  return outputPacketList;
 }

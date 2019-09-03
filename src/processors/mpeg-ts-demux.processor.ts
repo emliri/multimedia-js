@@ -1,10 +1,12 @@
 import { Processor } from '../core/processor';
 
 import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplateGenerator } from '../core/socket';
-import { Packet } from '../core/packet';
+import { Packet, PacketSymbol } from '../core/packet';
 
 import { getLogger } from '../logger';
 import { PayloadDescriptor, PayloadCodec } from '../core/payload-description';
+import { runMpegTsDemux } from './mpeg-ts/ts-demuxer-w';
+import { BufferSlice } from '../core/buffer';
 
 const { log } = getLogger('MPEGTSDemuxProcessor');
 
@@ -68,8 +70,47 @@ export class MPEGTSDemuxProcessor extends Processor {
     return s;
   }
 
-  protected processTransfer_ (inS: InputSocket, p: Packet) {
-    this.dispatchTask('tsdemuxer', p);
+  protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
+
+    const outputPackets: Packet[] = runMpegTsDemux(inPacket);
+
+    let audioSocket: OutputSocket = null;
+    let videoSocket: OutputSocket = null;
+
+    outputPackets.forEach((p: Packet) => {
+
+      if (p.isSymbolic()) {
+        console.log('got symbolic packet:', p.getSymbolName())
+        return;
+      }
+
+      if (p.defaultPayloadInfo.isVideo()) {
+
+        if (!videoSocket) {
+          videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]))
+        }
+
+        //console.log(videoSocket)
+
+        //console.log(p)
+
+        videoSocket.transfer(p);
+
+      } else if (p.defaultPayloadInfo.isAudio()) {
+
+        if (!audioSocket) {
+          audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]))
+        }
+
+        //console.log(p)
+
+        audioSocket.transfer(p);
+
+      } else {
+        throw new Error('Unsupported payload: ' + p.defaultMimeType);
+      }
+
+    })
 
     return true;
   }
