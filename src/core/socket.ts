@@ -47,6 +47,10 @@ export class SocketDescriptor {
     return new SocketDescriptor(payloads);
   }
 
+  /**
+   * !! NOTE: Keep this in sync with BufferProperties.clone
+   * @param serializedSd
+   */
   static fromJson(serializedSd: string): SocketDescriptor {
     const sd: SocketDescriptor = JSON.parse(serializedSd);
     // now lets brings this dead thing back to life
@@ -58,6 +62,8 @@ export class SocketDescriptor {
           payload.sampleDepth,
           payload.sampleDurationNumerator
         );
+        pd.codec = payload.codec;
+        pd.elementaryStreamId = payload.elementaryStreamId;
         pd.details = payload.details;
         return pd;
       })
