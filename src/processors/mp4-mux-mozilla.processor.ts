@@ -217,6 +217,8 @@ export class MP4MuxProcessor extends Processor {
           const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
           */
 
+          // the SPS/PPS data we use comes already in a regular NALU but we rewrite the header just for fun
+          // this is why we bust the first byte which is the header
           const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0].subarray(1)), NALU.SPS, 3);
           const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
 
