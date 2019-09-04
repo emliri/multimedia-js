@@ -19,7 +19,6 @@ import {
   SampleEntry,
   SampleFlags,
   AudioSampleEntry,
-  RawTag,
   VideoSampleEntry,
   VideoMediaHeaderBox,
   TrackHeaderFlags,
@@ -55,7 +54,7 @@ import {
 
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
 import { getLogger } from '../../logger';
-import { BoxContainerBox, Box } from './mp4iso-base';
+import { BoxContainerBox, Box, RawTag } from './mp4iso-base';
 import { SampleTablePackager } from './mp4iso-sample-table';
 
 const { warn, debug } = getLogger('MP4Mux(moz)');

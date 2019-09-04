@@ -117,3 +117,22 @@ export class FullBox extends Box {
     return offset + 4;
   }
 }
+
+export class RawTag extends Box {
+  public data: Uint8Array;
+
+  constructor (type: string, data: Uint8Array) {
+    super(type);
+    this.data = data;
+  }
+  public layout (offset: number): number {
+    this.size = super.layout(offset) + this.data.length;
+    return this.size;
+  }
+
+  public write (data: Uint8Array): number {
+    let offset = super.write(data);
+    data.set(this.data, this.offset + offset);
+    return offset + this.data.length;
+  }
+}

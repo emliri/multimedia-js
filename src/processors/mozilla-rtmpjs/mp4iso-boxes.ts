@@ -1010,22 +1010,51 @@ export class VideoSampleEntry extends SampleEntry {
   }
 }
 
-export class RawTag extends Box {
-    public data: Uint8Array;
+export class AvcCodecDataBox extends Box {
+  constructor(
+    public spsNALUs: Uint8Array[],
+    public ppsNALUs: Uint8Array[],
+    public version: number,
+    public profile: number,
+    public profileCompatibility: number,
+    public level: number,
+    public nalUnitSizeFieldLength: number = 4
+  ) {
+    super('avcC');
+  }
 
-    constructor (type: string, data: Uint8Array) {
-      super(type);
-      this.data = data;
-    }
-    public layout (offset: number): number {
-      this.size = super.layout(offset) + this.data.length;
-      return this.size;
-    }
+  public write (data: Uint8Array): number {
+    let offset = super.write(data);
 
-    public write (data: Uint8Array): number {
-      let offset = super.write(data);
-      data.set(this.data, this.offset + offset);
-      return offset + this.data.length;
-    }
+    data[0] = this.version;
+    data[1] = this.profile;
+    data[2] = this.profileCompatibility;
+    data[3] = this.level;
+
+    // @see FFmpeg/libavformat/avc.c
+    data[4] = 0xff & (this.nalUnitSizeFieldLength - 1) & 0x03;  /* 6 bits reserved (111111) + 2 bits nal size length - 1 (11) */
+    data[5] = 0xff & this.spsNALUs.length & 0x1f;                    /* 3 bits reserved (111) + 5 bits number of sps (00001) */
+
+    offset = 6;
+
+    this.spsNALUs.forEach((spsNalUnit) => {
+      data.set([(spsNalUnit.byteLength >> 8), (spsNalUnit.byteLength) & 0x00ff], offset); // TODO: use writeUint16/writeInt16
+      offset += 2;
+      data.set(spsNalUnit, offset);
+      offset += spsNalUnit.byteLength;
+    });
+
+    data[offset] = this.ppsNALUs.length & 0x1f;
+
+    this.ppsNALUs.forEach((ppsNalUnit) => {
+      data.set([(ppsNalUnit.byteLength >> 8), (ppsNalUnit.byteLength) & 0x00ff], offset); // TODO: use writeUint16/writeInt16
+      offset += 2;
+      data.set(ppsNalUnit, offset)
+      offset += ppsNalUnit.byteLength;
+    });
+
+    return offset;
+  }
 }
+
 // }
