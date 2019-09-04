@@ -34,6 +34,8 @@
 
 # Use-Cases
 
+- Abstract away read/write of binary data (byte-parser/writer) for using DataView implementations transparently
+
 - Inside flow: Proc/Proxy UID (like a PID for each to identify them across proxy vs worker instances)
 
 - Read from file or HTTP (or other URI-based source) transparently
