@@ -322,7 +322,11 @@ export function utf8decode (str) {
   return bytes.subarray(0, b);
 }
 
+const THROW_ERROR_ON_WRITE_VALUE_OVERFLOW = false;
+
 export const MAX_UINT_32 = 4294967296;
+export const MAX_INT_32 = MAX_UINT_32 / 2;
+export const MIN_INT_32 = - MAX_INT_32;
 export const MAX_UINT_16 = 65536;
 
 export const readUint16 = (buffer: Uint8Array, offset: number): number => {
@@ -340,6 +344,11 @@ export const readUint32 = (buffer: Uint8Array, offset: number): number => {
 };
 
 export function writeUint32 (buffer: Uint8Array, offset: number, value: number): number {
+  if (THROW_ERROR_ON_WRITE_VALUE_OVERFLOW) {
+    if (value > MAX_UINT_32) {
+      throw new Error('Can not write value outside range')
+    }
+  }
   buffer[offset] = value >> 24;
   buffer[offset + 1] = (value >> 16) & 0xff;
   buffer[offset + 2] = (value >> 8) & 0xff;
@@ -348,12 +357,19 @@ export function writeUint32 (buffer: Uint8Array, offset: number, value: number):
 }
 
 export function writeInt32 (data: Uint8Array, offset: number, value: number): number {
+  if (THROW_ERROR_ON_WRITE_VALUE_OVERFLOW) {
+    if (Math.abs(value) > MAX_INT_32) {
+      throw new Error('Can not write value outside range')
+    }
+  }
   data[offset] = (value >> 24) & 255;
   data[offset + 1] = (value >> 16) & 255;
   data[offset + 2] = (value >> 8) & 255;
   data[offset + 3] = value & 255;
   return 4;
 }
+
+//TODO: writeUint16/writeInt16
 
 export function decodeInt32 (s: string): number {
   return (s.charCodeAt(0) << 24) | (s.charCodeAt(1) << 16) |
