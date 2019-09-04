@@ -88,7 +88,7 @@ export function makeNALUFromH264RbspData(
   }
 
   if (nalRefIdc >= 4) {
-    throw new Error('Invalued NAL_ref_IDC value: ' + nalRefIdc)
+    throw new Error('Invalid NAL_ref_IDC value: ' + nalRefIdc)
   }
 
   if (extensionHeaderData && extensionHeaderData.byteLength !== 3) {
