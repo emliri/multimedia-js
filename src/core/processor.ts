@@ -41,6 +41,32 @@ export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
 export const PROCESSOR_RPC_INVOKE_PACKET_HANDLER = 'mmjs:processor:RPC:invokePacketHandler';
 
+export enum ProcessorConfigParamType {
+  NUMBER = 'number',
+  STRING = 'string',
+  OBJECT = 'object',
+  ANY = 'any'
+}
+
+export type ProcessorConfigParam = {name: string, type: ProcessorConfigParamType, value: any}
+
+export function createProcessorConfigParam(name: string,
+  value: any, type: ProcessorConfigParamType = ProcessorConfigParamType.ANY): ProcessorConfigParam {
+  if (value === undefined) {
+    throw new Error('Config param value can not be undefined')
+  }
+  return {
+    name,
+    value,
+    type
+  }
+}
+
+export function createProcessorConfigParamsFromArguments(args: any[]): ProcessorConfigParam[] {
+  const params = [];
+  return params;
+}
+
 export abstract class Processor extends EventEmitter<ProcessorEvent> implements SocketOwner, SignalReceiver {
   static getName (): string {
     return null;
@@ -85,6 +111,10 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       this[PROCESSOR_RPC_INVOKE_PACKET_HANDLER] = (p: Packet, inputIndex: number) => {
         this.onReceiveFromInput_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
       };
+    }
+
+    configure(params: ProcessorConfigParam[]) {
+      throw new Error('Configure called but not implemented');
     }
 
     terminate () {
