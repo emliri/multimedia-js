@@ -10,6 +10,9 @@ import { getLogger, LoggerLevel } from "../logger";
 import { PayloadDescriptor } from "../core/payload-description";
 import { MP4MuxProcessor } from "../processors/mp4-mux-mozilla.processor";
 import { PacketSymbol } from "../core/packet";
+import { FFmpegConvertProcessor } from "../processors/ffmpeg-convert.processor";
+import { FFmpegConversionTargetInfo } from "../processors/ffmpeg/ffmpeg-tool";
+import { EnvironmentVars } from "../core/env";
 
 const { log } = getLogger("ConcatMp4sFlow", LoggerLevel.ON, true);
 
@@ -70,6 +73,36 @@ export class ConcatMp4sFlow extends Flow {
 
       const mp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
       const mp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
+
+      const audioConfig: FFmpegConversionTargetInfo = {
+        targetBitrateKbps: 256,
+        targetCodec: 'aac',
+        targetFiletypeExt: 'mp4'
+      };
+
+      const aacTranscoderMp4MuxA = newProcessorWorkerShell(MP4MuxProcessor);
+      const aacTranscoderA = newProcessorWorkerShell(
+        unsafeProcessorType(FFmpegConvertProcessor),
+        [audioConfig, null],
+        [EnvironmentVars.FFMPEG_BIN_PATH]
+      );
+      const aacTranscoderMp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
+
+      const aacTranscoderMp4MuxB = newProcessorWorkerShell(MP4MuxProcessor);
+      const aacTranscoderB = newProcessorWorkerShell(
+        unsafeProcessorType(FFmpegConvertProcessor),
+        [audioConfig, null],
+        [EnvironmentVars.FFMPEG_BIN_PATH]
+      );
+      const aacTranscoderMp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
+
+      aacTranscoderMp4MuxA.out[0].connect(aacTranscoderA.in[0])
+      aacTranscoderA.out[0].connect(aacTranscoderMp4DemuxA.in[0])
+      const aacTranscodeInA = aacTranscoderMp4MuxA.createInput();
+
+      aacTranscoderMp4MuxB.out[0].connect(aacTranscoderB.in[0])
+      aacTranscoderB.out[0].connect(aacTranscoderMp4DemuxB.in[0])
+      const aacTranscodeInB = aacTranscoderMp4MuxB.createInput();
 
       const mp4Muxer = newProcessorWorkerShell(MP4MuxProcessor);
 
@@ -140,35 +173,49 @@ export class ConcatMp4sFlow extends Flow {
             mp4MuxerAudioIn = mp4Muxer.createInput();
           }
 
-          // wrap the demuxer output with a "valve" and connect it to muxer input
-          fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
-          fifoAudioA.connect(mp4MuxerAudioIn)
+          console.warn('demux A audio socket created')
 
-          // called on fifo queue valve drain
-          // this is to replace the eos sym packets by sync ones (otherwise muxer will flush early)
-          fifoAudioA.addPacketFilterPass((p) => {
-            if (p.symbol === PacketSymbol.EOS) {
-              p.symbol = PacketSymbol.SYNC;
-            }
-            return p;
-          });
+          OutputSocket.fromUnsafe(socket).connect(aacTranscodeInA);
 
-          // called on transfer to queue
-          // this is to check when we have extracted a whole track
-          fifoAudioA.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
-            log('audio A EOS received on fifo queue')
-            audioAeosDroped = true;
-            attemptDrainAudioFifo()
-          });
+          aacTranscoderMp4DemuxA.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
 
-          // called on transfer to output socket/fifo-queue/valve
-          // could move that into valve CB ...
-          socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
-            if (!payloadDescrAudioA) {
-              payloadDescrAudioA = fifoAudioA.queue.peek().defaultPayloadInfo;
-              log('got primary audio payload description:', payloadDescrAudioA)
-            }
-          });
+            console.warn('aac transcoder A socket created')
+
+            socket = data.socket;
+
+            // wrap the demuxer output with a "valve" and connect it to muxer input
+            fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+            fifoAudioA.connect(mp4MuxerAudioIn)
+
+            // called on fifo queue valve drain
+            // this is to replace the eos sym packets by sync ones (otherwise muxer will flush early)
+            fifoAudioA.addPacketFilterPass((p) => {
+              if (p.symbol === PacketSymbol.EOS) {
+                p.symbol = PacketSymbol.SYNC;
+              }
+              return p;
+            });
+
+            // called on transfer to queue
+            // this is to check when we have extracted a whole track
+            fifoAudioA.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
+              log('audio A EOS received on fifo queue')
+              audioAeosDroped = true;
+              attemptDrainAudioFifo()
+            });
+
+            // called on transfer to output socket/fifo-queue/valve
+            // could move that into valve CB ...
+            socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
+              if (!payloadDescrAudioA) {
+                payloadDescrAudioA = fifoAudioA.queue.peek().defaultPayloadInfo;
+                log('got primary audio payload description:', payloadDescrAudioA)
+              }
+            });
+
+          })
+
+
 
         }
       }
@@ -220,39 +267,52 @@ export class ConcatMp4sFlow extends Flow {
             mp4MuxerAudioIn = mp4Muxer.createInput();
           }
 
-          fifoAudioB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
-          fifoAudioB.connect(mp4MuxerAudioIn)
+          console.warn('demux B audio socket created')
 
-          fifoAudioB.addPacketFilterPass((p) => {
+          OutputSocket.fromUnsafe(socket).connect(aacTranscodeInB);
 
-            if (p.defaultPayloadInfo && p.defaultPayloadInfo.isBitstreamHeader) {
-              log('found secondary payload audio bitstream header')
-            }
+          aacTranscoderMp4DemuxB.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
 
-            p.timestamp = p.timestamp
-              + (p.getTimescale() * audioDurationA)
+            console.warn('aac transcoder B socket created')
 
-            return p;
-          })
+            socket = data.socket;
 
-          fifoAudioB.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
-            log('audio B EOS received on fifo queue')
+            fifoAudioB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+            fifoAudioB.connect(mp4MuxerAudioIn)
 
-            audioBeosReceived = true;
+            fifoAudioB.addPacketFilterPass((p) => {
 
-            attemptDrainAudioFifo()
+              if (p.defaultPayloadInfo && p.defaultPayloadInfo.isBitstreamHeader) {
+                log('found secondary payload audio bitstream header')
+              }
+
+              p.timestamp = p.timestamp
+                + (p.getTimescale() * audioDurationA)
+
+              return p;
+            })
+
+            fifoAudioB.queue.on(SocketEvent.EOS_PACKET_RECEIVED, () => {
+              log('audio B EOS received on fifo queue')
+
+              audioBeosReceived = true;
+
+              attemptDrainAudioFifo()
+
+            });
+
+            // could move that into valve CB ?
+            socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
+
+              if (!payloadDescrAudioB) {
+                payloadDescrAudioB = fifoAudioB.queue.peek().defaultPayloadInfo;
+                log('got secondary audio payload description:', payloadDescrAudioB)
+              }
+
+            });
 
           });
 
-          // could move that into valve CB ?
-          socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
-
-            if (!payloadDescrAudioB) {
-              payloadDescrAudioB = fifoAudioB.queue.peek().defaultPayloadInfo;
-              log('got secondary audio payload description:', payloadDescrAudioB)
-            }
-
-          });
         }
       }
 
