@@ -19,6 +19,7 @@ export class FFmpegConvertProcessor extends Processor {
     private _audioConfig: FFmpegConversionTargetInfo = null,
     private _videoConfig: FFmpegConversionTargetInfo = null,
     private _defaultInputFileExt: string = 'dat') {
+
     super();
 
     if (!_audioConfig && !_videoConfig) {
@@ -41,7 +42,7 @@ export class FFmpegConvertProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
-    let inputFileExt: string = p.defaultPayloadInfo.getMediaSubtype();
+    let inputFileExt: string = p.defaultPayloadInfo.getMediaSubtype(true);
     if (inputFileExt === '*') {
       inputFileExt = this._defaultInputFileExt;
     }
