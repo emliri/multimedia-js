@@ -14,7 +14,7 @@ import { FFmpegConvertProcessor } from "../processors/ffmpeg-convert.processor";
 import { FFmpegConversionTargetInfo } from "../processors/ffmpeg/ffmpeg-tool";
 import { EnvironmentVars } from "../core/env";
 
-const { log } = getLogger("ConcatMp4sFlow", LoggerLevel.ON, true);
+const { debug, log } = getLogger("ConcatMp4sFlow", LoggerLevel.ON, true);
 
 export class ConcatMp4sFlow extends Flow {
 
@@ -173,13 +173,13 @@ export class ConcatMp4sFlow extends Flow {
             mp4MuxerAudioIn = mp4Muxer.createInput();
           }
 
-          console.warn('demux A audio socket created')
+          debug('demux A audio socket created')
 
           OutputSocket.fromUnsafe(socket).connect(aacTranscodeInA);
 
           aacTranscoderMp4DemuxA.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
 
-            console.warn('aac transcoder A socket created')
+            debug('aac transcoder A socket created')
 
             socket = data.socket;
 
@@ -267,13 +267,13 @@ export class ConcatMp4sFlow extends Flow {
             mp4MuxerAudioIn = mp4Muxer.createInput();
           }
 
-          console.warn('demux B audio socket created')
+          debug('demux B audio socket created')
 
           OutputSocket.fromUnsafe(socket).connect(aacTranscodeInB);
 
           aacTranscoderMp4DemuxB.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
 
-            console.warn('aac transcoder B socket created')
+            debug('aac transcoder B socket created')
 
             socket = data.socket;
 
