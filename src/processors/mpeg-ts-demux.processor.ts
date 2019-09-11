@@ -7,6 +7,7 @@ import { getLogger } from '../logger';
 import { PayloadDescriptor, PayloadCodec } from '../core/payload-description';
 import { runMpegTsDemux } from './mpeg-ts/ts-demuxer-w';
 import { BufferSlice } from '../core/buffer';
+import { debugAccessUnit } from './h264/h264-tools';
 
 const { log } = getLogger('MPEGTSDemuxProcessor');
 
@@ -90,9 +91,9 @@ export class MPEGTSDemuxProcessor extends Processor {
           videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]))
         }
 
-        //console.log(videoSocket)
+        //if (videoSocket.
 
-        //console.log(p)
+        p.forEachBufferSlice((bs) => debugAccessUnit(bs, true));
 
         videoSocket.transfer(p);
 
@@ -101,8 +102,6 @@ export class MPEGTSDemuxProcessor extends Processor {
         if (!audioSocket) {
           audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]))
         }
-
-        //console.log(p)
 
         audioSocket.transfer(p);
 
