@@ -135,10 +135,22 @@ export class PayloadDescriptor {
     return appendCodecToMimeType(this.mimeType, this.codec);
   }
 
-  getMediaSubtype (): string {
-    return this._getMimeTypePart(1);
+  /**
+   * The term sub-type is from the MIME-Type (Internet Media Type) standard reference.
+   *
+   * In fact, this is likely what one would see as "the file format".
+   */
+  getMediaSubtype (stripCodecs: boolean = false): string {
+    if (!stripCodecs) {
+      return this._getMimeTypePart(1)
+    } else {
+      return this._getMimeTypePart(1).split(';')[0]
+    }
   }
 
+  /**
+   * e.g audio, video, text, application etc ... (see enum MimetypePrefix)
+   */
   getMediaType (): string {
     return this._getMimeTypePart(0);
   }
