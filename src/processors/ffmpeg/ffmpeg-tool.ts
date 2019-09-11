@@ -6,10 +6,10 @@ import ffmpegWebmToolchain from 'ffmpeg.js/ffmpeg-webm';
 */
 // for now let's try to rely on a global install or some other delegation of the problem to the user by dependency injection
 
-import { getLogger } from '../../logger';
+import { getLogger, LoggerLevel } from '../../logger';
 import { noop, lastOfArray } from '../../common-utils';
 
-const { debug, log, warn, error } = getLogger('ffmpeg-tool');
+const { debug, log, warn, error } = getLogger('ffmpeg-tool', LoggerLevel.ON, true);
 
 export type FFmpegToolchainExeWrapper = any; // FIXME: any as placeholder (need to create type-definitions or wrapper of ffmpeg.js API)
 
@@ -67,6 +67,7 @@ export class FFmpegTool {
    * @param ffmpegArguments
    */
   runWithOneInputFile (inputFile: FFmpegFileItem, ffmpegArguments: string[]): FFmpegFileItem {
+
     // TODO: use FFmpegStdPipeBuffer class
 
     let stdErrBytesCount = 0;
@@ -75,7 +76,8 @@ export class FFmpegTool {
       stdErrBytesCount++;
       stderrData.push(byte);
 
-      // debug(`wrote ${stdErrBytesCount} bytes to stderr`);
+      debug(`wrote ${stdErrBytesCount} bytes to stderr`);
+
       if (this._onStdErrPipeByte) {
         this._onStdErrPipeByte(byte, stdErrBytesCount);
       }
@@ -96,14 +98,16 @@ export class FFmpegTool {
     const { ffmpeg } = this;
     let out = null;
     try {
-      const result = ffmpeg({
+      const ffmpegJsConfig: any = {
         MEMFS: [inputFile],
         arguments: ffmpegArguments,
         // Ignore stdin read requests
         stdin: noop,
         stdout: onStdOutChar,
         stderr: onStdErrChar
-      });
+      };
+      log('running ffmpeg wrapper now with config:', ffmpegJsConfig)
+      const result = ffmpeg(ffmpegJsConfig);
       out = result.MEMFS[0];
     } catch (err) {
       error('Running FFmpeg conversion tool failed with an error:', err);
