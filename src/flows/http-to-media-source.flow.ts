@@ -94,7 +94,7 @@ export class HttpToMediaSourceFlow extends Flow {
       }
     };
 
-    this.add(mp4DemuxProc, mp4MuxProc, tsDemuxProc, mp4MuxProc);
+    this.addProc(mp4DemuxProc, mp4MuxProc, tsDemuxProc, mp4MuxProc);
 
     tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
     mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
