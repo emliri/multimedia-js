@@ -24,8 +24,7 @@ export class OutputSocket extends Socket {
     this.setTransferring_(true);
     this.peers_.forEach((s) => {
       log('call transfer on peer socket');
-      //b = s.transferSync(p);
-      s.transfer(p); // !!!!!!!!!!!
+      b = s.transferSync(p);
       this.onPacketTransferred_(s, b);
     });
     this.setTransferring_(false);
