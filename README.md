@@ -16,6 +16,22 @@ This library is under development to a `1.0` release. Not much documentation exi
  
 There exists a `v0.x` with various releases. Please see comment at bottom if you are looking for this.
 
+## Development modus and status
+
+Please note: The v1 branch is in *fast-pace* development and as we increase minor versions, some public APIs might change in *non-backward-compatible* way.
+
+API compatibility across versions is *not* any of our priorities at the moment. We are focused on delivering a lean and stable library packed with features and fulfilling for use-cases.
+
+However the most high-level and use-case oriented interfaces usually do not change, and we are integrating against the "test-cases" which we make available as part of the library, so stick to that if you need something to trust in at the moment.
+
+## Roadmap strategy
+
+As a roadmap, we see a potential v2 release as the first "API stable", and therefore a major milestone to achieve. A stable API will be the product of the current phase where we can explore various use-cases and their needs.
+
+## Automated testing
+
+TODO: Next stop, automated CI for unit specs and functional/integration test-cases ...
+
  ## Build and develop
  
  ```
