@@ -8,7 +8,7 @@ import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit } from './h264/h264-tools';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
+const { log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.OFF, true);
 
 export class H264ParseProcessor extends Processor {
   static getName (): string {
