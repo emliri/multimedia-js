@@ -17,7 +17,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { ErrorCode } from '../core/error';
 import { debugAccessUnit } from './h264/h264-tools';
 
-const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.ON, true);
+const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.OFF, true);
 
 export const AUDIO_SAMPLING_RATES_LUT = [5500, 11025, 22050, 44100];
 export const AAC_SAMPLES_PER_FRAME = 1024;

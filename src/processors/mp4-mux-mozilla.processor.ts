@@ -23,7 +23,7 @@ import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
