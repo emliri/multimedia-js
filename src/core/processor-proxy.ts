@@ -1,6 +1,6 @@
 import { makeUUID_v1 } from '../common-crypto';
 import { getLogger, LoggerLevel } from '../logger';
-import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from './processor';
+import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER, ProcessorConfigParam } from './processor';
 import { InputSocket, SocketDescriptor, SocketType, Socket } from './socket';
 import { Packet, PacketSymbol } from './packet';
 import { createProcessorFromShellName } from './processor-factory';
@@ -284,6 +284,10 @@ export class ProcessorProxy extends Processor {
     this._worker.spawn(_importScriptPaths);
     this._worker.create(this._worker.subContextId, _processorShellName, _processorArgs);
     this._initShellFromProtoInstance();
+  }
+
+  configure(params: ProcessorConfigParam[]) {
+    this._worker.invokeMethod(this._worker.subContextId, 'configure', [params]);
   }
 
   get workerShellProcName (): string {

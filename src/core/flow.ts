@@ -1,5 +1,5 @@
 import { Processor, ProcessorEvent, ProcessorEventData } from './processor';
-import { Socket, OutputSocket } from './socket';
+import { Socket, OutputSocket, SocketType, InputSocket } from './socket';
 import { ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 import { VoidCallback } from '../common-types';
 import { EventEmitter } from 'eventemitter3';
@@ -127,6 +127,18 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return Array.from(this.getExternalSockets());
   }
 
+  getExternalSocketsByType(type: SocketType): Socket[] {
+    return this.externalSockets.filter((s) => (type === s.type()));
+  }
+
+  getExternalInputSockets(): InputSocket[] {
+    return <InputSocket[]> this.getExternalSocketsByType(SocketType.INPUT);
+  }
+
+  getExternalOutputSockets(): OutputSocket[] {
+    return <OutputSocket[]> this.getExternalSocketsByType(SocketType.OUTPUT);
+  }
+
   get error(): FlowError {
     return this._error;
   }
@@ -135,20 +147,22 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return !!(this.flags & flag);
   }
 
-  add (...p: Processor[]) {
+  addProc (...p: Processor[]): Flow {
     p.forEach((proc) => {
       this._processors.add(proc);
 
       proc.on(ProcessorEvent.ERROR, (data: ProcessorEventData) => this._onProcError(data));
     });
+    return this;
   }
 
-  remove (...p: Processor[]) {
+  removeProc (...p: Processor[]): Flow {
     p.forEach((proc) => {
       if (!this._processors.delete(proc)) {
         throw new Error('Set delete method returned false');
       }
     });
+    return this;
   }
 
   whenCompleted (): Promise<FlowCompletionResult> {

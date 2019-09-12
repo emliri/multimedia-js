@@ -44,7 +44,7 @@
  * it's connection to the server and is unable to re-establish that after several retries. Eventually it will
  * resolve the Promise with `false`.
  *
- * Wether the Signal class itself is actually used as such is completely up the implementation
+ * Wether the Signal class itself is actually used as such is completely up to the implementation
  * of the SignalReceiver. The class here only defines how the interface is, its async-ness, how the receiver
  * is being called, and how its results are collected and aggregated.
  *

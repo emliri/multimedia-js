@@ -7,38 +7,48 @@ import { NALU } from "./nalu";
 import { H264ParameterSetParser } from "../../ext-mod/inspector.js/src/codecs/h264/param-set-parser";
 import { Sps, Pps } from "../../ext-mod/inspector.js/src/codecs/h264/nal-units";
 
-const {log, warn} = getLogger('H264Tools', LoggerLevel.ON, true);
+const {log, warn} = getLogger('H264Tools', LoggerLevel.OFF, true);
 
 export function debugNALU(bufferSlice: BufferSlice) {
   const nalu: NALU = new NALU(bufferSlice.getUint8Array());
   log('NALU details:', nalu);
 }
 
+/**
+ * An access-unit (AU) is a set of NAL (network abstraction layer) units.
+ * The AU is top-most indicated slice of data that a container format would advertise as
+ * a "sample" or "frame". Therefore an AU may have an externally clocked PTS/DTS timestamp pair attached to it,A
+ * but must not. An AU can also be "self-contained" and can be in principle decoded
+ * (but not easily seeked) as is (without external clocking index).
+ *
+ * @param bufferSlice
+ * @param debugRbspData
+ */
 export function debugAccessUnit(bufferSlice: BufferSlice, debugRbspData: boolean = false) {
 
   const avcStream = bufferSlice.getUint8Array();
   const avcView = bufferSlice.getDataView();
 
-  let length;
-  let count = 0;
+  let naluLength;
+  let naluCount = 0;
 
-  for (let offset = 0; offset < avcStream.byteLength; offset += length) {
-    length = avcView.getUint32(offset);
+  for (let naluOffset = 0; naluOffset < avcStream.byteLength; naluOffset += naluLength) {
+    naluLength = avcView.getUint32(naluOffset);
 
-    if (length > avcStream.length) {
+    if (naluLength > avcStream.length) {
       warn('no NALUs found in this data! (not an access-unit)');
       break;
     }
 
-    offset += 4;
+    naluOffset += 4;
 
-    const naluSlice = bufferSlice.unwrap(offset, length);
+    const naluSlice = bufferSlice.unwrap(naluOffset, naluLength);
     const naluBytes = naluSlice.getUint8Array();
     const nalu = new NALU(naluBytes);
 
-    count++;
+    naluCount++;
 
-    log('In access-unit, found NALU of type ', nalu.getTypeName(), ', of length ' + length + ' bytes, #' + count + ':', nalu);
+    log('In access-unit, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
 
     if (debugRbspData) {
 

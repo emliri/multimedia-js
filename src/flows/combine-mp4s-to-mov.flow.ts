@@ -10,7 +10,6 @@ import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-
 import { getLogger } from '../logger';
 import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
 import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
-import { makeTemplate } from '../common-utils';
 import { EnvironmentVars } from '../core/env';
 import { VoidCallback } from '../common-types';
 
@@ -58,7 +57,7 @@ export class CombineMp4sToMovFlow extends Flow {
       log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
 
       ffmpegAacTranscodeProc = newProcessorWorkerShell(
-        unsafeProcessorType(FFmpegConvertProcessor), // WHY ?
+        unsafeProcessorType(FFmpegConvertProcessor),
         [audioConfig, null],
         [EnvironmentVars.FFMPEG_BIN_PATH]
       );
@@ -70,7 +69,7 @@ export class CombineMp4sToMovFlow extends Flow {
 
     const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
 
-    this.add(mp4DemuxProcVideo, h264ParseProc, mp3ParseProc, mp4MuxProc);
+    this.addProc(mp4DemuxProcVideo, h264ParseProc, mp3ParseProc, mp4MuxProc);
 
     const muxerVideoInput = mp4MuxProc.createInput();
     const muxerAudioInput = mp4MuxProc.createInput();

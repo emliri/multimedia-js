@@ -44,8 +44,8 @@ export function createProcessorFromShellName (factoryName: string, args?: any[])
   return createProcessorFromConstructor(getProcessorConstructorByName(factoryName), args);
 }
 
-export function newProcessorWorkerShell (
-  procConstructor: typeof Processor,
+export function newProcessorWorkerShell<T extends typeof Processor = typeof Processor> (
+  procConstructor: T,
   args?: any[],
   importScriptPaths?: string[],
   onReady: VoidCallback = noop): ProcessorProxy {
@@ -74,6 +74,8 @@ export function checkProcessorType (procType: any) {
   return typeof procType.getName === 'function' && procType.getName() !== null;
 }
 
+// TODO: remove need to use this by enabling `configure` method
+//
 export function unsafeProcessorType (procType: any) {
   return <typeof Processor> procType;
 }
