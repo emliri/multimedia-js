@@ -1,5 +1,5 @@
 import { Processor, ProcessorEvent, ProcessorEventData } from './processor';
-import { Socket, OutputSocket } from './socket';
+import { Socket, OutputSocket, SocketType, InputSocket } from './socket';
 import { ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 import { VoidCallback } from '../common-types';
 import { EventEmitter } from 'eventemitter3';
@@ -125,6 +125,18 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
 
   get externalSockets (): Socket[] {
     return Array.from(this.getExternalSockets());
+  }
+
+  getExternalSocketsByType(type: SocketType): Socket[] {
+    return this.externalSockets.filter((s) => (type === s.type()));
+  }
+
+  getExternalInputSockets(): InputSocket[] {
+    return <InputSocket[]> this.getExternalSocketsByType(SocketType.INPUT);
+  }
+
+  getExternalOutputSockets(): OutputSocket[] {
+    return <OutputSocket[]> this.getExternalSocketsByType(SocketType.OUTPUT);
   }
 
   get error(): FlowError {
