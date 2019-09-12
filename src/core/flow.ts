@@ -147,20 +147,22 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return !!(this.flags & flag);
   }
 
-  add (...p: Processor[]) {
+  addProc (...p: Processor[]): Flow {
     p.forEach((proc) => {
       this._processors.add(proc);
 
       proc.on(ProcessorEvent.ERROR, (data: ProcessorEventData) => this._onProcError(data));
     });
+    return this;
   }
 
-  remove (...p: Processor[]) {
+  removeProc (...p: Processor[]): Flow {
     p.forEach((proc) => {
       if (!this._processors.delete(proc)) {
         throw new Error('Set delete method returned false');
       }
     });
+    return this;
   }
 
   whenCompleted (): Promise<FlowCompletionResult> {
