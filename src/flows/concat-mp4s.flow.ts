@@ -74,8 +74,11 @@ export class ConcatMp4sFlow extends Flow {
 
       const mp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
       const mp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
-
       const mp4Muxer = newProcessorWorkerShell(MP4MuxProcessor);
+
+      this.addProc(mp4DemuxA)
+          .addProc(mp4DemuxB)
+          .addProc(mp4Muxer);
 
       mp4DemuxA.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
         const socket: Socket = data.socket;
@@ -117,7 +120,13 @@ export class ConcatMp4sFlow extends Flow {
           }
 
           // wrap the demuxer output with a "valve" and connect it to muxer input
-          fifoVideoA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+          fifoVideoA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {
+            // called on each q'd packet
+            if (!payloadDescrVideoA) {
+              payloadDescrVideoA = fifoVideoA.queue.peek().defaultPayloadInfo;
+              log('got primary video payload description:', payloadDescrVideoA)
+            }
+          });
           fifoVideoA.connect(mp4MuxerVideoIn)
 
           // called on fifo queue valve drain
@@ -137,15 +146,6 @@ export class ConcatMp4sFlow extends Flow {
             attemptDrainVideoFifo()
           });
 
-          // called on transfer to output socket/fifo-queue/valve
-          // could move that into valve CB ...
-          socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
-            if (!payloadDescrVideoA) {
-              payloadDescrVideoA = fifoVideoA.queue.peek().defaultPayloadInfo;
-              log('got primary video payload description:', payloadDescrVideoA)
-            }
-          });
-
         } else if (socket.payload().isAudio()) { // same as for video but with audio ... :)
 
           // create audio input
@@ -162,7 +162,13 @@ export class ConcatMp4sFlow extends Flow {
             const socket = aacTranscodeOutA; // to not use the AAC transcoder, just kill this line
 
             // wrap the demuxer output with a "valve" and connect it to muxer input
-            fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+            fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {
+              // called on each q'd packet
+              if (!payloadDescrAudioA) {
+                payloadDescrAudioA = fifoAudioA.queue.peek().defaultPayloadInfo;
+                log('got primary audio payload description:', payloadDescrAudioA)
+              }
+            });
             fifoAudioA.connect(mp4MuxerAudioIn)
 
             // called on fifo queue valve drain
@@ -182,19 +188,7 @@ export class ConcatMp4sFlow extends Flow {
               attemptDrainAudioFifo()
             });
 
-            // called on transfer to output socket/fifo-queue/valve
-            // could move that into valve CB ...
-            socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
-
-              if (!payloadDescrAudioA) {
-                payloadDescrAudioA = fifoAudioA.queue.peek().defaultPayloadInfo;
-                log('got primary audio payload description:', payloadDescrAudioA)
-              }
-            });
-
           }
-
-
 
         }
       }
@@ -206,7 +200,13 @@ export class ConcatMp4sFlow extends Flow {
             mp4MuxerVideoIn = mp4Muxer.createInput();
           }
 
-          fifoVideoB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+          fifoVideoB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {
+            // called on each q'd packet
+            if (!payloadDescrVideoB) {
+              payloadDescrVideoB = fifoVideoB.queue.peek().defaultPayloadInfo;
+              log('got secondary video payload description:', payloadDescrVideoB)
+            }
+          });
           fifoVideoB.connect(mp4MuxerVideoIn)
 
           fifoVideoB.addPacketFilterPass((p) => {
@@ -230,16 +230,6 @@ export class ConcatMp4sFlow extends Flow {
 
           });
 
-          // could move that into valve CB ?
-          socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
-
-            if (!payloadDescrVideoB) {
-              payloadDescrVideoB = fifoVideoB.queue.peek().defaultPayloadInfo;
-              log('got secondary video payload description:', payloadDescrVideoB)
-            }
-
-          });
-
         } else if (socket.payload().isAudio()) {
 
           if (!mp4MuxerAudioIn) {
@@ -254,7 +244,13 @@ export class ConcatMp4sFlow extends Flow {
 
             const socket = aacTranscodeOutB; // to not use the AAC transcoder, just kill this line
 
-            fifoAudioB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
+            fifoAudioB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {
+              // called on each q'd packet
+              if (!payloadDescrAudioB) {
+                payloadDescrAudioB = fifoAudioB.queue.peek().defaultPayloadInfo;
+                log('got secondary audio payload description:', payloadDescrAudioB)
+              }
+            });
             fifoAudioB.connect(mp4MuxerAudioIn)
 
             fifoAudioB.addPacketFilterPass((p) => {
@@ -275,16 +271,6 @@ export class ConcatMp4sFlow extends Flow {
               audioBeosReceived = true;
 
               attemptDrainAudioFifo()
-
-            });
-
-            // could move that into valve CB ?
-            socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
-
-              if (!payloadDescrAudioB) {
-                payloadDescrAudioB = fifoAudioB.queue.peek().defaultPayloadInfo;
-                log('got secondary audio payload description:', payloadDescrAudioB)
-              }
 
             });
 
