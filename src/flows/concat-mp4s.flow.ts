@@ -13,6 +13,7 @@ import { PacketSymbol } from "../core/packet";
 import { FFmpegConvertProcessor } from "../processors/ffmpeg-convert.processor";
 import { FFmpegConversionTargetInfo } from "../processors/ffmpeg/ffmpeg-tool";
 import { EnvironmentVars } from "../core/env";
+import { AacTranscodeFlow } from "./aac-transcode.flow";
 
 const { debug, log } = getLogger("ConcatMp4sFlow", LoggerLevel.ON, true);
 
@@ -74,36 +75,6 @@ export class ConcatMp4sFlow extends Flow {
       const mp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
       const mp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
 
-      const audioConfig: FFmpegConversionTargetInfo = {
-        targetBitrateKbps: 256,
-        targetCodec: 'aac',
-        targetFiletypeExt: 'mp4'
-      };
-
-      const aacTranscoderMp4MuxA = newProcessorWorkerShell(MP4MuxProcessor);
-      const aacTranscoderA = newProcessorWorkerShell(
-        unsafeProcessorType(FFmpegConvertProcessor),
-        [audioConfig, null],
-        [EnvironmentVars.FFMPEG_BIN_PATH]
-      );
-      const aacTranscoderMp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
-
-      const aacTranscoderMp4MuxB = newProcessorWorkerShell(MP4MuxProcessor);
-      const aacTranscoderB = newProcessorWorkerShell(
-        unsafeProcessorType(FFmpegConvertProcessor),
-        [audioConfig, null],
-        [EnvironmentVars.FFMPEG_BIN_PATH]
-      );
-      const aacTranscoderMp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
-
-      aacTranscoderMp4MuxA.out[0].connect(aacTranscoderA.in[0])
-      aacTranscoderA.out[0].connect(aacTranscoderMp4DemuxA.in[0])
-      const aacTranscodeInA = aacTranscoderMp4MuxA.createInput();
-
-      aacTranscoderMp4MuxB.out[0].connect(aacTranscoderB.in[0])
-      aacTranscoderB.out[0].connect(aacTranscoderMp4DemuxB.in[0])
-      const aacTranscodeInB = aacTranscoderMp4MuxB.createInput();
-
       const mp4Muxer = newProcessorWorkerShell(MP4MuxProcessor);
 
       mp4DemuxA.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
@@ -126,6 +97,15 @@ export class ConcatMp4sFlow extends Flow {
       xhrSocketMovB.connect(mp4DemuxB.in[0])
 
       this.connectWithAllExternalSockets(mp4Muxer.out[0])
+
+      const aacReTranscodeFlowA = new AacTranscodeFlow(256);
+      const aacReTranscodeFlowB = new AacTranscodeFlow(256);
+
+      const aacTranscodeInA = aacReTranscodeFlowA.getExternalInputSockets()[0];
+      const aacTranscodeOutA = aacReTranscodeFlowA.getExternalOutputSockets()[0];
+
+      const aacTranscodeInB = aacReTranscodeFlowB.getExternalInputSockets()[0];
+      const aacTranscodeOutB = aacReTranscodeFlowB.getExternalOutputSockets()[0];
 
       function onDemuxASocketCreated(socket: Socket) {
 
@@ -177,11 +157,9 @@ export class ConcatMp4sFlow extends Flow {
 
           OutputSocket.fromUnsafe(socket).connect(aacTranscodeInA);
 
-          aacTranscoderMp4DemuxA.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
+          {
 
-            debug('aac transcoder A socket created')
-
-            socket = data.socket;
+            const socket = aacTranscodeOutA; // to not use the AAC transcoder, just kill this line
 
             // wrap the demuxer output with a "valve" and connect it to muxer input
             fifoAudioA = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
@@ -207,13 +185,14 @@ export class ConcatMp4sFlow extends Flow {
             // called on transfer to output socket/fifo-queue/valve
             // could move that into valve CB ...
             socket.on(SocketEvent.ANY_PACKET_TRANSFERRED, () => {
+
               if (!payloadDescrAudioA) {
                 payloadDescrAudioA = fifoAudioA.queue.peek().defaultPayloadInfo;
                 log('got primary audio payload description:', payloadDescrAudioA)
               }
             });
 
-          })
+          }
 
 
 
@@ -271,11 +250,9 @@ export class ConcatMp4sFlow extends Flow {
 
           OutputSocket.fromUnsafe(socket).connect(aacTranscodeInB);
 
-          aacTranscoderMp4DemuxB.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
+          {
 
-            debug('aac transcoder B socket created')
-
-            socket = data.socket;
+            const socket = aacTranscodeOutB; // to not use the AAC transcoder, just kill this line
 
             fifoAudioB = wrapOutputSocketWithValve(OutputSocket.fromUnsafe(socket), () => {});
             fifoAudioB.connect(mp4MuxerAudioIn)
@@ -311,7 +288,7 @@ export class ConcatMp4sFlow extends Flow {
 
             });
 
-          });
+          }
 
         }
       }
@@ -356,8 +333,8 @@ export class ConcatMp4sFlow extends Flow {
     }
 
     protected onWaitingToFlowing_(done: VoidCallback) {
-      done()
       this._setup()
+      done()
     }
 
     protected onFlowingToWaiting_(done: VoidCallback) {
