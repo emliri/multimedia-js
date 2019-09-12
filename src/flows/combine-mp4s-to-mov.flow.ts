@@ -69,7 +69,7 @@ export class CombineMp4sToMovFlow extends Flow {
 
     const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
 
-    this.add(mp4DemuxProcVideo, h264ParseProc, mp3ParseProc, mp4MuxProc);
+    this.addProc(mp4DemuxProcVideo, h264ParseProc, mp3ParseProc, mp4MuxProc);
 
     const muxerVideoInput = mp4MuxProc.createInput();
     const muxerAudioInput = mp4MuxProc.createInput();
