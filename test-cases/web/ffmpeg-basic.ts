@@ -1,16 +1,15 @@
-import { MmjsTestCase } from "../mmjs-test-case";
+import { MmjsTestCase } from '../mmjs-test-case';
 
 import { FFmpegTool } from '../../src/processors/ffmpeg/ffmpeg-tool';
-import { getLogger } from "../../src/logger";
-import { makeGetRequest } from "../../src/common-http";
+import { getLogger } from '../../src/logger';
+import { makeGetRequest } from '../../src/common-http';
 
-const {log, error} = getLogger('ffmpeg-basic-testcase');
+const { log, error } = getLogger('ffmpeg-basic-testcase');
 
-declare var ffmpeg: any;
+var ffmpeg: any;
 
 export class FFmpegBasic extends MmjsTestCase {
-
-  setup(done: () => void) {
+  setup (done: () => void) {
     const ffmpegWrapper = new FFmpegTool(ffmpeg);
     ffmpegWrapper.getVersion().then((version) => log('ffmpeg version:', version));
 
@@ -22,5 +21,5 @@ export class FFmpegBasic extends MmjsTestCase {
     });
   }
 
-  run() {}
+  run () {}
 }

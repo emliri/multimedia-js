@@ -1,21 +1,19 @@
-import { MmjsTestCase } from "../mmjs-test-case";
+import { MmjsTestCase } from '../mmjs-test-case';
 
-import { getLogger } from "../../src/logger";
-import { XhrSocket } from "../../src/io-sockets/xhr.socket";
-import { WebFileDownloadSocket } from "../../src/io-sockets/web-file-download.socket";
-import { FFmpegConvertProcessor } from "../../src/processors/ffmpeg-convert.processor";
-import { newProcessorWorkerShell, unsafeProcessorType } from "../../src/core/processor-factory";
-import { FFmpegConversionTargetInfo } from "../../src/processors/ffmpeg/ffmpeg-tool";
-import { makeTemplate } from "../../src/common-utils";
+import { getLogger } from '../../src/logger';
+import { XhrSocket } from '../../src/io-sockets/xhr.socket';
+import { WebFileDownloadSocket } from '../../src/io-sockets/web-file-download.socket';
+import { FFmpegConvertProcessor } from '../../src/processors/ffmpeg-convert.processor';
+import { newProcessorWorkerShell, unsafeProcessorType } from '../../src/core/processor-factory';
+import { FFmpegConversionTargetInfo } from '../../src/processors/ffmpeg/ffmpeg-tool';
+import { makeTemplate } from '../../src/common-utils';
 
-const {log, error} = getLogger('ffmpeg-basic-testcase');
+const { log, error } = getLogger('ffmpeg-basic-testcase');
 
-declare var ffmpeg: any;
+var ffmpeg: any;
 
 export class FFmpegFlow extends MmjsTestCase {
-
-  setup(done: () => void) {
-
+  setup (done: () => void) {
     const inputFiles = [
       '/test-data/mp3/212438__pcfstnk__ubahn.mp3',
       '/test-data/161649__cosmicembers__birds-sing-in-woods.wav',
@@ -30,7 +28,7 @@ export class FFmpegFlow extends MmjsTestCase {
       targetBitrateKbps: 256,
       targetCodec: 'aac',
       targetFiletypeExt: 'mp4'
-    }
+    };
 
     const ffmpegProc = newProcessorWorkerShell(
       unsafeProcessorType(FFmpegConvertProcessor),
@@ -41,7 +39,7 @@ export class FFmpegFlow extends MmjsTestCase {
     const fileDownloadSocket = new WebFileDownloadSocket(
       document.querySelector('#root'),
       'audio/mp4',
-      makeTemplate("ffmpeg-output${counter}.mp4")
+      makeTemplate('ffmpeg-output${counter}.mp4')
     );
 
     /*
@@ -55,7 +53,7 @@ export class FFmpegFlow extends MmjsTestCase {
     ffmpegProc.out[0].connect(fileDownloadSocket);
   }
 
-  run() {
-    throw new Error("Method not implemented.");
+  run () {
+    throw new Error('Method not implemented.');
   }
 }

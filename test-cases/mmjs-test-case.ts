@@ -1,12 +1,11 @@
-import { VoidCallback } from "../src/common-types";
+import { VoidCallback } from '../src/common-types';
 
 export abstract class MmjsTestCase {
-
-  constructor(
+  constructor (
     public readonly domMountPoint: HTMLElement
   ) {}
 
-  protected getDomMountPoint(): HTMLElement {
+  protected getDomMountPoint (): HTMLElement {
     return this.domMountPoint;
   }
 
