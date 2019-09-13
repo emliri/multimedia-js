@@ -87,7 +87,14 @@ module.exports = {
     'new-cap': 1,
     'no-undefined': 1,
 
-    'no-console': 2,
+    "import/export": 0,
+    "no-use-before-define": 0,
+    "no-console": 0,
+    "camelcase": 1,
+    "no-use-before-define": 0,
+
+    'no-console': 1,
+
     'no-global-assign': 2
   }
 };
