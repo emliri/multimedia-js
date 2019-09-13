@@ -1,2 +1,2 @@
 #!/bin/bash
-git push origin master && git push emliri master
+git push --tags origin master && git push --tags emliri master
