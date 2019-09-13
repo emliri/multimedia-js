@@ -6,6 +6,8 @@
 
 #### Running on TypeScript! <a href="https://www.typescriptlang.org/"><img height="36" src="https://raw.githubusercontent.com/remojansen/logo.ts/master/ts.png"></a>
 
+#### For support inquiries please mail to: `office@emliri.com`
+
 # Multimedia-js | `mmjs`
 
 ## A multimedia framework for the JS ecosystem
