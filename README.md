@@ -1,17 +1,56 @@
+#### Travis CI status: <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://api.travis-ci.org/tchakabam/multimedia-js.svg?branch=master"></a>
+
+#### NPM published as `multimedia`: <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://img.shields.io/npm/v/multimedia.svg?style=flat"></a>
+
+#### Netlify deployed [here](https://multimedia-js-nightly.netlify.com/).
+
+#### Running on TypeScript! <a href="https://www.typescriptlang.org/"><img height="36" src="https://raw.githubusercontent.com/remojansen/logo.ts/master/ts.png"></a>
+
 # Multimedia-js | `mmjs`
 
-## Travis CI status: <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://api.travis-ci.org/tchakabam/multimedia-js.svg?branch=master"></a>
+## A multimedia framework for the JS ecosystem
 
-## NPM published as `multimedia`: <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://img.shields.io/npm/v/multimedia.svg?style=flat"></a>
+### What does this mean? 
 
-## Netlify deployed [here](https://multimedia-js-nightly.netlify.com/).
+`mmjs` is a framework library to help implementing complex multimedia workflows on JS platforms. 
 
+#### Core design
 
-## A toolkit and collection library for all things multimedia in JavaScript. Data-flow pipelines for processing. 
+The core design allows to build data-flow pipelines for processing time-ordered packet streams in a graph-based manner. Usually audio, video and subtitles data. But anything else is possible that you want to attach a timestamp to :)
 
-Our framework allows to decouple processing steps being performed in workers via media-aware data-structures. The details of transferring data across worker instances and synchronizing it is however dealt-with by the core framework itself. Implementors of `processors` don't need to know about the execution context and application details.
+Our framework allows to decouple processing steps being performed in workers via media-aware data-structures. The details of transferring data across worker instances and synchronizing it is however dealt-with by the core framework itself. Implementors of `processors` don't need to know about the execution context and application details. The concept we use is called Worker-proxy and with our core API we are basically allowing RPC back and forth across JS scopes to make this possible.
 
-Processors can access generic metadata to handle various input flows and generate output data flows (packets), independent of the sources and destinations or the actual application. Every processor serves a specific processing purpose with maximum reusability in mind.
+Thus, each `Processor`can take care of a specific task where it processes input packets and transfers output packets via its respective `InputSocket`s and `OuputSocket`s, fully independently of concurrently running tasks.
+
+Moreoever, `Processor`s can access generic metadata to handle various input streams and generate output data streams (packets), independent of the sources and destinations or the actual application. Every processor serves a specific processing purpose with maximum reusability in mind.
+
+##### Components
+
+`Processors` are things we run via our `ProcessorWorkerProxy`. They have `Sockets`, these allow them to *transfer* `Packets` to each other. Every packet contains `BufferSlices` (they are like `DataView` but fancier), each of those has `BufferProperties` i.e `PayloadDescription`. Every `Socket` has a `SocketDescriptor` (which is a payload description too). 
+
+There are ways for processors to send each others `Signals` "up" and "down" the packet streaming graph. That is very useful for real-time processing application cases, but not only.
+
+Moreover, data processing can be queued, retained/halted/flushed/drained and filtered in *between* processors (but also inside) at the socket level, using something we call a `FifoValve`. Consider it like the traffic lights in this, which can be controlled by the application or workflow internal timing/controllers. 
+
+Finally, some components emit events, which eventually get processed by the main thread. For example, socket or valve events can be used to drive/feedback the flow-controlling layer. Processors events are usually there to inform about internal exceptions. 
+
+Error-data semantics are built with hierarchy and propagation in mind.
+
+#### Embedding workflows & High-level API
+
+As a top-level component in our core architecture, we provide the `Flow` which is supposed to embed processors, and obviously embed its own type of component as a container. 
+
+A `Flow` is called like this because it represents a "workflow" from an application point-of-view - it should allow to fulfill a tangible use-case. But also because it can embed a graph of processors, and manages the state of data flowing through these processors, as well as allowing to connect externally to its inputs/outputs and/or access the result upon "completion".
+
+As opposed to other frameworks, we do not provide a container which at the same time inherits from the "elementary" atomic graph-element. The container element has the necessary properties (external sockets) to inter-connect the graphs that it contains at any embedded depth with other graphs. However it mostly is concerned with state-keeping of the higher-level task itself and propagating low-level events from individual processors.
+
+#### Core & "Plugins" & Test-cases
+
+The source-tree and bundled library contains different parts. First of all the core library with the generic components for all the abstract concepts explained above. Then built-in implementations of `Processors`, `IOSockets`, `Flows`, .... You can use these, or build your own on top!
+
+Finally, we like to ship tangible test-cases for whatever we build. Concerning plugins, rather than building a unit-test we almost prefer that it is used in a real-world example with a useful result in order to test it. That said, for generic core components, we like to have solid unit testing.
+
+### Using TypeScript
 
 We are using TypeScript to design a solid but flexible framework, while being able to wrap any libraries that implement formats or codecs like H264, MP3, MP4 or Webm. We preferrably wrap libraries that are already written in TS or with detailed type-declarations.
 
@@ -193,6 +232,8 @@ Go to http://localhost:8080/test-cases/web/
 We support down to Node.js v8.10.0 and higher and are running our CI on v11.
 
 ## Lint
+
+We use ESlint and some plugins and parsers specificly for TS to get the job done really well. Some plain ES rules are disabled since they clash with some TS idioms.
  
 ```
 npm run lint
