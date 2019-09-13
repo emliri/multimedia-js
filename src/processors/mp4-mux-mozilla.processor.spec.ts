@@ -8,5 +8,5 @@ const fs = require('fs');
 const path = require('path');
 
 describe('MP4MuxProcessor', () => {
-
+  it ('is a dummy', () => void 0)
 });
