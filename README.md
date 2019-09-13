@@ -1,12 +1,11 @@
-# multimedia-js | MM-JS 
+# Multimedia-js | `mmjs`
 
-## CI status
+## Travis CI status: <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://api.travis-ci.org/tchakabam/multimedia-js.svg?branch=master"></a>
 
-<a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://api.travis-ci.org/tchakabam/multimedia-js.svg?branch=master"></a>
+## NPM published as `multimedia`: <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://img.shields.io/npm/v/multimedia.svg?style=flat"></a>
 
-## NPM published
+## Netlify deployed [here](https://multimedia-js-nightly.netlify.com/).
 
-<a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://img.shields.io/npm/v/multimedia.svg?style=flat"></a>
 
 ## A toolkit and collection library for all things multimedia in JavaScript. Data-flow pipelines for processing. 
 
@@ -16,9 +15,23 @@ Processors can access generic metadata to handle various input flows and generat
 
 We are using TypeScript to design a solid but flexible framework, while being able to wrap any libraries that implement formats or codecs like H264, MP3, MP4 or Webm. We preferrably wrap libraries that are already written in TS or with detailed type-declarations.
 
-This library is under development to a `1.0` release. Not much documentation exists yet. Have a look at `test-cases` for usage examples.
+### Supported platforms & Requirements
+
+Multimedia-js is thought to run on Nodejs and Web based runtimes (browsers etc). Processors are thought to be platform independent. The only requirement is an ES5 compatible runtime, and having workers enabled.
+
+For maximum enjoyability, be sure to have the `Worker` API enabled. In fact, the purpose of task-specific concurrent pipeline processing can not be taken advantage of without our Worker-proxy concept, and thus most use-cases will not run then.
+
+### Compatibility
+
+From an architectural point of view, we envision to build use-case implementations (processors, flows) such that they will be used on either platform. 
+
+The core by its design obviously does not use any Web/Nodejs specific APIs either.
+
+Furthermore the core design allows to abstract any Web/Nodejs specifics into `io-sockets` which are supposed to allow the data-processing pipeline to acces environment I/O in whichever form (e.g local file-system, HTTP via XHR/Fetch or Nodejs APIs, WebAudio, LocalStorage,  etc...). IO-sockets implementations may generalize across platform details, or be platform specific and thus lead to API-support errors in turn (for example WebAudio just doesn't exist by default on Nodejs).
+
+### Version branch 0.x (deprecated)
  
-There exists a `v0.x` with various releases. Please see comment at bottom if you are looking for this.
+There exists a `v0.x` with various releases. Please see comment at bottom if you are looking for [this](#deprecated-version).
 
 ## Getting started
 
@@ -34,7 +47,9 @@ In your browser, navigate to http://localhost:8080/test-cases/web/?case=0
 
 Replace `0` by any index (see initial console output).
 
-## Online demo & Latest "Nightly" builds deploys
+## Online demo 
+
+### Latest "Nightly" builds deploys
 
 In a hurry or too lazy to build it yourself? ;P
 
@@ -46,7 +61,7 @@ You can even directly check out web test-cases here:
 
 https://multimedia-js-nightly.netlify.com/test-cases/web
 
-## Usage 
+## Install package & API Usage 
 
 Multimedia-js is published on NPM (and dependent JS-CDNs) as package named `multimedia`: 
 
@@ -61,7 +76,11 @@ Example of ES6 import when installed via NPM:
 import * as mmjs from 'multimedia/dist/MM.umd'
 ```
 
-## Simple example
+## Simple use-case example snippets
+
+Check out more use-cases in the `test-cases` dir, or browse directly to the online demo deploy.
+
+### "Remix" A/V to MOV file
 
 Here we are demonstrating a straight forward usage of the `Flow` API for a specific use-case where a flow-implementation is used to "remix" i.e recombine an existing video track and an audio track (which may be MP3 and would then get transcoded to AAC) into a new single MOV/MP4 file. These tracks are initially assumed to come in any ISO-BMFF/MP4 format as well (except when MP3 for the audio obviously). In a simpler way, we are muxing a new file from two initial files, but only preserving the first audio/video track respectively from each file.
 
@@ -192,6 +211,8 @@ npm test
 ```
 
 See JEST documentation (or `./node_modules/.bin/jest --help`) to check how to constrain testing on spec file-paths or names.
+
+## Deprecated version
 
 ### Are you looking for package `multimedia` v0.x ?
 
