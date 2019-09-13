@@ -16,6 +16,20 @@ This library is under development to a `1.0` release. Not much documentation exi
  
 There exists a `v0.x` with various releases. Please see comment at bottom if you are looking for this.
 
+## Getting started
+
+To get started with Multimedia-js (mmjs), simply clone & build the project, and check our `test-cases` in the project root.
+
+```
+git@github.com:emliri/multimedia-js.git
+make # only needed once because we want to install some third-party binaries in publishable `vendor` directory
+npm start # if you only modify TS codebase, you can only run this next time
+```
+
+In your browser, navigate to http://localhost:8080/test-cases/web/?case=0 
+
+Replace `0` by any index (see initial console output).
+
 ## Development modus and status
 
 Please note: The v1 branch is in *fast-pace* development and as we increase minor versions, some public APIs might change in *non-backward-compatible* way.
@@ -60,15 +74,44 @@ Also see information on the [Supported Node.js version](#supported-nodejs-versio
 
 ## Build and develop
 
+### On our build system
+
+* We use `make` to bring together all the things, since we don't consider npm a task-runner worthy of this term (but a great package-system however). Nor do we want to misue Webpack as such a one. We appreciate the ability of Make to guard us from having the computer do the same thing twice unnecessarily.
+
+* We rely on Webpack for JS compilation and bundling. We use the official Typescript toolchain with it (not Babel).
+
+* Our build is a bit more complex than just installing a few packages and hitting Webpack however. We are making use of prebuilt WASM binaries for example, and rely on them being copied to a specific place outside of `node_modules`, or allow them to come from other sources than `npm` in the first place.
+
+* We happily take advantage of using GIT "submodules" where it is meaningful.
+
+### Build system requirements
+
+* Nodejs v8+ (with `npm`)
+* GNU or BSD Make (MacOS users check if the XCode CLI toolchain is installed)
+
+Development on MS Windows is not supported at the moment, but you may try by installing CygWin tools or similar (maybe?).
+
+### To build just run ...
+
+First build? You don't need to care about installing dependencies! Our build system does it for you.
+
 ```
-npm install
-git submodule update --init
-npm start // starts webpack dev-server
-// or
-npm run build // runs build and exits
-// or
-npm run build // runs build and watches changes to rebuild
+make
 ```
+
+That's it. 
+
+Don't be afraid to call `make` again! It is going to check thoroughly before acting and never going to do anything useless that wastes time.
+
+### Running a dev-server
+
+You need to run `make` at least once before to make sure 3rd-party binaries have been vendorized.
+
+```
+npm start
+```
+
+Go to http://localhost:8080/test-cases/web/
 
 ### Supported Node.js version
 
@@ -81,6 +124,8 @@ npm run lint
 // or
 npm run lint-fix // auto-fixes lint errors  
 ```
+
+Pro tip: To omit warnings, run `npm run lint -- --quiet`
 
 ## Test
 

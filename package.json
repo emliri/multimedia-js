@@ -14,7 +14,7 @@
   "keywords": [],
   "repository": "github.com/tchakabam/multimedia.js.git",
   "author": "Stephan Hesse <tchakabam@gmail.com>, <stephan@emliri.com>",
-  "license": "LGPL, Copyright (c) 2016, 2017, 2018 Stephan Hesse, Emliri",
+  "license": "LGPL, Copyright (c) 2016, 2017, 2018, 2019 Stephan Hesse, Emliri",
   "public": true,
   "publishConfig": {
     "access": "public"
