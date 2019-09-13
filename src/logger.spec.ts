@@ -19,6 +19,7 @@ describe('Logger', () => {
     (global as any).localStorage = originalLocalStorage;
   })
 
+  /*
   describe('default log level', () => {
     let logger: Logger
 
@@ -33,6 +34,7 @@ describe('Logger', () => {
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(1);
     });
   })
+  */
 
   describe('configuring default log level to OFF', () => {
     let logger: Logger
