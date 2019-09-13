@@ -4,7 +4,9 @@
 
 <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://api.travis-ci.org/tchakabam/multimedia-js.svg?branch=master"></a>
 
-<a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://img.shields.io/npm/v/multimedia.svg?style=flat">https://www.npmjs.com/package/multimedia</a>
+## NPM published
+
+<a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://img.shields.io/npm/v/multimedia.svg?style=flat"></a>
 
 ## A toolkit and collection library for all things multimedia in JavaScript. Data-flow pipelines for processing. 
 
@@ -36,9 +38,53 @@ Replace `0` by any index (see initial console output).
 
 In a hurry or too lazy to build it yourself? ;P
 
-We always make the latest build of master available through the Netlify network here: https://multimedia-js-nightly.netlify.com/
+We always make the latest build of master available through the Netlify network here: 
 
-You can even directly check out web test-cases here: https://multimedia-js-nightly.netlify.com/test-cases/web
+https://multimedia-js-nightly.netlify.com/
+
+You can even directly check out web test-cases here:
+
+https://multimedia-js-nightly.netlify.com/test-cases/web
+
+## Usage 
+
+Multimedia-js is published on NPM (and dependent JS-CDNs) as package named `multimedia`: 
+
+https://www.npmjs.com/package/multimedia
+
+Use `npm install --save multimedia` to add it to your existing JS application project for example. 
+
+Also when compiling yourself, find the relevant UMD bundles in the `dist` folder. 
+
+Example of ES6 import when installed via NPM:
+```js
+import * as mmjs from 'multimedia/dist/MM.umd'
+```
+
+## Simple example
+
+Here we are demonstrating a straight forward usage of the `Flow` API for a specific use-case where a flow-implementation is used to "remix" i.e recombine an existing video track and an audio track (which may be MP3 and would then get transcoded to AAC) into a new single MOV/MP4 file. These tracks are initially assumed to come in any ISO-BMFF/MP4 format as well (except when MP3 for the audio obviously). In a simpler way, we are muxing a new file from two initial files, but only preserving the first audio/video track respectively from each file.
+
+```js
+  // pre: imported Multimedia package as `mmjs` in this scope 
+
+  const flow = new mmjs.Flows.CombineMp4sToMovFlow(
+    videoUrl,
+    audioUrl,
+    false, // useFileDonwloadSocket
+    null, // downloadLinkContainer
+    true // isMp3Audio
+  )
+  
+  flow.state = mmjs.Core.FlowState.WAITING
+  flow.state = mmjs.Core.FlowState.FLOWING
+  
+  // returns Promise<Blob>
+  flow.whenCompleted((result) => {
+    const exportedMov = result.data
+    // do something with the result (Blob type)
+  })
+```
 
 ## Development modus and status
 
