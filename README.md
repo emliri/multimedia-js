@@ -14,7 +14,7 @@
 
 ### What does this mean? 
 
-`mmjs` is a framework library to help implementing complex multimedia workflows on JS platforms. 
+`mmjs` is a framework library to enable implementing complex multimedia workflows on JS platforms. 
 
 #### Core design
 
