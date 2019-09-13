@@ -30,6 +30,14 @@ In your browser, navigate to http://localhost:8080/test-cases/web/?case=0
 
 Replace `0` by any index (see initial console output).
 
+## Online demo & Latest "Nightly" builds deploys
+
+In a hurry or too lazy to build it yourself? ;P
+
+We always make the latest build of master available through the Netlify network here: https://multimedia-js-nightly.netlify.com/
+
+You can even directly check out web test-cases here: https://multimedia-js-nightly.netlify.com/test-cases/web
+
 ## Development modus and status
 
 Please note: The v1 branch is in *fast-pace* development and as we increase minor versions, some public APIs might change in *non-backward-compatible* way.
