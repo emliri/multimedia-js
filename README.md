@@ -28,17 +28,21 @@ However the most high-level and use-case oriented interfaces usually do not chan
 
 As a roadmap, we see a potential v2 release as the first "API stable", and therefore a major milestone to achieve. A stable API will be the product of the current phase where we can explore various use-cases and their needs.
 
-## Automated testing & Spec philosophy
+## Automated testing & Spec-writing philosophy
 
 ### Unit/Integration BDD spec-based testing
 
-We are running automated unit & integration tests in our <a href="https://travis-ci.org/tchakabam/multimedia-js">CI</a> using the <a href=https://jestjs.io/">JEST</a> test runner. This means the runtime environment is enforced to be bare Node.js (as opposed to browser or other Web based engine). 
+We are running automated unit & integration tests in our [CI]("https://travis-ci.org/tchakabam/multimedia-js") using the [JEST](https://jestjs.io/") test runner. This means the runtime environment is enforced to be bare Node.js (as opposed to browser or other Web based engine). 
 
 This approach allows us to constrain the testing scope on non-DOM dependent modules, non browser-API dependent modules (and/or forcing us to mock these where really needed, as they "should" interact with our code). We want to test *our* code, not some browser implementation or platform-specific part of the runtime. 
 
 Ideally, we write a "spec" in BDD style for each module (that's the goal). This is to be considered a "unit test" for the module, and should contain sub-specifications (tests) for all various cases the UuT should comply to.
 
 We can also write integration tests that will depend on several modules (in terms of source files or object families). There is no formal technical limitation at the moment between writing a spec that is to be considered a unit test or an integration test in the strict definition at the moment in our setup, from the point of view of one "module". 
+
+#### Scope of testing
+
+For every module, we test everything that is a meaningful use-case, and there with the maximum range of data. We don't test everything (we can't), and most importantly we don't test things that aren't supposed to be done with our stuff.
 
 #### On the "unit" vs "integration" terminology
 
@@ -52,10 +56,10 @@ TODO: Next, we will set up functional testing in an automated browser environmen
 
 So far, we don't see the need to extend this approach on different Node API and runtime versions or platform integrations as stronger integrity is given there naturally. Our CI uses a specific Node version (which we officially support in that sense), and developers are allowed to use any recent version on their side. We don't constrain the development environment to a specific one. 
 
-Also see information [Supported Node.js version](#supported-node.js-version).
+Also see information [Supported Node.js version](#supported-nodejs-version).
 
 ## Build and develop
- 
+
 ```
 npm install
 git submodule update --init
