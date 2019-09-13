@@ -27,6 +27,7 @@ export function createWebpackConfig(options, excludePaths: string[] = []) {
   console.log('Resolved build path:', buildPath)
 
   const baseConfig = {
+    mode: 'development',
     devtool: 'source-map',
     entry: options.entrySrc,
     externals: options.externals,
