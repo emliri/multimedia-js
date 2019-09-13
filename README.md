@@ -4,6 +4,8 @@
 
 <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://api.travis-ci.org/tchakabam/multimedia-js.svg?branch=master"></a>
 
+<a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://img.shields.io/npm/v/multimedia.svg?style=flat">https://www.npmjs.com/package/multimedia</a>
+
 ## A toolkit and collection library for all things multimedia in JavaScript. Data-flow pipelines for processing. 
 
 Our framework allows to decouple processing steps being performed in workers via media-aware data-structures. The details of transferring data across worker instances and synchronizing it is however dealt-with by the core framework itself. Implementors of `processors` don't need to know about the execution context and application details.
