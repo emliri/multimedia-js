@@ -32,7 +32,6 @@ export function makeAACAudioSpecificConfigMp4DataFromADTSHeader (
   data: Uint8Array,
   offset: number,
   audioCodecMimetype?: string): Mp4AudioSpecificConfigInfo {
-
   if (!isAacADTSHeaderPattern(data, offset)) {
     throw new Error('Data is not an ADTS packet');
   }
@@ -165,7 +164,6 @@ export function makeAACAudioSpecificConfigMp4DataFromADTSHeader (
     channelCount: adtsChannelConfig,
     codec: ('mp4a.40.' + adtsObjectType)
   };
-
 }
 
 export function isAacADTSHeaderPattern (data: Uint8Array, offset: number): boolean {
@@ -187,7 +185,6 @@ export function getFullAACFrameLength (data: Uint8Array, offset: number): number
 }
 
 export function isADTSHeader (data: Uint8Array, offset: number): boolean {
-
   if (offset + 1 < data.length && isAacADTSHeaderPattern(data, offset)) {
     return true;
   }
@@ -225,7 +222,6 @@ export function parseAacADTSHeaderInfo (
   pts: number,
   frameIndex: number,
   frameDuration: number): ADTSHeaderInfo | null {
-
   let headerLength;
   let frameLength;
   let timestamp;
@@ -239,7 +235,6 @@ export function parseAacADTSHeaderInfo (
   frameLength -= headerLength;
 
   if ((frameLength > 0) && ((offset + headerLength + frameLength) <= length)) {
-
     timestamp = pts + frameIndex * frameDuration;
 
     return {
@@ -247,9 +242,7 @@ export function parseAacADTSHeaderInfo (
       frameLength,
       timestamp
     };
-
   }
 
   return null;
 }
-

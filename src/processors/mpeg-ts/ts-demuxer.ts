@@ -41,9 +41,7 @@ export type TSDemuxerConfig = {
 
 export type TSDemuxerCallback = (audioTrack, avcTrack, id3Track, txtTrack, timeOffset, contiguous, accurateTimeOffset) => {};
 
-
 function initTrackConfig (track, data, offset, audioCodec) {
-
   if (!track.samplerate) {
     let config = ADTS.makeAACAudioSpecificConfigMp4DataFromADTSHeader(data, offset, audioCodec);
     track.config = config.esdsAtomData;
@@ -51,7 +49,6 @@ function initTrackConfig (track, data, offset, audioCodec) {
     track.channelCount = config.channelCount;
     track.codec = config.codec;
   }
-
 }
 
 function appendFrameToTrack (track, data, offset, pts, frameIndex) {

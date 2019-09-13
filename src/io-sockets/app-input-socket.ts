@@ -17,7 +17,6 @@ export class AppInputSocket extends InputSocket {
       const buffer = this._copyMode ? bs.newArrayBuffer() : bs.arrayBuffer;
 
       if (this._blobMode) {
-
         const mimeType = this._mimeType || p.defaultMimeType || null;
 
         if (!mimeType) {

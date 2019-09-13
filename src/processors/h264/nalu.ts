@@ -7,7 +7,6 @@ export enum H264SliceType {
 }
 
 export class NALU {
-
   // TODO: make enum
 
   static get NON_IDR () {
@@ -44,27 +43,27 @@ export class NALU {
     return 11;
   }
 
-  static getNALUnitTypeName(nalType: number): string {
+  static getNALUnitTypeName (nalType: number): string {
     switch (nalType) {
-        case NALU.NON_IDR:
-            return 'NON_IDR_SLICE';
-        case NALU.SEI:
-            return 'SEI';
-        case NALU.PPS:
-            return 'PPS';
-        case NALU.SPS:
-            return 'SPS';
-        case NALU.AU_DELIM:
-            return 'AUD';
-        case NALU.IDR:
-            return 'IDR';
-        case NALU.SEQ_END:
-            return 'END SEQUENCE';
-        case NALU.STREAM_END:
-            return 'END STREAM';
-        default:
-            return 'Unknown NALU type: ' + nalType;
-            //throw new Error('Unknown NALU type: ' + nalType);
+    case NALU.NON_IDR:
+      return 'NON_IDR_SLICE';
+    case NALU.SEI:
+      return 'SEI';
+    case NALU.PPS:
+      return 'PPS';
+    case NALU.SPS:
+      return 'SPS';
+    case NALU.AU_DELIM:
+      return 'AUD';
+    case NALU.IDR:
+      return 'IDR';
+    case NALU.SEQ_END:
+      return 'END SEQUENCE';
+    case NALU.STREAM_END:
+      return 'END STREAM';
+    default:
+      return 'Unknown NALU type: ' + nalType;
+            // throw new Error('Unknown NALU type: ' + nalType);
     }
   }
 
@@ -78,7 +77,7 @@ export class NALU {
     this.nalType = this.payload[0] & 0x1f;
   }
 
-  getTypeName(): string {
+  getTypeName (): string {
     return NALU.getNALUnitTypeName(this.nalType);
   }
 

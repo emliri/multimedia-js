@@ -11,13 +11,13 @@ describe('Logger', () => {
       debug: jest.fn(),
       warn: jest.fn(),
       error: jest.fn()
-    })
-  })
+    });
+  });
 
   afterEach(() => {
     global.console = originalConsole;
     (global as any).localStorage = originalLocalStorage;
-  })
+  });
 
   /*
   describe('default log level', () => {
@@ -37,18 +37,18 @@ describe('Logger', () => {
   */
 
   describe('configuring default log level to OFF', () => {
-    let logger: Logger
+    let logger: Logger;
 
     beforeEach(() => {
       (global as any).localStorage = {
         getItem () {
-          return '{"*": 0}'
+          return '{"*": 0}';
         },
         setItem () {
         }
-      }
-      logger = getLogger('MyCategory')
-    })
+      };
+      logger = getLogger('MyCategory');
+    });
 
     it('should not log anything', () => {
       logger.debug('foo');
@@ -56,21 +56,21 @@ describe('Logger', () => {
       (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(0);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(0);
     });
-  })
+  });
 
   describe('configuring default log level', () => {
-    let logger: Logger
+    let logger: Logger;
 
     beforeEach(() => {
       (global as any).localStorage = {
         getItem () {
-          return '{"*": 4}'
+          return '{"*": 4}';
         },
         setItem () {
         }
-      }
-      logger = getLogger('AnyCategory')
-    })
+      };
+      logger = getLogger('AnyCategory');
+    });
 
     it('should only log at or below the configured level for the category', () => {
       logger.debug('foo');
@@ -78,23 +78,23 @@ describe('Logger', () => {
       (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(0);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(1);
     });
-  })
+  });
 
   describe('configuring log level for a category', () => {
-    let logger: Logger
-    let otherLogger: Logger
+    let logger: Logger;
+    let otherLogger: Logger;
 
     beforeEach(() => {
       (global as any).localStorage = {
         getItem () {
-          return '{"SomeSpecificCategory": 4}'
+          return '{"SomeSpecificCategory": 4}';
         },
         setItem () {
         }
-      }
-      logger = getLogger('SomeSpecificCategory')
-      otherLogger = getLogger('OtherCategory')
-    })
+      };
+      logger = getLogger('SomeSpecificCategory');
+      otherLogger = getLogger('OtherCategory');
+    });
 
     it('should only log at or below the configured level for the category', () => {
       logger.debug('foo');
@@ -109,25 +109,25 @@ describe('Logger', () => {
       (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(1);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(1);
     });
-  })
+  });
 
   describe('configuring log level with a wildcard', () => {
-    let loggerA: Logger
-    let loggerB: Logger
-    let otherLogger: Logger
+    let loggerA: Logger;
+    let loggerB: Logger;
+    let otherLogger: Logger;
 
     beforeEach(() => {
       (global as any).localStorage = {
         getItem () {
-          return '{"SomePrefix*": 4}'
+          return '{"SomePrefix*": 4}';
         },
         setItem () {
         }
-      }
-      loggerA = getLogger('SomePrefixA')
-      loggerB = getLogger('SomePrefixB')
-      otherLogger = getLogger('OtherCategory')
-    })
+      };
+      loggerA = getLogger('SomePrefixA');
+      loggerB = getLogger('SomePrefixB');
+      otherLogger = getLogger('OtherCategory');
+    });
 
     it('should override log level for all matching categories', () => {
       loggerA.debug('foo');
@@ -144,21 +144,21 @@ describe('Logger', () => {
       (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(1);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(1);
     });
-  })
+  });
 
   describe('multiple matching log level configurations', () => {
-    let logger: Logger
+    let logger: Logger;
 
     beforeEach(() => {
       (global as any).localStorage = {
         getItem () {
-          return '{"Some*": 4, "SomeCategory": 0}'
+          return '{"Some*": 4, "SomeCategory": 0}';
         },
         setItem () {
         }
-      }
-      logger = getLogger('SomeCategory')
-    })
+      };
+      logger = getLogger('SomeCategory');
+    });
 
     it('should use the lowest matching level', () => {
       logger.debug('foo');
@@ -166,10 +166,10 @@ describe('Logger', () => {
       (global.console.debug as jest.Mock).mock.calls.length.should.be.equal(0);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(0);
     });
-  })
+  });
 
   describe('logger with a default level', () => {
-    let logger: Logger
+    let logger: Logger;
 
     beforeEach(() => {
       (global as any).localStorage = {
@@ -177,9 +177,9 @@ describe('Logger', () => {
         },
         setItem () {
         }
-      }
-      logger = getLogger('CategoryWithDefaultLevel', LoggerLevel.WARN)
-    })
+      };
+      logger = getLogger('CategoryWithDefaultLevel', LoggerLevel.WARN);
+    });
 
     it('should use the default log level', () => {
       logger.debug('foo');
@@ -189,21 +189,21 @@ describe('Logger', () => {
       (global.console.warn as jest.Mock).mock.calls.length.should.be.equal(1);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(1);
     });
-  })
+  });
 
   describe('overriding the default level of a category with the wildcard config ', () => {
-    let logger: Logger
+    let logger: Logger;
 
     beforeEach(() => {
       (global as any).localStorage = {
         getItem () {
-          return '{"*": 2}'
+          return '{"*": 2}';
         },
         setItem () {
         }
-      }
-      logger = getLogger('CategoryWithDefaultLevel', LoggerLevel.ON)
-    })
+      };
+      logger = getLogger('CategoryWithDefaultLevel', LoggerLevel.ON);
+    });
 
     it('should use the level specified by user configuration (not the default)', () => {
       logger.debug('foo');
@@ -213,21 +213,21 @@ describe('Logger', () => {
       (global.console.warn as jest.Mock).mock.calls.length.should.be.equal(1);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(1);
     });
-  })
+  });
 
   describe('overriding the default level of a category with the wildcard config disabling all logging', () => {
-    let logger: Logger
+    let logger: Logger;
 
     beforeEach(() => {
       (global as any).localStorage = {
         getItem () {
-          return '{"*": 0}'
+          return '{"*": 0}';
         },
         setItem () {
         }
-      }
-      logger = getLogger('CategoryWithDefaultLevel', Infinity)
-    })
+      };
+      logger = getLogger('CategoryWithDefaultLevel', Infinity);
+    });
 
     it('should use the level specified by user configuration (not the default), and thus nothing should be logged', () => {
       logger.debug('foo');
@@ -237,6 +237,5 @@ describe('Logger', () => {
       (global.console.warn as jest.Mock).mock.calls.length.should.be.equal(0);
       (global.console.error as jest.Mock).mock.calls.length.should.be.equal(0);
     });
-  })
-
+  });
 });

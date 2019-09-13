@@ -67,7 +67,6 @@ export class FFmpegTool {
    * @param ffmpegArguments
    */
   runWithOneInputFile (inputFile: FFmpegFileItem, ffmpegArguments: string[]): FFmpegFileItem {
-
     // TODO: use FFmpegStdPipeBuffer class
 
     let stdErrBytesCount = 0;
@@ -76,7 +75,7 @@ export class FFmpegTool {
       stdErrBytesCount++;
       stderrData.push(byte);
 
-      //debug(`wrote total ${stdErrBytesCount} bytes to stderr`);
+      // debug(`wrote total ${stdErrBytesCount} bytes to stderr`);
 
       if (this._onStdErrPipeByte) {
         this._onStdErrPipeByte(byte, stdErrBytesCount);
@@ -89,7 +88,7 @@ export class FFmpegTool {
       stdOutBytesCount++;
       stdoutData.push(byte);
 
-      //debug(`wrote total ${stdOutBytesCount} bytes to stdout`);
+      // debug(`wrote total ${stdOutBytesCount} bytes to stdout`);
 
       if (this._onStdOutPipeByte) {
         this._onStdOutPipeByte(byte, stdErrBytesCount);
@@ -107,7 +106,7 @@ export class FFmpegTool {
         stdout: onStdOutChar,
         stderr: onStdErrChar
       };
-      log('running ffmpeg wrapper now with config:', ffmpegJsConfig)
+      log('running ffmpeg wrapper now with config:', ffmpegJsConfig);
       const result = ffmpeg(ffmpegJsConfig);
       out = result.MEMFS[0];
     } catch (err) {

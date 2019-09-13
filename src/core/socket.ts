@@ -1,6 +1,6 @@
 import { PayloadDescriptor } from './payload-description';
 import { getLogger, makeLogTimestamped, LoggerLevel } from '../logger';
-import { Signal,  SignalReceiver, SignalReceiverCastResult } from './signal';
+import { Signal, SignalReceiver, SignalReceiverCastResult } from './signal';
 
 import { OutputSocket } from './socket-output';
 import { Socket } from './socket-base';
@@ -51,7 +51,7 @@ export class SocketDescriptor {
    * !! NOTE: Keep this in sync with BufferProperties.clone
    * @param serializedSd
    */
-  static fromJson(serializedSd: string): SocketDescriptor {
+  static fromJson (serializedSd: string): SocketDescriptor {
     const sd: SocketDescriptor = JSON.parse(serializedSd);
     // now lets brings this dead thing back to life
     return SocketDescriptor.fromPayloads(
@@ -67,7 +67,7 @@ export class SocketDescriptor {
         pd.details = payload.details;
         return pd;
       })
-    )
+    );
   }
 
   // TODO: also allow to directly bind this to proc templateSocketDescriptor method on construction
@@ -83,7 +83,7 @@ export class SocketDescriptor {
 
   readonly payloads: PayloadDescriptor[];
 
-  payload(): PayloadDescriptor {
+  payload (): PayloadDescriptor {
     if (this.payloads.length > 1) {
       throw new Error('Socket descriptor has more than on payload descriptor');
     }
@@ -101,7 +101,7 @@ export class SocketDescriptor {
     return this.payloads.length === 0;
   }
 
-  toJson(): string {
+  toJson (): string {
     try {
       return JSON.stringify(this);
     } catch (err) {
@@ -119,6 +119,6 @@ export abstract class SeekableOutputSocket extends OutputSocket {
   abstract seek(start: number, end?: number): boolean;
 }
 
-export { Socket } from './socket-base'
+export { Socket } from './socket-base';
 export { OutputSocket } from './socket-output';
 export { InputSocket } from './socket-input';

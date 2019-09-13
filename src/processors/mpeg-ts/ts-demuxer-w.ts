@@ -10,7 +10,6 @@ import { BufferProperties } from '../../core/buffer-props';
 const { log } = getLogger('TSDemuxerTask');
 
 export function runMpegTsDemux (p: Packet): Packet[] {
-
   const outputPacketList: Packet[] = [];
 
   const demuxer = new TSDemuxer((
@@ -35,7 +34,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
       const mimeType = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
 
       bufferSlice.props = new BufferProperties(mimeType);
-      bufferSlice.props.codec = audioTrack.isAAC ? /*audioTrack.codec*/ 'mp4a' : 'mp3a'; // FIXME
+      bufferSlice.props.codec = audioTrack.isAAC ? /* audioTrack.codec */ 'mp4a' : 'mp3a'; // FIXME
       bufferSlice.props.elementaryStreamId = audioTrack.pid;
 
       bufferSlice.props.details.codecConfigurationData = audioTrack.config;
@@ -43,7 +42,6 @@ export function runMpegTsDemux (p: Packet): Packet[] {
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
       outputPacketList.push(packet);
-
     });
 
     avcTrack.samples.forEach((sample) => {
@@ -77,8 +75,6 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
         outputPacketList.push(packet);
-
-
       });
     });
 
@@ -89,7 +85,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
   demuxer.reset();
 
-  //const p = Packet.fromTransferable(packet);
+  // const p = Packet.fromTransferable(packet);
 
   p.forEachBufferSlice((bufferSlice) => {
     demuxer.append(bufferSlice.getUint8Array(), 0, true, 0);

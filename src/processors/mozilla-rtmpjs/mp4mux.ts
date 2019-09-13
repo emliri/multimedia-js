@@ -307,7 +307,6 @@ export class MP4Mux {
       cto: number = 0,
       audioDetails: {sampleRate: number, sampleDepth: number, samplesPerFrame: number, numChannels: number} = null
     ) {
-
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._attemptToGenerateMovieHeader();
       }
@@ -542,7 +541,6 @@ export class MP4Mux {
           let lastDecodeTime = Math.round(decodeTime);
 
           for (var j = 0; j < trackPackets.length; j++) {
-
             const videoPacket: VideoPacket = trackPackets[j].packet;
             const videoFrameRateScaled = trackInfo.timescale / trackInfo.framerate;
             const nextDecodeTime = Math.round(samplesProcessed * videoFrameRateScaled);
@@ -629,7 +627,6 @@ export class MP4Mux {
         case AAC_SOUND_CODEC_ID:
 
           trackState.initializationData.forEach((audioSpecificConfig) => {
-
             sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
             const esdsData = audioSpecificConfig;
             sampleEntry.otherBoxes = [
@@ -652,7 +649,7 @@ export class MP4Mux {
             esdsData.set(hexToBytes('068080800102'), 35 + audioSpecificConfig.length);
             */
 
-            var objectType = (audioSpecificConfig[0] >> 3); // TODO 31
+            let objectType = (audioSpecificConfig[0] >> 3); // TODO 31
             // mp4a.40.objectType
 
             // FIXME: we are overriding previous writes here with the last entry of init datas.
@@ -660,7 +657,6 @@ export class MP4Mux {
             //        so this could be changed to making several calls or passing an array of strings instead
             //        and making mimeTypeCodec field an array then.
             trackState.mimeTypeCodec = 'mp4a.40.' + objectType; // 'mp4a.40.2'
-
           });
           break;
 
@@ -677,10 +673,9 @@ export class MP4Mux {
 
           // For AVC, support multiple video codec data entries
           trackState.initializationData.forEach((codecInitData) => {
+            let avcC = codecInitData;
 
-            var avcC = codecInitData;
-
-            sampleEntry = new VideoSampleEntry('avc1', videoDataReferenceIndex, trackInfo.width, trackInfo.height)
+            sampleEntry = new VideoSampleEntry('avc1', videoDataReferenceIndex, trackInfo.width, trackInfo.height);
             sampleEntry.otherBoxes = [
               new RawTag('avcC', avcC)
             ];
@@ -691,7 +686,7 @@ export class MP4Mux {
             //        the problem with that is that we are only making one call to oncodecinfo callback
             //        so this could be changed to making several calls or passing an array of strings instead
             //        and making mimeTypeCodec field an array then.
-            var codecProfile = (avcC[1] << 16) | (avcC[2] << 8) | avcC[3];
+            let codecProfile = (avcC[1] << 16) | (avcC[2] << 8) | avcC[3];
             // avc1.XXYYZZ -- XX - profile + YY - constraints + ZZ - level
             trackState.mimeTypeCodec = 'avc1.' + (0x1000000 | codecProfile).toString(16).substr(1);
           });
@@ -799,7 +794,6 @@ export class MP4Mux {
         }
 
         traks.push(trak);
-
       });
 
       // and now we can create the moov box

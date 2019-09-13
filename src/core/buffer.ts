@@ -22,8 +22,7 @@ import { BufferProperties } from './buffer-props';
  *
  */
 export class BufferSlice {
-
-  static allocateNew(byteLength: number): BufferSlice {
+  static allocateNew (byteLength: number): BufferSlice {
     return new BufferSlice(new ArrayBuffer(byteLength));
   }
 
@@ -62,11 +61,11 @@ export class BufferSlice {
     return slice;
   }
 
-  static write(src: BufferSlice, dest: ArrayBuffer, offset: number) {
+  static write (src: BufferSlice, dest: ArrayBuffer, offset: number) {
     writeTypedArraySlice(src.getDataView(), dest, offset);
   }
 
-  static getTotalSize(slices: BufferSlice[], characterSizeBits?: number): number {
+  static getTotalSize (slices: BufferSlice[], characterSizeBits?: number): number {
     return slices.reduce((prevValue, buf: BufferSlice) => prevValue + buf.size(characterSizeBits), 0);
   }
 
@@ -201,7 +200,7 @@ export class BufferSlice {
      * @param props
      * @returns new BufferSlice
      */
-    prepend(buffer: BufferSlice, props?: BufferProperties): BufferSlice {
+    prepend (buffer: BufferSlice, props?: BufferProperties): BufferSlice {
       return buffer.append(this, props);
     }
 
@@ -219,7 +218,7 @@ export class BufferSlice {
      * @param dest
      * @param offset
      */
-    write(dest: ArrayBuffer, offset: number): BufferSlice {
+    write (dest: ArrayBuffer, offset: number): BufferSlice {
       BufferSlice.write(this, dest, offset);
       return this;
     }

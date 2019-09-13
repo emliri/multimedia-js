@@ -1011,7 +1011,7 @@ export class VideoSampleEntry extends SampleEntry {
 }
 
 export class AvcCodecDataBox extends Box {
-  constructor(
+  constructor (
     public spsNALUs: Uint8Array[],
     public ppsNALUs: Uint8Array[],
     public version: number,
@@ -1032,8 +1032,8 @@ export class AvcCodecDataBox extends Box {
     data[3] = this.level;
 
     // @see FFmpeg/libavformat/avc.c
-    data[4] = 0xff & (this.nalUnitSizeFieldLength - 1) & 0x03;  /* 6 bits reserved (111111) + 2 bits nal size length - 1 (11) */
-    data[5] = 0xff & this.spsNALUs.length & 0x1f;                    /* 3 bits reserved (111) + 5 bits number of sps (00001) */
+    data[4] = 0xff & (this.nalUnitSizeFieldLength - 1) & 0x03; /* 6 bits reserved (111111) + 2 bits nal size length - 1 (11) */
+    data[5] = 0xff & this.spsNALUs.length & 0x1f; /* 3 bits reserved (111) + 5 bits number of sps (00001) */
 
     offset = 6;
 
@@ -1049,7 +1049,7 @@ export class AvcCodecDataBox extends Box {
     this.ppsNALUs.forEach((ppsNalUnit) => {
       data.set([(ppsNalUnit.byteLength >> 8), (ppsNalUnit.byteLength) & 0x00ff], offset); // TODO: use writeUint16/writeInt16
       offset += 2;
-      data.set(ppsNalUnit, offset)
+      data.set(ppsNalUnit, offset);
       offset += ppsNalUnit.byteLength;
     });
 

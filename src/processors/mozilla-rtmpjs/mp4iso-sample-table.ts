@@ -71,19 +71,16 @@ export class SampleTablePackager {
       let sampleDelta: number = null;
 
       for (let i = 0; i < samples.length; i++) {
-
         const sample = samples[i];
 
         // here we need to have a previous sample dts to compute any delta at all
         if (previousSampleDts !== null) {
-
           // if we have a new delta coming up push new entry and reset
           // (only we have had sampleDelta set at all before - init case!)
           const latestDelta = sample.dts - previousSampleDts;
 
-          if (latestDelta !== sampleDelta && sampleDelta !== null
-            || (i === samples.length - 1)) {
-
+          if (latestDelta !== sampleDelta && sampleDelta !== null ||
+            (i === samples.length - 1)) {
             if (sampleDelta === null) {
               sampleDelta = latestDelta;
             }
@@ -104,7 +101,6 @@ export class SampleTablePackager {
             sampleCount = 0;
             // reset / store latest delta
             sampleDelta = latestDelta;
-
           }
         }
 
@@ -112,9 +108,7 @@ export class SampleTablePackager {
         sampleCount++;
         // store previous dts (even very first)
         previousSampleDts = sample.dts;
-
       }
-
     }
 
     // similar to above ^ but not same. now we are looking at CTO(n) = CTS(n) - DTS(n)
@@ -133,7 +127,6 @@ export class SampleTablePackager {
           // if we have a new cto value push an entry and reset counter
           if (latestPtOffset !== sampleOffset ||
               (i === samples.length - 1)) {
-
             // since we have been "looking ahead" by one sample all the time (every entry refers to previous sample),
             // we need to take in the last simple here since it will not be looked ahead
             // since we iterate on it
@@ -157,7 +150,6 @@ export class SampleTablePackager {
         // increment sample count every time
         sampleCount++;
       }
-
     }
 
     const stsc: SampleToChunkEntry[] = [];
@@ -166,7 +158,6 @@ export class SampleTablePackager {
     let chunkOffset: number = firstChunkOffset;
 
     sampleDescriptionEntries.forEach((sampleDescriptionBox, index) => {
-
       const oneBasedIndex = index + 1;
       const samplesInCodingSequenceChunk = samples.filter((sample) => sample.sampleDescriptionIndex === oneBasedIndex);
 
@@ -176,11 +167,10 @@ export class SampleTablePackager {
         sampleDescriptionIndex: oneBasedIndex
       });
 
-      stco.push(chunkOffset)
+      stco.push(chunkOffset);
 
-      chunkOffset += samplesInCodingSequenceChunk.reduce((accu: number, sample: StblSample) => accu + sample.size, 0)
-
-    })
+      chunkOffset += samplesInCodingSequenceChunk.reduce((accu: number, sample: StblSample) => accu + sample.size, 0);
+    });
 
     return new SampleTableBox(
       new SampleDescriptionBox(sampleDescriptionEntries),

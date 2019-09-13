@@ -24,7 +24,7 @@ export class XhrSocket extends SeekableOutputSocket {
       return; // TODO
     }
 
-    log(xhr)
+    log(xhr);
 
     if (xhr.error) {
       error('got error for url:', this._xhr.responseURL);
@@ -44,7 +44,6 @@ export class XhrSocket extends SeekableOutputSocket {
       log('transferring EOS symbol');
       // EOS
       this.transfer(Packet.newEos());
-      return;
     }
   }
 }

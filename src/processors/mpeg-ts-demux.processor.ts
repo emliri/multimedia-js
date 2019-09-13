@@ -72,44 +72,37 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
-
     const outputPackets: Packet[] = runMpegTsDemux(inPacket);
 
     let audioSocket: OutputSocket = null;
     let videoSocket: OutputSocket = null;
 
     outputPackets.forEach((p: Packet) => {
-
       if (p.isSymbolic()) {
-        console.log('got symbolic packet:', p.getSymbolName())
+        console.log('got symbolic packet:', p.getSymbolName());
         return;
       }
 
       if (p.defaultPayloadInfo.isVideo()) {
-
         if (!videoSocket) {
-          videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]))
+          videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
-        //if (videoSocket.
+        // if (videoSocket.
 
         p.forEachBufferSlice((bs) => debugAccessUnit(bs, true));
 
         videoSocket.transfer(p);
-
       } else if (p.defaultPayloadInfo.isAudio()) {
-
         if (!audioSocket) {
-          audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]))
+          audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
         audioSocket.transfer(p);
-
       } else {
         throw new Error('Unsupported payload: ' + p.defaultMimeType);
       }
-
-    })
+    });
 
     return true;
   }

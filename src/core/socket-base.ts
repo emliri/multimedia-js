@@ -1,10 +1,10 @@
-import { EventEmitter } from "eventemitter3";
-import { SocketEvent, SocketState, SocketDescriptor, SocketOwner, SocketEventHandler, SocketType } from "./socket";
-import { SignalReceiver, SignalHandler, Signal, SignalReceiverCastResult } from "./signal";
-import { PayloadDescriptor } from "./payload-description";
-import { Packet, PacketSymbol } from "./packet";
-import { dispatchAsyncTask } from "../common-utils";
-import { getLogger, LoggerLevel } from "../logger";
+import { EventEmitter } from 'eventemitter3';
+import { SocketEvent, SocketState, SocketDescriptor, SocketOwner, SocketEventHandler, SocketType } from './socket';
+import { SignalReceiver, SignalHandler, Signal, SignalReceiverCastResult } from './signal';
+import { PayloadDescriptor } from './payload-description';
+import { Packet, PacketSymbol } from './packet';
+import { dispatchAsyncTask } from '../common-utils';
+import { getLogger, LoggerLevel } from '../logger';
 
 const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
 
@@ -125,7 +125,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
           resolve(this.transferSync(p));
           this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
           if (p.isSymbolic()) {
-            switch(p.symbol) {
+            switch (p.symbol) {
             case PacketSymbol.EOS:
               this._emit(SocketEvent.EOS_PACKET_TRANSFERRED);
               break;

@@ -83,7 +83,6 @@ export function copyArrayBuffer (
   src: ArrayBuffer, dest: ArrayBuffer,
   length: number = src.byteLength,
   srcOffset: number = 0, destOffset: number = 0) {
-
   if (srcOffset + length > src.byteLength) {
     throw new Error(`Source buffer is too small for copy target of ${length} bytes at offset ${srcOffset}`);
   }
@@ -104,7 +103,7 @@ export function copyArrayBuffer (
  * @param src
  * @param dest
  */
-export function copyArrayBuffers(src: ArrayBuffer[], dest: ArrayBuffer) {
+export function copyArrayBuffers (src: ArrayBuffer[], dest: ArrayBuffer) {
   for (let i = 0; i < src.length; i++) {
     copyArrayBuffer(src[i], dest, src[i].byteLength, 0, i === 0 ? 0 : src[i - 1].byteLength);
   }
@@ -156,7 +155,7 @@ export function concatArrayBuffers (buffer1: ArrayBuffer, buffer2: ArrayBuffer):
  * @param typedArray2
  * @returns A new ArrayBuffer containing the concatenated data from both view windows in the specific order
  */
-export function concatTypedArraySlice(typedArray1: ArrayBufferView, typedArray2: ArrayBufferView): ArrayBuffer {
+export function concatTypedArraySlice (typedArray1: ArrayBufferView, typedArray2: ArrayBufferView): ArrayBuffer {
   const newBuffer = new ArrayBuffer(typedArray1.byteLength + typedArray2.byteLength);
   copyArrayBuffer(typedArray1.buffer, newBuffer, typedArray1.byteLength, typedArray1.byteOffset, 0);
   copyArrayBuffer(typedArray2.buffer, newBuffer, typedArray2.byteLength, typedArray2.byteOffset, typedArray1.byteLength);
@@ -173,7 +172,7 @@ export function copyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
 }
 
 export function writeTypedArraySlice (typedArray: ArrayBufferView, dest: ArrayBuffer, offset?: number) {
-  copyArrayBuffer(typedArray.buffer, dest, typedArray.byteLength, typedArray.byteOffset, offset)
+  copyArrayBuffer(typedArray.buffer, dest, typedArray.byteLength, typedArray.byteOffset, offset);
 }
 
 export function concatArrays<T> (arg0: T[], ...args: T[][]): T[] {
@@ -326,7 +325,7 @@ const THROW_ERROR_ON_WRITE_VALUE_OVERFLOW = false;
 
 export const MAX_UINT_32 = 4294967296;
 export const MAX_INT_32 = MAX_UINT_32 / 2;
-export const MIN_INT_32 = - MAX_INT_32;
+export const MIN_INT_32 = -MAX_INT_32;
 export const MAX_UINT_16 = 65536;
 
 export const readUint16 = (buffer: Uint8Array, offset: number): number => {
@@ -346,7 +345,7 @@ export const readUint32 = (buffer: Uint8Array, offset: number): number => {
 export function writeUint32 (buffer: Uint8Array, offset: number, value: number): number {
   if (THROW_ERROR_ON_WRITE_VALUE_OVERFLOW) {
     if (value > MAX_UINT_32) {
-      throw new Error('Can not write value outside range')
+      throw new Error('Can not write value outside range');
     }
   }
   buffer[offset] = value >> 24;
@@ -359,7 +358,7 @@ export function writeUint32 (buffer: Uint8Array, offset: number, value: number):
 export function writeInt32 (data: Uint8Array, offset: number, value: number): number {
   if (THROW_ERROR_ON_WRITE_VALUE_OVERFLOW) {
     if (Math.abs(value) > MAX_INT_32) {
-      throw new Error('Can not write value outside range')
+      throw new Error('Can not write value outside range');
     }
   }
   data[offset] = (value >> 24) & 255;
@@ -369,7 +368,7 @@ export function writeInt32 (data: Uint8Array, offset: number, value: number): nu
   return 4;
 }
 
-//TODO: writeUint16/writeInt16
+// TODO: writeUint16/writeInt16
 
 export function decodeInt32 (s: string): number {
   return (s.charCodeAt(0) << 24) | (s.charCodeAt(1) << 16) |
@@ -401,49 +400,49 @@ export function encodeLang (s: string): number {
   return ((s.charCodeAt(0) & 0x1F) << 10) | ((s.charCodeAt(1) & 0x1F) << 5) | (s.charCodeAt(2) & 0x1F);
 }
 
-export const MAX_BITMASK_WIDTH = 31 // EMCAscript runtimes use INT32 internally so if we exceed 31 width we get a negative number
+export const MAX_BITMASK_WIDTH = 31; // EMCAscript runtimes use INT32 internally so if we exceed 31 width we get a negative number
 
-export function bitMaskHasFlag(value: number, flag: number): boolean {
-  return !!(value & flag)
+export function bitMaskHasFlag (value: number, flag: number): boolean {
+  return !!(value & flag);
 }
 
-export function bitMaskCombineFlags(value1: number, value2: number): number {
-  return value1 | value2
+export function bitMaskCombineFlags (value1: number, value2: number): number {
+  return value1 | value2;
 }
 
-export function bitMaskInvertFlags(value: number,  enumSize: number = MAX_BITMASK_WIDTH): number {
+export function bitMaskInvertFlags (value: number, enumSize: number = MAX_BITMASK_WIDTH): number {
   let retValue = 0;
   for (let i = 0; i < enumSize; i++) {
-    let maskSweepValue = (1 << i)
+    let maskSweepValue = (1 << i);
     if (!(value & maskSweepValue)) {
-      retValue |=  maskSweepValue
+      retValue |= maskSweepValue;
     }
   }
-  return retValue
+  return retValue;
 }
 
-export function bitMaskValueOfFlagEnum(order: number): number {
+export function bitMaskValueOfFlagEnum (order: number): number {
   if (order < 0) {
-    throw new Error('Enum order index must ordinal')
+    throw new Error('Enum order index must ordinal');
   }
-  //const bitWidth: number = Math.ceil(Math.log2(enumerationMaxSize))
+  // const bitWidth: number = Math.ceil(Math.log2(enumerationMaxSize))
   if (MAX_BITMASK_WIDTH < order) {
-    throw new Error(`Bitmask max-width (${MAX_BITMASK_WIDTH}) must be greater than given ordinal`)
+    throw new Error(`Bitmask max-width (${MAX_BITMASK_WIDTH}) must be greater than given ordinal`);
   }
-  const flagValue: number = 1 << order
-  return flagValue
+  const flagValue: number = 1 << order;
+  return flagValue;
 }
 
-export function bitMaskValueOfFlagEnumRange(from: number, to: number): number {
+export function bitMaskValueOfFlagEnumRange (from: number, to: number): number {
   if (from >= to) {
-    throw new Error('Range must be strictly monotonic')
+    throw new Error('Range must be strictly monotonic');
   }
   if (to > MAX_BITMASK_WIDTH) {
-    throw new Error('Range has to be lower than max bitwidth')
+    throw new Error('Range has to be lower than max bitwidth');
   }
   let value = 0;
   for (let i = from; i <= to; i++) {
-    value |= (1 << i)
+    value |= (1 << i);
   }
-  return value
+  return value;
 }

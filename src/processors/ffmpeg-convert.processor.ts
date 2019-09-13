@@ -5,12 +5,11 @@ import { FFmpegTool, FFmpegConversionTargetInfo } from './ffmpeg/ffmpeg-tool';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 
-declare var ffmpeg: any;
+var ffmpeg: any;
 
 export class FFmpegConvertProcessor extends Processor {
-
   static getName (): string {
-    return 'FFmpegConvertProcessor'
+    return 'FFmpegConvertProcessor';
   }
 
   private ffmpeg_: FFmpegTool = null;
@@ -19,7 +18,6 @@ export class FFmpegConvertProcessor extends Processor {
     private _audioConfig: FFmpegConversionTargetInfo = null,
     private _videoConfig: FFmpegConversionTargetInfo = null,
     private _defaultInputFileExt: string = 'dat') {
-
     super();
 
     if (!_audioConfig && !_videoConfig) {

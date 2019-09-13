@@ -27,7 +27,6 @@ export class AACParseProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet) {
-
     log('parsing packet:', p.toString());
 
     p.forEachBufferSlice(
@@ -49,34 +48,30 @@ export class AACParseProcessor extends Processor {
   }
 
   private _onBufferSlice (p: Packet, bufferSlice: BufferSlice) {
-
     if (p.defaultPayloadInfo) {
       if (p.defaultPayloadInfo.isBitstreamHeader) {
-        log('packet has bitstream header flag')
+        log('packet has bitstream header flag');
 
-        const esds: Esds = <Esds> Esds.parse(bufferSlice.getUint8Array())
+        const esds: Esds = <Esds> Esds.parse(bufferSlice.getUint8Array());
 
         log('parsed MP4 audio-atom:', esds);
       }
       if (p.defaultPayloadInfo.isKeyframe) {
-        log('packet has keyframe flag')
+        log('packet has keyframe flag');
       }
     } else {
-      warn('no default payload info')
+      warn('no default payload info');
     }
 
     const data = bufferSlice.getUint8Array();
 
     if (!isAacADTSHeaderPattern(data, 0)) {
-      log('No ADTS header-pattern found')
+      log('No ADTS header-pattern found');
       return;
     }
 
-    log('AAC audio config:', makeAACAudioSpecificConfigMp4DataFromADTSHeader(data, 0))
+    log('AAC audio config:', makeAACAudioSpecificConfigMp4DataFromADTSHeader(data, 0));
 
-    log('ADTS header-info:', parseAacADTSHeaderInfo(data, 0, 0, 0, 0))
-
-
+    log('ADTS header-info:', parseAacADTSHeaderInfo(data, 0, 0, 0, 0));
   }
-
 }

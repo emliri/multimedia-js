@@ -42,7 +42,7 @@ export class CombineMp4sToMovFlow extends Flow {
         mimeType: 'video/quicktime',
         filenameTemplateBase: 'buffer${counter}-${Date.now()}.mp4'
       }
-    )
+    );
   }
 
   private _onWaitingToFlowing () {
@@ -88,7 +88,6 @@ export class CombineMp4sToMovFlow extends Flow {
     let mp4AudioOutSocket = xhrSocketAudioFile;
 
     if (ffmpegAacTranscodeProc) {
-
       xhrSocketAudioFile.connect(ffmpegAacTranscodeProc.in[0]);
       mp4AudioOutSocket = ffmpegAacTranscodeProc.out[0];
     }
@@ -112,7 +111,6 @@ export class CombineMp4sToMovFlow extends Flow {
 
     // set up
     mp4DemuxProcVideo.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (eventData: ProcessorEventData) => {
-
       if (!eventData.socket.descriptor().payload().isVideo()) {
         // ignore
         return;
@@ -133,9 +131,7 @@ export class CombineMp4sToMovFlow extends Flow {
       OutputSocket.fromUnsafe(eventData.socket).connect(muxerAudioInput);
     });
 
-
-    this.connectWithAllExternalSockets(mp4MuxProc.out[0])
-
+    this.connectWithAllExternalSockets(mp4MuxProc.out[0]);
   }
 
   protected onVoidToWaiting_ (cb: VoidCallback) {

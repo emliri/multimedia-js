@@ -29,10 +29,9 @@ const getSocketDescriptor: SocketTemplateGenerator =
   );
 
 export class MP4DemuxProcessor extends Processor {
-
-    static getName (): string {
-      return 'MP4DemuxProcessor';
-    }
+  static getName (): string {
+    return 'MP4DemuxProcessor';
+  }
 
     private _demuxer: Mp4Demuxer;
     private _haveStreamStart: boolean = false;
@@ -50,7 +49,6 @@ export class MP4DemuxProcessor extends Processor {
     }
 
     private _ensureOutputForTrack (track: Track): OutputSocket {
-
       const payloadDescriptor = new PayloadDescriptor(track.mimeType);
       const sd = new SocketDescriptor([
         payloadDescriptor
@@ -77,11 +75,9 @@ export class MP4DemuxProcessor extends Processor {
     }
 
     protected processTransfer_ (inS: InputSocket, p: Packet) {
-
       this._haveStreamStart = true;
 
       p.data.forEach((bufferSlice) => {
-
         this._demuxer.append(bufferSlice.getUint8Array());
         this._demuxer.end();
 
@@ -89,7 +85,7 @@ export class MP4DemuxProcessor extends Processor {
 
         if (Object.keys(tracks).length === 0) {
           error('No tracks found in input data');
-          this.emitErrorEvent(ErrorCode.PROC_BAD_FORMAT, "No tracks were found in the parsed data (expecting MP4/MOV)");
+          this.emitErrorEvent(ErrorCode.PROC_BAD_FORMAT, 'No tracks were found in the parsed data (expecting MP4/MOV)');
           return;
         }
 
@@ -135,7 +131,6 @@ export class MP4DemuxProcessor extends Processor {
             }
 
             avcCList.forEach((avcC: AvcC) => {
-
               const avcCodecData = avcC.data;
               const spsParsed = avcC.spsParsed[0];
 
@@ -170,8 +165,7 @@ export class MP4DemuxProcessor extends Processor {
               }
 
               codecDataList.push(avcCodecData);
-
-            })
+            });
 
             /*
             const sps: Uint8Array[] = avcC.sps;
@@ -181,9 +175,7 @@ export class MP4DemuxProcessor extends Processor {
             console.log('pushing PPS data')
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
-
           } else if (track.isAudio()) {
-
             const audioAtom = <AudioAtom> track.getMetadataAtom();
             sampleDepth = audioAtom.sampleSize;
             numChannels = audioAtom.channelCount;
@@ -244,7 +236,7 @@ export class MP4DemuxProcessor extends Processor {
             const initPacket = Packet.fromSlice(BufferSlice.fromTypedArray(codecData, initProps));
             initPacket.setTimescale(track.getTimescale());
             output.transfer(initPacket);
-          })
+          });
 
           track.getFrames().forEach((frame: Frame) => {
             let props = protoProps;

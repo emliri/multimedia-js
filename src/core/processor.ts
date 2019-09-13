@@ -50,19 +50,19 @@ export enum ProcessorConfigParamType {
 
 export type ProcessorConfigParam = {name: string, type: ProcessorConfigParamType, value: any}
 
-export function createProcessorConfigParam(name: string,
+export function createProcessorConfigParam (name: string,
   value: any, type: ProcessorConfigParamType = ProcessorConfigParamType.ANY): ProcessorConfigParam {
   if (value === undefined) {
-    throw new Error('Config param value can not be undefined')
+    throw new Error('Config param value can not be undefined');
   }
   return {
     name,
     value,
     type
-  }
+  };
 }
 
-export function createProcessorConfigParamsFromArguments(args: any[]): ProcessorConfigParam[] {
+export function createProcessorConfigParamsFromArguments (args: any[]): ProcessorConfigParam[] {
   const params = [];
   return params;
 }
@@ -113,7 +113,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       };
     }
 
-    configure(params: ProcessorConfigParam[]) {
+    configure (params: ProcessorConfigParam[]) {
       throw new Error('Configure called but not implemented');
     }
 
@@ -143,7 +143,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       if (code < ErrorCode.PROC_GENERIC) {
         throw new Error('Error-code is not for proc-type');
       }
-      error('creating error event with code:', code, 'message:', message)
+      error('creating error event with code:', code, 'message:', message);
       const event = this.createEvent(ProcessorEvent.ERROR, {
         error: {
           code,
@@ -157,13 +157,13 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return event;
     }
 
-    emitErrorEvent(code: ErrorCode, message: string, nativeError?: Error, innerError?: ErrorInfo) {
+    emitErrorEvent (code: ErrorCode, message: string, nativeError?: Error, innerError?: ErrorInfo) {
       if (this.listenerCount(ProcessorEvent.ERROR)) {
         this.emit(ProcessorEvent.ERROR, this.createErrorEvent(code, message, nativeError, innerError));
       } else { // make sure the error is being seen if we have no listeners
-        console.error(`Unhandled error code ${code}: ${message}`)
+        console.error(`Unhandled error code ${code}: ${message}`);
         if (nativeError) {
-          console.error('Native error:', nativeError)
+          console.error('Native error:', nativeError);
         }
       }
     }
@@ -335,11 +335,11 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       try {
         result = this.processTransfer_(inS, p, inputIndex);
       } catch (err) {
-        const msg = `There was an internal fatal error processing a packet: ${err.message}.`
+        const msg = `There was an internal fatal error processing a packet: ${err.message}.`;
         error(msg, err);
-        debug('Stacktrace:')
+        debug('Stacktrace:');
         debug(err);
-        this.emitErrorEvent(ErrorCode.PROC_INTERNAL, msg, err)
+        this.emitErrorEvent(ErrorCode.PROC_INTERNAL, msg, err);
       }
       return result;
     }

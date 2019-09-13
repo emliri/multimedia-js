@@ -133,7 +133,6 @@ export class MP4MuxProcessor extends Processor {
       );
 
       return true;
-
     } else if (p.defaultPayloadInfo.isVideo()) {
       this.videoPacketQueue_.push(p);
 
@@ -156,7 +155,6 @@ export class MP4MuxProcessor extends Processor {
       );
 
       return true;
-
     }
 
     return true;
@@ -195,16 +193,15 @@ export class MP4MuxProcessor extends Processor {
         log('got video bitstream header at:', p.toString());
         this.videoBitstreamHeader_ = bufferSlice;
       } else {
-        //debug('video packet:', p.toString());
+        // debug('video packet:', p.toString());
       }
 
       if (bufferSlice.props.isKeyframe) {
         log('got keyframe at:', p.toString());
 
         if (this.embedCodecDataOnKeyframes_) {
-
           if (!this.videoBitstreamHeader_) {
-            throw new Error('not video bitstream header found to embed')
+            throw new Error('not video bitstream header found to embed');
           }
 
           const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
@@ -222,18 +219,16 @@ export class MP4MuxProcessor extends Processor {
           const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0].subarray(1)), NALU.SPS, 3);
           const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
 
-          const codecInitAu: BufferSlice
-             = makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
+          const codecInitAu: BufferSlice =
+             makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
 
-          debugAccessUnit(codecInitAu)
+          debugAccessUnit(codecInitAu);
 
           bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
-
         }
-
       }
 
-      const data = bufferSlice.getUint8Array()
+      const data = bufferSlice.getUint8Array();
 
       mp4Muxer.pushPacket(
         MP4MuxPacketType.VIDEO_PACKET,
@@ -357,7 +352,6 @@ export class MP4MuxProcessor extends Processor {
     numChannels: number,
     durationSeconds: number,
     language: string = 'und'): MP4Track {
-
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec);
     }
@@ -389,7 +383,6 @@ export class MP4MuxProcessor extends Processor {
     durationSeconds: number,
     timescale: number = framerate
   ): MP4Track {
-
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec);
     }

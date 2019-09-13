@@ -190,7 +190,7 @@ export class Packet {
     return this.data[0] ? this.data[0].props : null;
   }
 
-  get defaultMimeType(): string {
+  get defaultMimeType (): string {
     return this.defaultPayloadInfo ? this.defaultPayloadInfo.mimeType : null;
   }
 
@@ -294,7 +294,7 @@ export class Packet {
   }
 
   getSymbolName (): string {
-    return PacketSymbol[this.symbol]
+    return PacketSymbol[this.symbol];
   }
 
   toString (): string {
@@ -305,5 +305,4 @@ export class Packet {
       ` -> ${p.getNormalizedDts()} + ∂${p.getNormalizedCto()} [s]} `;
     return description;
   }
-
 }

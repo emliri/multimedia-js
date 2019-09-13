@@ -61,10 +61,9 @@ function doesMimetypeHaveCodec (mimeType: string): boolean {
 }
 
 export class PayloadDescriptor {
-
-  static fromMimeTypeParse(mimeType: string): SocketDescriptor {
+  static fromMimeTypeParse (mimeType: string): SocketDescriptor {
     // TODO
-    throw new Error('Not implemented')
+    throw new Error('Not implemented');
   }
 
   /**
@@ -142,9 +141,9 @@ export class PayloadDescriptor {
    */
   getMediaSubtype (stripCodecs: boolean = false): string {
     if (!stripCodecs) {
-      return this._getMimeTypePart(1)
+      return this._getMimeTypePart(1);
     } else {
-      return this._getMimeTypePart(1).split(';')[0]
+      return this._getMimeTypePart(1).split(';')[0];
     }
   }
 

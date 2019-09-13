@@ -110,24 +110,21 @@ export function getConfiguredLoggerLevelForCategory (
   defaultLevel: LoggerLevel = LoggerLevel.OFF,
   config: LoggerConfig = createAndGetLocalLoggerConfig(),
   overrideWithDefault: boolean = false
-  ): LoggerLevel {
-
+): LoggerLevel {
   if (overrideWithDefault) {
     return defaultLevel;
   }
 
   let retLevel: LoggerLevel = null;
   Object.keys(config).forEach((catMatcher: string) => {
-
     const level: LoggerLevel = config[catMatcher];
     const parsedMatcher: string = catMatcher.split('*').map(regExpEscape).join('.*');
     const isCatMatching = (new RegExp('^' + parsedMatcher + '$')).test(category);
 
-    if (isCatMatching
-      && (retLevel === null || level < retLevel)) { // we are enforcing the lowest level specified by any matching category wildcard
+    if (isCatMatching &&
+      (retLevel === null || level < retLevel)) { // we are enforcing the lowest level specified by any matching category wildcard
       retLevel = level;
     }
-
   });
 
   return retLevel === null ? defaultLevel : retLevel;

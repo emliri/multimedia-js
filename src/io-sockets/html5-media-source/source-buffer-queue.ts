@@ -59,19 +59,19 @@ export class SourceBufferQueue {
 
   /*
 
-		The mode property of the SourceBuffer interface controls whether media segments can be appended to the SourceBuffer in any order, or in a strict sequence.
+    The mode property of the SourceBuffer interface controls whether media segments can be appended to the SourceBuffer in any order, or in a strict sequence.
 
-		The two available values are:
+    The two available values are:
 
-		segments: The media segment timestamps determine the order in which the segments are played. The segments can be appended to the SourceBuffer in any order.
-		sequence: The order in which the segments are appended to the SourceBuffer determines the order in which they are played. Segment timestamps are generated automatically for the segments that observe this order.
-		The mode value is initially set when the SourceBuffer is created using MediaSource.addSourceBuffer(). If timestamps already exist for the media segments, then the value will be set to segments; if they don't, then the value will be set to sequence.
+    segments: The media segment timestamps determine the order in which the segments are played. The segments can be appended to the SourceBuffer in any order.
+    sequence: The order in which the segments are appended to the SourceBuffer determines the order in which they are played. Segment timestamps are generated automatically for the segments that observe this order.
+    The mode value is initially set when the SourceBuffer is created using MediaSource.addSourceBuffer(). If timestamps already exist for the media segments, then the value will be set to segments; if they don't, then the value will be set to sequence.
 
-		If you try to set the mode property value to segments when the initial value is sequence, an error will be thrown. The existing segment order must be maintained in sequence mode. You can, however, change the value from segments to sequence. It just means the play order will be fixed, and new timestamps generated to reflect this.
+    If you try to set the mode property value to segments when the initial value is sequence, an error will be thrown. The existing segment order must be maintained in sequence mode. You can, however, change the value from segments to sequence. It just means the play order will be fixed, and new timestamps generated to reflect this.
 
-		This property cannot be changed during while the sourceBuffer is processing either an appendBuffer() or remove() call.
+    This property cannot be changed during while the sourceBuffer is processing either an appendBuffer() or remove() call.
 
-	*/
+  */
 
   isInitialModeSequential (): boolean {
     return this.initialMode_ === 'sequence';

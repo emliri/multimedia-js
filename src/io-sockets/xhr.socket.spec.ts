@@ -1,6 +1,4 @@
 
 describe('XhrSocket', () => {
-  it ('is a dummy', () => void 0)
-})
-
-
+  it('is a dummy', () => void 0);
+});

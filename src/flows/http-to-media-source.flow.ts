@@ -30,7 +30,6 @@ export class HttpToMediaSourceFlow extends Flow {
         log('state change aborted. reason:', reason);
       }
     );
-
   }
 
   /**
@@ -41,19 +40,18 @@ export class HttpToMediaSourceFlow extends Flow {
   }
 
   protected onCompleted_ (done: VoidCallback) {
-    done()
+    done();
   }
 
   protected onVoidToWaiting_ (done: VoidCallback) {
-    done()
+    done();
   }
 
   protected onWaitingToVoid_ (done: VoidCallback) {
-    done()
+    done();
   }
 
   protected onWaitingToFlowing_ (done: VoidCallback) {
-
     const mp4DemuxProc = newProcessorWorkerShell(MP4DemuxProcessor);
     const tsDemuxProc = newProcessorWorkerShell(MPEGTSDemuxProcessor);
     const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
@@ -78,7 +76,6 @@ export class HttpToMediaSourceFlow extends Flow {
         muxerInputSocket = mp4MuxProc.createInput();
         h264ParseProc.out[0].connect(muxerInputSocket);
       } else if (data.processor === tsDemuxProc) {
-
         if (!this._haveVideo &&
             PayloadCodec.isAvc(payloadDescriptor.codec)) {
           this._haveVideo = true;
@@ -107,11 +104,11 @@ export class HttpToMediaSourceFlow extends Flow {
       xhrSocket.connect(mp4DemuxProc.in[0]);
     }
 
-    done()
+    done();
   }
 
   protected onFlowingToWaiting_ (done: VoidCallback) {
-    done()
+    done();
   }
 
   protected onStateChangeAborted_ (reason: string) {

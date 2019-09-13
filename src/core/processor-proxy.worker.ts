@@ -19,7 +19,7 @@ import { cloneErrorInfo, ErrorCodeSpace, ErrorCode } from './error';
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/importScripts
  */
-declare var importScripts: (...paths: string[]) => void;
+var importScripts: (...paths: string[]) => void;
 
 const workerId = makeUUID_v1();
 const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.ERROR);
@@ -40,8 +40,7 @@ log('setting new worker instance up ...');
     return subContexts[id];
   }
 
-  function handleSubProcessorEvent(subContext: ProcessorProxyWorkerSubContext, eventData: ProcessorEventData) {
-
+  function handleSubProcessorEvent (subContext: ProcessorProxyWorkerSubContext, eventData: ProcessorEventData) {
     // first do a shallow clone
     const eventDataClone = Object.assign({}, eventData);
     // remove the non-transferrable proc and packet refs
@@ -52,7 +51,7 @@ log('setting new worker instance up ...');
       eventData.error.processor = null;
 
       // copy clone-needy stuff over
-      const errorInfoClone = cloneErrorInfo(eventData.error, true)
+      const errorInfoClone = cloneErrorInfo(eventData.error, true);
       eventData.error.innerError = errorInfoClone.innerError;
       eventData.error.nativeError = errorInfoClone.nativeError;
     }
@@ -66,10 +65,9 @@ log('setting new worker instance up ...');
     };
 
     context.postMessage(callbackData);
-  };
+  }
 
   function handleMessageTypeSpawn (data: any) {
-
     const subContext = {
       id: subContexts.length,
       workerId: workerId,
@@ -104,11 +102,9 @@ log('setting new worker instance up ...');
       value: subContext.id
     };
     context.postMessage(callbackData);
-
   }
 
   function handleMessageTypeCreate (data: any) {
-
     const subContext = getSubContextById(data.subContextId);
     if (subContext.processor) {
       error('Failure applying proxy worker message:', data);
@@ -135,7 +131,9 @@ log('setting new worker instance up ...');
       return;
     }
 
-    const onEvent = (eventData: ProcessorEventData) => { handleSubProcessorEvent(subContext, eventData); };
+    const onEvent = (eventData: ProcessorEventData) => {
+ handleSubProcessorEvent(subContext, eventData);
+};
 
     subContext.processor.on(ProcessorEvent.INPUT_SOCKET_CREATED, onEvent);
     subContext.processor.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onEvent);
@@ -198,7 +196,7 @@ log('setting new worker instance up ...');
     context.postMessage(callbackData);
   }
 
-  function handleMessageTypeDestroy(data: any) {
+  function handleMessageTypeDestroy (data: any) {
     const subContext = getSubContextById(data.subContextId);
     if (subContext) {
       subContexts.splice(subContext.id, 1);
@@ -250,7 +248,7 @@ log('setting new worker instance up ...');
     context.postMessage(callbackData);
   }
 
-  function handleMessageTypeTerminate(data: any) {
+  function handleMessageTypeTerminate (data: any) {
     const subContext = getSubContextById(data.subContextId);
     if (!subContext.processor) {
       error('Failure applying proxy worker message:', data);
@@ -267,7 +265,6 @@ log('setting new worker instance up ...');
       value: subContext.id
     };
     context.postMessage(callbackData);
-
   }
 
   function onMessage (event: MessageEvent) {

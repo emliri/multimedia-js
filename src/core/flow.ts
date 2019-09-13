@@ -8,7 +8,7 @@ import { AppInputSocket } from '../io-sockets/app-input-socket';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
 import { makeTemplate } from '../common-utils';
 
-const {error} = getLogger('Flow', LoggerLevel.DEBUG);
+const { error } = getLogger('Flow', LoggerLevel.DEBUG);
 
 export enum FlowState {
   VOID = 'void', // the initial state
@@ -54,11 +54,10 @@ export enum FlowConfigFlag {
   WITH_APP_SOCKET = 0b01,
   WITH_DOWNLOAD_SOCKET = 0b10,
   ALL = 0xFFFFFFFF
-};
+}
 
 // TODO: create generic Set class in objec-ts
 export abstract class Flow extends EventEmitter<FlowEvent> {
-
   constructor (
     public readonly flags: FlowConfigFlag = FlowConfigFlag.NONE,
     private onStateChangePerformed: FlowStateChangeCallback = () => {},
@@ -76,7 +75,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
       if (flags & FlowConfigFlag.WITH_APP_SOCKET) {
         this._appSocket = new AppInputSocket((blob: Blob) => {
           this.setCompleted({ code: FlowCompletionResultCode.OK, data: blob });
-        }, true, true)
+        }, true, true);
         this.addExternalSocket(this._appSocket);
       }
 
@@ -92,7 +91,6 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
         this.addExternalSocket(this._downloadSocket);
       }
     }
-
   }
 
   private _downloadSocket: WebFileDownloadSocket = null;
@@ -111,11 +109,11 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   private _whenCompletedReject: (reason: FlowError) => void = null;
   private _completionResultCode: FlowCompletionResultCode = FlowCompletionResultCode.NONE;
 
-  protected get extDownloadSocket(): WebFileDownloadSocket {
+  protected get extDownloadSocket (): WebFileDownloadSocket {
     return this._downloadSocket;
   }
 
-  protected get extAppSocket(): AppInputSocket {
+  protected get extAppSocket (): AppInputSocket {
     return this._appSocket;
   }
 
@@ -127,23 +125,23 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return Array.from(this.getExternalSockets());
   }
 
-  getExternalSocketsByType(type: SocketType): Socket[] {
+  getExternalSocketsByType (type: SocketType): Socket[] {
     return this.externalSockets.filter((s) => (type === s.type()));
   }
 
-  getExternalInputSockets(): InputSocket[] {
+  getExternalInputSockets (): InputSocket[] {
     return <InputSocket[]> this.getExternalSocketsByType(SocketType.INPUT);
   }
 
-  getExternalOutputSockets(): OutputSocket[] {
+  getExternalOutputSockets (): OutputSocket[] {
     return <OutputSocket[]> this.getExternalSocketsByType(SocketType.OUTPUT);
   }
 
-  get error(): FlowError {
+  get error (): FlowError {
     return this._error;
   }
 
-  hasFlag(flag: FlowConfigFlag): boolean {
+  hasFlag (flag: FlowConfigFlag): boolean {
     return !!(this.flags & flag);
   }
 
@@ -286,15 +284,15 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return this._state;
   }
 
-  protected addExternalSocket(s: Socket): Flow {
+  protected addExternalSocket (s: Socket): Flow {
     this._extSockets.add(s);
     return this;
   }
 
-  protected connectWithAllExternalSockets(internalOut: OutputSocket) {
+  protected connectWithAllExternalSockets (internalOut: OutputSocket) {
     this.getExternalSockets().forEach((extSocket) => {
       internalOut.connect(extSocket);
-    })
+    });
   }
 
   protected setCompleted (completionResult: FlowCompletionResult, error: FlowError = null) {
@@ -326,24 +324,23 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     this.emit(FlowEvent.STATE_CHANGED);
   }
 
-  private _onProcError(data: ProcessorEventData): void {
-
+  private _onProcError (data: ProcessorEventData): void {
     error('got processor error event:', data);
 
     const errorData: FlowError = {
       space: ErrorCodeSpace.FLOW,
       type: FlowErrorType.PROC,
       code: ErrorCode.FLOW_INTERNAL,
-      message: "A processor part of this flow emitted an error event",
+      message: 'A processor part of this flow emitted an error event',
       innerError: data.error
     };
 
-    this._error = errorData
+    this._error = errorData;
 
     this._whenCompletedReject(errorData);
 
     // error data can be retrieved by app from whenCompleted().catch(...) when needed
-    this.emit(FlowEvent.ERROR)
+    this.emit(FlowEvent.ERROR);
   }
 
   protected abstract onVoidToWaiting_(done: VoidCallback);

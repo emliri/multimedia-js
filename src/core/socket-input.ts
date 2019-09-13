@@ -1,8 +1,8 @@
-import { SocketDescriptor, SocketType, SocketEvent } from "./socket";
-import { PacketReceiveCallback, Packet, PacketSymbol } from "./packet";
-import { Signal, SignalReceiverCastResult, collectSignalReceiverCastResults } from "./signal";
-import { Socket } from "./socket-base";
-import { LoggerLevel, getLogger } from "../logger";
+import { SocketDescriptor, SocketType, SocketEvent } from './socket';
+import { PacketReceiveCallback, Packet, PacketSymbol } from './packet';
+import { Signal, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
+import { Socket } from './socket-base';
+import { LoggerLevel, getLogger } from '../logger';
 
 const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
 export class InputSocket extends Socket {

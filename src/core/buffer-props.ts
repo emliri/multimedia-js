@@ -11,7 +11,6 @@ import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './payload-description';
  *
  */
 export class BufferProperties extends PayloadDescriptor {
-
   /**
    * NOTE: Keep this in sync with SocketDescriptor.fromJson
    * @param props

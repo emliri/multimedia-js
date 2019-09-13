@@ -27,13 +27,12 @@ export class H264ParseProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet) {
-
     log('parsing packet:', p.toString());
 
     p.forEachBufferSlice(
       this._onBufferSlice.bind(this, p),
       null,
-      //this._onProcessingError.bind(this),
+      // this._onProcessingError.bind(this),
       this);
 
     this.out[0].transfer(
@@ -50,24 +49,21 @@ export class H264ParseProcessor extends Processor {
   }
 
   private _onBufferSlice (p: Packet, bufferSlice: BufferSlice) {
-
     if (p.defaultPayloadInfo) {
       if (p.defaultPayloadInfo.isBitstreamHeader) {
-        log('packet has bitstream header flag')
+        log('packet has bitstream header flag');
 
         const avcC: AvcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
 
         log('parsed MP4 video-atom:', avcC);
       }
       if (p.defaultPayloadInfo.isKeyframe) {
-        log('packet has keyframe flag')
+        log('packet has keyframe flag');
       }
     } else {
-      warn('no default payload info')
+      warn('no default payload info');
     }
 
     debugAccessUnit(bufferSlice, true);
-
   }
-
 }

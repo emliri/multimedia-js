@@ -19,7 +19,7 @@ export type ErrorInfoSpace<T extends ErrorCodeSpace> = ErrorInfo & {
 export function cloneErrorInfo (errorInfo: ErrorInfo, synthesizeNativeError: boolean = false): ErrorInfo {
   const clone = Object.assign({}, errorInfo);
   if (synthesizeNativeError && clone.nativeError) {
-    const {message, stack, name} = clone.nativeError;
+    const { message, stack, name } = clone.nativeError;
     clone.nativeError = {
       message,
       stack,
@@ -27,7 +27,7 @@ export function cloneErrorInfo (errorInfo: ErrorInfo, synthesizeNativeError: boo
     };
   }
   if (clone.innerError) {
-    clone.innerError = cloneErrorInfo(errorInfo, synthesizeNativeError)
+    clone.innerError = cloneErrorInfo(errorInfo, synthesizeNativeError);
   }
   return clone;
 }
@@ -48,19 +48,19 @@ export enum ErrorCodeSpace {
 
 // allows for 99 positions in total for each error space, increase at will
 // "i got 99 errors but a space aint' one" ;P
-const ERROR_NUM_PER_SPACE = 99
+const ERROR_NUM_PER_SPACE = 99;
 // set this to number of digits of ERROR_NUM_PER_SPACE (or compute with log)
-const ERROR_CODE_SPACE_WIDTH = Math.ceil(Math.log10(ERROR_NUM_PER_SPACE))
+const ERROR_CODE_SPACE_WIDTH = Math.ceil(Math.log10(ERROR_NUM_PER_SPACE));
 // this should result to a power of 10 so that our error codes are properly "prefixed" into the decimal system
 const ERROR_CODE_SPACE_SCALE = Math.pow(10, ERROR_CODE_SPACE_WIDTH);
 
-function getErrorCodeValue(space: ErrorCodeSpace, position: number): number {
+function getErrorCodeValue (space: ErrorCodeSpace, position: number): number {
   return ERROR_CODE_SPACE_SCALE * space + position;
 }
 
-export function isErrorCodeSpace(errCode: ErrorCode, space: ErrorCodeSpace): boolean {
-  return (space * ERROR_CODE_SPACE_SCALE <= errCode)
-    && ((space + 1) * ERROR_CODE_SPACE_SCALE > errCode)
+export function isErrorCodeSpace (errCode: ErrorCode, space: ErrorCodeSpace): boolean {
+  return (space * ERROR_CODE_SPACE_SCALE <= errCode) &&
+    ((space + 1) * ERROR_CODE_SPACE_SCALE > errCode);
 }
 
 export enum ErrorCode {
@@ -75,11 +75,11 @@ export enum ErrorCode {
   PROC_INTERNAL = getErrorCodeValue(ErrorCodeSpace.PROC, 3)
 }
 
-export function getErrorNameByCode(errCode: ErrorCode): string {
+export function getErrorNameByCode (errCode: ErrorCode): string {
   return ErrorCode[errCode];
 }
 
-export function getErrorSpaceByCode(errCode: ErrorCode): ErrorCodeSpace {
+export function getErrorSpaceByCode (errCode: ErrorCode): ErrorCodeSpace {
   // "bit-mask for decimals"
   const space = Math.round(errCode / ERROR_CODE_SPACE_SCALE);
   // double-reverse-look-up just to be sure we get an actual value
@@ -89,4 +89,3 @@ export function getErrorSpaceByCode(errCode: ErrorCode): ErrorCodeSpace {
   }
   return errorCodeSpace;
 }
-

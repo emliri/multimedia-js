@@ -253,9 +253,9 @@ export class ProcessorProxy extends Processor {
           });
         // if we have no listeners, make sure the error is being seen
         } else {
-          console.error(`Unhandled error code ${eventData.error.code} (${ErrorCode[eventData.error.code]}): ${eventData.error.message}`)
+          console.error(`Unhandled error code ${eventData.error.code} (${ErrorCode[eventData.error.code]}): ${eventData.error.message}`);
           if (eventData.error.nativeError) {
-            console.error('Native error:', eventData.error.nativeError)
+            console.error('Native error:', eventData.error.nativeError);
           }
         }
 
@@ -286,7 +286,7 @@ export class ProcessorProxy extends Processor {
     this._initShellFromProtoInstance();
   }
 
-  configure(params: ProcessorConfigParam[]) {
+  configure (params: ProcessorConfigParam[]) {
     this._worker.invokeMethod(this._worker.subContextId, 'configure', [params]);
   }
 
