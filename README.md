@@ -28,29 +28,65 @@ However the most high-level and use-case oriented interfaces usually do not chan
 
 As a roadmap, we see a potential v2 release as the first "API stable", and therefore a major milestone to achieve. A stable API will be the product of the current phase where we can explore various use-cases and their needs.
 
-## Automated testing
+## Automated testing & Spec philosophy
 
-TODO: Next stop, automated CI for unit specs and functional/integration test-cases ...
+### Unit/Integration BDD spec-based testing
 
- ## Build and develop
+We are running automated unit & integration tests in our <a href="https://travis-ci.org/tchakabam/multimedia-js">CI</a> using the <a href=https://jestjs.io/">JEST</a> test runner. This means the runtime environment is enforced to be bare Node.js (as opposed to browser or other Web based engine). 
+
+This approach allows us to constrain the testing scope on non-DOM dependent modules, non browser-API dependent modules (and/or forcing us to mock these where really needed, as they "should" interact with our code). We want to test *our* code, not some browser implementation or platform-specific part of the runtime. 
+
+Ideally, we write a "spec" in BDD style for each module (that's the goal). This is to be considered a "unit test" for the module, and should contain sub-specifications (tests) for all various cases the UuT should comply to.
+
+We can also write integration tests that will depend on several modules (in terms of source files or object families). There is no formal technical limitation at the moment between writing a spec that is to be considered a unit test or an integration test in the strict definition at the moment in our setup, from the point of view of one "module". 
+
+#### On the "unit" vs "integration" terminology
+
+Please consider the terms unit vs integration test is sometimes a matter of point of view (and more specifically in the case of mmjs). If we write a unit test for a `Flow` type component, then that is an integration test for all the processors it uses. To be meaningful, we think that unit tests are useful for all the "core" API abstract functionalities and components as well as specific "processors" and "io-sockets". When it comes to more high-level functionality like "flows", it would be regarded an integration test by the nature of the UuT.
+
+### Functional (web browser) testing
+
+TODO: Next, we will set up functional testing in an automated browser environment to deliver on acceptance criterias for high-level use-cases, especially where Web-API specific integration may play a role. 
+
+### Various Node versions
+
+So far, we don't see the need to extend this approach on different Node API and runtime versions or platform integrations as stronger integrity is given there naturally. Our CI uses a specific Node version (which we officially support in that sense), and developers are allowed to use any recent version on their side. We don't constrain the development environment to a specific one. 
+
+Also see information [Supported Node.js version](#supported-node.js-version).
+
+## Build and develop
  
- ```
- npm install
- git submodule update --init
- npm start // starts webpack dev-server
- // or
- npm run build // runs build and exits
- // or
-  npm run build // runs build and watches changes to rebuild
- ```
+```
+npm install
+git submodule update --init
+npm start // starts webpack dev-server
+// or
+npm run build // runs build and exits
+// or
+npm run build // runs build and watches changes to rebuild
+```
+
+### Supported Node.js version
+
+We support down to Node.js v8.10.0 and higher and are running our CI on v11.
+
+## Lint
  
- ## Lint
- 
- ```
- npm run lint
- // or
- npm run lint-fix // auto-fixes lint errors  
- ```
+```
+npm run lint
+// or
+npm run lint-fix // auto-fixes lint errors  
+```
+
+## Test
+
+Runs all unit/integration tests under JEST:
+
+```
+npm test
+```
+
+See JEST documentation (or `./node_modules/.bin/jest --help`) to check how to constrain testing on spec file-paths or names.
 
 ### Are you looking for package `multimedia` v0.x ?
 
