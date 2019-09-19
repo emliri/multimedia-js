@@ -192,13 +192,15 @@ Also see information on the [Supported Node.js version](#supported-nodejs-versio
 
 ### On our build system
 
-* We use `make` to bring together all the things, since we don't consider npm a task-runner worthy of this term (but a great package-system however). Nor do we want to misue Webpack as such a one. We appreciate the ability of Make to guard us from having the computer do the same thing twice unnecessarily.
+* We use `make` to bring together all the things, since we don't consider npm a task-runner worthy of this term (but a great package-system however). Nor do we want to misue Webpack as such a one. We appreciate the ability of Make to guard us from having the computer do the same thing twice unnecessarily. 
 
 * We rely on Webpack for JS compilation and bundling. We use the official Typescript toolchain with it (not Babel).
 
 * Our build is a bit more complex than just installing a few packages and hitting Webpack however. We are making use of prebuilt WASM binaries for example, and rely on them being copied to a specific place outside of `node_modules`, or allow them to come from other sources than `npm` in the first place.
 
 * We happily take advantage of using GIT "submodules" where it is meaningful.
+
+* Note that, thanks to make, neither node_modules nor submodules will be installed i.e initialized/updated otherwise then when necessary (e.g only when `package.json` is newer than the `node_modules` i.e `package-lock.json` file).
 
 ### Build system requirements
 
