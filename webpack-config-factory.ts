@@ -37,7 +37,8 @@ export function createWebpackConfig(options, excludePaths: string[] = []) {
       filename: libName + '.' + options.libraryTarget + '.js',
       library: libName,
       libraryTarget: options.libraryTarget,
-      sourceMapFilename: '[file].map'
+      sourceMapFilename: '[file].map',
+      globalObject: 'this'
     },
     resolve: {
       extensions: ['*', '.ts', '.tsx', '.js', '.json', '.html', '.css']
