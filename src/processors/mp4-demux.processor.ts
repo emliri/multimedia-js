@@ -92,6 +92,8 @@ export class MP4DemuxProcessor extends Processor {
         for (const trackId in tracks) {
           const track: Mp4Track = <Mp4Track> tracks[trackId];
 
+          log('analyzing track with id:', trackId)
+
           log(
             'mime-type:', track.mimeType,
             'id:', track.id,
@@ -100,7 +102,7 @@ export class MP4DemuxProcessor extends Processor {
             'timescale:', track.getTimescale());
 
           if (track.isVideo()) {
-            log('video-track:', track.getResolution());
+            log('video-track resolution:', track.getResolution());
           }
 
           log('defaults:', track.getDefaults());
@@ -122,6 +124,9 @@ export class MP4DemuxProcessor extends Processor {
           let codecProfile: number = NaN;
 
           if (track.isVideo()) {
+
+            log('video track found with id:', track.id)
+
             const videoAtom = <VideoAtom> track.getMetadataAtom();
             // FIXME: support HEVC too
             const avcCList: AvcC[] = (<AvcC[]> track.getReferenceAtoms());
@@ -176,6 +181,9 @@ export class MP4DemuxProcessor extends Processor {
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
           } else if (track.isAudio()) {
+
+            log('audio track found with id:', track.id)
+
             const audioAtom = <AudioAtom> track.getMetadataAtom();
             sampleDepth = audioAtom.sampleSize;
             numChannels = audioAtom.channelCount;
@@ -200,11 +208,17 @@ export class MP4DemuxProcessor extends Processor {
 
             const esdsData = esds.data;
             codecDataList.push(esdsData);
+
+          } else {
+
+            warn('track found is unhandled kind:', track.mimeType)
+
+            throw new Error('Unhandled mp4 track-type. Mime-type is: ' + track.mimeType);
           }
 
           let sampleDuration = track.getDefaults() ? track.getDefaults().sampleDuration : 1;
 
-          log('sample-duration found:', sampleDuration, 'numerator:', sampleDurationNum);
+          log('sample-duration found:', sampleDuration, 'numerator:', sampleDurationNum, 'sample-rate:', sampleRate);
 
           const protoProps: BufferProperties = new BufferProperties(
             track.mimeType,
