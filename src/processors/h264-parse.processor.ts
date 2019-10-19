@@ -8,7 +8,7 @@ import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit } from './h264/h264-tools';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.OFF, true);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.WARN, true);
 
 export class H264ParseProcessor extends Processor {
   static getName (): string {
@@ -53,9 +53,15 @@ export class H264ParseProcessor extends Processor {
       if (p.defaultPayloadInfo.isBitstreamHeader) {
         log('packet has bitstream header flag');
 
-        const avcC: AvcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
+        let avcC: AvcC;
+        try {
+          avcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
+          log('parsed MP4 video-atom:', avcC);
+        } catch(err) {
+          warn('failed to parse slice-data expected to be AvcC atom:', bufferSlice)
+          debug('internal error is:', err)
+        }
 
-        log('parsed MP4 video-atom:', avcC);
       }
       if (p.defaultPayloadInfo.isKeyframe) {
         log('packet has keyframe flag');
