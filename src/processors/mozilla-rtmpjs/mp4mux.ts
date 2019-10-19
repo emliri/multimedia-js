@@ -53,11 +53,11 @@ import {
 } from './mp4iso-boxes';
 
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
-import { getLogger } from '../../logger';
+import { getLogger, LoggerLevel } from '../../logger';
 import { BoxContainerBox, Box, RawTag } from './mp4iso-base';
 import { SampleTablePackager } from './mp4iso-sample-table';
 
-const { warn, debug } = getLogger('MP4Mux(moz)');
+const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.WARN, true);
 
 let MAX_PACKETS_IN_CHUNK = Infinity;
 let SPLIT_AT_KEYFRAMES = true;
