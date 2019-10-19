@@ -22,7 +22,7 @@ import { cloneErrorInfo, ErrorCodeSpace, ErrorCode } from './error';
 declare var importScripts: (...paths: string[]) => void;
 
 const workerId = makeUUID_v1();
-const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.ERROR);
+const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.WARN);
 
 log('setting new worker instance up ...');
 
@@ -82,6 +82,7 @@ log('setting new worker instance up ...');
       log('loading script for external dependency:', scriptPath);
       try {
         importScripts(scriptPath);
+        log('done.')
       } catch (err) {
         warn(`error in imported script: '${scriptPath}'`);
         error(err);
