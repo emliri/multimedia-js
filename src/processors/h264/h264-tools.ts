@@ -11,20 +11,21 @@ const { log, warn } = getLogger('H264Tools', LoggerLevel.OFF, true);
 
 export function debugNALU (bufferSlice: BufferSlice) {
   const nalu: NALU = new NALU(bufferSlice.getUint8Array());
-  log('NALU details:', nalu);
+  log(`parsed NALU of type ${nalu.getTypeName()}:`, nalu);
 }
 
 /**
  * An access-unit (AU) is a set of NAL (network abstraction layer) units.
  * The AU is top-most indicated slice of data that a container format would advertise as
- * a "sample" or "frame". Therefore an AU may have an externally clocked PTS/DTS timestamp pair attached to it,A
+ * a "sample" or "frame". Therefore an AU may have an externally clocked PTS/DTS timestamp pair attached to it,
  * but must not. An AU can also be "self-contained" and can be in principle decoded
  * (but not easily seeked) as is (without external clocking index).
  *
  * @param bufferSlice
  * @param debugRbspData
+ * @returns true when AU could be parsed, or false if not
  */
-export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolean = false) {
+export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolean = false): boolean {
   const avcStream = bufferSlice.getUint8Array();
   const avcView = bufferSlice.getDataView();
 
@@ -36,7 +37,7 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
 
     if (naluLength > avcStream.length) {
       warn('no NALUs found in this data! (not an access-unit)');
-      break;
+      return false;
     }
 
     naluOffset += 4;
@@ -64,6 +65,8 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
       }
     }
   }
+
+  return true;
 }
 
 /**
@@ -114,7 +117,7 @@ export function makeNALUFromH264RbspData (
 
 /**
  *
- * @param naluData list of NAL units in access unit
+ * @param naluData list of NAL units to package in an access unit
  */
 export function makeAnnexBAccessUnitFromNALUs (naluData: BufferSlice[]): BufferSlice {
   const totalSizeOfNalus = BufferSlice.getTotalSize(naluData);
