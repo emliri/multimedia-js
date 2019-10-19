@@ -608,7 +608,7 @@ export class MP4Mux {
       });
 
       if (!allInitializationDataExists) {
-        warn('missing necessary codec initialization data to create moov atom');
+        warn('missing necessary codec initialization data to create moov atom (needed for all tracks)');
         return null; // not enough data, waiting more
       }
 
