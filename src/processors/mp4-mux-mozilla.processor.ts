@@ -214,17 +214,21 @@ export class MP4MuxProcessor extends Processor {
           const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
           */
 
-          // the SPS/PPS data we use comes already in a regular NALU but we rewrite the header just for fun
-          // this is why we bust the first byte which is the header
-          const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0].subarray(1)), NALU.SPS, 3);
-          const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
+          if (avcC.sps.length > 0 && avcC.pps.length > 0) {
+            // the SPS/PPS data we use comes already in a regular NALU but we rewrite the header just for fun
+            // this is why we bust the first byte which is the header
+            const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0].subarray(1)), NALU.SPS, 3);
+            const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
 
-          const codecInitAu: BufferSlice =
-             makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
+            const codecInitAu: BufferSlice =
+            makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
 
-          debugAccessUnit(codecInitAu);
+            debugAccessUnit(codecInitAu);
 
-          bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
+            bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
+          }
+
+
         }
       }
 
