@@ -426,6 +426,9 @@ export class MP4Mux {
       const [mdat, sampleTablesData] = this._createPlainMovMediaData();
 
       const header = this._makeMovHeader(false, sampleTablesData, mdat);
+      if (!header) {
+        throw new Error('Failed to generate moov header data for plain MOV file')
+      }
 
       this.oncodecinfo(this.trackStates.map((ts) => ts.mimeTypeCodec));
       this.ondata(header);
@@ -605,8 +608,8 @@ export class MP4Mux {
       });
 
       if (!allInitializationDataExists) {
-        // warn('missing some initialization data to create moov atom');
-        return; // not enough data, waiting more
+        warn('missing necessary codec initialization data to create moov atom');
+        return null; // not enough data, waiting more
       }
 
       const brands: string[] = ['isom'];
@@ -819,6 +822,10 @@ export class MP4Mux {
       }
 
       const header = this._makeMovHeader(true);
+      if (!header) {
+        //throw new Error('Failed to generate moov header data')
+        return;
+      }
 
       this.oncodecinfo(this.trackStates.map((ts) => ts.mimeTypeCodec));
       this.ondata(header);
