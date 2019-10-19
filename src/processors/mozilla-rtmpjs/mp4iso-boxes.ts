@@ -1023,33 +1023,43 @@ export class AvcCodecDataBox extends Box {
     super('avcC');
   }
 
+  public layout (offset: number): number {
+    let size = super.layout(offset);
+    size += 8 // 6 fixed field bytes + 2 bytes for SPS/PPS size
+      + this.spsNALUs.reduce((accu, data) => { return accu + data.byteLength }, 0)
+      + (2 * this.spsNALUs.length)
+      + this.ppsNALUs.reduce((accu, data) => { return accu + data.byteLength }, 0)
+      + (2 * this.ppsNALUs.length)
+    return (this.size = size);
+  }
+
   public write (data: Uint8Array): number {
     let offset = super.write(data);
 
-    data[0] = this.version;
-    data[1] = this.profile;
-    data[2] = this.profileCompatibility;
-    data[3] = this.level;
+    data[this.offset + offset + 0] = this.version;
+    data[this.offset + offset + 1] = this.profile;
+    data[this.offset + offset + 2] = this.profileCompatibility;
+    data[this.offset + offset + 3] = this.level;
 
     // @see FFmpeg/libavformat/avc.c
-    data[4] = 0xff & (this.nalUnitSizeFieldLength - 1) & 0x03; /* 6 bits reserved (111111) + 2 bits nal size length - 1 (11) */
-    data[5] = 0xff & this.spsNALUs.length & 0x1f; /* 3 bits reserved (111) + 5 bits number of sps (00001) */
+    data[this.offset + offset + 4] = 0xff & (this.nalUnitSizeFieldLength - 1) & 0x03; /* 6 bits reserved (111111) + 2 bits nal size length - 1 (11) */
+    data[this.offset + offset + 5] = 0xff & this.spsNALUs.length & 0x1f; /* 3 bits reserved (111) + 5 bits number of sps (00001) */
 
-    offset = 6;
+    offset += 6;
 
     this.spsNALUs.forEach((spsNalUnit) => {
-      data.set([(spsNalUnit.byteLength >> 8), (spsNalUnit.byteLength) & 0x00ff], offset); // TODO: use writeUint16/writeInt16
+      data.set([(spsNalUnit.byteLength >> 8), (spsNalUnit.byteLength) & 0x00ff], this.offset + offset); // TODO: use writeUint16/writeInt16
       offset += 2;
-      data.set(spsNalUnit, offset);
+      data.set(spsNalUnit, this.offset + offset);
       offset += spsNalUnit.byteLength;
     });
 
-    data[offset] = this.ppsNALUs.length & 0x1f;
+    data[this.offset + offset++] = this.ppsNALUs.length & 0x1f;
 
     this.ppsNALUs.forEach((ppsNalUnit) => {
-      data.set([(ppsNalUnit.byteLength >> 8), (ppsNalUnit.byteLength) & 0x00ff], offset); // TODO: use writeUint16/writeInt16
+      data.set([(ppsNalUnit.byteLength >> 8), (ppsNalUnit.byteLength) & 0x00ff], this.offset + offset); // TODO: use writeUint16/writeInt16
       offset += 2;
-      data.set(ppsNalUnit, offset);
+      data.set(ppsNalUnit, this.offset + offset);
       offset += ppsNalUnit.byteLength;
     });
 
