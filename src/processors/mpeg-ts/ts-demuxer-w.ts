@@ -2,15 +2,20 @@ import { CommonMimeTypes } from '../../core/payload-description';
 import { Packet } from '../../core/packet';
 import { BufferSlice } from '../../core/buffer';
 
-import { getLogger } from '../../logger';
+import { getLogger, LoggerLevel } from '../../logger';
 
 import { TSDemuxer } from './ts-demuxer';
 import { BufferProperties } from '../../core/buffer-props';
 
-const { log } = getLogger('TSDemuxerTask');
+const { debug, log } = getLogger('TSDemuxerW', LoggerLevel.ON, true);
+
+export type MpegTsDemuxerAccessUnit = {data: Uint8Array, type: number};
+export type MpegTsDemuxerSample = {units: MpegTsDemuxerAccessUnit[], key: Uint8Array, pts: number, dts: number}
 
 export function runMpegTsDemux (p: Packet): Packet[] {
   const outputPacketList: Packet[] = [];
+
+  log('will create TSDemuxer instance')
 
   const demuxer = new TSDemuxer((
     audioTrack,
@@ -21,7 +26,11 @@ export function runMpegTsDemux (p: Packet): Packet[] {
     contiguous,
     accurateTimeOffset
   ) => {
-    log(audioTrack, avcTrack);
+
+    log('result callback invoked');
+
+    debug('demuxed audio track info:', audioTrack);
+    debug('demuxed AVC track info:', avcTrack);
 
     audioTrack.samples.forEach((sample) => {
       const unit = sample.unit;
@@ -44,8 +53,14 @@ export function runMpegTsDemux (p: Packet): Packet[] {
       outputPacketList.push(packet);
     });
 
-    avcTrack.samples.forEach((sample) => {
-      sample.units.forEach((unit: {data: Uint8Array, type: number}) => {
+    const avcSamples: Array<MpegTsDemuxerSample> = avcTrack.samples;
+
+    avcSamples.forEach((sample, sampleIndex) => {
+
+      debug('processing sample index:', sampleIndex)
+
+      const accessUnits: Array<MpegTsDemuxerAccessUnit> = sample.units;
+      accessUnits.forEach((unit: {data: Uint8Array, type: number}, auIndex) => {
         const bufferSlice = new BufferSlice(
           unit.data.buffer.slice(0),
           unit.data.byteOffset,
@@ -56,7 +71,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         bufferSlice.props.codec = 'avc1'; // avcTrack.codec;
         bufferSlice.props.elementaryStreamId = avcTrack.pid;
 
-        bufferSlice.props.isKeyframe = sample.key || unit.type === 5; // IDR
+        bufferSlice.props.isKeyframe = (!!sample.key) || unit.type === 5; // IDR
         bufferSlice.props.isBitstreamHeader = unit.type === 7 || unit.type === 8; // SPS/PPS
 
         bufferSlice.props.details.width = avcTrack.width;
@@ -64,12 +79,16 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
         if (unit.type === 5) {
           bufferSlice.props.tags.add('idr');
+          debug('tagged IDR slice at AU index:', auIndex, 'on sample (AnnexB/NALU) index:', sampleIndex)
         } else if (unit.type === 6) {
           bufferSlice.props.tags.add('sei');
+          debug('tagged SEI slice at AU index:', auIndex, 'on sample (AnnexB/NALU) index:', sampleIndex)
         } else if (unit.type === 7) {
           bufferSlice.props.tags.add('sps');
+          log('tagged SPS slice at AU index:', auIndex, 'on sample (AnnexB/NALU) index:', sampleIndex)
         } else if (unit.type === 8) {
           bufferSlice.props.tags.add('pps');
+          log('tagged PPS slice at AU index:', auIndex, 'on sample (AnnexB/NALU) index:', sampleIndex)
         }
 
         const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
@@ -83,13 +102,14 @@ export function runMpegTsDemux (p: Packet): Packet[] {
     return void 0;
   });
 
+  log('will append data to TSDemuxer instance')
+
   demuxer.reset();
-
-  // const p = Packet.fromTransferable(packet);
-
   p.forEachBufferSlice((bufferSlice) => {
     demuxer.append(bufferSlice.getUint8Array(), 0, true, 0);
   });
+
+  log('done appending data to TSDemuxer instance')
 
   return outputPacketList;
 }

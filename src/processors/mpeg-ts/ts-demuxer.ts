@@ -14,11 +14,11 @@ import MpegAudio from './mpeg-audio-parser';
 import ExpGolomb from './exp-golomb-reader';
 import SampleAesDecrypter from './sample-aes-decrypter';
 
-import { getLogger } from '../../logger';
+import { getLogger, LoggerLevel } from '../../logger';
 
 // import Hex from '../utils/hex';
 
-const { log, warn, error } = getLogger('TSDemuxer');
+const { log, warn, error } = getLogger('TSDemuxer', LoggerLevel.ON, true);
 
 // We are using fixed track IDs for driving the MP4 remuxer
 // instead of following the TS PIDs.

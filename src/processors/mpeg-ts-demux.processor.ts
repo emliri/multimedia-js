@@ -1,15 +1,15 @@
 import { Processor } from '../core/processor';
 
 import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplateGenerator } from '../core/socket';
-import { Packet, PacketSymbol } from '../core/packet';
+import { Packet } from '../core/packet';
 
-import { getLogger } from '../logger';
+import { getLogger, LoggerLevel } from '../logger';
 import { PayloadDescriptor, PayloadCodec } from '../core/payload-description';
 import { runMpegTsDemux } from './mpeg-ts/ts-demuxer-w';
-import { BufferSlice } from '../core/buffer';
 import { debugAccessUnit } from './h264/h264-tools';
+import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
-const { log } = getLogger('MPEGTSDemuxProcessor');
+const { debug, log } = getLogger('MPEGTSDemuxProcessor', LoggerLevel.ON, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -72,31 +72,52 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
+
+    const perf = self.performance;
+
+    const startDemuxingMs = perf.now()
+
+    log(`calling demuxer routine with packet of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 6)} Mbytes`)
+
     const outputPackets: Packet[] = runMpegTsDemux(inPacket);
+
+    const demuxingRunTimeMs = perf.now() - startDemuxingMs;
+
+    log(`got ${outputPackets.length} output packets from running demuxer (perf-stats: this took ${demuxingRunTimeMs.toFixed(3)} millis doing)`)
 
     let audioSocket: OutputSocket = null;
     let videoSocket: OutputSocket = null;
 
     outputPackets.forEach((p: Packet) => {
       if (p.isSymbolic()) {
-        log('got symbolic packet:', p.getSymbolName());
+        log('got symbolic packet:', p.getSymbolName(), '(noop/ignoring)');
         return;
       }
 
+      debug(`processing non-symbolic packet of ${p.getTotalBytes()} bytes`);
+
       if (p.defaultPayloadInfo.isVideo()) {
         if (!videoSocket) {
+          log('creating video output socket')
           videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
-        // if (videoSocket.
-
         p.forEachBufferSlice((bs) => debugAccessUnit(bs, true));
+
+        debug('transferring video packet to default out');
+
+        if (p.defaultPayloadInfo.isBitstreamHeader) {
+          log('found bitstream header part in packet:', p.defaultPayloadInfo.tags)
+        }
 
         videoSocket.transfer(p);
       } else if (p.defaultPayloadInfo.isAudio()) {
         if (!audioSocket) {
+          log('creating audio output socket')
           audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
+
+        debug('transferring audio packet to default out');
 
         audioSocket.transfer(p);
       } else {
