@@ -6,11 +6,13 @@ import { getLogger, LoggerLevel } from '../../logger';
 
 import { TSDemuxer } from './ts-demuxer';
 import { BufferProperties } from '../../core/buffer-props';
+import { NALU } from '../h264/nalu';
+import { debugNALU } from '../h264/h264-tools';
 
-const { debug, log } = getLogger('TSDemuxerW', LoggerLevel.ON, true);
+const { debug, log } = getLogger('TSDemuxerW', LoggerLevel.OFF, true);
 
-export type MpegTsDemuxerAccessUnit = {data: Uint8Array, type: number};
-export type MpegTsDemuxerSample = {units: MpegTsDemuxerAccessUnit[], key: Uint8Array, pts: number, dts: number}
+export type MpegTsDemuxerNALUnit = {data: Uint8Array, type: number};
+export type MpegTsDemuxerAccessUnit = {units: MpegTsDemuxerNALUnit[], key: Uint8Array, pts: number, dts: number}
 
 export function runMpegTsDemux (p: Packet): Packet[] {
   const outputPacketList: Packet[] = [];
@@ -53,45 +55,50 @@ export function runMpegTsDemux (p: Packet): Packet[] {
       outputPacketList.push(packet);
     });
 
-    const avcSamples: Array<MpegTsDemuxerSample> = avcTrack.samples;
+    const avcSamples: Array<MpegTsDemuxerAccessUnit> = avcTrack.samples;
 
-    avcSamples.forEach((sample, sampleIndex) => {
+    avcSamples.forEach((accessUnit, auIndex) => {
 
-      debug('processing sample index:', sampleIndex)
+      debug('processing sample index:', auIndex)
 
-      const accessUnits: Array<MpegTsDemuxerAccessUnit> = sample.units;
-      accessUnits.forEach((unit: {data: Uint8Array, type: number}, auIndex) => {
+      const nalUnits: Array<MpegTsDemuxerNALUnit> = accessUnit.units;
+      nalUnits.forEach((nalUnit: MpegTsDemuxerNALUnit, naluIndex) => {
         const bufferSlice = new BufferSlice(
-          unit.data.buffer.slice(0),
-          unit.data.byteOffset,
-          unit.data.byteLength);
+          nalUnit.data.buffer.slice(0),
+          nalUnit.data.byteOffset,
+          nalUnit.data.byteLength);
 
-        bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC);
+        bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_H264);
 
         bufferSlice.props.codec = 'avc1'; // avcTrack.codec;
         bufferSlice.props.elementaryStreamId = avcTrack.pid;
 
-        bufferSlice.props.isKeyframe = (!!sample.key) || unit.type === 5; // IDR
-        bufferSlice.props.isBitstreamHeader = unit.type === 7 || unit.type === 8; // SPS/PPS
+        bufferSlice.props.isKeyframe = (!!accessUnit.key) || nalUnit.type === NALU.IDR; // IDR
+        bufferSlice.props.isBitstreamHeader = nalUnit.type === NALU.SPS || nalUnit.type === NALU.PPS; // SPS/PPS
 
         bufferSlice.props.details.width = avcTrack.width;
         bufferSlice.props.details.height = avcTrack.height;
 
-        if (unit.type === 5) {
+        // TODO: move this to H264 parse proc
+        if (nalUnit.type === NALU.IDR) {
           bufferSlice.props.tags.add('idr');
-          debug('tagged IDR slice at AU index:', auIndex, 'on sample (AnnexB/NALU) index:', sampleIndex)
-        } else if (unit.type === 6) {
+          debug('tagged IDR slice at NALU index:', naluIndex, 'on access-unit index:', auIndex)
+        } else if (nalUnit.type === NALU.SEI) {
           bufferSlice.props.tags.add('sei');
-          debug('tagged SEI slice at AU index:', auIndex, 'on sample (AnnexB/NALU) index:', sampleIndex)
-        } else if (unit.type === 7) {
+          debug('tagged SEI slice at NALU index:', naluIndex, 'on access-unit index:', auIndex)
+        } else if (nalUnit.type === NALU.SPS) {
           bufferSlice.props.tags.add('sps');
-          log('tagged SPS slice at AU index:', auIndex, 'on sample (AnnexB/NALU) index:', sampleIndex)
-        } else if (unit.type === 8) {
+          log('tagged SPS slice at NALU index:', naluIndex, 'on access-unit index:', auIndex)
+        } else if (nalUnit.type === NALU.PPS) {
           bufferSlice.props.tags.add('pps');
-          log('tagged PPS slice at AU index:', auIndex, 'on sample (AnnexB/NALU) index:', sampleIndex)
+          log('tagged PPS slice at NALU index:', naluIndex, 'on access-unit index:', auIndex)
         }
 
-        const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
+        bufferSlice.props.tags.add('nalu')
+
+        //debugNALU(bufferSlice)
+
+        const packet = Packet.fromSlice(bufferSlice, accessUnit.dts, accessUnit.dts - accessUnit.pts);
 
         outputPacketList.push(packet);
       });

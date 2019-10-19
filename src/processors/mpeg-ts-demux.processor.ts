@@ -6,10 +6,10 @@ import { Packet } from '../core/packet';
 import { getLogger, LoggerLevel } from '../logger';
 import { PayloadDescriptor, PayloadCodec } from '../core/payload-description';
 import { runMpegTsDemux } from './mpeg-ts/ts-demuxer-w';
-import { debugAccessUnit } from './h264/h264-tools';
+import { debugAccessUnit, debugNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
-const { debug, log } = getLogger('MPEGTSDemuxProcessor', LoggerLevel.ON, true);
+const { debug, log } = getLogger('MPEGTSDemuxProcessor', LoggerLevel.OFF, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -102,7 +102,7 @@ export class MPEGTSDemuxProcessor extends Processor {
           videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
-        p.forEachBufferSlice((bs) => debugAccessUnit(bs, true));
+        //p.forEachBufferSlice((bs) => debugNALU(bs));
 
         debug('transferring video packet to default out');
 
