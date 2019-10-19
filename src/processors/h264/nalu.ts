@@ -72,6 +72,9 @@ export class NALU {
   nalType: number;
 
   constructor (data: Uint8Array) {
+    if (data.byteLength < 2) {
+      throw new Error('Data is to little bytes to be a NALU (needs at least 2 or more)')
+    }
     this.payload = data;
     this.refIdc = (this.payload[0] & 0x60) >> 5;
     this.nalType = this.payload[0] & 0x1f;
@@ -85,7 +88,11 @@ export class NALU {
     return 4 + this.payload.byteLength;
   }
 
-  copyToAnnexBnalUnit (): Uint8Array {
+  /**
+   * @deprecated
+   * Redundant, see h264-tools.ts `makeAnnexBAccessUnitFromNALUs`
+   */
+  copyToAnnexBAccessUnit (): Uint8Array {
     const result = new Uint8Array(this.getAnnexBnalUnitSize());
     const view = new DataView(result.buffer);
     view.setUint32(0, this.getAnnexBnalUnitSize() - 4);
