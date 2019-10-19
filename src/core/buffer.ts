@@ -184,7 +184,7 @@ export class BufferSlice {
     }
 
     /**
-     * Appends the buffer data to this object s data and returns a new BufferSlice.
+     * Appends the buffer data to this object`s data and returns a new BufferSlice.
      * @param buffer
      * @param props
      * @returns new BufferSlice
@@ -217,6 +217,7 @@ export class BufferSlice {
      * Copies the slice data into an existing buffer at the given offset
      * @param dest
      * @param offset
+     * @returns this
      */
     write (dest: ArrayBuffer, offset: number): BufferSlice {
       BufferSlice.write(this, dest, offset);
