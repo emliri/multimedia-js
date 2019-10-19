@@ -79,7 +79,7 @@ export class MPEGTSDemuxProcessor extends Processor {
 
     outputPackets.forEach((p: Packet) => {
       if (p.isSymbolic()) {
-        console.log('got symbolic packet:', p.getSymbolName());
+        log('got symbolic packet:', p.getSymbolName());
         return;
       }
 
