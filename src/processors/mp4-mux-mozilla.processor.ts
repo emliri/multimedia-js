@@ -204,7 +204,17 @@ export class MP4MuxProcessor extends Processor {
             throw new Error('not video bitstream header found to embed');
           }
 
-          const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
+          //const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
+
+          let avcC: AvcC;
+          try {
+            avcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
+            log('parsed MP4 video-atom:', avcC);
+          } catch(err) {
+            warn('failed to parse slice-data expected to be AvcC atom:', this.videoBitstreamHeader_)
+            debug('internal error is:', err)
+            return;
+          }
 
           /*
           const auDelimiterNalu = makeNALUFromH264RbspData(
