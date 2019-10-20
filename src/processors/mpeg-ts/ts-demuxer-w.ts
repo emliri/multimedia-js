@@ -48,7 +48,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
       bufferSlice.props.codec = audioTrack.isAAC ? /* audioTrack.codec */ 'mp4a' : 'mp3a'; // FIXME
       bufferSlice.props.elementaryStreamId = audioTrack.pid;
 
-      bufferSlice.props.details.codecConfigurationData = audioTrack.config;
+      bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
 
