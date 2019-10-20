@@ -19,7 +19,7 @@ import { cloneErrorInfo, ErrorCodeSpace, ErrorCode } from './error';
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/importScripts
  */
-declare let importScripts: (...paths: string[]) => void;
+declare var importScripts: (...paths: string[]) => void;
 
 const workerId = makeUUID_v1();
 const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.WARN);
@@ -82,7 +82,7 @@ log('setting new worker instance up ...');
       log('loading script for external dependency:', scriptPath);
       try {
         importScripts(scriptPath);
-        log('done.');
+        log('done.')
       } catch (err) {
         warn(`error in imported script: '${scriptPath}'`);
         error(err);
@@ -133,8 +133,8 @@ log('setting new worker instance up ...');
     }
 
     const onEvent = (eventData: ProcessorEventData) => {
-      handleSubProcessorEvent(subContext, eventData);
-    };
+ handleSubProcessorEvent(subContext, eventData);
+};
 
     subContext.processor.on(ProcessorEvent.INPUT_SOCKET_CREATED, onEvent);
     subContext.processor.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onEvent);

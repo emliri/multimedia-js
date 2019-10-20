@@ -13,13 +13,14 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { CommonMimeTypes } from '../core/payload-description';
 import { BufferProperties } from '../core/buffer-props';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.WARN, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
 
 const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB = true;
 
 export class H264ParseProcessor extends Processor {
+
   private _spsSliceCache: BufferSlice = null;
   private _ppsSliceCache: BufferSlice = null;
 
@@ -55,13 +56,13 @@ export class H264ParseProcessor extends Processor {
     return false;
   }
 
-  private _mayWriteAvcCDataFromSpsPpsCache (): BufferSlice {
+  private _mayWriteAvcCDataFromSpsPpsCache(): BufferSlice {
     if (!this._spsSliceCache || !this._ppsSliceCache) {
       return null;
     }
 
     const spsInfo: Sps = H264ParameterSetParser.parseSPS(this._spsSliceCache.getUint8Array().subarray(1));
-    // const ppsInfo: Pps = H264ParameterSetParser.parsePPS(this._ppsSliceCache.getUint8Array().subarray(1));
+    //const ppsInfo: Pps = H264ParameterSetParser.parsePPS(this._ppsSliceCache.getUint8Array().subarray(1));
 
     const avcCodecDataBox: AvcCodecDataBox = new AvcCodecDataBox(
       [this._spsSliceCache.getUint8Array()],
@@ -70,7 +71,7 @@ export class H264ParseProcessor extends Processor {
       spsInfo.profileIdc,
       64, // "profileCompatibility" - not sure exactly what this does but this value is in other common test-data
       spsInfo.levelIdc
-    );
+    )
 
     // layout, allocate and write AvcC box
     const numBytesAlloc = avcCodecDataBox.layout(0);
@@ -80,7 +81,7 @@ export class H264ParseProcessor extends Processor {
     this._spsSliceCache = null;
     this._ppsSliceCache = null;
 
-    log('created AvcC atom data !');
+    log('created AvcC atom data !')
 
     // we need to unwrap the first 8 bytes of iso-boxing because
     // downstream we only expect the actual atom payload data
@@ -88,6 +89,7 @@ export class H264ParseProcessor extends Processor {
   }
 
   private _onBufferSlice (p: Packet, bufferSlice: BufferSlice) {
+
     if (p.data.length > 1) {
       throw new Error('Not supporting packets with dimensional data (more than one slice)');
     }
@@ -95,9 +97,10 @@ export class H264ParseProcessor extends Processor {
     // TODO: Move tagging here and use mime-type check also as fallback
 
     if (bufferSlice.props.tags.has('nalu')) {
-      debug('input slice is tagged as raw NALU (not AnnexB access-unit)');
 
-      // debugNALU(bufferSlice)
+      debug('input slice is tagged as raw NALU (not AnnexB access-unit)')
+
+      //debugNALU(bufferSlice)
 
       /**
        * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
@@ -114,10 +117,11 @@ export class H264ParseProcessor extends Processor {
           const avcCDataSlice = this._mayWriteAvcCDataFromSpsPpsCache();
           if (avcCDataSlice) {
             bufferSlice = avcCDataSlice;
-            bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC);
+            bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC)
             bufferSlice.props.isBitstreamHeader = true;
           }
         }
+
       } else if (bufferSlice.props.tags.has('pps')) {
         if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
           this._ppsSliceCache = bufferSlice;
@@ -125,17 +129,19 @@ export class H264ParseProcessor extends Processor {
           const avcCDataSlice = this._mayWriteAvcCDataFromSpsPpsCache();
           if (avcCDataSlice) {
             bufferSlice = avcCDataSlice;
-            bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC);
+            bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC)
             bufferSlice.props.isBitstreamHeader = true;
           }
         }
+
       } else {
         if (ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB) {
           bufferSlice = makeAnnexBAccessUnitFromNALUs([bufferSlice]);
-          bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC);
+          bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC)
           bufferSlice.props.isKeyframe = propsCache.isKeyframe;
         }
       }
+
     }
 
     if (!bufferSlice) {
@@ -150,11 +156,13 @@ export class H264ParseProcessor extends Processor {
         try {
           avcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
           log('parsed MP4 video-atom:', avcC);
-        } catch (err) {
-          warn('failed to parse slice-data expected to be AvcC atom:', bufferSlice);
-          debug('internal error is:', err);
+        } catch(err) {
+          warn('failed to parse slice-data expected to be AvcC atom:', bufferSlice)
+          debug('internal error is:', err)
         }
-      } else if (p.defaultPayloadInfo.isKeyframe) {
+
+      }
+      else if (p.defaultPayloadInfo.isKeyframe) {
         log('packet has keyframe flag');
         debugAccessUnit(bufferSlice, true);
       } else {

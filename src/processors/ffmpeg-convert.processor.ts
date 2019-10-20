@@ -5,7 +5,7 @@ import { FFmpegTool, FFmpegConversionTargetInfo } from './ffmpeg/ffmpeg-tool';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 
-declare let ffmpeg: any;
+declare var ffmpeg: any;
 
 export class FFmpegConvertProcessor extends Processor {
   static getName (): string {

@@ -17,7 +17,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { ErrorCode } from '../core/error';
 import { debugAccessUnit } from './h264/h264-tools';
 
-const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.ON, true);
+const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.OFF, true);
 
 export const AUDIO_SAMPLING_RATES_LUT = [5500, 11025, 22050, 44100];
 export const AAC_SAMPLES_PER_FRAME = 1024;
@@ -92,7 +92,7 @@ export class MP4DemuxProcessor extends Processor {
         for (const trackId in tracks) {
           const track: Mp4Track = <Mp4Track> tracks[trackId];
 
-          log('analyzing track with id:', trackId);
+          log('analyzing track with id:', trackId)
 
           log(
             'mime-type:', track.mimeType,
@@ -124,7 +124,8 @@ export class MP4DemuxProcessor extends Processor {
           let codecProfile: number = NaN;
 
           if (track.isVideo()) {
-            log('video track found with id:', track.id);
+
+            log('video track found with id:', track.id)
 
             const videoAtom = <VideoAtom> track.getMetadataAtom();
             // FIXME: support HEVC too
@@ -180,7 +181,8 @@ export class MP4DemuxProcessor extends Processor {
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
           } else if (track.isAudio()) {
-            log('audio track found with id:', track.id);
+
+            log('audio track found with id:', track.id)
 
             const audioAtom = <AudioAtom> track.getMetadataAtom();
             sampleDepth = audioAtom.sampleSize;
@@ -206,8 +208,10 @@ export class MP4DemuxProcessor extends Processor {
 
             const esdsData = esds.data;
             codecDataList.push(esdsData);
+
           } else {
-            warn('track found is unhandled kind:', track.mimeType);
+
+            warn('track found is unhandled kind:', track.mimeType)
 
             throw new Error('Unhandled mp4 track-type. Mime-type is: ' + track.mimeType);
           }

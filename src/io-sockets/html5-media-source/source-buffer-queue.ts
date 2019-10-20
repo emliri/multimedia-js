@@ -32,7 +32,7 @@ export class SourceBufferQueue {
     mediaSource: MediaSource,
     private mimeType_: string,
     trackDefaults = null,
-    private onUpdate_: SourceBufferQueueUpdateCallback = () => {}) {
+    private onUpdate_: SourceBufferQueueUpdateCallback = (() => {})) {
     // this.bufferMap_ = [];
 
     this.sourceBuffer_ = mediaSource.addSourceBuffer(mimeType_);
