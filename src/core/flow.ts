@@ -71,6 +71,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
       this._whenCompletedReject = reject;
     });
 
+    // eslint-disable-next-line no-lone-blocks
     {
       if (flags & FlowConfigFlag.WITH_APP_SOCKET) {
         this._appSocket = new AppInputSocket((blob: Blob) => {

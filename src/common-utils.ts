@@ -185,7 +185,7 @@ export function concatArrays<T> (arg0: T[], ...args: T[][]): T[] {
 
 export function forEachOwnPropKeyInObject<T> (object: Object, callback: (el: T) => void) {
   for (const key in object) {
-    if (object.hasOwnProperty(key)) {
+    if (object.hasOwnProperty(key)) { // eslint-disable-line no-prototype-builtins
       const element = object[key];
       callback(element);
     }
