@@ -275,11 +275,11 @@ export class PayloadDetails {
 
 export class PayloadCodec {
   static isAvc (codec: string) {
-    return codec.startsWith('avc1');
+    return codec.startsWith('avc');
   }
 
   static isAac (codec: string) {
-    return codec.startsWith('mp4a');
+    return codec.startsWith('mp4a') || codec.startsWith('aac');
   }
 
   static isMp3 (codec: string) {
