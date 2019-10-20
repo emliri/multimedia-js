@@ -29,7 +29,7 @@ import { BroadwayProcessor } from './src/processors/broadway.processor';
 
 import { HttpToMediaSourceFlow } from './src/flows/http-to-media-source.flow';
 import { CombineMp4sToMovFlow } from './src/flows/combine-mp4s-to-mov.flow';
-import { ConcatMp4sFlow } from './src/flows/concat-mp4s.flow'
+import { ConcatMp4sFlow } from './src/flows/concat-mp4s.flow';
 
 import * as Utils from './src/common-utils';
 import * as Crypto from './src/common-crypto';
