@@ -22,21 +22,15 @@ export class HttpToMediaSourceFlow extends Flow {
 
   constructor (private _url: string, private _mediaSource: MediaSource) {
     super(
-      FlowConfigFlag.NONE,
+      FlowConfigFlag.NONE | FlowConfigFlag.WITH_DOWNLOAD_SOCKET,
       (prevState, newState) => {
         log('previous state:', prevState, 'new state:', newState);
       },
       (reason) => {
         log('state change aborted. reason:', reason);
-      }
+      },
+      { el: null, mimeType: 'video/mp4', filenameTemplateBase: 'dump.mp4' }
     );
-  }
-
-  /**
-   * @override
-   */
-  getExternalSockets (): Set<Socket> {
-    return new Set([this._xhrSocket]);
   }
 
   protected onCompleted_ (done: VoidCallback) {
@@ -106,7 +100,9 @@ export class HttpToMediaSourceFlow extends Flow {
     tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
     mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
 
-    mp4MuxProc.out[0].connect(mediaSourceSocket);
+    //mp4MuxProc.out[0].connect(mediaSourceSocket);
+
+    this.connectWithAllExternalSockets(mp4MuxProc.out[0])
 
     if (this._url.endsWith('.ts')) { // FIXME use mime-type of response
       xhrSocket.connect(tsDemuxProc.in[0]);
