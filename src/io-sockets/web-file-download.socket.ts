@@ -31,11 +31,9 @@ export class WebFileDownloadSocket extends InputSocket {
     private _fallbackToSaveAs: boolean = true) {
     super((p: Packet) => this._onPacketReceived(p), new SocketDescriptor());
 
-    /// *
     this.on(SocketEvent.DATA_PACKET_RECEIVED, () => {
-      console.warn('data packet received event', this);
+      debug('data packet received event', this);
     });
-    //* /
   }
 
   private _onPacketReceived (p: Packet): boolean {
