@@ -9,24 +9,97 @@ import { BufferProperties } from '../../core/buffer-props';
 import { NALU } from '../h264/nalu';
 import { debugNALU } from '../h264/h264-tools';
 
+
+/**
+ * Type definitions for the weakly typed API of the TSDemuxer module we use
+ */
 const { debug, log } = getLogger('TSDemuxerW', LoggerLevel.OFF, true);
 
 export type MpegTsDemuxerNALUnit = {data: Uint8Array, type: number};
-export type MpegTsDemuxerAccessUnit = {units: MpegTsDemuxerNALUnit[], key: Uint8Array, pts: number, dts: number}
 
+export type MpegTsDemuxerAvcAccessUnit = {
+  units: MpegTsDemuxerNALUnit[],
+  key: Uint8Array,
+  pts: number,
+  dts: number,
+  id: number,
+  frame: boolean,
+  debug: string
+}
+
+export type MpegTsDemuxerAudioSample = {
+  pts: number
+  dts: number
+  unit: Uint8Array
+}
+
+export type MpegTsDemuxerAudioTrackElementaryStream = {
+  type: "audio"
+  channelCount: number
+  config: ArrayBuffer,
+  codec: string
+  container: string
+  //dropped: boolean
+  //duration: number
+  id: number
+  inputTimeScale: number
+  isAAC: boolean
+  //len: number
+  //pesData: Uint8Array
+  pid: number
+  samplerate: number
+  samples: MpegTsDemuxerAudioSample[],
+  //sequenceNumber: 0
+}
+
+export type MpegTsDemuxerVideoTrackElementaryStream = {
+  type: "video"
+  audFound: true
+  codec: string
+  container: string
+  //dropped: boolean
+  //duration: number
+  id: number
+  inputTimeScale: number
+  isAAC: false
+  len: number
+  //naluState: 0
+  //pesData: Uint8Array
+  pid: number
+  pixelRatio: [number, number]
+  samples: MpegTsDemuxerAvcAccessUnit[]
+  //sequenceNumber: number
+  sps: Uint8Array[]
+  pps: Uint8Array[]
+  height: number
+  width: number
+}
+
+/**
+ *
+ * Wrapper to ease usage of our TS-demuxing functionnality that is very weakly type-spec'd.
+ *
+ * Given a packet of MPEG-TS input data, this function returns a list of timestamped packets containing slices of the ES streams payload
+ * and appropriate BufferProps set to them.
+ *
+ * @param p Input packets of MPEG-TS data
+ * @returns Demuxed streams packets with appropriate buffer-properties and timestamps
+ */
 export function runMpegTsDemux (p: Packet): Packet[] {
   const outputPacketList: Packet[] = [];
 
   log('will create TSDemuxer instance')
 
   const demuxer = new TSDemuxer((
-    audioTrack,
-    avcTrack,
+    audioTrack: MpegTsDemuxerAudioTrackElementaryStream,
+    avcTrack: MpegTsDemuxerVideoTrackElementaryStream,
+    /*
     id3Track,
     txtTrack,
     timeOffset,
     contiguous,
     accurateTimeOffset
+    */
   ) => {
 
     log('result callback invoked');
@@ -48,6 +121,8 @@ export function runMpegTsDemux (p: Packet): Packet[] {
       bufferSlice.props.codec = audioTrack.isAAC ? /* audioTrack.codec */ 'mp4a' : 'mp3a'; // FIXME
       bufferSlice.props.elementaryStreamId = audioTrack.pid;
 
+      //bufferSlice.props.details.numChannels = audioTrack
+
       bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
@@ -55,7 +130,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
       outputPacketList.push(packet);
     });
 
-    const avcSamples: Array<MpegTsDemuxerAccessUnit> = avcTrack.samples;
+    const avcSamples: Array<MpegTsDemuxerAvcAccessUnit> = avcTrack.samples;
 
     avcSamples.forEach((accessUnit, auIndex) => {
 
