@@ -1,4 +1,4 @@
-import { ADTS_SAMPLING_RATES_TABLE, isAacADTSHeaderPattern } from "./adts-utils";
+import { ADTS_SAMPLING_RATES_TABLE, isAacADTSHeaderPattern } from './adts-utils';
 
 export type MpegAudioSpecificConfigInfo = {
   esdsAtomData: ArrayBuffer,
@@ -33,9 +33,9 @@ export function makeEsdsAtomFromMpegAudioSpecificConfigInfoData (audioConfigDesc
 
     0x05 // descriptor_type
   ]
-  .concat([configByteLength])
-  .concat(Array.from(audioConfigDescriptorData))
-  .concat([0x06, 0x01, 0x02])); // GASpecificConfig)); // length + audio config descriptor
+    .concat([configByteLength])
+    .concat(Array.from(audioConfigDescriptorData))
+    .concat([0x06, 0x01, 0x02])); // GASpecificConfig)); // length + audio config descriptor
   return data.buffer;
 }
 

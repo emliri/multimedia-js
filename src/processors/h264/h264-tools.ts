@@ -7,7 +7,7 @@ import { NALU } from './nalu';
 import { H264ParameterSetParser } from '../../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps, Pps } from '../../ext-mod/inspector.js/src/codecs/h264/nal-units';
 
-const { log, warn } = getLogger('H264Tools', LoggerLevel.OFF, true);
+const { log, warn } = getLogger('H264Tools', LoggerLevel.ON, true);
 
 export function debugNALU (bufferSlice: BufferSlice) {
   const nalu: NALU = new NALU(bufferSlice.getUint8Array());

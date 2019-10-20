@@ -27,7 +27,7 @@ export function isNumber (n: number): boolean {
   return Number.isFinite(n);
 }
 
-export function printNumberScaledAtDecimalOrder(value: number, order: number = 1): string {
+export function printNumberScaledAtDecimalOrder (value: number, order: number = 1): string {
   return (value / Math.pow(10, order)).toFixed(order);
 }
 

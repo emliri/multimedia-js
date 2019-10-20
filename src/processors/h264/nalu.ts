@@ -73,7 +73,7 @@ export class NALU {
 
   constructor (data: Uint8Array) {
     if (data.byteLength < 2) {
-      throw new Error('Data is to little bytes to be a NALU (needs at least 2 or more)')
+      throw new Error('Data is to little bytes to be a NALU (needs at least 2 or more)');
     }
     this.payload = data;
     this.refIdc = (this.payload[0] & 0x60) >> 5;

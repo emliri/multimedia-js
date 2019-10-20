@@ -23,7 +23,7 @@ import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -204,15 +204,15 @@ export class MP4MuxProcessor extends Processor {
             throw new Error('not video bitstream header found to embed');
           }
 
-          //const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
+          // const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
 
           let avcC: AvcC;
           try {
             avcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
             log('parsed MP4 video-atom:', avcC);
-          } catch(err) {
-            warn('failed to parse slice-data expected to be AvcC atom:', this.videoBitstreamHeader_)
-            debug('internal error is:', err)
+          } catch (err) {
+            warn('failed to parse slice-data expected to be AvcC atom:', this.videoBitstreamHeader_);
+            debug('internal error is:', err);
             return;
           }
 
@@ -237,8 +237,6 @@ export class MP4MuxProcessor extends Processor {
 
             bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
           }
-
-
         }
       }
 

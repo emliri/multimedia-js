@@ -72,18 +72,17 @@ export class MPEGTSDemuxProcessor extends Processor {
   }
 
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
-
     const perf = self.performance;
 
-    const startDemuxingMs = perf.now()
+    const startDemuxingMs = perf.now();
 
-    log(`calling demuxer routine with packet of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 6)} Mbytes`)
+    log(`calling demuxer routine with packet of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 6)} Mbytes`);
 
     const outputPackets: Packet[] = runMpegTsDemux(inPacket);
 
     const demuxingRunTimeMs = perf.now() - startDemuxingMs;
 
-    log(`got ${outputPackets.length} output packets from running demuxer (perf-stats: this took ${demuxingRunTimeMs.toFixed(3)} millis doing)`)
+    log(`got ${outputPackets.length} output packets from running demuxer (perf-stats: this took ${demuxingRunTimeMs.toFixed(3)} millis doing)`);
 
     let audioSocket: OutputSocket = null;
     let videoSocket: OutputSocket = null;
@@ -98,22 +97,22 @@ export class MPEGTSDemuxProcessor extends Processor {
 
       if (p.defaultPayloadInfo.isVideo()) {
         if (!videoSocket) {
-          log('creating video output socket')
+          log('creating video output socket');
           videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
-        //p.forEachBufferSlice((bs) => debugNALU(bs));
+        // p.forEachBufferSlice((bs) => debugNALU(bs));
 
         debug('transferring video packet to default out');
 
         if (p.defaultPayloadInfo.isBitstreamHeader) {
-          log('found bitstream header part in packet:', p.defaultPayloadInfo.tags)
+          log('found bitstream header part in packet:', p.defaultPayloadInfo.tags);
         }
 
         videoSocket.transfer(p);
       } else if (p.defaultPayloadInfo.isAudio()) {
         if (!audioSocket) {
-          log('creating audio output socket')
+          log('creating audio output socket');
           audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 

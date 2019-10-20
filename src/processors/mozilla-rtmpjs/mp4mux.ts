@@ -427,7 +427,7 @@ export class MP4Mux {
 
       const header = this._makeMovHeader(false, sampleTablesData, mdat);
       if (!header) {
-        throw new Error('Failed to generate moov header data for plain MOV file')
+        throw new Error('Failed to generate moov header data for plain MOV file');
       }
 
       this.oncodecinfo(this.trackStates.map((ts) => ts.mimeTypeCodec));
@@ -823,7 +823,7 @@ export class MP4Mux {
 
       const header = this._makeMovHeader(true);
       if (!header) {
-        //throw new Error('Failed to generate moov header data')
+        // throw new Error('Failed to generate moov header data')
         return;
       }
 
