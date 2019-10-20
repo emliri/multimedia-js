@@ -35,41 +35,41 @@ export type MpegTsDemuxerAudioSample = {
 }
 
 export type MpegTsDemuxerAudioTrackElementaryStream = {
-  type: "audio"
+  type: 'audio'
   channelCount: number
   config: ArrayBuffer,
   codec: string
   container: string
-  //dropped: boolean
-  //duration: number
+  // dropped: boolean
+  // duration: number
   id: number
   inputTimeScale: number
   isAAC: boolean
-  //len: number
-  //pesData: Uint8Array
+  // len: number
+  // pesData: Uint8Array
   pid: number
   samplerate: number
   samples: MpegTsDemuxerAudioSample[],
-  //sequenceNumber: 0
+  // sequenceNumber: 0
 }
 
 export type MpegTsDemuxerVideoTrackElementaryStream = {
-  type: "video"
+  type: 'video'
   audFound: true
   codec: string
   container: string
-  //dropped: boolean
-  //duration: number
+  // dropped: boolean
+  // duration: number
   id: number
   inputTimeScale: number
   isAAC: false
   len: number
-  //naluState: 0
-  //pesData: Uint8Array
+  // naluState: 0
+  // pesData: Uint8Array
   pid: number
   pixelRatio: [number, number]
   samples: MpegTsDemuxerAvcAccessUnit[]
-  //sequenceNumber: number
+  // sequenceNumber: number
   sps: Uint8Array[]
   pps: Uint8Array[]
   height: number
@@ -89,11 +89,11 @@ export type MpegTsDemuxerVideoTrackElementaryStream = {
 export function runMpegTsDemux (p: Packet): Packet[] {
   const outputPacketList: Packet[] = [];
 
-  log('will create TSDemuxer instance')
+  log('will create TSDemuxer instance');
 
   const demuxer = new TSDemuxer((
-    audioTrack: MpegTsDemuxerAudioTrackElementaryStream,
-    avcTrack: MpegTsDemuxerVideoTrackElementaryStream,
+    audioTrackEsInfo: MpegTsDemuxerAudioTrackElementaryStream,
+    avcTrackEsInfo: MpegTsDemuxerVideoTrackElementaryStream
     /*
     id3Track,
     txtTrack,
@@ -102,28 +102,28 @@ export function runMpegTsDemux (p: Packet): Packet[] {
     accurateTimeOffset
     */
   ) => {
-
     log('result callback invoked');
 
-    debug('demuxed audio track info:', audioTrack);
-    debug('demuxed AVC track info:', avcTrack);
+    debug('demuxed audio track info:', audioTrackEsInfo);
+    debug('demuxed AVC track info:', avcTrackEsInfo);
 
     let esdsAtomData: ArrayBuffer = null;
 
-    audioTrack.samples.forEach((sample) => {
-
+    audioTrackEsInfo.samples.forEach((sample) => {
       // FIXME: move this out of iteration as well as creating BufferProperties once and
       // only mutating where necessary
-      const mimeType = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
+      const mimeType = audioTrackEsInfo.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
 
       if (!esdsAtomData) {
-        esdsAtomData = makeEsdsAtomFromMpegAudioSpecificConfigInfoData(new Uint8Array(audioTrack.config));
+        esdsAtomData = makeEsdsAtomFromMpegAudioSpecificConfigInfoData(new Uint8Array(audioTrackEsInfo.config));
 
-        const esdsAtomBuffer = new BufferSlice(esdsAtomData)
-        esdsAtomBuffer.props = new BufferProperties(mimeType)
+        const esdsAtomBuffer = new BufferSlice(esdsAtomData);
+        esdsAtomBuffer.props = new BufferProperties(mimeType);
         esdsAtomBuffer.props.isBitstreamHeader = true;
 
-        const audioConfigPacket = Packet.fromSlice(esdsAtomBuffer, 0)
+        const audioConfigPacket = Packet.fromSlice(esdsAtomBuffer, 0);
+
+        outputPacketList.push(audioConfigPacket);
       }
 
       const sampleData: Uint8Array = sample.unit;
@@ -133,24 +133,22 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         sampleData.byteOffset,
         sampleData.byteLength);
 
+      bufferSlice.props = new BufferProperties(mimeType, audioTrackEsInfo.samplerate);
+      bufferSlice.props.codec = audioTrackEsInfo.codec;
+      bufferSlice.props.elementaryStreamId = audioTrackEsInfo.pid;
+      bufferSlice.props.details.numChannels = audioTrackEsInfo.channelCount;
 
-      bufferSlice.props = new BufferProperties(mimeType, audioTrack.samplerate);
-      bufferSlice.props.codec = audioTrack.codec;
-      bufferSlice.props.elementaryStreamId = audioTrack.pid;
-      bufferSlice.props.details.numChannels = audioTrack.channelCount;
-
-      //bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
+      // bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.pts - sample.dts);
 
       outputPacketList.push(packet);
     });
 
-    const avcSamples: Array<MpegTsDemuxerAvcAccessUnit> = avcTrack.samples;
+    const avcSamples: Array<MpegTsDemuxerAvcAccessUnit> = avcTrackEsInfo.samples;
 
     avcSamples.forEach((accessUnit, auIndex) => {
-
-      debug('processing sample index:', auIndex)
+      debug('processing sample index:', auIndex);
 
       const nalUnits: Array<MpegTsDemuxerNALUnit> = accessUnit.units;
       nalUnits.forEach((nalUnit: MpegTsDemuxerNALUnit, naluIndex) => {
@@ -162,32 +160,32 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_H264);
 
         bufferSlice.props.codec = 'avc1'; // avcTrack.codec;
-        bufferSlice.props.elementaryStreamId = avcTrack.pid;
+        bufferSlice.props.elementaryStreamId = avcTrackEsInfo.pid;
 
         bufferSlice.props.isKeyframe = (!!accessUnit.key) || nalUnit.type === NALU.IDR; // IDR
         bufferSlice.props.isBitstreamHeader = nalUnit.type === NALU.SPS || nalUnit.type === NALU.PPS; // SPS/PPS
 
-        bufferSlice.props.details.width = avcTrack.width;
-        bufferSlice.props.details.height = avcTrack.height;
+        bufferSlice.props.details.width = avcTrackEsInfo.width;
+        bufferSlice.props.details.height = avcTrackEsInfo.height;
 
         // TODO: move this to H264 parse proc
         if (nalUnit.type === NALU.IDR) {
           bufferSlice.props.tags.add('idr');
-          debug('tagged IDR slice at NALU index:', naluIndex, 'on access-unit index:', auIndex)
+          debug('tagged IDR slice at NALU index:', naluIndex, 'on access-unit index:', auIndex);
         } else if (nalUnit.type === NALU.SEI) {
           bufferSlice.props.tags.add('sei');
-          debug('tagged SEI slice at NALU index:', naluIndex, 'on access-unit index:', auIndex)
+          debug('tagged SEI slice at NALU index:', naluIndex, 'on access-unit index:', auIndex);
         } else if (nalUnit.type === NALU.SPS) {
           bufferSlice.props.tags.add('sps');
-          log('tagged SPS slice at NALU index:', naluIndex, 'on access-unit index:', auIndex)
+          log('tagged SPS slice at NALU index:', naluIndex, 'on access-unit index:', auIndex);
         } else if (nalUnit.type === NALU.PPS) {
           bufferSlice.props.tags.add('pps');
-          log('tagged PPS slice at NALU index:', naluIndex, 'on access-unit index:', auIndex)
+          log('tagged PPS slice at NALU index:', naluIndex, 'on access-unit index:', auIndex);
         }
 
-        bufferSlice.props.tags.add('nalu')
+        bufferSlice.props.tags.add('nalu');
 
-        //debugNALU(bufferSlice)
+        // debugNALU(bufferSlice)
 
         const packet = Packet.fromSlice(bufferSlice, accessUnit.dts, accessUnit.pts - accessUnit.dts);
 
@@ -200,14 +198,14 @@ export function runMpegTsDemux (p: Packet): Packet[] {
     return void 0;
   });
 
-  log('will append data to TSDemuxer instance')
+  log('will append data to TSDemuxer instance');
 
   demuxer.reset();
   p.forEachBufferSlice((bufferSlice) => {
     demuxer.append(bufferSlice.getUint8Array(), 0, true, 0);
   });
 
-  log('done appending data to TSDemuxer instance')
+  log('done appending data to TSDemuxer instance');
 
   return outputPacketList;
 }
