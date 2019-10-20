@@ -10,7 +10,7 @@ import { makeTemplate } from '../../src/common-utils';
 
 const { log, error } = getLogger('ffmpeg-basic-testcase');
 
-var ffmpeg: any;
+let ffmpeg: any;
 
 export class FFmpegFlow extends MmjsTestCase {
   setup (done: () => void) {

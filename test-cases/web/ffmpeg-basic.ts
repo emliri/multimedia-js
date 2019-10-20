@@ -6,7 +6,7 @@ import { makeGetRequest } from '../../src/common-http';
 
 const { log, error } = getLogger('ffmpeg-basic-testcase');
 
-var ffmpeg: any;
+let ffmpeg: any;
 
 export class FFmpegBasic extends MmjsTestCase {
   setup (done: () => void) {
