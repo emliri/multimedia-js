@@ -72,21 +72,31 @@ export class HttpToMediaSourceFlow extends Flow {
       const payloadDescriptor = demuxOutputSocket.payload();
 
       if (data.processor === mp4DemuxProc) {
+
         demuxOutputSocket.connect(h264ParseProc.in[0]);
         muxerInputSocket = mp4MuxProc.createInput();
         h264ParseProc.out[0].connect(muxerInputSocket);
+
       } else if (data.processor === tsDemuxProc) {
         if (!this._haveVideo &&
             PayloadCodec.isAvc(payloadDescriptor.codec)) {
+
+          log('got video payload');
+
           this._haveVideo = true;
           muxerInputSocket = mp4MuxProc.createInput();
           h264ParseProc.out[0].connect(muxerInputSocket);
           demuxOutputSocket.connect(h264ParseProc.in[0]);
+
         } else if (!this._haveAudio &&
             PayloadCodec.isAac(payloadDescriptor.codec)) {
+
+          log('got audio payload');
+
           this._haveAudio = true;
           muxerInputSocket = mp4MuxProc.createInput();
           demuxOutputSocket.connect(muxerInputSocket);
+
         }
       }
     };
