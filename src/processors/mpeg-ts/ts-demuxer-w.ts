@@ -8,12 +8,13 @@ import { TSDemuxer } from './ts-demuxer';
 import { BufferProperties } from '../../core/buffer-props';
 import { NALU } from '../h264/nalu';
 import { debugNALU } from '../h264/h264-tools';
+import { makeEsdsAtomFromMpegAudioSpecificConfigInfoData } from '../aac/mp4a-audio-specific-config';
 
+const { debug, log } = getLogger('TSDemuxerW', LoggerLevel.ON, true);
 
 /**
  * Type definitions for the weakly typed API of the TSDemuxer module we use
  */
-const { debug, log } = getLogger('TSDemuxerW', LoggerLevel.OFF, true);
 
 export type MpegTsDemuxerNALUnit = {data: Uint8Array, type: number};
 
@@ -107,25 +108,40 @@ export function runMpegTsDemux (p: Packet): Packet[] {
     debug('demuxed audio track info:', audioTrack);
     debug('demuxed AVC track info:', avcTrack);
 
+    let esdsAtomData: ArrayBuffer = null;
+
     audioTrack.samples.forEach((sample) => {
-      const unit = sample.unit;
 
-      const bufferSlice = new BufferSlice(
-        unit.buffer.slice(0),
-        unit.byteOffset,
-        unit.byteLength);
-
+      // FIXME: move this out of iteration as well as creating BufferProperties once and
+      // only mutating where necessary
       const mimeType = audioTrack.isAAC ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
 
-      bufferSlice.props = new BufferProperties(mimeType);
-      bufferSlice.props.codec = audioTrack.isAAC ? /* audioTrack.codec */ 'mp4a' : 'mp3a'; // FIXME
+      if (!esdsAtomData) {
+        esdsAtomData = makeEsdsAtomFromMpegAudioSpecificConfigInfoData(new Uint8Array(audioTrack.config));
+
+        const esdsAtomBuffer = new BufferSlice(esdsAtomData)
+        esdsAtomBuffer.props = new BufferProperties(mimeType)
+        esdsAtomBuffer.props.isBitstreamHeader = true;
+
+        const audioConfigPacket = Packet.fromSlice(esdsAtomBuffer, 0)
+      }
+
+      const sampleData: Uint8Array = sample.unit;
+
+      const bufferSlice = new BufferSlice(
+        sampleData.buffer.slice(0),
+        sampleData.byteOffset,
+        sampleData.byteLength);
+
+
+      bufferSlice.props = new BufferProperties(mimeType, audioTrack.samplerate);
+      bufferSlice.props.codec = audioTrack.codec;
       bufferSlice.props.elementaryStreamId = audioTrack.pid;
+      bufferSlice.props.details.numChannels = audioTrack.channelCount;
 
-      //bufferSlice.props.details.numChannels = audioTrack
+      //bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
 
-      bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
-
-      const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.dts - sample.pts);
+      const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.pts - sample.dts);
 
       outputPacketList.push(packet);
     });
@@ -173,7 +189,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
         //debugNALU(bufferSlice)
 
-        const packet = Packet.fromSlice(bufferSlice, accessUnit.dts, accessUnit.dts - accessUnit.pts);
+        const packet = Packet.fromSlice(bufferSlice, accessUnit.dts, accessUnit.pts - accessUnit.dts);
 
         outputPacketList.push(packet);
       });

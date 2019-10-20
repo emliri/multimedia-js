@@ -6,7 +6,8 @@ import { BufferSlice } from '../core/buffer';
 
 import { getLogger, LoggerLevel } from '../logger';
 import { Esds } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/esds';
-import { parseAacADTSHeaderInfo, makeAACAudioSpecificConfigMp4DataFromADTSHeader, isAacADTSHeaderPattern } from './aac/adts-utils';
+import { parseAacADTSHeaderInfo, isAacADTSHeaderPattern } from './aac/adts-utils';
+import { makeMp4AudioSpecificConfigInfoFromADTSHeader } from './aac/mp4a-audio-specific-config';
 
 const { log, warn, error } = getLogger('AACParseProcessor', LoggerLevel.ON, true);
 
@@ -70,7 +71,7 @@ export class AACParseProcessor extends Processor {
       return;
     }
 
-    log('AAC audio config:', makeAACAudioSpecificConfigMp4DataFromADTSHeader(data, 0));
+    log('AAC audio config:', makeMp4AudioSpecificConfigInfoFromADTSHeader(data, 0));
 
     log('ADTS header-info:', parseAacADTSHeaderInfo(data, 0, 0, 0, 0));
   }
