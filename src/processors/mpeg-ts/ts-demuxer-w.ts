@@ -121,11 +121,13 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         esdsAtomBuffer.props = new BufferProperties(mimeType);
         esdsAtomBuffer.props.isBitstreamHeader = true;
 
-        esdsAtomBuffer.props.codec = 'mp4a' // audioTrackEsInfo.codec;
+        esdsAtomBuffer.props.codec = 'aac'; // 'mp4a' // audioTrackEsInfo.codec;
         esdsAtomBuffer.props.elementaryStreamId = audioTrackEsInfo.pid;
         esdsAtomBuffer.props.details.numChannels = audioTrackEsInfo.channelCount;
 
         const audioConfigPacket = Packet.fromSlice(esdsAtomBuffer, 0);
+
+        audioConfigPacket.setTimescale(90000)
 
         outputPacketList.push(audioConfigPacket);
       }
@@ -138,18 +140,27 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         sampleData.byteLength);
 
       bufferSlice.props = new BufferProperties(mimeType, audioTrackEsInfo.samplerate);
-      bufferSlice.props.codec = 'mp4a' // audioTrackEsInfo.codec;
+      bufferSlice.props.codec = 'aac'; // 'mp4a' // audioTrackEsInfo.codec;
       bufferSlice.props.elementaryStreamId = audioTrackEsInfo.pid;
       bufferSlice.props.details.numChannels = audioTrackEsInfo.channelCount;
 
       // bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
 
-      const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.pts - sample.dts);
+      const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.pts - sample.dts); // HACK !!!
+
+      packet.setTimescale(90000)
 
       outputPacketList.push(packet);
     });
 
     const avcSamples: Array<MpegTsDemuxerAvcAccessUnit> = avcTrackEsInfo.samples;
+
+    const sampleDepth = 8; // TODO: parse SPS i.e move to h264-parse-proc
+    const sampleDurationNum = 1;
+    const sampleRate = Math.round(1 / ((avcSamples[1].pts - avcSamples[0].pts) / avcTrackEsInfo.inputTimeScale));
+    const sampleDuration =
+
+    log('estimated video FPS:', sampleRate)
 
     avcSamples.forEach((accessUnit, auIndex) => {
 
@@ -162,16 +173,21 @@ export function runMpegTsDemux (p: Packet): Packet[] {
           nalUnit.data.byteOffset,
           nalUnit.data.byteLength);
 
-        bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_H264);
+        bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_H264,
+          sampleRate, sampleDepth, sampleDurationNum, 1);
 
-        bufferSlice.props.codec = 'avc1'; // avcTrack.codec;
+        bufferSlice.props.codec = 'avc'; // avcTrack.codec;
         bufferSlice.props.elementaryStreamId = avcTrackEsInfo.pid;
 
-        bufferSlice.props.isKeyframe = (!!accessUnit.key) || nalUnit.type === NALU.IDR; // IDR
+        bufferSlice.props.isKeyframe = nalUnit.type === NALU.IDR; // IDR
         bufferSlice.props.isBitstreamHeader = nalUnit.type === NALU.SPS || nalUnit.type === NALU.PPS; // SPS/PPS
 
         bufferSlice.props.details.width = avcTrackEsInfo.width;
         bufferSlice.props.details.height = avcTrackEsInfo.height;
+        bufferSlice.props.details.samplesPerFrame = 1;
+        bufferSlice.props.details.codecProfile = null; // FIXME (parse from PPS / move to h264-parse)
+
+        bufferSlice.props.details.sequenceDurationInSeconds = 10;
 
         // TODO: move this to H264 parse proc
         if (nalUnit.type === NALU.IDR) {
@@ -192,7 +208,9 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
         // debugNALU(bufferSlice)
 
-        const packet = Packet.fromSlice(bufferSlice, accessUnit.dts, accessUnit.pts - accessUnit.dts);
+        const packet = Packet.fromSlice(bufferSlice, accessUnit.dts - 900000, accessUnit.pts- accessUnit.dts); // HACK !!!
+
+        packet.setTimescale(avcTrackEsInfo.inputTimeScale)
 
         outputPacketList.push(packet);
       });
