@@ -10,8 +10,6 @@ import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
-import { CommonMimeTypes } from '../core/payload-description';
-import { BufferProperties } from '../core/buffer-props';
 
 const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.WARN, true);
 
@@ -101,7 +99,7 @@ export class H264ParseProcessor extends Processor {
 
       debug('input slice is tagged as raw NALU (not AnnexB access-unit)')
 
-      //debugNALU(bufferSlice)
+      // DEBUG_H264 && debugNALU(bufferSlice)
 
       /**
        * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
@@ -109,6 +107,11 @@ export class H264ParseProcessor extends Processor {
        */
 
       const propsCache = bufferSlice.props;
+
+      if (bufferSlice.props.tags.has('sei')) {
+        warn('dropping SEI NALU packet');
+        return;
+      }
 
       // cache last SPS/PPS slices
       if (bufferSlice.props.tags.has('sps')) {
@@ -118,7 +121,7 @@ export class H264ParseProcessor extends Processor {
           const avcCDataSlice = this._mayWriteAvcCDataFromSpsPpsCache();
           if (avcCDataSlice) {
             bufferSlice = avcCDataSlice;
-            bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC)
+            bufferSlice.props = propsCache;
             bufferSlice.props.isBitstreamHeader = true;
           }
         }
@@ -130,22 +133,27 @@ export class H264ParseProcessor extends Processor {
           const avcCDataSlice = this._mayWriteAvcCDataFromSpsPpsCache();
           if (avcCDataSlice) {
             bufferSlice = avcCDataSlice;
-            bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC)
+            bufferSlice.props = propsCache;
             bufferSlice.props.isBitstreamHeader = true;
           }
         }
 
       } else {
-        if (ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB) {
+        if (ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK) {
+
+          log('expecting NALU to repackage to AU:')
+          DEBUG_H264 && debugNALU(bufferSlice);
+
           bufferSlice = makeAnnexBAccessUnitFromNALUs([bufferSlice]);
-          bufferSlice.props = new BufferProperties(CommonMimeTypes.VIDEO_AVC)
-          bufferSlice.props.isKeyframe = propsCache.isKeyframe;
+          bufferSlice.props = propsCache;
+          //bufferSlice.props.isKeyframe = propsCache.isKeyframe;
         }
       }
 
     }
 
     if (!bufferSlice) {
+      log('packet/slice dropped:', p.toString())
       return;
     }
 
@@ -164,17 +172,18 @@ export class H264ParseProcessor extends Processor {
 
       }
       else if (p.defaultPayloadInfo.isKeyframe) {
-        log('packet has keyframe flag');
-
+        log('processing IDR containing frames AU');
         DEBUG_H264 && debugAccessUnit(bufferSlice, true);
 
       } else {
 
+        log('processing non-IDR frames AU')
         DEBUG_H264 && debugAccessUnit(bufferSlice, true);
 
       }
     } else {
-      warn('no default payload info');
+      warn('no default payload info, dropping packet');
+      return;
     }
 
     if (bufferSlice) {
