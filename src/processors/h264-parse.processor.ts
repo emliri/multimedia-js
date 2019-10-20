@@ -17,8 +17,9 @@ const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
 
-const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB = true;
+const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB = false;
 
+const DEBUG_H264 = false;
 export class H264ParseProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
@@ -164,9 +165,13 @@ export class H264ParseProcessor extends Processor {
       }
       else if (p.defaultPayloadInfo.isKeyframe) {
         log('packet has keyframe flag');
-        debugAccessUnit(bufferSlice, true);
+
+        DEBUG_H264 && debugAccessUnit(bufferSlice, true);
+
       } else {
-        debugAccessUnit(bufferSlice, true);
+
+        DEBUG_H264 && debugAccessUnit(bufferSlice, true);
+
       }
     } else {
       warn('no default payload info');
