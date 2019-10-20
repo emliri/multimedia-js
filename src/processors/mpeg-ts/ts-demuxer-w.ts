@@ -121,6 +121,10 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         esdsAtomBuffer.props = new BufferProperties(mimeType);
         esdsAtomBuffer.props.isBitstreamHeader = true;
 
+        esdsAtomBuffer.props.codec = 'mp4a' // audioTrackEsInfo.codec;
+        esdsAtomBuffer.props.elementaryStreamId = audioTrackEsInfo.pid;
+        esdsAtomBuffer.props.details.numChannels = audioTrackEsInfo.channelCount;
+
         const audioConfigPacket = Packet.fromSlice(esdsAtomBuffer, 0);
 
         outputPacketList.push(audioConfigPacket);
@@ -134,7 +138,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         sampleData.byteLength);
 
       bufferSlice.props = new BufferProperties(mimeType, audioTrackEsInfo.samplerate);
-      bufferSlice.props.codec = audioTrackEsInfo.codec;
+      bufferSlice.props.codec = 'mp4a' // audioTrackEsInfo.codec;
       bufferSlice.props.elementaryStreamId = audioTrackEsInfo.pid;
       bufferSlice.props.details.numChannels = audioTrackEsInfo.channelCount;
 
@@ -148,7 +152,8 @@ export function runMpegTsDemux (p: Packet): Packet[] {
     const avcSamples: Array<MpegTsDemuxerAvcAccessUnit> = avcTrackEsInfo.samples;
 
     avcSamples.forEach((accessUnit, auIndex) => {
-      debug('processing sample index:', auIndex);
+
+      //debug('processing sample index:', auIndex);
 
       const nalUnits: Array<MpegTsDemuxerNALUnit> = accessUnit.units;
       nalUnits.forEach((nalUnit: MpegTsDemuxerNALUnit, naluIndex) => {
