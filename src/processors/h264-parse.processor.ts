@@ -15,7 +15,7 @@ const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
 
-const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB = false;
+const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true;
 
 const DEBUG_H264 = false;
 export class H264ParseProcessor extends Processor {
