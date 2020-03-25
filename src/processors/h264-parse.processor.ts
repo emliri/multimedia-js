@@ -5,13 +5,14 @@ import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 import { BufferSlice } from '../core/buffer';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugAccessUnit, debugNALU, makeAnnexBAccessUnitFromNALUs } from './h264/h264-tools';
+import { debugAccessUnit, debugNALU, makeAnnexBAccessUnitFromNALUs, makeNALUFromH264RbspData } from './h264/h264-tools';
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
+import { NALU } from './h264/nalu';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.OFF, true);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.LOG, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
 const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true;
@@ -107,12 +108,12 @@ export class H264ParseProcessor extends Processor {
 
       const propsCache = bufferSlice.props;
 
-      /*
+      //*
       if (bufferSlice.props.tags.has('sei')) {
         warn('dropping SEI NALU packet');
         return;
       }
-      */
+      //*/
 
       // cache last SPS/PPS slices
       if (bufferSlice.props.tags.has('sps')) {
@@ -144,6 +145,11 @@ export class H264ParseProcessor extends Processor {
 
           log('expecting NALU to repackage to AU:')
           DEBUG_H264 && debugNALU(bufferSlice);
+
+          /*
+          const auDelimiterNalu = makeNALUFromH264RbspData(
+            BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
+          */
 
           bufferSlice = makeAnnexBAccessUnitFromNALUs([bufferSlice]);
           bufferSlice.props = propsCache;

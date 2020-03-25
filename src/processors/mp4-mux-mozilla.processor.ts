@@ -25,6 +25,8 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
+const EMBED_CODEC_DATA_ON_KEYFRAME_DEFAULT = false;
+
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
   case MP4MuxProcessorSupportedCodecs.AAC:
@@ -84,7 +86,7 @@ export class MP4MuxProcessor extends Processor {
   private audioBitstreamHeader_: BufferSlice = null;
   private videoBitstreamHeader_: BufferSlice = null;
 
-  private embedCodecDataOnKeyframes_: boolean = false;
+  private embedCodecDataOnKeyframes_: boolean = EMBED_CODEC_DATA_ON_KEYFRAME_DEFAULT;
 
   private socketToTrackIndexMap_: {[i: number]: number} = {};
   // this simpler approach will restrict us to have only one audio and one video track for now
@@ -192,7 +194,6 @@ export class MP4MuxProcessor extends Processor {
 
     p.forEachBufferSlice((bufferSlice) => {
 
-      //debugAccessUnit(bufferSlice);
 
       const mp4Muxer = this.mp4Muxer_;
 
@@ -201,6 +202,8 @@ export class MP4MuxProcessor extends Processor {
         this.videoBitstreamHeader_ = bufferSlice;
       } else {
         // debug('video packet:', p.toString());
+        log('processing AVC AU:');
+        debugAccessUnit(bufferSlice);
       }
 
       if (bufferSlice.props.isKeyframe) {
@@ -227,6 +230,7 @@ export class MP4MuxProcessor extends Processor {
           const auDelimiterNalu = makeNALUFromH264RbspData(
             BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
 
+          /*
           const endOfSeq = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 10, 3)
           const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
           */
@@ -246,7 +250,6 @@ export class MP4MuxProcessor extends Processor {
 
             bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
           }
-
 
         }
       }

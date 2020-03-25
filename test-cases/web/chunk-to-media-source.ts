@@ -12,6 +12,7 @@ const URLs = [
 const { log, error } = getLogger('ChunkToMediaSource');
 
 export class ChunkToMediaSource extends MmjsTestCase {
+
   private _fmp4ToMediaSource: Flow;
   private _videoEl: HTMLVideoElement;
   private _mediaSource: MediaSource;
