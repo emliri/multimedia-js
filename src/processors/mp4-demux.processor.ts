@@ -152,6 +152,14 @@ export class MP4DemuxProcessor extends Processor {
               sampleDurationNum = 1;
 
               if (track.getFrames().length > 1) {
+                // NOTE: we need to use DTS here because PTS is unordered so
+                // using two consecutive packets results in an arbitrary time-delta
+                // whereas he we have to assume however that packet DTS frequency (DTS-deltas between successive packets)
+                // is exactly equal to the framerate. This should be the case always, but must not, because
+                // in principle the deltas may vary around the framerate (average on the receiver/decoder buffer/queue size they have to keep the
+                // framerate otherwise the sequence could not be decoded in real-time).
+                // FIXME: Thus the calculation could be wrong here in certain cases.
+                // NOTE: In principle, DTS could even also be anything that preserves decoding order unrelated to the PTS timeplane!
                 sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds() -
                                     track.getFrames()[0].getDecodingTimestampInSeconds());
                 sampleRate = Math.round(sampleRate);

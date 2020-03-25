@@ -1,7 +1,7 @@
 import { BufferSlice } from '../../core/buffer';
 import { BufferProperties } from '../../core/buffer-props';
 import { copyArrayBuffer } from '../../common-utils';
-import { getLogger, LoggerLevel } from '../../logger';
+import { getLogger, LoggerLevel, LoggerFunc } from '../../logger';
 
 import { NALU } from './nalu';
 import { H264ParameterSetParser } from '../../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
@@ -48,7 +48,9 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
 
     naluCount++;
 
-    log('In access-unit, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
+    //log(avcStream)
+
+    log('In access-unit of size ', avcStream.byteLength,' bytes, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
 
     if (debugRbspData) {
       switch (nalu.nalType) {

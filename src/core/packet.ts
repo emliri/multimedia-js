@@ -221,9 +221,9 @@ export class Packet {
   }
 
   /**
-   * CT <==> PTS
+   * CTS <==> PTS
    *
-   * CT(n)  =  DT(n)  +  CTO(n)
+   * CT(n) = DT(n) + CTO(n)
    */
   getPresentationTimestamp (): number {
     return this._timestampOffset + this.timestamp + this.presentationTimeOffset;
@@ -231,6 +231,10 @@ export class Packet {
 
   getDecodingTimestamp (): number {
     return this._timestampOffset + this.timestamp;
+  }
+
+  getCompositionTimeOffset() {
+    return this.presentationTimeOffset;
   }
 
   setTimescale (timescale: number) {

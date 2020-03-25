@@ -11,13 +11,12 @@ import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.WARN, true);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
+const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = false;
 
-const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true;
-
-const DEBUG_H264 = false;
+const DEBUG_H264 = true;
 export class H264ParseProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
@@ -108,10 +107,12 @@ export class H264ParseProcessor extends Processor {
 
       const propsCache = bufferSlice.props;
 
+      /*
       if (bufferSlice.props.tags.has('sei')) {
         warn('dropping SEI NALU packet');
         return;
       }
+      */
 
       // cache last SPS/PPS slices
       if (bufferSlice.props.tags.has('sps')) {
@@ -146,7 +147,7 @@ export class H264ParseProcessor extends Processor {
 
           bufferSlice = makeAnnexBAccessUnitFromNALUs([bufferSlice]);
           bufferSlice.props = propsCache;
-          //bufferSlice.props.isKeyframe = propsCache.isKeyframe;
+          bufferSlice.props.isKeyframe = propsCache.isKeyframe;
         }
       }
 
@@ -170,8 +171,7 @@ export class H264ParseProcessor extends Processor {
           debug('internal error is:', err)
         }
 
-      }
-      else if (p.defaultPayloadInfo.isKeyframe) {
+      } else if (p.defaultPayloadInfo.isKeyframe) {
         log('processing IDR containing frames AU');
         DEBUG_H264 && debugAccessUnit(bufferSlice, true);
 

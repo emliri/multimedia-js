@@ -9,7 +9,7 @@ import { runMpegTsDemux } from './mpeg-ts/ts-demuxer-w';
 import { debugAccessUnit, debugNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
-const { debug, log } = getLogger('MPEGTSDemuxProcessor', LoggerLevel.OFF, true);
+const { debug, log, warn } = getLogger('MPEGTSDemuxProcessor', LoggerLevel.WARN, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -26,6 +26,8 @@ export class MPEGTSDemuxProcessor extends Processor {
   private _haveAudio: boolean = false;
   private _haveVideo: boolean = false;
 
+  private _firstDtsOffset90khz: number | null = null; // WIP: actually build a packet-filter for this which will set each packet time-offset on a sequence
+
   constructor () {
     super();
     this.createInput();
@@ -35,6 +37,7 @@ export class MPEGTSDemuxProcessor extends Processor {
     return getSocketDescriptor(socketType);
   }
 
+  /*
   protected onTaskWorkerMessage (event: Event) {
     const p = Packet.fromTransferable((event as any).data.packet);
 
@@ -45,7 +48,9 @@ export class MPEGTSDemuxProcessor extends Processor {
 
     this._processDemuxerOutputPacket(p);
   }
+  */
 
+  /*
   private _processDemuxerOutputPacket (p: Packet) {
     const bs = p.data[0];
 
@@ -55,8 +60,8 @@ export class MPEGTSDemuxProcessor extends Processor {
       this._haveAudio = true;
     }
 
-    // set mpeg-ts timescale of 90000khz
-    p.setTimescale(90000);
+    // set fixed mpeg-ts timescale of 90000khz
+    p.setTimescale(MPEG_TS_TIMESCALE_HZ);
 
     this._getOutputForPayload(bs.props).transfer(p);
   }
@@ -70,6 +75,7 @@ export class MPEGTSDemuxProcessor extends Processor {
     const s = this._programMap[pid] = this.createOutput(new SocketDescriptor([payloadDescriptor]));
     return s;
   }
+  */
 
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
 
@@ -89,12 +95,20 @@ export class MPEGTSDemuxProcessor extends Processor {
     let videoSocket: OutputSocket = null;
 
     outputPackets.forEach((p: Packet) => {
+
+      //if (this._firstDtsOffset90khz)
+
       if (p.isSymbolic()) {
         log('got symbolic packet:', p.getSymbolName(), '(noop/ignoring)');
         return;
       }
 
       debug(`processing non-symbolic packet of ${p.getTotalBytes()} bytes`);
+
+      if (!p.defaultPayloadInfo) {
+        warn('packet has not default payload, dropping:', p.toString(), 'object:', p);
+        return;
+      }
 
       if (p.defaultPayloadInfo.isVideo()) {
         if (!videoSocket) {

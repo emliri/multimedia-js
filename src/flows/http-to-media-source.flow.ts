@@ -14,6 +14,9 @@ import { newProcessorWorkerShell } from '../core/processor-factory';
 
 const { log } = getLogger('HttpToMediaSourceFlow', LoggerLevel.ON, true);
 
+const ENABLE_AUDIO = false
+
+const ENABLE_VIDEO = true
 export class HttpToMediaSourceFlow extends Flow {
   private _xhrSocket: XhrSocket;
 
@@ -29,7 +32,7 @@ export class HttpToMediaSourceFlow extends Flow {
       (reason) => {
         log('state change aborted. reason:', reason);
       },
-      { el: null, mimeType: 'video/mp4', filenameTemplateBase: 'dump.mp4' }
+      { el: null, mimeType: 'video/mp4', filenameTemplateBase: 'dump-${new Date().toJSON()}.mp4' }
     );
   }
 
@@ -72,6 +75,7 @@ export class HttpToMediaSourceFlow extends Flow {
         h264ParseProc.out[0].connect(muxerInputSocket);
 
       } else if (data.processor === tsDemuxProc) {
+
         if (!this._haveVideo &&
             PayloadCodec.isAvc(payloadDescriptor.codec)) {
 
@@ -87,9 +91,11 @@ export class HttpToMediaSourceFlow extends Flow {
 
           log('got audio payload');
 
+          /*
           this._haveAudio = true;
           muxerInputSocket = mp4MuxProc.createInput();
           demuxOutputSocket.connect(muxerInputSocket);
+          */
 
         }
       }

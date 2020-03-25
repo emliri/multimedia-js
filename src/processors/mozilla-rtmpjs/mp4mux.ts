@@ -57,7 +57,7 @@ import { getLogger, LoggerLevel } from '../../logger';
 import { BoxContainerBox, Box, RawTag } from './mp4iso-base';
 import { SampleTablePackager } from './mp4iso-sample-table';
 
-const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.WARN, true);
+const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.ON, true);
 
 let MAX_PACKETS_IN_CHUNK = Infinity;
 let SPLIT_AT_KEYFRAMES = true;
@@ -544,6 +544,7 @@ export class MP4Mux {
           let lastDecodeTime = Math.round(decodeTime);
 
           for (var j = 0; j < trackPackets.length; j++) {
+
             const videoPacket: VideoPacket = trackPackets[j].packet;
             const videoFrameRateScaled = trackInfo.timescale / trackInfo.framerate;
             const nextDecodeTime = Math.round(samplesProcessed * videoFrameRateScaled);

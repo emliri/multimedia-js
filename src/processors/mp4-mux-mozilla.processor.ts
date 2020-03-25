@@ -23,7 +23,7 @@ import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -64,6 +64,8 @@ export enum MP4MuxProcessorSupportedCodecs {
 // FIXME: get rid of FORCE_MP3 flag
 const FORCE_MP3 = false;
 
+const DEBUG_H264 = true;
+
 export class MP4MuxProcessor extends Processor {
   static getName (): string {
     return 'MP4MuxProcessor';
@@ -82,7 +84,7 @@ export class MP4MuxProcessor extends Processor {
   private audioBitstreamHeader_: BufferSlice = null;
   private videoBitstreamHeader_: BufferSlice = null;
 
-  private embedCodecDataOnKeyframes_: boolean = true;
+  private embedCodecDataOnKeyframes_: boolean = false;
 
   private socketToTrackIndexMap_: {[i: number]: number} = {};
   // this simpler approach will restrict us to have only one audio and one video track for now
@@ -133,7 +135,9 @@ export class MP4MuxProcessor extends Processor {
       );
 
       return true;
+
     } else if (p.defaultPayloadInfo.isVideo()) {
+
       this.videoPacketQueue_.push(p);
 
       if (this.mp4Metadata_.tracks[this.socketToTrackIndexMap_[inputIndex]]) {
@@ -187,6 +191,9 @@ export class MP4MuxProcessor extends Processor {
     const timescale = videoTrackMetadata.timescale;
 
     p.forEachBufferSlice((bufferSlice) => {
+
+      //debugAccessUnit(bufferSlice);
+
       const mp4Muxer = this.mp4Muxer_;
 
       if (bufferSlice.props.isBitstreamHeader) {
@@ -231,9 +238,11 @@ export class MP4MuxProcessor extends Processor {
             const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
 
             const codecInitAu: BufferSlice =
-            makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
+              makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
 
-            debugAccessUnit(codecInitAu);
+            log('created codec-init AU data to insert in-stream')
+
+            DEBUG_H264 && debugAccessUnit(codecInitAu, false);
 
             bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
           }
@@ -248,11 +257,11 @@ export class MP4MuxProcessor extends Processor {
         MP4MuxPacketType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
         data,
-        p.getScaledDts(timescale),
+        p.getScaledDts(timescale), // TODO: replace by using input timescale when equal?
         true, // NOTE: Non-raw mode expects FLV-packaged data
         bufferSlice.props.isBitstreamHeader, // NOTE: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header
         bufferSlice.props.isKeyframe,
-        p.getScaledCto(timescale)
+        p.getScaledCto(timescale) // TODO: replace by using input timescale when equal?
       );
 
       if (!this.keyFramePushed_ &&
@@ -412,7 +421,8 @@ export class MP4MuxProcessor extends Processor {
       language: 'und'
     };
 
-    log('creating video track:', videoCodec, 'duration:', videoTrack.duration / timescale, 'secs');
+    log('creating video track:', videoCodec, 'duration:', videoTrack.duration / timescale, 'secs',
+      ', sequence timescale:', timescale, 'fps:', framerate);
 
     this.mp4Metadata_.videoTrackId = this._getNextTrackId();
     this.mp4Metadata_.tracks.push(videoTrack);
