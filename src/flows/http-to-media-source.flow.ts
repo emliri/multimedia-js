@@ -82,9 +82,10 @@ export class HttpToMediaSourceFlow extends Flow {
           log('got video payload');
 
           this._haveVideo = true;
+
+          demuxOutputSocket.connect(h264ParseProc.in[0]);
           muxerInputSocket = mp4MuxProc.createInput();
           h264ParseProc.out[0].connect(muxerInputSocket);
-          demuxOutputSocket.connect(h264ParseProc.in[0]);
 
         } else if (!this._haveAudio &&
             PayloadCodec.isAac(payloadDescriptor.codec)) {
