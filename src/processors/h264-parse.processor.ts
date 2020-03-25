@@ -11,12 +11,12 @@ import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.OFF, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
-const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = false;
+const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true;
 
-const DEBUG_H264 = true;
+const DEBUG_H264 = false;
 export class H264ParseProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
