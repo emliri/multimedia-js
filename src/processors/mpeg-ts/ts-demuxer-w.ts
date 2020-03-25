@@ -218,11 +218,13 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
         bufferSlice.props.tags.add('nalu');
 
-        // debugNALU(bufferSlice)
+        debug("Creating packet for AVC NALU data");
+        debugNALU(bufferSlice)
 
         const packet = Packet.fromSlice(bufferSlice, accessUnit.dts
-          - 900000, // HACK !!!!!!!!!!!
-          accessUnit.pts- accessUnit.dts);
+          - 10 * MPEG_TS_TIMESCALE_HZ // HACK !!!!!!!!!!!
+          ,
+          accessUnit.pts - accessUnit.dts);
 
         packet.setTimescale(MPEG_TS_TIMESCALE_HZ
           // avcTrackEsInfo.inputTimeScale // TODO: remove 'inputTimeScale' from resulting object

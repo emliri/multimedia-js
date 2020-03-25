@@ -4,6 +4,7 @@ import { Flow, FlowState } from '../../src/core/flow';
 import { getLogger } from '../../src/logger';
 
 const URLs = [
+  '/test-data/3303963094001_5147667971001_5147609827001-1.ts',
   '/test-data/193039199_mp4_h264_aac_hd_7.ts',
   '/test-data/mp4/v-0576p-1400k-libx264.mp4'
 ];
