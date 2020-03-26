@@ -123,7 +123,7 @@ export function makeNALUFromH264RbspData (
  */
 export function makeAnnexBAccessUnitFromNALUs (naluData: BufferSlice[]): BufferSlice {
   const totalSizeOfNalus = BufferSlice.getTotalSize(naluData);
-  const accessUnitData: BufferSlice = BufferSlice.allocateNew(4 * naluData.length + totalSizeOfNalus);
+  const accessUnitData: BufferSlice = BufferSlice.allocateNew((4 * naluData.length) + totalSizeOfNalus);
   const auDataView: DataView = accessUnitData.getDataView();
 
   let offset = 0;
