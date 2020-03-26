@@ -114,6 +114,7 @@ export type VideoPacket = {
   codecDescription: string;
   data: Uint8Array;
   packetType: VideoPacketType;
+  decodingTime: number,
   compositionTime: number;
   horizontalOffset?: number;
   verticalOffset?: number;
@@ -365,6 +366,7 @@ export class MP4Mux {
             codecDescription: VIDEOCODECS[AVC_VIDEO_CODEC_ID],
             data,
             packetType: isInitData ? VideoPacketType.HEADER : VideoPacketType.NALU,
+            decodingTime: timestamp,
             compositionTime: timestamp + cto,
             sampleDescriptionIndex: videoTrack.initializationData.length
           };
@@ -540,24 +542,14 @@ export class MP4Mux {
         }
         case AVC_VIDEO_CODEC_ID:
         case VP6_VIDEO_CODEC_ID: {
-          let decodeTime = samplesProcessed * trackInfo.timescale / trackInfo.framerate; // ? not really needed in unfragmented mode
-          let lastDecodeTime = Math.round(decodeTime);
-
           for (var j = 0; j < trackPackets.length; j++) {
 
             const videoPacket: VideoPacket = trackPackets[j].packet;
-            const videoFrameRateScaled = trackInfo.timescale / trackInfo.framerate;
-            const nextDecodeTime = Math.round(samplesProcessed * videoFrameRateScaled);
-            const videoFrameDuration = nextDecodeTime - lastDecodeTime;
-
-            lastDecodeTime = nextDecodeTime;
-
-            const compositionTime = videoPacket.compositionTime + videoFrameDuration;
 
             const s: StblSample = {
               size: videoPacket.data.length,
-              dts,
-              cts: compositionTime,
+              dts: videoPacket.decodingTime,
+              cts: videoPacket.compositionTime,
               isRap: videoPacket.frameType === VideoFrameType.KEY,
               sampleDescriptionIndex: videoPacket.sampleDescriptionIndex
             };
@@ -567,11 +559,9 @@ export class MP4Mux {
             chunks[i].push(videoPacket.data);
 
             samplesProcessed++;
-
-            dts += videoFrameDuration || videoFrameRateScaled;
           }
 
-          trackState.cachedDuration = lastDecodeTime;
+          trackState.cachedDuration = dts;
           trackState.samplesProcessed = samplesProcessed;
 
           break;
