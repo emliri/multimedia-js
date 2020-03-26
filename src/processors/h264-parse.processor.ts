@@ -56,13 +56,16 @@ export class H264ParseProcessor extends Processor {
     return false;
   }
 
-  private _mayWriteAvcCDataFromSpsPpsCache(): BufferSlice {
+  private _attempWriteAvcCDataFromSpsPpsCache(): BufferSlice {
     if (!this._spsSliceCache || !this._ppsSliceCache) {
       return null;
     }
 
     const spsInfo: Sps = H264ParameterSetParser.parseSPS(this._spsSliceCache.getUint8Array().subarray(1));
     //const ppsInfo: Pps = H264ParameterSetParser.parsePPS(this._ppsSliceCache.getUint8Array().subarray(1));
+
+    debugNALU(this._spsSliceCache)
+    debugNALU(this._ppsSliceCache);
 
     const avcCodecDataBox: AvcCodecDataBox = new AvcCodecDataBox(
       [this._spsSliceCache.getUint8Array()],
@@ -77,8 +80,11 @@ export class H264ParseProcessor extends Processor {
     const bufferSlice = BufferSlice.allocateNew(numBytesAlloc);
     avcCodecDataBox.write(bufferSlice.getUint8Array());
 
+    // Reset here if need to handle multiple embedded SPS/PPS in stream
+    /*
     this._spsSliceCache = null;
     this._ppsSliceCache = null;
+    */
 
     log('created AvcC atom data !')
 
@@ -110,7 +116,7 @@ export class H264ParseProcessor extends Processor {
 
       //*
       if (bufferSlice.props.tags.has('sei')) {
-        this._seiCache = bufferSlice;
+        //this._seiCache = bufferSlice;
         //warn('dropping SEI NALU packet');
         return;
       }
@@ -118,27 +124,41 @@ export class H264ParseProcessor extends Processor {
 
       // cache last SPS/PPS slices
       else if (bufferSlice.props.tags.has('sps')) {
+
         if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
-          this._spsSliceCache = bufferSlice;
-          bufferSlice = null;
-          const avcCDataSlice = this._mayWriteAvcCDataFromSpsPpsCache();
-          if (avcCDataSlice) {
-            bufferSlice = avcCDataSlice;
-            bufferSlice.props = propsCache;
-            bufferSlice.props.isBitstreamHeader = true;
+
+          if (this._spsSliceCache) {
+            bufferSlice = null;
+          } else {
+            this._spsSliceCache = bufferSlice;
+            bufferSlice = null;
+            const avcCDataSlice = this._attempWriteAvcCDataFromSpsPpsCache();
+            if (avcCDataSlice) {
+              bufferSlice = avcCDataSlice;
+              bufferSlice.props = propsCache;
+              bufferSlice.props.isBitstreamHeader = true;
+            }
           }
+
         }
 
       } else if (bufferSlice.props.tags.has('pps')) {
+
         if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
-          this._ppsSliceCache = bufferSlice;
-          bufferSlice = null;
-          const avcCDataSlice = this._mayWriteAvcCDataFromSpsPpsCache();
-          if (avcCDataSlice) {
-            bufferSlice = avcCDataSlice;
-            bufferSlice.props = propsCache;
-            bufferSlice.props.isBitstreamHeader = true;
+
+          if (this._ppsSliceCache) {
+            bufferSlice = null;
+          } else {
+            this._ppsSliceCache = bufferSlice;
+            bufferSlice = null;
+            const avcCDataSlice = this._attempWriteAvcCDataFromSpsPpsCache();
+            if (avcCDataSlice) {
+              bufferSlice = avcCDataSlice;
+              bufferSlice.props = propsCache;
+              bufferSlice.props.isBitstreamHeader = true;
+            }
           }
+
         }
 
       } else { // handle any other NALU type
