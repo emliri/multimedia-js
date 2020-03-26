@@ -26,6 +26,8 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
 const EMBED_CODEC_DATA_ON_KEYFRAME_DEFAULT = false;
+const FORCE_MP3 = false; // FIXME: get rid of FORCE_MP3 flag
+const DEBUG_H264 = true;
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -62,11 +64,6 @@ export enum MP4MuxProcessorSupportedCodecs {
   MP3 = 'mp3',
   VP6 = 'vp6f'
 }
-
-// FIXME: get rid of FORCE_MP3 flag
-const FORCE_MP3 = false;
-
-const DEBUG_H264 = true;
 
 export class MP4MuxProcessor extends Processor {
   static getName (): string {
@@ -246,9 +243,11 @@ export class MP4MuxProcessor extends Processor {
 
             log('created codec-init AU data to insert in-stream')
 
-            DEBUG_H264 && debugAccessUnit(codecInitAu, false);
+            //DEBUG_H264 && debugAccessUnit(codecInitAu, false);
 
             bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
+
+            DEBUG_H264 && debugAccessUnit(bufferSlice, false);
           }
 
         }
@@ -260,7 +259,7 @@ export class MP4MuxProcessor extends Processor {
         MP4MuxPacketType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
         data,
-        p.getScaledDts(timescale), // TODO: replace by using input timescale when equal?
+        p.timestamp, // TODO: replace by using input timescale when equal?
         true, // NOTE: Non-raw mode expects FLV-packaged data
         bufferSlice.props.isBitstreamHeader, // NOTE: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header
         bufferSlice.props.isKeyframe,
