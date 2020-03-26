@@ -22,6 +22,7 @@ export class H264ParseProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
   private _ppsSliceCache: BufferSlice = null;
+  private _seiCache: BufferSlice = null;
 
   static getName (): string {
     return 'H264ParseProcessor';
@@ -110,13 +111,14 @@ export class H264ParseProcessor extends Processor {
 
       //*
       if (bufferSlice.props.tags.has('sei')) {
-        warn('dropping SEI NALU packet');
+        this._seiCache = bufferSlice;
+        //warn('dropping SEI NALU packet');
         return;
       }
       //*/
 
       // cache last SPS/PPS slices
-      if (bufferSlice.props.tags.has('sps')) {
+      else if (bufferSlice.props.tags.has('sps')) {
         if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
           this._spsSliceCache = bufferSlice;
           bufferSlice = null;
@@ -140,7 +142,7 @@ export class H264ParseProcessor extends Processor {
           }
         }
 
-      } else {
+      } else { // handle any other NALU type
         if (ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK) {
 
           log('expecting NALU to repackage to AU:')
@@ -151,9 +153,15 @@ export class H264ParseProcessor extends Processor {
             BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
           */
 
-          bufferSlice = makeAnnexBAccessUnitFromNALUs([bufferSlice]);
+          if (propsCache.isKeyframe && this._seiCache) { // prepend IDR with SEI
+            bufferSlice = makeAnnexBAccessUnitFromNALUs([this._seiCache, bufferSlice]);
+            this._seiCache = null;
+          } else {
+            bufferSlice = makeAnnexBAccessUnitFromNALUs([bufferSlice]);
+          }
+
           bufferSlice.props = propsCache;
-          bufferSlice.props.isKeyframe = propsCache.isKeyframe;
+
         }
       }
 
