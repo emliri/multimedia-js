@@ -30,7 +30,7 @@ export class ChunkToMediaSource extends MmjsTestCase {
 
     this._fmp4ToMediaSource =
       new Multimedia.Flows.HttpToMediaSourceFlow(
-        URLs[2]
+        URLs[1]
       );
 
     const video = this._videoEl;
