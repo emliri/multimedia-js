@@ -1014,18 +1014,18 @@ export class AvcCodecDataBox extends Box {
   constructor (
     public spsNALUs: Uint8Array[],
     public ppsNALUs: Uint8Array[],
-    public version: number,
     public profile: number,
     public profileCompatibility: number,
     public level: number,
-    public nalUnitSizeFieldLength: number = 4
+    public nalUnitSizeFieldLength: number = 4,
+    public version: number = 1
   ) {
     super('avcC');
   }
 
   public layout (offset: number): number {
     let size = super.layout(offset);
-    size += 8 // 6 fixed field bytes + 2 bytes for SPS/PPS size
+    size += 7 // 5 fixed field bytes + 2 bytes for SPS/PPS size
       + this.spsNALUs.reduce((accu, data) => { return accu + data.byteLength }, 0)
       + (2 * this.spsNALUs.length)
       + this.ppsNALUs.reduce((accu, data) => { return accu + data.byteLength }, 0)

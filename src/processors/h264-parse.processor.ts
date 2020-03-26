@@ -67,7 +67,6 @@ export class H264ParseProcessor extends Processor {
     const avcCodecDataBox: AvcCodecDataBox = new AvcCodecDataBox(
       [this._spsSliceCache.getUint8Array()],
       [this._ppsSliceCache.getUint8Array()],
-      0,
       spsInfo.profileIdc,
       64, // "profileCompatibility" - not sure exactly what this does but this value is in other common test-data
       spsInfo.levelIdc
