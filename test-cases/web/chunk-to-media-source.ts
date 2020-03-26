@@ -1,6 +1,6 @@
 import * as Multimedia from '../../index';
 import { MmjsTestCase } from '../mmjs-test-case';
-import { Flow, FlowState } from '../../src/core/flow';
+import { Flow, FlowState, FlowCompletionResult } from '../../src/core/flow';
 import { getLogger } from '../../src/logger';
 
 const URLs = [
@@ -28,17 +28,18 @@ export class ChunkToMediaSource extends MmjsTestCase {
 
     this._mediaSource = new MediaSource();
 
-    log('MediaSource created');
-
-    this._videoEl.src = URL.createObjectURL(this._mediaSource);
-
-    log('MediaSource opened');
-
     this._fmp4ToMediaSource =
       new Multimedia.Flows.HttpToMediaSourceFlow(
-        URLs[0],
-        this._mediaSource
+        URLs[2]
       );
+
+    const video = this._videoEl;
+
+    this._fmp4ToMediaSource.whenCompleted()
+      .then((result: FlowCompletionResult) => {
+        video.src = URL.createObjectURL(result.data);
+        video.controls = true;
+      });
 
     done();
   }
