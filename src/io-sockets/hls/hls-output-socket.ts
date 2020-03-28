@@ -1,4 +1,4 @@
-import { SeekableOutputSocket, SocketDescriptor, OutputSocket, URLLoadingOutputSocket, SocketEvent } from "../../core/socket";
+import { SeekableOutputSocket, SocketDescriptor, OutputSocket, URLLoadingOutputSocket } from "../../core/socket";
 
 import { HlsLoader } from "../../../../:rialto/lib/hls-loader";
 import { MediaSegment } from "../../../../:rialto/lib/media-segment";
@@ -11,13 +11,19 @@ const { log } = getLogger('HlsToMediaSourceFlow', LoggerLevel.ON, true);
 export class HlsOutputSocket extends OutputSocket implements SeekableOutputSocket, URLLoadingOutputSocket {
 
   private _hlsLoader: HlsLoader = null;
+  private _ready: Promise<void>;
 
   constructor() {
     super(SocketDescriptor.fromMimeType('application/vnd.apple.mpegurl'));
   }
 
   load(url: string): boolean {
-    this._hlsLoader = new HlsLoader(url, this._onMediaUpdate.bind(this), this._onMediaSegmentLoaded.bind(this));
+    this._ready = new Promise((resolve, reject) => {
+      this._hlsLoader = new HlsLoader(url, () => {
+        this._onMediaUpdate();
+        resolve();
+      }, this._onMediaSegmentLoaded.bind(this));
+    });
     return true;
   }
 
@@ -26,9 +32,12 @@ export class HlsOutputSocket extends OutputSocket implements SeekableOutputSocke
     return true;
   }
 
+  whenReady() {
+    return this._ready;
+  }
+
   private _onMediaUpdate() {
     log('got variants:', this._hlsLoader.getVariantStreams());
-    this._emit(SocketEvent.READY);
   }
 
   private _onMediaSegmentLoaded(segment: MediaSegment) {
