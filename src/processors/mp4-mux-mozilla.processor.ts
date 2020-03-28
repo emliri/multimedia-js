@@ -25,9 +25,10 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
+const OUTPUT_FRAGMENTED_MODE = true;
 const EMBED_CODEC_DATA_ON_KEYFRAME_DEFAULT = false;
 const FORCE_MP3 = false; // FIXME: get rid of FORCE_MP3 flag
-const DEBUG_H264 = true;
+const DEBUG_H264 = false;
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -66,6 +67,7 @@ export enum MP4MuxProcessorSupportedCodecs {
 }
 
 export class MP4MuxProcessor extends Processor {
+
   static getName (): string {
     return 'MP4MuxProcessor';
   }
@@ -83,9 +85,11 @@ export class MP4MuxProcessor extends Processor {
   private audioBitstreamHeader_: BufferSlice = null;
   private videoBitstreamHeader_: BufferSlice = null;
 
+  private outputFragmentsMode_: boolean = OUTPUT_FRAGMENTED_MODE;
   private embedCodecDataOnKeyframes_: boolean = EMBED_CODEC_DATA_ON_KEYFRAME_DEFAULT;
 
-  private socketToTrackIndexMap_: {[i: number]: number} = {};
+  private socketToTrackIndexHash_: {[i: number]: number} = {};
+
   // this simpler approach will restrict us to have only one audio and one video track for now
   private videoTrackIndex_: number;
   private audioTrackIndex_: number;
@@ -116,12 +120,12 @@ export class MP4MuxProcessor extends Processor {
     if (p.defaultPayloadInfo.isAudio()) {
       this.audioPacketQueue_.push(p);
 
-      if (this.mp4Metadata_.tracks[this.socketToTrackIndexMap_[inputIndex]]) {
+      if (this.mp4Metadata_.tracks[this.socketToTrackIndexHash_[inputIndex]]) {
         return true;
       }
 
       this.audioTrackIndex_ =
-        this.socketToTrackIndexMap_[inputIndex] =
+        this.socketToTrackIndexHash_[inputIndex] =
           this.mp4Metadata_.tracks.length;
 
       this._addAudioTrack(
@@ -139,12 +143,12 @@ export class MP4MuxProcessor extends Processor {
 
       this.videoPacketQueue_.push(p);
 
-      if (this.mp4Metadata_.tracks[this.socketToTrackIndexMap_[inputIndex]]) {
+      if (this.mp4Metadata_.tracks[this.socketToTrackIndexHash_[inputIndex]]) {
         return true;
       }
 
       this.videoTrackIndex_ =
-        this.socketToTrackIndexMap_[inputIndex] =
+        this.socketToTrackIndexHash_[inputIndex] =
           this.mp4Metadata_.tracks.length;
 
       this._addVideoTrack(
@@ -332,7 +336,7 @@ export class MP4MuxProcessor extends Processor {
   private _initMuxer () {
     log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_);
 
-    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, false);
+    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, this.outputFragmentsMode_);
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
