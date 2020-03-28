@@ -37,6 +37,7 @@ import * as Utils from './src/common-utils';
 import * as Crypto from './src/common-crypto';
 
 import { XhrSocket } from './src/io-sockets/xhr.socket';
+import { HlsOutputSocket } from './src/io-sockets/hls/hls-output-socket';
 
 // TODO: use node-externals in webpack config
 import { NodeFsWriteSocket } from './src/io-sockets/node-fs-write.socket';
@@ -52,7 +53,7 @@ import { Signal } from './src/core/signal';
 import { Flow, FlowErrorType, FlowEvent, FlowState } from './src/core/flow';
 
 import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
-import { HTML5MediaSourceBufferSocket } from './src/io-sockets/html5-media-source-buffer.socket';
+import { MediaSourceInputSocket } from './src/io-sockets/mse-input.socket';
 import { WebFileDownloadSocket } from './src/io-sockets/web-file-download.socket';
 import { ErrorCode, ErrorCodeSpace, getErrorNameByCode } from './src/core/error';
 
@@ -102,7 +103,8 @@ export const IoSockets = {
   XhrSocket,
   WebFileChooserSocket,
   WebFileDownloadSocket,
-  HTML5MediaSourceBufferSocket
+  MediaSourceInputSocket,
+  HlsOutputSocket
   // NodeFsReadSocket,
   // NodeFsWriteSocket
 };
