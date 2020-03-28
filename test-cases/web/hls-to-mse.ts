@@ -26,7 +26,8 @@ export class HlsToMse extends MmjsTestCase {
 
     this._flow =
       new Multimedia.Flows.HlsToMediaSourceFlow(
-        URLs[0]
+        URLs[0],
+        video
       );
 
     done();
