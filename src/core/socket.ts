@@ -15,7 +15,6 @@ export enum SocketType {
 // NOTE: '...-transferred' events are triggered ONLY in base class
 //       '...-received' events are triggered ONLY in input
 export enum SocketEvent {
-  READY = 'ready',
   ANY_PACKET_TRANSFERRED = 'any-packet-transferred',
   EOS_PACKET_TRANSFERRED = 'eos-packet-transferred',
   ANY_PACKET_RECEIVED = 'any-packet-received',
