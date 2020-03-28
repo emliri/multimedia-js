@@ -767,14 +767,13 @@ export class MP4Mux {
 
         if (fragmentedMode) {
           sampleTable = SampleTablePackager.createEmptyForFragmentedMode(sampleDescEntry);
-        } else {
+        } else if (samples) {
           sampleTable = SampleTablePackager.createFromSamplesInSingleChunk(sampleDescEntry, samples[i], mdatOffset);
+          // sum up all sample-sizes and add them up mdat offset now to shift the offset for the next track
+          mdatOffset += samples[i].reduce((totalSize, sample) => {
+            return totalSize + sample.size;
+          }, 0);
         }
-
-        // sum up all sample-sizes and add them up mdat offset now to shift the offset for the next track
-        mdatOffset += samples[i].reduce((totalSize, sample) => {
-          return totalSize + sample.size;
-        }, 0);
 
         let trak = null;
         if (trackState === this.audioTrackState) {
