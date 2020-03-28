@@ -110,13 +110,17 @@ export class SocketDescriptor {
   }
 }
 
-export abstract class SocketOwner implements SignalReceiver {
-  abstract getOwnSockets(): Set<Socket>;
-  abstract cast(signal: Signal): SignalReceiverCastResult;
+export interface SocketOwner extends SignalReceiver {
+  getOwnSockets(): Set<Socket>;
+  cast(signal: Signal): SignalReceiverCastResult;
 }
 
-export abstract class SeekableOutputSocket extends OutputSocket {
-  abstract seek(start: number, end?: number): boolean;
+export interface SeekableOutputSocket extends OutputSocket {
+  seek(start: number, end?: number): boolean;
+}
+
+export interface URLLoadingOutputSocket extends OutputSocket {
+  load(url: string): boolean;
 }
 
 export { Socket } from './socket-base';
