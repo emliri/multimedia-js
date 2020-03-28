@@ -13,7 +13,6 @@ export const DEFAULT_HTML_TEMPLATE = makeTemplate('<p>Download ${filename}</p>')
 const { log, debug } = getLogger('WebFileDownloadSocket');
 
 export class WebFileDownloadSocket extends InputSocket {
-  private _accuBuffer: ArrayBuffer = null;
   private _bufferDownloadCnt = 0;
 
   /**
@@ -40,11 +39,10 @@ export class WebFileDownloadSocket extends InputSocket {
     debug('received:', p.toString(), 'total bytes:', p.getTotalBytes());
 
     p.forEachBufferSlice((bs) => {
+
       debug('accumulating slice data', bs.size());
 
-      this._accuBuffer = concatArrayBuffers(this._accuBuffer, bs.newArrayBuffer());
-
-      const blob = new Blob([this._accuBuffer], { type: this._mimeType });
+      const blob = new Blob([bs.newArrayBuffer()], { type: this._mimeType });
       const objectUrl = URL.createObjectURL(blob);
 
       // local template eval vars
