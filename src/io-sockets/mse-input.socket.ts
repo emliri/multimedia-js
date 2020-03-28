@@ -7,7 +7,7 @@ const { log, warn, error } = getLogger('HTML5MediaSourceBufferSocket');
 
 const MEDIA_SOURCE_OPEN_FAILURE_TIMEOUT_MS = 4000;
 
-export class HTML5MediaSourceBufferSocket extends InputSocket {
+export class MediaSourceInputSocket extends InputSocket {
   private mediaSourceController: MediaSourceController;
 
   private _readyPromise: Promise<void>;
@@ -32,8 +32,6 @@ export class HTML5MediaSourceBufferSocket extends InputSocket {
 
     this._readyPromise.then(() => {
       this.mediaSourceController = new MediaSourceController(mediaSource);
-      this.mediaSourceController.setMediaDuration(60, true); // HACK !!
-
       if (defaultFullMimetype) {
         this._enableOneSourceBufferForFullMimetype(defaultFullMimetype);
       }
