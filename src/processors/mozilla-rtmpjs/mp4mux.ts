@@ -308,6 +308,7 @@ export class MP4Mux {
       cto: number = 0,
       audioDetails: {sampleRate: number, sampleDepth: number, samplesPerFrame: number, numChannels: number} = null
     ) {
+
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._attemptToGenerateMovieHeader();
       }
@@ -712,7 +713,7 @@ export class MP4Mux {
           trakFlags, trackState, trackInfo, sampleDescEntry
         });
 
-        let trex = new TrackExtendsBox(trackState.trackId, 0, 0, 0, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
+        let trex = new TrackExtendsBox(trackState.trackId, 1, 0, 0, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
         trexs.push(trex);
       }
 
