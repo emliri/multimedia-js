@@ -93,6 +93,8 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
   log('will create TSDemuxer instance');
 
+  let videoPtsOffset: number = null;
+
   const demuxer = new TSDemuxer((
     audioTrackEsInfo: MpegTsDemuxerAudioTrackElementaryStream,
     avcTrackEsInfo: MpegTsDemuxerVideoTrackElementaryStream
@@ -221,13 +223,17 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         log("Creating packet for AVC NALU data");
         debugNALU(bufferSlice)
 
+        if (videoPtsOffset === null) {
+          videoPtsOffset = accessUnit.dts;
+        }
+
         const packet = Packet.fromSlice(
           bufferSlice,
-          accessUnit.dts
-          // - 10 * MPEG_TS_TIMESCALE_HZ // HACK !!!!!!!!!!!
-          ,
+          accessUnit.dts,
           accessUnit.pts - accessUnit.dts
           );
+
+        packet.setTimestampOffset(videoPtsOffset);
 
         packet.setTimescale(MPEG_TS_TIMESCALE_HZ
           // avcTrackEsInfo.inputTimeScale // TODO: remove 'inputTimeScale' from resulting object
