@@ -5,7 +5,6 @@ import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { Flow, FlowConfigFlag } from '../core/flow';
 import { OutputSocket } from '../core/socket';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
-import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { getLogger, LoggerLevel } from '../logger';
 import { PayloadCodec } from '../core/payload-description';

@@ -4,7 +4,7 @@ import { MPEGTSDemuxProcessor } from '../processors/mpeg-ts-demux.processor';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 
-import { HTML5MediaSourceBufferSocket } from '../io-sockets/html5-media-source-buffer.socket';
+import { MediaSourceInputSocket } from '../io-sockets/mse-input.socket';
 import { HlsOutputSocket } from '../io-sockets/hls/hls-output-socket';
 
 import { newProcessorWorkerShell } from '../core/processor-factory';
@@ -26,29 +26,29 @@ const USE_TS_DEMUX = true;
 export class HlsToMediaSourceFlow extends Flow {
 
   private _hlsOutSocket: HlsOutputSocket;
-  private _mseInSocket: HTML5MediaSourceBufferSocket;
+  private _mseInSocket: MediaSourceInputSocket;
 
   private _haveVideo = false;
   private _haveAudio = false;
+  private _mediaSource: MediaSource;
 
   constructor (private _m3u8Url: string, private _videoEl: HTMLMediaElement) {
     super(
-      FlowConfigFlag.NONE, // | FlowConfigFlag.WITH_DOWNLOAD_SOCKET,
+      FlowConfigFlag.NONE | FlowConfigFlag.WITH_DOWNLOAD_SOCKET,
       (prevState, newState) => {
         log('previous state:', prevState, 'new state:', newState);
       },
       (reason) => {
         log('state change aborted. reason:', reason);
       },
-      //{ el: null, mimeType: 'video/mp4', filenameTemplateBase: 'dump-${new Date().toJSON()}.mp4' }
+      { el: null, mimeType: 'video/mp4', filenameTemplateBase: 'dump-${new Date().toJSON()}.mp4' }
     );
   }
 
   protected onWaitingToFlowing_ (done: VoidCallback) {
-
     this._hlsOutSocket.load(this._m3u8Url);
-
-    this._hlsOutSocket.on(SocketEvent.READY, () => {
+    this._hlsOutSocket.whenReady().then(() => {
+      this._mediaSource.duration = 10;
       this._hlsOutSocket.seek(0, 10);
     });
     done();
@@ -56,17 +56,17 @@ export class HlsToMediaSourceFlow extends Flow {
 
   protected onVoidToWaiting_ (done: VoidCallback) {
 
+    const mediaSource = this._mediaSource = new MediaSource();
+    this._videoEl.src = URL.createObjectURL(mediaSource);
+
+    const inSocket = this._mseInSocket = new MediaSourceInputSocket(mediaSource, 'video/mp4');
+
     const mp4DemuxProc = newProcessorWorkerShell(MP4DemuxProcessor);
     const tsDemuxProc = newProcessorWorkerShell(MPEGTSDemuxProcessor);
     const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
     const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
 
     const outSocket = this._hlsOutSocket = new HlsOutputSocket();
-
-    const mediaSource = new MediaSource();
-    const inSocket = this._mseInSocket = new HTML5MediaSourceBufferSocket(mediaSource);
-
-    this._videoEl.src = URL.createObjectURL(mediaSource);
 
     const onDemuxOutputCreated = (data: ProcessorEventData) => {
       const demuxOutputSocket = <OutputSocket> data.socket;
@@ -124,7 +124,8 @@ export class HlsToMediaSourceFlow extends Flow {
       outSocket.connect(mp4DemuxProc.in[0]);
     }
 
-    this.connectWithAllExternalSockets(mp4MuxProc.out[0])
+    mp4MuxProc.out[0].connect(inSocket);
+    this.connectWithAllExternalSockets(mp4MuxProc.out[0]);
 
     done();
   }
