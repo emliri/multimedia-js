@@ -16,7 +16,7 @@ const { log } = getLogger('HttpToMediaSourceFlow', LoggerLevel.ON, true);
 
 const ENABLE_AUDIO = false
 const ENABLE_VIDEO = true
-export class HttpToMediaSourceFlow extends Flow {
+export class ChunkToMediaSourceFlow extends Flow {
 
   private _xhrSocket: XhrSocket;
 

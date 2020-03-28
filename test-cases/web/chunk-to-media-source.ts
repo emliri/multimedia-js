@@ -13,7 +13,7 @@ const { log, error } = getLogger('ChunkToMediaSource');
 
 export class ChunkToMediaSource extends MmjsTestCase {
 
-  private _fmp4ToMediaSource: Flow;
+  private _flow: Flow;
   private _videoEl: HTMLVideoElement;
   private _mediaSource: MediaSource;
 
@@ -28,14 +28,14 @@ export class ChunkToMediaSource extends MmjsTestCase {
 
     this._mediaSource = new MediaSource();
 
-    this._fmp4ToMediaSource =
-      new Multimedia.Flows.HttpToMediaSourceFlow(
+    this._flow =
+      new Multimedia.Flows.ChunkToMediaSourceFlow(
         URLs[1]
       );
 
     const video = this._videoEl;
 
-    this._fmp4ToMediaSource.whenCompleted()
+    this._flow.whenCompleted()
       .then((result: FlowCompletionResult) => {
         video.src = URL.createObjectURL(result.data);
         video.controls = true;
@@ -46,7 +46,7 @@ export class ChunkToMediaSource extends MmjsTestCase {
 
   // TODO: create a generic flow-testbench
   run () {
-    this._fmp4ToMediaSource.state = FlowState.WAITING;
-    this._fmp4ToMediaSource.state = FlowState.FLOWING;
+    this._flow.state = FlowState.WAITING;
+    this._flow.state = FlowState.FLOWING;
   }
 }
