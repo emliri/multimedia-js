@@ -1,14 +1,8 @@
 # Use-case: Concatenation
 
-- Fix example demuxing 4K video
-
 - Enable AAC codec data embedding / sample-description-indexing
 
-- Rewrite/encode AAC track for concatenation
-
 - Insert silent AAC soundtrack to movie file (special case of "remix")
-
-(- Enable everal SPS/PPS inside AVCc data? Replace pps/sps ID in NAL units?)
 
 # Dependencies
 
@@ -34,15 +28,16 @@
 
 # Use-Cases
 
+- Accu-buffer
+
+- Method to create "grow" new BufferSlice from original data and (list of) additional slices
+
+
 - Abstract away read/write of binary data (byte-parser/writer) for using DataView implementations transparently
 
 - Inside flow: Proc/Proxy UID (like a PID for each to identify them across proxy vs worker instances)
 
 - Read from file or HTTP (or other URI-based source) transparently
-
-- MPEG-TS demuxing (H264+AAC and samples-AES-encrypted)
-
-- Method to create "grow" new BufferSlice from original data and (list of) additional slices
 
 - Inspect files and their bitsreams (mp4, ...). Tool for "online" mp4 / TS / web analysis and diff :)
 
