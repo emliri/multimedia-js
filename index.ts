@@ -31,6 +31,7 @@ import { ChunkToMediaSourceFlow } from './src/flows/chunk-to-media-source.flow';
 import { CombineMp4sToMovFlow } from './src/flows/combine-mp4s-to-mov.flow';
 import { ConcatMp4sFlow } from './src/flows/concat-mp4s.flow';
 import { AacTranscodeFlow } from './src/flows/aac-transcode.flow';
+import { HlsToMediaSourceFlow } from './src/flows/hls-to-mse.flow';
 
 import * as Utils from './src/common-utils';
 import * as Crypto from './src/common-crypto';
@@ -110,7 +111,8 @@ export const Flows = {
   AacTranscodeFlow,
   ChunkToMediaSourceFlow,
   ConcatMp4sFlow,
-  CombineMp4sToMovFlow
+  CombineMp4sToMovFlow,
+  HlsToMediaSourceFlow
 };
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';

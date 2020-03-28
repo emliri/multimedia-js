@@ -12,7 +12,7 @@ import { PayloadCodec } from '../core/payload-description';
 import { VoidCallback } from '../common-types';
 import { newProcessorWorkerShell } from '../core/processor-factory';
 
-const { log } = getLogger('HttpToMediaSourceFlow', LoggerLevel.ON, true);
+const { log } = getLogger('ChunkToMediaSourceFlow', LoggerLevel.ON, true);
 
 const ENABLE_AUDIO = false
 const ENABLE_VIDEO = true

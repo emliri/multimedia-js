@@ -12,7 +12,6 @@ export class HlsToMse extends MmjsTestCase {
 
   private _flow: Flow = null;
   private _videoEl: HTMLVideoElement;
-  private _mediaSource: MediaSource;
 
   setup (done: VoidCallback) {
 
@@ -26,7 +25,7 @@ export class HlsToMse extends MmjsTestCase {
     this.getDomMountPoint().appendChild(video);
 
     this._flow =
-      new Multimedia.Flows.ChunkToMediaSourceFlow(
+      new Multimedia.Flows.HlsToMediaSourceFlow(
         URLs[0]
       );
 
