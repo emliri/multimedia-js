@@ -60,7 +60,7 @@ import { SampleTablePackager } from './mp4iso-sample-table';
 const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.ON, true);
 
 let MAX_PACKETS_IN_CHUNK = Infinity;
-let SPLIT_AT_KEYFRAMES = true;
+let SPLIT_AT_KEYFRAMES = false;
 
 type CachedPacket = {
   packet: any;
