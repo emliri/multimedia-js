@@ -25,7 +25,7 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
-const OUTPUT_FRAGMENTED_MODE = true;
+const OUTPUT_FRAGMENTED_MODE = false;
 const EMBED_CODEC_DATA_ON_KEYFRAME = false;
 const FORCE_MP3 = false; // FIXME: get rid of FORCE_MP3 flag
 const DEBUG_H264 = false;
@@ -66,6 +66,12 @@ export enum MP4MuxProcessorSupportedCodecs {
   VP6 = 'vp6f'
 }
 
+export type MP4MuxProcessorOptions = {
+  fragmentedMode: boolean,
+  embedCodecDataOnKeyFrames: boolean,
+  forceMp3: boolean
+}
+
 export class MP4MuxProcessor extends Processor {
 
   static getName (): string {
@@ -85,8 +91,11 @@ export class MP4MuxProcessor extends Processor {
   private audioBitstreamHeader_: BufferSlice = null;
   private videoBitstreamHeader_: BufferSlice = null;
 
-  private outputFragmentsMode_: boolean = OUTPUT_FRAGMENTED_MODE;
-  private embedCodecDataOnKeyframes_: boolean = EMBED_CODEC_DATA_ON_KEYFRAME;
+  private options_: MP4MuxProcessorOptions = {
+    fragmentedMode: OUTPUT_FRAGMENTED_MODE,
+    embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
+    forceMp3: FORCE_MP3
+  }
 
   private socketToTrackIndexHash_: {[i: number]: number} = {};
 
@@ -94,8 +103,12 @@ export class MP4MuxProcessor extends Processor {
   private videoTrackIndex_: number;
   private audioTrackIndex_: number;
 
-  constructor () {
+  constructor (options?: MP4MuxProcessorOptions) {
     super();
+
+    if (options) {
+      this.options_ = Object.assign(this.options_, options);
+    }
 
     this.createOutput();
 
@@ -130,7 +143,7 @@ export class MP4MuxProcessor extends Processor {
 
       this._addAudioTrack(
         // FIXME: get rid of FORCE_MP3 flag
-        FORCE_MP3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
+        this.options_.forceMp3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
         p.defaultPayloadInfo.getSamplingRate(),
         p.defaultPayloadInfo.sampleDepth,
         p.defaultPayloadInfo.details.numChannels,
@@ -210,7 +223,7 @@ export class MP4MuxProcessor extends Processor {
       if (bufferSlice.props.isKeyframe) {
         log('got keyframe at:', p.toString());
 
-        if (this.embedCodecDataOnKeyframes_) {
+        if (this.options_.embedCodecDataOnKeyFrames) {
           if (!this.videoBitstreamHeader_) {
             throw new Error('not video bitstream header found to embed');
           }
@@ -303,7 +316,7 @@ export class MP4MuxProcessor extends Processor {
       mp4Muxer.pushPacket(
         MP4MuxPacketType.AUDIO_PACKET,
         // FIXME: get rid of FORCE_MP3 flag
-        FORCE_MP3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
+        this.options_.forceMp3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
         data,
         p.getScaledDts(timescale),
         true, // NOTE: Non-raw mode expects FLV-packaged data
@@ -336,7 +349,7 @@ export class MP4MuxProcessor extends Processor {
   private _initMuxer () {
     log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_);
 
-    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, this.outputFragmentsMode_);
+    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, this.options_.fragmentedMode);
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
