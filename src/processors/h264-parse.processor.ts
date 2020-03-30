@@ -81,10 +81,10 @@ export class H264ParseProcessor extends Processor {
     avcCodecDataBox.write(bufferSlice.getUint8Array());
 
     // Reset here if need to handle multiple embedded SPS/PPS in stream
-    /*
+    ///*
     this._spsSliceCache = null;
     this._ppsSliceCache = null;
-    */
+    //*/
 
     log('created AvcC atom data !')
 
