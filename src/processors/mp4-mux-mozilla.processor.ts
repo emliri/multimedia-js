@@ -26,7 +26,7 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
 const OUTPUT_FRAGMENTED_MODE = true;
-const EMBED_CODEC_DATA_ON_KEYFRAME_DEFAULT = false;
+const EMBED_CODEC_DATA_ON_KEYFRAME = false;
 const FORCE_MP3 = false; // FIXME: get rid of FORCE_MP3 flag
 const DEBUG_H264 = false;
 
@@ -86,7 +86,7 @@ export class MP4MuxProcessor extends Processor {
   private videoBitstreamHeader_: BufferSlice = null;
 
   private outputFragmentsMode_: boolean = OUTPUT_FRAGMENTED_MODE;
-  private embedCodecDataOnKeyframes_: boolean = EMBED_CODEC_DATA_ON_KEYFRAME_DEFAULT;
+  private embedCodecDataOnKeyframes_: boolean = EMBED_CODEC_DATA_ON_KEYFRAME;
 
   private socketToTrackIndexHash_: {[i: number]: number} = {};
 
@@ -449,7 +449,6 @@ export class MP4MuxProcessor extends Processor {
 
   private onMp4MuxerCodecInfo_ (codecInfo: string[]) {
     log('got new codec info:', codecInfo);
-
     this.lastCodecInfo_ = codecInfo;
   }
 }
