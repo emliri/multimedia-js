@@ -26,7 +26,7 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
 const OUTPUT_FRAGMENTED_MODE = false;
-const EMBED_CODEC_DATA_ON_KEYFRAME = false;
+const EMBED_CODEC_DATA_ON_KEYFRAME = true;
 const FORCE_MP3 = false; // FIXME: get rid of FORCE_MP3 flag
 const DEBUG_H264 = false;
 
@@ -208,16 +208,23 @@ export class MP4MuxProcessor extends Processor {
 
     p.forEachBufferSlice((bufferSlice) => {
 
-
       const mp4Muxer = this.mp4Muxer_;
 
       if (bufferSlice.props.isBitstreamHeader) {
-        log('got video bitstream header at:', p.toString());
+
+        if (this.videoBitstreamHeader_ && this.options_.fragmentedMode) {
+          warn('dropping video codec info as in frag-mode and already got first one');
+          return;
+        }
+
+        log('got new video bitstream header at:', p.toString());
         this.videoBitstreamHeader_ = bufferSlice;
       } else {
-        // debug('video packet:', p.toString());
-        log('processing AVC AU:');
-        debugAccessUnit(bufferSlice);
+        debug('video packet:', p.toString());
+        if (DEBUG_H264) {
+          log('processing AVC AU:');
+          debugAccessUnit(bufferSlice);
+        }
       }
 
       if (bufferSlice.props.isKeyframe) {
