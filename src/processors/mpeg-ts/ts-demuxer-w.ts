@@ -93,8 +93,6 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
   log('will create TSDemuxer instance');
 
-  let videoPtsOffset: number = null;
-
   const demuxer = new TSDemuxer((
     audioTrackEsInfo: MpegTsDemuxerAudioTrackElementaryStream,
     avcTrackEsInfo: MpegTsDemuxerVideoTrackElementaryStream
@@ -172,9 +170,9 @@ export function runMpegTsDemux (p: Packet): Packet[] {
     // NOTE: In principle, DTS could even also be anything that preserves decoding order unrelated to the PTS timeplane!
     const sampleRate = Math.round(1 / ((avcSamples[1].dts - avcSamples[0].dts) / MPEG_TS_TIMESCALE_HZ));
 
-    //const sampleDuration =
+    log('estimated video FPS:', sampleRate);
 
-    log('estimated video FPS:', sampleRate)
+    let videoPtsOffset: number = null;
 
     avcSamples.forEach((accessUnit, auIndex) => {
 
@@ -229,7 +227,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
         const packet = Packet.fromSlice(
           bufferSlice,
-          accessUnit.dts,
+          accessUnit.dts - videoPtsOffset,
           accessUnit.pts - accessUnit.dts
           );
 
