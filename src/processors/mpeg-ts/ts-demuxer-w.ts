@@ -172,7 +172,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
     log('estimated video FPS:', sampleRate);
 
-    let videoPtsOffset: number = null;
+    let videoDtsOffset: number = null;
 
     avcSamples.forEach((accessUnit, auIndex) => {
 
@@ -221,17 +221,17 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         log("Creating packet for AVC NALU data");
         debugNALU(bufferSlice)
 
-        if (videoPtsOffset === null) {
-          videoPtsOffset = accessUnit.dts;
+        if (videoDtsOffset === null) {
+          videoDtsOffset = accessUnit.dts;
         }
 
         const packet = Packet.fromSlice(
           bufferSlice,
-          accessUnit.dts - videoPtsOffset,
+          accessUnit.dts - videoDtsOffset,
           accessUnit.pts - accessUnit.dts
           );
 
-        packet.setTimestampOffset(videoPtsOffset);
+        packet.setTimestampOffset(videoDtsOffset);
 
         packet.setTimescale(MPEG_TS_TIMESCALE_HZ
           // avcTrackEsInfo.inputTimeScale // TODO: remove 'inputTimeScale' from resulting object
