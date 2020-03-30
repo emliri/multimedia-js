@@ -116,7 +116,7 @@ export class H264ParseProcessor extends Processor {
 
       //*
       if (bufferSlice.props.tags.has('sei')) {
-        //this._seiCache = bufferSlice;
+        this._seiCache = bufferSlice;
         //warn('dropping SEI NALU packet');
         return;
       }
