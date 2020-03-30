@@ -21,6 +21,7 @@ export class HlsToMse extends MmjsTestCase {
 
     video.width = 400;
     video.height = 300;
+    video.controls = true;
 
     this.getDomMountPoint().appendChild(video);
 
