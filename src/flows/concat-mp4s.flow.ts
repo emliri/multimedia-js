@@ -1,7 +1,7 @@
 import { Flow, FlowCompletionResultCode, FlowConfigFlag } from '../core/flow';
 import { VoidCallback } from '../common-types';
 import { XhrSocket } from '../io-sockets/xhr.socket';
-import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-factory';
+import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/processor-factory';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { OutputSocket, SocketEvent, InputSocket, Socket } from '../core/socket';
@@ -10,9 +10,6 @@ import { getLogger, LoggerLevel } from '../logger';
 import { PayloadDescriptor } from '../core/payload-description';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { PacketSymbol } from '../core/packet';
-import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
-import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
-import { EnvironmentVars } from '../core/env';
 import { AacTranscodeFlow } from './aac-transcode.flow';
 
 const { debug, log } = getLogger('ConcatMp4sFlow', LoggerLevel.ON, true);
@@ -72,7 +69,7 @@ export class ConcatMp4sFlow extends Flow {
 
     const mp4DemuxA = newProcessorWorkerShell(MP4DemuxProcessor);
     const mp4DemuxB = newProcessorWorkerShell(MP4DemuxProcessor);
-    const mp4Muxer = newProcessorWorkerShell(MP4MuxProcessor);
+    const mp4Muxer = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor));
 
     this.addProc(mp4DemuxA)
       .addProc(mp4DemuxB)

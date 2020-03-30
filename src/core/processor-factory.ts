@@ -76,6 +76,6 @@ export function checkProcessorType (procType: any) {
 
 // TODO: remove need to use this by enabling `configure` method
 //
-export function unsafeProcessorType (procType: any) {
+export function unsafeCastProcessorType (procType: any) {
   return <typeof Processor> procType;
 }

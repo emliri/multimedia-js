@@ -9,7 +9,7 @@ import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { getLogger, LoggerLevel } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
 import { VoidCallback } from '../common-types';
-import { newProcessorWorkerShell } from '../core/processor-factory';
+import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/processor-factory';
 
 const { log } = getLogger('ChunkToMediaSourceFlow', LoggerLevel.ON, true);
 
@@ -39,7 +39,7 @@ export class ChunkToMediaSourceFlow extends Flow {
     const mp4DemuxProc = newProcessorWorkerShell(MP4DemuxProcessor);
     const tsDemuxProc = newProcessorWorkerShell(MPEGTSDemuxProcessor);
     const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
-    const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
+    const mp4MuxProc = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor));
 
     const xhrSocket = this._xhrSocket = new XhrSocket(this._url);
 

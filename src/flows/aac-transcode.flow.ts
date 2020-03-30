@@ -2,7 +2,7 @@ import { Flow } from '../core/flow';
 import { VoidCallback } from '../common-types';
 import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
 import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
-import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-factory';
+import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/processor-factory';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { EnvironmentVars } from '../..';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
@@ -33,9 +33,9 @@ export class AacTranscodeFlow extends Flow {
     };
 
     const aacTranscoderMp4Demux = newProcessorWorkerShell(MP4DemuxProcessor);
-    const aacTranscoderMp4Mux = newProcessorWorkerShell(MP4MuxProcessor);
+    const aacTranscoderMp4Mux = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor));
     const aacTranscoder = newProcessorWorkerShell(
-      unsafeProcessorType(FFmpegConvertProcessor),
+      unsafeCastProcessorType(FFmpegConvertProcessor),
       [audioConfigOut, null],
       [EnvironmentVars.FFMPEG_BIN_PATH]
     );
@@ -45,7 +45,7 @@ export class AacTranscodeFlow extends Flow {
     let aacRetranscode = null;
     if (this._forceReencode) {
       aacRetranscode = newProcessorWorkerShell(
-        unsafeProcessorType(FFmpegConvertProcessor),
+        unsafeCastProcessorType(FFmpegConvertProcessor),
         [audioConfigRetranscode, null],
         [EnvironmentVars.FFMPEG_BIN_PATH]
       );

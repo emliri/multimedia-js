@@ -1,13 +1,13 @@
 
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { MPEGTSDemuxProcessor } from '../processors/mpeg-ts-demux.processor';
-import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
+import { MP4MuxProcessor, MP4MuxProcessorOptions } from '../processors/mp4-mux-mozilla.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
 
 import { MediaSourceInputSocket } from '../io-sockets/mse-input.socket';
 import { HlsOutputSocket } from '../io-sockets/hls/hls-output-socket';
 
-import { newProcessorWorkerShell } from '../core/processor-factory';
+import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/processor-factory';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { Flow, FlowConfigFlag } from '../core/flow';
 import { PayloadCodec } from '../core/payload-description';
@@ -48,7 +48,7 @@ export class HlsToMediaSourceFlow extends Flow {
   protected onWaitingToFlowing_ (done: VoidCallback) {
     this._hlsOutSocket.load(this._m3u8Url);
     this._hlsOutSocket.whenReady().then(() => {
-      this._mediaSource.duration = 10;
+      this._mediaSource.duration = 60;
       this._hlsOutSocket.seek(0, 10);
     });
     done();
@@ -64,7 +64,10 @@ export class HlsToMediaSourceFlow extends Flow {
     const mp4DemuxProc = newProcessorWorkerShell(MP4DemuxProcessor);
     const tsDemuxProc = newProcessorWorkerShell(MPEGTSDemuxProcessor);
     const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
-    const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
+    const mp4MuxOptions: Partial<MP4MuxProcessorOptions> = {
+      fragmentedMode: true
+    }
+    const mp4MuxProc = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor), [mp4MuxOptions]);
 
     const outSocket = this._hlsOutSocket = new HlsOutputSocket();
 
@@ -125,7 +128,7 @@ export class HlsToMediaSourceFlow extends Flow {
     }
 
     mp4MuxProc.out[0].connect(inSocket);
-    this.connectWithAllExternalSockets(mp4MuxProc.out[0]);
+    //this.connectWithAllExternalSockets(mp4MuxProc.out[0]);
 
     done();
   }
