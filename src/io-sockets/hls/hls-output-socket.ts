@@ -1,10 +1,11 @@
-import { SeekableOutputSocket, SocketDescriptor, OutputSocket, URLLoadingOutputSocket } from "../../core/socket";
+import { HlsLoader } from "../../ext-mod/emliri-es-libs/:rialto/lib/hls-loader";
+import { MediaSegment } from "../../ext-mod/emliri-es-libs/:rialto/lib/media-segment";
+import { TimeInterval } from "../../ext-mod/emliri-es-libs/:rialto/lib/time-intervals";
 
-import { HlsLoader } from "../../../../:rialto/lib/hls-loader";
-import { MediaSegment } from "../../../../:rialto/lib/media-segment";
-import { getLogger, LoggerLevel } from "../../logger";
-import { TimeInterval } from "../../../../:rialto/lib/time-intervals";
+import { SeekableOutputSocket, SocketDescriptor, OutputSocket, URLLoadingOutputSocket } from "../../core/socket";
 import { Packet, PacketSymbol } from "../../core/packet";
+
+import { getLogger, LoggerLevel } from "../../logger";
 
 const { log } = getLogger('HlsToMediaSourceFlow', LoggerLevel.ON, true);
 
