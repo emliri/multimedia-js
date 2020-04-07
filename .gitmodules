@@ -10,3 +10,6 @@
 [submodule "src/ext-mod/codem-isoboxer"]
 	path = src/ext-mod/codem-isoboxer
 	url = https://github.com/madebyhiro/codem-isoboxer.git
+[submodule "src/ext-mod/emliri-es-libs"]
+	path = src/ext-mod/emliri-es-libs
+	url = git@github.com:tchakabam/emliri-es-libs.git
