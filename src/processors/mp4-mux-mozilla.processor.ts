@@ -103,7 +103,7 @@ export class MP4MuxProcessor extends Processor {
   private videoTrackIndex_: number;
   private audioTrackIndex_: number;
 
-  constructor (options?: MP4MuxProcessorOptions) {
+  constructor (options?: Partial<MP4MuxProcessorOptions>) {
     super();
 
     if (options) {

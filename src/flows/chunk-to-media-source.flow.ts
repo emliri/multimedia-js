@@ -86,7 +86,7 @@ export class ChunkToMediaSourceFlow extends Flow {
       }
     };
 
-    this.addProc(mp4DemuxProc, mp4MuxProc, tsDemuxProc, mp4MuxProc);
+    this.addProc(mp4DemuxProc, tsDemuxProc, mp4MuxProc);
 
     tsDemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
     mp4DemuxProc.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, onDemuxOutputCreated);
