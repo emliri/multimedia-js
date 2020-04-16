@@ -33,11 +33,12 @@
   "author": "Stephan Hesse <tchakabam@gmail.com>",
   "license": "LGPL",
   "devDependencies": {
-    "chai": "^3.3.0",
-    "mocha": "^2.3.3",
-    "should": "^7.1.0",
-    "webpack": "^1.12.2",
-    "webpack-dev-server": "^1.12.1"
+    "chai": "3.3.0",
+    "mocha": "2.3.3",
+    "mocha-loader": "^1.0.0",
+    "should": "7.1.0",
+    "webpack": "1.12.2",
+    "webpack-dev-server": "1.12.1"
   },
   "dependencies": {
     "av": "^0.4.4",

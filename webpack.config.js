@@ -33,11 +33,11 @@ function configure(libraryTarget) {
 
 //configure('var');
 //configure('this');
-configure('commonjs2');
+//configure('commonjs2');
 
 //configure('commonjs')
 //configure('amd')
-//configure('umd');
+configure('umd');
 
 /*
 config.push({
