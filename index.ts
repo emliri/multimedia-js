@@ -14,19 +14,17 @@ Lesser General Public License for more details.
 
 */
 
-export { LambdaProcessor } from './src/processors/lambda.processor';
-
 export * as Utils from './src/common-utils';
 export * as Crypto from './src/common-crypto';
 
-export { Processor, ProcessorEvent } from './src/core/processor';
+export { Processor, ProcessorEvent, ProcessorEventData } from './src/core/processor';
 export { InputSocket, Socket, OutputSocket, SocketDescriptor, SocketEvent } from './src/core/socket';
 export { Packet } from './src/core/packet';
 export { BufferSlice } from './src/core/buffer';
 export { BufferProperties } from './src/core/buffer-props';
-export { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails } from './src/core/payload-description';
+export { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails, PayloadCodec } from './src/core/payload-description';
 export { Signal } from './src/core/signal';
-export { Flow, FlowErrorType, FlowEvent, FlowState } from './src/core/flow';
+export { Flow, FlowErrorType, FlowEvent, FlowState, FlowConfigFlag } from './src/core/flow';
 
 export { ErrorCode, ErrorCodeSpace, getErrorNameByCode } from './src/core/error';
 

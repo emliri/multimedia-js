@@ -42,28 +42,6 @@ const path = require('path')
   )
 }
 
-
-// Task worker
-/*
-{
-  const entrySrc = './src/core/processor-task.worker.ts'
-  const libName = 'MMProcessorTaskWorker'
-  const buildPath = 'dist'
-  const libraryTarget = 'umd'
-  const debug = true
-
-  configs.push(
-    createWebpackConfig({
-      debug,
-      entrySrc,
-      libName,
-      libraryTarget,
-      buildPath
-    })
-  )
-}
-*/
-
 // Processor-proxy worker
 {
   const entrySrc = './src/core/processor-proxy.worker.ts'
@@ -139,6 +117,28 @@ const path = require('path')
     })
   )
 }
+
+// Task worker
+/*
+{
+  const entrySrc = './src/core/processor-task.worker.ts'
+  const libName = 'MMProcessorTaskWorker'
+  const buildPath = 'dist'
+  const libraryTarget = 'umd'
+  const debug = true
+
+  configs.push(
+    createWebpackConfig({
+      debug,
+      entrySrc,
+      libName,
+      libraryTarget,
+      buildPath
+    })
+  )
+}
+*/
+
 
 export default configs
 

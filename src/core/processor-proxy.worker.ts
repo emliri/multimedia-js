@@ -11,8 +11,9 @@ import { Packet } from './packet';
 import { makeUUID_v1 } from '../common-crypto';
 import { getLogger, LoggerLevel } from '../logger';
 
-import { cloneErrorInfo, ErrorCodeSpace, ErrorCode } from './error';
+import { cloneErrorInfo, ErrorCode } from './error';
 import { getProcessors } from './processor-factory';
+
 // FIXME: import this importScripts so that logger categories can apply to self config
 // AND collect the config from localStorage at worker init (on SPAWN message)
 
