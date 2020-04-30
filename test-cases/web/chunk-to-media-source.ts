@@ -1,7 +1,8 @@
-import * as Multimedia from '../../index';
+
 import { MmjsTestCase } from '../mmjs-test-case';
 import { Flow, FlowState, FlowCompletionResult } from '../../src/core/flow';
 import { getLogger } from '../../src/logger';
+import { ChunkToMediaSourceFlow } from '../../src/flows';
 
 const URLs = [
   '/test-data/3303963094001_5147667971001_5147609827001-1.ts',
@@ -29,7 +30,7 @@ export class ChunkToMediaSource extends MmjsTestCase {
     this._mediaSource = new MediaSource();
 
     this._flow =
-      new Multimedia.Flows.ChunkToMediaSourceFlow(
+      new ChunkToMediaSourceFlow(
         URLs[1]
       );
 

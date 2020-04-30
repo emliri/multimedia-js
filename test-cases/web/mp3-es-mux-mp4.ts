@@ -1,8 +1,7 @@
 import { MmjsTestCase } from "../mmjs-test-case";
 import { VoidCallback } from "../../src/common-types";
 import { Flow, FlowState, FlowCompletionResult } from "../../src/core/flow";
-
-import * as Multimedia from '../../index';
+import { ElementaryStreamToMp4 } from "../../src/flows";
 
 const URLs = [
   '/test-data/mp3/shalafon.mp3',
@@ -27,7 +26,7 @@ export class Mp3EsMuxMp4 extends MmjsTestCase {
     this.getDomMountPoint().appendChild(video);
 
     this._flow =
-      new Multimedia.Flows.ElementaryStreamToMp4(
+      new ElementaryStreamToMp4(
         URLs[1]
       );
 

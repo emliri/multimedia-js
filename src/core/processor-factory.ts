@@ -1,8 +1,9 @@
 import { Processor } from './processor';
-import { Processors } from '../../index';
 import { ProcessorProxy } from './processor-proxy';
 import { VoidCallback } from '../common-types';
 import { noop } from '../common-utils';
+
+import * as Procs from '../processors/index';
 
 /*
 export abstract class FactorizableProcessor extends Processor {
@@ -31,6 +32,15 @@ export interface FactorizableProcessorImpl extends FactorizableProcessor {
 
 }
 */
+
+let Processors: {[factoryName: string]: typeof Processor} = Procs as unknown as {[factoryName: string]: typeof Processor};
+export function setProcessors(ProcessorsLib: {[factoryName: string]: typeof Processor} ) {
+  Processors = ProcessorsLib;
+}
+
+export function getProcessors() {
+  return Processors;
+}
 
 export function getProcessorConstructorByName (factoryName: string): typeof Processor {
   return Processors[factoryName];

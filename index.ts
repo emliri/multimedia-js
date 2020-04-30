@@ -14,112 +14,23 @@ Lesser General Public License for more details.
 
 */
 
-import { LambdaProcessor } from './src/processors/lambda.processor';
+export { LambdaProcessor } from './src/processors/lambda.processor';
 
-import { MP3ParseProcessor } from './src/processors/mp3-parse.processor';
-import { H264ParseProcessor } from './src/processors/h264-parse.processor';
-import { AACParseProcessor } from './src/processors/aac-parse.processor';
-import { FFmpegConvertProcessor } from './src/processors/ffmpeg-convert.processor';
+export * as Utils from './src/common-utils';
+export * as Crypto from './src/common-crypto';
 
-import { MP4MuxProcessor } from './src/processors/mp4-mux-mozilla.processor';
-import { MP4DemuxProcessor } from './src/processors/mp4-demux.processor';
-import { MPEGTSDemuxProcessor } from './src/processors/mpeg-ts-demux.processor';
+export { Processor, ProcessorEvent } from './src/core/processor';
+export { InputSocket, Socket, OutputSocket, SocketDescriptor, SocketEvent } from './src/core/socket';
+export { Packet } from './src/core/packet';
+export { BufferSlice } from './src/core/buffer';
+export { BufferProperties } from './src/core/buffer-props';
+export { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails } from './src/core/payload-description';
+export { Signal } from './src/core/signal';
+export { Flow, FlowErrorType, FlowEvent, FlowState } from './src/core/flow';
 
-import { BroadwayProcessor } from './src/processors/broadway.processor';
-
-import { ChunkToMediaSourceFlow } from './src/flows/chunk-to-media-source.flow';
-import { CombineMp4sToMovFlow } from './src/flows/combine-mp4s-to-mov.flow';
-import { ConcatMp4sFlow } from './src/flows/concat-mp4s.flow';
-import { AacTranscodeFlow } from './src/flows/aac-transcode.flow';
-import { HlsToMediaSourceFlow } from './src/flows/hls-to-mse.flow';
-import { ElementaryStreamToMp4 } from './src/flows/es-to-mp4.flow';
-
-import * as Utils from './src/common-utils';
-import * as Crypto from './src/common-crypto';
-
-import { XhrSocket } from './src/io-sockets/xhr.socket';
-import { HlsOutputSocket } from './src/io-sockets/hls/hls-output-socket';
-
-// TODO: use node-externals in webpack config
-import { NodeFsWriteSocket } from './src/io-sockets/node-fs-write.socket';
-import { NodeFsReadSocket } from './src/io-sockets/node-fs-read.socket';
-
-import { Processor, ProcessorEvent } from './src/core/processor';
-import { InputSocket, Socket, OutputSocket, SocketDescriptor, SocketEvent } from './src/core/socket';
-import { Packet } from './src/core/packet';
-import { BufferSlice } from './src/core/buffer';
-import { BufferProperties } from './src/core/buffer-props';
-import { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails } from './src/core/payload-description';
-import { Signal } from './src/core/signal';
-import { Flow, FlowErrorType, FlowEvent, FlowState } from './src/core/flow';
-
-import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
-import { MediaSourceInputSocket } from './src/io-sockets/mse-input.socket';
-import { WebFileDownloadSocket } from './src/io-sockets/web-file-download.socket';
-import { ErrorCode, ErrorCodeSpace, getErrorNameByCode } from './src/core/error';
-
-export const Common = {
-  Utils,
-  Crypto,
-  MimeTypes: CommonMimeTypes,
-  MimetypePrefix
-};
+export { ErrorCode, ErrorCodeSpace, getErrorNameByCode } from './src/core/error';
 
 export {VoidCallback} from "./src/common-types"
-
-export const Core = {
-  Processor,
-  ProcessorEvent,
-  Socket,
-  SocketEvent,
-  SocketDescriptor,
-  InputSocket,
-  OutputSocket,
-  Packet,
-  BufferSlice,
-  BufferProperties,
-  PayloadDescriptor,
-  PayloadDetails,
-  Signal,
-  Flow,
-  FlowErrorType,
-  FlowEvent,
-  FlowState,
-  ErrorCode,
-  ErrorCodeSpace,
-  getErrorNameByCode
-};
-
-export const Processors = {
-  AACParseProcessor,
-  H264ParseProcessor,
-  MP3ParseProcessor,
-  MP4MuxProcessor,
-  MP4DemuxProcessor,
-  MPEGTSDemuxProcessor,
-  BroadwayProcessor,
-  LambdaProcessor,
-  FFmpegConvertProcessor
-};
-
-export const IoSockets = {
-  XhrSocket,
-  WebFileChooserSocket,
-  WebFileDownloadSocket,
-  MediaSourceInputSocket,
-  HlsOutputSocket
-  // NodeFsReadSocket,
-  // NodeFsWriteSocket
-};
-
-export const Flows = {
-  AacTranscodeFlow,
-  ChunkToMediaSourceFlow,
-  ConcatMp4sFlow,
-  CombineMp4sToMovFlow,
-  HlsToMediaSourceFlow,
-  ElementaryStreamToMp4
-};
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 

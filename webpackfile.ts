@@ -4,10 +4,10 @@ const configs = []
 
 const path = require('path')
 
-// Main Library
+// Core Library
 {
   const entrySrc = './index.ts'
-  const libName = 'mmjs'
+  const libName = 'mmjs-core'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true
@@ -23,7 +23,28 @@ const path = require('path')
   )
 }
 
+// Procs Library
+{
+  const entrySrc = './src/processors/index.ts'
+  const libName = 'mmjs-procs'
+  const buildPath = 'dist'
+  const libraryTarget = 'umd'
+  const debug = true
+
+  configs.push(
+    createWebpackConfig({
+      debug,
+      entrySrc,
+      libName,
+      libraryTarget,
+      buildPath
+    })
+  )
+}
+
+
 // Task worker
+/*
 {
   const entrySrc = './src/core/processor-task.worker.ts'
   const libName = 'MMProcessorTaskWorker'
@@ -41,11 +62,50 @@ const path = require('path')
     })
   )
 }
+*/
 
 // Processor-proxy worker
 {
   const entrySrc = './src/core/processor-proxy.worker.ts'
-  const libName = 'MMProcessorProxyWorker'
+  const libName = 'mmjs-procs-worker'
+  const buildPath = 'dist'
+  const libraryTarget = 'umd'
+  const debug = true
+
+  configs.push(
+    createWebpackConfig({
+      debug,
+      entrySrc,
+      libName,
+      libraryTarget,
+      buildPath
+    })
+  )
+}
+
+// Flows Library
+{
+  const entrySrc = './src/flows/index.ts'
+  const libName = 'mmjs-flows'
+  const buildPath = 'dist'
+  const libraryTarget = 'umd'
+  const debug = true
+
+  configs.push(
+    createWebpackConfig({
+      debug,
+      entrySrc,
+      libName,
+      libraryTarget,
+      buildPath
+    })
+  )
+}
+
+// I/O-Sockets Library
+{
+  const entrySrc = './src/io-sockets/index.ts'
+  const libName = 'mmjs-io-sockets'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true
@@ -64,7 +124,7 @@ const path = require('path')
 // TestCasesWeb
 {
   const entrySrc = './test-cases/web/index.ts'
-  const libName = 'MMTestCasesWeb'
+  const libName = 'mmjs-test-cases'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true

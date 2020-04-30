@@ -4,8 +4,9 @@
   "description": "Multimedia streaming framework for browser and node",
   "main": "index.ts",
   "scripts": {
-    "build": "ts-node ./node_modules/.bin/webpack --progress && npm run build-decls && mv dist/index.d.ts dist/mmjs.d.ts",
+    "build": "ts-node ./node_modules/.bin/webpack --progress && npm run build-decls \n npm run build-decls-post",
     "build-decls": "tsc --declaration --emitDeclarationOnly --outDir dist/",
+    "build-decls-post": "mv dist/index.d.ts dist/mmjs-core.umd.d.ts && cp dist/src/processors/index.d.ts dist/mmjs-procs.umd.d.ts && cp dist/src/io-sockets/index.d.ts dist/mmjs-iosockets.umd.d.ts && cp dist/src/flows/index.d.ts dist/mmjs-flows.umd.d.ts",
     "build:watch": "npm run build -- --watch",
     "lint": "eslint index.ts src test-cases --ext .ts --ext .js",
     "lint-fix": "npm run lint -- --fix",

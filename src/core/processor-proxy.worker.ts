@@ -11,8 +11,8 @@ import { Packet } from './packet';
 import { makeUUID_v1 } from '../common-crypto';
 import { getLogger, LoggerLevel } from '../logger';
 
-import { Processors } from '../../index';
 import { cloneErrorInfo, ErrorCodeSpace, ErrorCode } from './error';
+import { getProcessors } from './processor-factory';
 // FIXME: import this importScripts so that logger categories can apply to self config
 // AND collect the config from localStorage at worker init (on SPAWN message)
 
@@ -20,6 +20,8 @@ import { cloneErrorInfo, ErrorCodeSpace, ErrorCode } from './error';
  * https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/importScripts
  */
 declare var importScripts: (...paths: string[]) => void;
+
+const Processors = getProcessors()
 
 const workerId = makeUUID_v1();
 const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.WARN);
@@ -122,7 +124,8 @@ log('setting new worker instance up ...');
     subContext.name = procName;
     // we have no idea what can happen here ...
     try {
-      subContext.processor = new Processors[procName](...data.args);
+      const ProcessorConstructor = Processors[procName] as unknown as (...args: any[]) => void;
+      subContext.processor = new ProcessorConstructor(...data.args);
     } catch (err) {
       console.error('Failure calling processor-constructor; caused error:', err);
       error('Failure calling processor-constructor; caused error:', err);

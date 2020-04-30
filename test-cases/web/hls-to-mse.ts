@@ -1,8 +1,7 @@
 import { MmjsTestCase } from "../mmjs-test-case";
 import { VoidCallback } from "../../src/common-types";
 import { Flow, FlowState } from "../../src/core/flow";
-
-import * as Multimedia from '../../index';
+import { HlsToMediaSourceFlow } from "../../src/flows";
 
 const URLs = [
   'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
@@ -26,7 +25,7 @@ export class HlsToMse extends MmjsTestCase {
     this.getDomMountPoint().appendChild(video);
 
     this._flow =
-      new Multimedia.Flows.HlsToMediaSourceFlow(
+      new HlsToMediaSourceFlow(
         URLs[0],
         video
       );

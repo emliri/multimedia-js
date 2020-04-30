@@ -72,11 +72,12 @@
 
 # Build
 
+- Compile worker-lib without procs-index
+
 - Analyze package size
 
 - Rename src to lib
 
-- Seperate compile of procs and core
 
 
 

@@ -19,7 +19,7 @@ clean:
 
 # TARGET FILES
 
-dist: $(SRC_FILES) package-lock.json.alias
+dist: index.ts $(SRC_FILES) package-lock.json.alias tsconfig.json
 	rm -Rf dist
 	npm run build
 
