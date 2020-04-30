@@ -213,6 +213,9 @@ Development on MS Windows is not supported at the moment, but you may try by ins
 
 First build? You don't need to care about installing dependencies! Our build system does it for you.
 
+IMPORTANT: You only need to setup Git submodules initially: `git submodule update --init`
+
+Then, just run:
 ```
 make
 ```
