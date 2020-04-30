@@ -1,4 +1,4 @@
-import { Flow, FlowCompletionResultCode, FlowConfigFlag } from '../core/flow';
+import { Flow, FlowConfigFlag } from '../core/flow';
 import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { H264ParseProcessor } from '../processors/h264-parse.processor';
@@ -6,7 +6,7 @@ import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { OutputSocket } from '../core/socket';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
-import { newProcessorWorkerShell, unsafeProcessorType } from '../core/processor-factory';
+import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/processor-factory';
 import { getLogger } from '../logger';
 import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
 import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
@@ -57,7 +57,7 @@ export class CombineMp4sToMovFlow extends Flow {
       log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
 
       ffmpegAacTranscodeProc = newProcessorWorkerShell(
-        unsafeProcessorType(FFmpegConvertProcessor),
+        unsafeCastProcessorType(FFmpegConvertProcessor),
         [audioConfig, null],
         [EnvironmentVars.FFMPEG_BIN_PATH]
       );
@@ -67,7 +67,7 @@ export class CombineMp4sToMovFlow extends Flow {
     const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
     const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
 
-    const mp4MuxProc = newProcessorWorkerShell(MP4MuxProcessor);
+    const mp4MuxProc = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor));
 
     this.addProc(mp4DemuxProcVideo, h264ParseProc, mp3ParseProc, mp4MuxProc);
 

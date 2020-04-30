@@ -6,7 +6,7 @@ import { getLogger, LoggerLevel } from '../logger';
 
 const { log, warn, error } = getLogger('XhrSocket', LoggerLevel.DEBUG);
 
-export class XhrSocket extends SeekableOutputSocket {
+export class XhrSocket extends OutputSocket implements SeekableOutputSocket {
   private _xhr: XHR = null;
 
   constructor (url: string) {

@@ -21,7 +21,7 @@ export type ReadableFileStreamOptions = {
   highWaterMark?: number
 };
 
-export class NodeFsReadSocket extends SeekableOutputSocket {
+export class NodeFsReadSocket extends OutputSocket implements SeekableOutputSocket  {
   /**
    * @see https://nodejs.org/api/stream.html#stream_class_stream_readable
    */

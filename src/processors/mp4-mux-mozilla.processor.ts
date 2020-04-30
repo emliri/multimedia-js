@@ -23,7 +23,12 @@ import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
+
+const OUTPUT_FRAGMENTED_MODE = false;
+const EMBED_CODEC_DATA_ON_KEYFRAME = true;
+const FORCE_MP3 = false; // FIXME: get rid of FORCE_MP3 flag
+const DEBUG_H264 = false;
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
@@ -61,10 +66,14 @@ export enum MP4MuxProcessorSupportedCodecs {
   VP6 = 'vp6f'
 }
 
-// FIXME: get rid of FORCE_MP3 flag
-const FORCE_MP3 = false;
+export type MP4MuxProcessorOptions = {
+  fragmentedMode: boolean,
+  embedCodecDataOnKeyFrames: boolean,
+  forceMp3: boolean
+}
 
 export class MP4MuxProcessor extends Processor {
+
   static getName (): string {
     return 'MP4MuxProcessor';
   }
@@ -82,15 +91,24 @@ export class MP4MuxProcessor extends Processor {
   private audioBitstreamHeader_: BufferSlice = null;
   private videoBitstreamHeader_: BufferSlice = null;
 
-  private embedCodecDataOnKeyframes_: boolean = true;
+  private options_: MP4MuxProcessorOptions = {
+    fragmentedMode: OUTPUT_FRAGMENTED_MODE,
+    embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
+    forceMp3: FORCE_MP3
+  }
 
-  private socketToTrackIndexMap_: {[i: number]: number} = {};
+  private socketToTrackIndexHash_: {[i: number]: number} = {};
+
   // this simpler approach will restrict us to have only one audio and one video track for now
   private videoTrackIndex_: number;
   private audioTrackIndex_: number;
 
-  constructor () {
+  constructor (options?: Partial<MP4MuxProcessorOptions>) {
     super();
+
+    if (options) {
+      this.options_ = Object.assign(this.options_, options);
+    }
 
     this.createOutput();
 
@@ -115,17 +133,17 @@ export class MP4MuxProcessor extends Processor {
     if (p.defaultPayloadInfo.isAudio()) {
       this.audioPacketQueue_.push(p);
 
-      if (this.mp4Metadata_.tracks[this.socketToTrackIndexMap_[inputIndex]]) {
+      if (this.mp4Metadata_.tracks[this.socketToTrackIndexHash_[inputIndex]]) {
         return true;
       }
 
       this.audioTrackIndex_ =
-        this.socketToTrackIndexMap_[inputIndex] =
+        this.socketToTrackIndexHash_[inputIndex] =
           this.mp4Metadata_.tracks.length;
 
       this._addAudioTrack(
         // FIXME: get rid of FORCE_MP3 flag
-        FORCE_MP3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
+        this.options_.forceMp3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
         p.defaultPayloadInfo.getSamplingRate(),
         p.defaultPayloadInfo.sampleDepth,
         p.defaultPayloadInfo.details.numChannels,
@@ -133,15 +151,17 @@ export class MP4MuxProcessor extends Processor {
       );
 
       return true;
+
     } else if (p.defaultPayloadInfo.isVideo()) {
+
       this.videoPacketQueue_.push(p);
 
-      if (this.mp4Metadata_.tracks[this.socketToTrackIndexMap_[inputIndex]]) {
+      if (this.mp4Metadata_.tracks[this.socketToTrackIndexHash_[inputIndex]]) {
         return true;
       }
 
       this.videoTrackIndex_ =
-        this.socketToTrackIndexMap_[inputIndex] =
+        this.socketToTrackIndexHash_[inputIndex] =
           this.mp4Metadata_.tracks.length;
 
       this._addVideoTrack(
@@ -187,19 +207,30 @@ export class MP4MuxProcessor extends Processor {
     const timescale = videoTrackMetadata.timescale;
 
     p.forEachBufferSlice((bufferSlice) => {
+
       const mp4Muxer = this.mp4Muxer_;
 
       if (bufferSlice.props.isBitstreamHeader) {
-        log('got video bitstream header at:', p.toString());
+
+        if (this.videoBitstreamHeader_ && this.options_.fragmentedMode) {
+          warn('dropping video codec info as in frag-mode and already got first one');
+          return;
+        }
+
+        log('got new video bitstream header at:', p.toString());
         this.videoBitstreamHeader_ = bufferSlice;
       } else {
-        // debug('video packet:', p.toString());
+        debug('video packet:', p.toString());
+        if (DEBUG_H264) {
+          log('processing AVC AU:');
+          debugAccessUnit(bufferSlice);
+        }
       }
 
       if (bufferSlice.props.isKeyframe) {
         log('got keyframe at:', p.toString());
 
-        if (this.embedCodecDataOnKeyframes_) {
+        if (this.options_.embedCodecDataOnKeyFrames) {
           if (!this.videoBitstreamHeader_) {
             throw new Error('not video bitstream header found to embed');
           }
@@ -220,6 +251,7 @@ export class MP4MuxProcessor extends Processor {
           const auDelimiterNalu = makeNALUFromH264RbspData(
             BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
 
+          /*
           const endOfSeq = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 10, 3)
           const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
           */
@@ -231,13 +263,16 @@ export class MP4MuxProcessor extends Processor {
             const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
 
             const codecInitAu: BufferSlice =
-            makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
+              makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
 
-            debugAccessUnit(codecInitAu);
+            log('created codec-init AU data to insert in-stream')
+
+            //DEBUG_H264 && debugAccessUnit(codecInitAu, false);
 
             bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
-          }
 
+            DEBUG_H264 && debugAccessUnit(bufferSlice, false);
+          }
 
         }
       }
@@ -248,11 +283,11 @@ export class MP4MuxProcessor extends Processor {
         MP4MuxPacketType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
         data,
-        p.getScaledDts(timescale),
+        p.timestamp, // TODO: replace by using input timescale when equal?
         true, // NOTE: Non-raw mode expects FLV-packaged data
         bufferSlice.props.isBitstreamHeader, // NOTE: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header
         bufferSlice.props.isKeyframe,
-        p.getScaledCto(timescale)
+        p.getScaledCto(timescale) // TODO: replace by using input timescale when equal?
       );
 
       if (!this.keyFramePushed_ &&
@@ -288,7 +323,7 @@ export class MP4MuxProcessor extends Processor {
       mp4Muxer.pushPacket(
         MP4MuxPacketType.AUDIO_PACKET,
         // FIXME: get rid of FORCE_MP3 flag
-        FORCE_MP3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
+        this.options_.forceMp3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
         data,
         p.getScaledDts(timescale),
         true, // NOTE: Non-raw mode expects FLV-packaged data
@@ -321,7 +356,7 @@ export class MP4MuxProcessor extends Processor {
   private _initMuxer () {
     log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_);
 
-    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, false);
+    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, this.options_.fragmentedMode);
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
@@ -412,7 +447,8 @@ export class MP4MuxProcessor extends Processor {
       language: 'und'
     };
 
-    log('creating video track:', videoCodec, 'duration:', videoTrack.duration / timescale, 'secs');
+    log('creating video track:', videoCodec, 'duration:', videoTrack.duration / timescale, 'secs',
+      ', sequence timescale:', timescale, 'fps:', framerate);
 
     this.mp4Metadata_.videoTrackId = this._getNextTrackId();
     this.mp4Metadata_.tracks.push(videoTrack);
@@ -426,17 +462,13 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private onMp4MuxerData_ (data: Uint8Array) {
-    // FIXME: put "real" precise codec strings
-    const p: Packet = Packet.fromArrayBuffer(data.buffer, 'video/mp4; codecs="avc1.64001f,mp4a.40.2"');
-
+    const p: Packet = Packet.fromArrayBuffer(data.buffer, `video/mp4; codecs="${this.lastCodecInfo_.join()}"`);
     log('transferring new mp4 data:', p);
-
     this.out[0].transfer(p);
   }
 
   private onMp4MuxerCodecInfo_ (codecInfo: string[]) {
     log('got new codec info:', codecInfo);
-
     this.lastCodecInfo_ = codecInfo;
   }
 }

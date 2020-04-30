@@ -12,6 +12,8 @@ import { makeEsdsAtomFromMpegAudioSpecificConfigInfoData } from '../aac/mp4a-aud
 
 const { debug, log } = getLogger('TSDemuxerW', LoggerLevel.ON, true);
 
+const MPEG_TS_TIMESCALE_HZ = 90000;
+
 /**
  * Type definitions for the weakly typed API of the TSDemuxer module we use
  */
@@ -43,7 +45,7 @@ export type MpegTsDemuxerAudioTrackElementaryStream = {
   // dropped: boolean
   // duration: number
   id: number
-  inputTimeScale: number
+  inputTimeScale: number // @deprecated
   isAAC: boolean
   // len: number
   // pesData: Uint8Array
@@ -61,7 +63,7 @@ export type MpegTsDemuxerVideoTrackElementaryStream = {
   // dropped: boolean
   // duration: number
   id: number
-  inputTimeScale: number
+  inputTimeScale: number // @deprecated
   isAAC: false
   len: number
   // naluState: 0
@@ -148,7 +150,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
       const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.pts - sample.dts); // HACK !!!
 
-      packet.setTimescale(90000)
+      packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
 
       outputPacketList.push(packet);
     });
@@ -157,10 +159,20 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
     const sampleDepth = 8; // TODO: parse SPS i.e move to h264-parse-proc
     const sampleDurationNum = 1;
-    const sampleRate = Math.round(1 / ((avcSamples[1].pts - avcSamples[0].pts) / avcTrackEsInfo.inputTimeScale));
-    const sampleDuration =
 
-    log('estimated video FPS:', sampleRate)
+    // NOTE: we need to use DTS here because PTS is unordered so
+    // using two consecutive packets results in an arbitrary time-delta
+    // whereas he we have to assume however that packet DTS frequency (DTS-deltas between successive packets)
+    // is exactly equal to the framerate. This should be the case always, but must not, because
+    // in principle the deltas may vary around the framerate (average on the receiver/decoder buffer/queue size they have to keep the
+    // framerate otherwise the sequence could not be decoded in real-time).
+    // FIXME: Thus the calculation could be wrong here in certain cases.
+    // NOTE: In principle, DTS could even also be anything that preserves decoding order unrelated to the PTS timeplane!
+    const sampleRate = Math.round(1 / ((avcSamples[1].dts - avcSamples[0].dts) / MPEG_TS_TIMESCALE_HZ));
+
+    log('estimated video FPS:', sampleRate);
+
+    let videoDtsOffset: number = null;
 
     avcSamples.forEach((accessUnit, auIndex) => {
 
@@ -187,7 +199,7 @@ export function runMpegTsDemux (p: Packet): Packet[] {
         bufferSlice.props.details.samplesPerFrame = 1;
         bufferSlice.props.details.codecProfile = null; // FIXME (parse from PPS / move to h264-parse)
 
-        bufferSlice.props.details.sequenceDurationInSeconds = 10;
+        bufferSlice.props.details.sequenceDurationInSeconds = 10; // HACK !!!
 
         // TODO: move this to H264 parse proc
         if (nalUnit.type === NALU.IDR) {
@@ -206,11 +218,26 @@ export function runMpegTsDemux (p: Packet): Packet[] {
 
         bufferSlice.props.tags.add('nalu');
 
-        // debugNALU(bufferSlice)
+        log("Creating packet for AVC NALU data");
+        debugNALU(bufferSlice)
 
-        const packet = Packet.fromSlice(bufferSlice, accessUnit.dts - 900000, accessUnit.pts- accessUnit.dts); // HACK !!!
+        if (videoDtsOffset === null) {
+          videoDtsOffset = accessUnit.dts;
+        }
 
-        packet.setTimescale(avcTrackEsInfo.inputTimeScale)
+        const packet = Packet.fromSlice(
+          bufferSlice,
+          accessUnit.dts - videoDtsOffset,
+          accessUnit.pts - accessUnit.dts
+          );
+
+        packet.setTimestampOffset(videoDtsOffset);
+
+        packet.setTimescale(MPEG_TS_TIMESCALE_HZ
+          // avcTrackEsInfo.inputTimeScale // TODO: remove 'inputTimeScale' from resulting object
+        )
+
+        debug('created packet:', packet.toString());
 
         outputPacketList.push(packet);
       });

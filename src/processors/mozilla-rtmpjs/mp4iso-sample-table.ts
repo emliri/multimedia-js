@@ -12,9 +12,9 @@ import { SampleTableBox,
   SampleToChunkEntry,
   SyncSampleBox } from './mp4iso-boxes';
 
-import { getLogger } from '../../logger';
+import { getLogger, LoggerLevel } from '../../logger';
 
-const { log } = getLogger('MP4SampleTablePackager(moz)');
+const { log } = getLogger('MP4SampleTablePackager(moz)', LoggerLevel.ON, true);
 
 export class SampleTablePackager {
   static createEmptyForFragmentedMode (sampleDescriptionEntries: Box[]): SampleTableBox {

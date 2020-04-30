@@ -113,7 +113,7 @@ export class PayloadDescriptor {
       throw new Error(`sample-rate has to be safe-int (=${sampleRateInteger}) and duration-numerator has to be int too (=${sampleDurationNumerator}).`);
     }
 
-    this.mimeType = mimeType.toLowerCase();
+    this.mimeType = mimeType && mimeType.toLowerCase();
 
     this.sampleDurationNumerator = sampleDurationNumerator;
     this.sampleDepth = sampleDepth;

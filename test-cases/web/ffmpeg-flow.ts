@@ -4,7 +4,7 @@ import { getLogger } from '../../src/logger';
 import { XhrSocket } from '../../src/io-sockets/xhr.socket';
 import { WebFileDownloadSocket } from '../../src/io-sockets/web-file-download.socket';
 import { FFmpegConvertProcessor } from '../../src/processors/ffmpeg-convert.processor';
-import { newProcessorWorkerShell, unsafeProcessorType } from '../../src/core/processor-factory';
+import { newProcessorWorkerShell, unsafeCastProcessorType } from '../../src/core/processor-factory';
 import { FFmpegConversionTargetInfo } from '../../src/processors/ffmpeg/ffmpeg-tool';
 import { makeTemplate } from '../../src/common-utils';
 
@@ -31,7 +31,7 @@ export class FFmpegFlow extends MmjsTestCase {
     };
 
     const ffmpegProc = newProcessorWorkerShell(
-      unsafeProcessorType(FFmpegConvertProcessor),
+      unsafeCastProcessorType(FFmpegConvertProcessor),
       [audioConfig, null],
       ['/vendor/ffmpeg.js/ffmpeg-mp4.js']
     );

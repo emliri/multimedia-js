@@ -3,8 +3,8 @@ import { CombineMp4sToMovFlow } from '../../src/flows/combine-mp4s-to-mov.flow';
 import { FlowCompletionResult, FlowState } from '../../src/core/flow';
 
 const VIDEO_FILE =
-  //= '/test-data/mp4/180312_unicorn_hütte2_s.mp4';
-  '/test-data/mp4/Jul-17-2019_12-32-47.mp4';
+  '/test-data/mp4/180312_unicorn_hütte2_s.mp4';
+  //'/test-data/mp4/PartyPoker_SFX_Only.mov';
 
 const AUDIO_FILE =
   //= '/test-data/mp3/shalafon.mp3';
@@ -58,14 +58,6 @@ export class RemixMovieSoundtrack extends MmjsTestCase {
 
     console.log('selected audio file:', audioFile);
     console.log('selected video file:', videoFile);
-
-    /**
-     *
-     * SampleVideo_1280x720_5mb.mp4
-     *
-     * v-0576p-1400k-libx264.mov
-     *
-     */
 
     const videoUrl = videoFile ? URL.createObjectURL(videoFile) : VIDEO_FILE;
     const audioUrl = audioFile ? URL.createObjectURL(audioFile) : AUDIO_FILE;

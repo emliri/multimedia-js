@@ -1,8 +1,8 @@
 import { Packet } from '../../core/packet';
 
-import { getLogger } from '../../logger';
+import { getLogger, LoggerLevel } from '../../logger';
 
-const { log } = getLogger('source-buffer-queue');
+const { log } = getLogger('source-buffer-queue', LoggerLevel.ON, true);
 
 export type SourceBufferQueueItem = {
   method: string
@@ -19,6 +19,7 @@ export type SourceBufferQueueUpdateCallbackData = {
 export type SourceBufferQueueUpdateCallback = (SourceBufferQueue, SourceBufferQueueUpdateCallbackData) => void;
 
 export class SourceBufferQueue {
+
   private updateStartedTime_: number = null;
   private queue_: SourceBufferQueueItem[] = [];
 
@@ -33,7 +34,6 @@ export class SourceBufferQueue {
     private mimeType_: string,
     trackDefaults = null,
     private onUpdate_: SourceBufferQueueUpdateCallback = (() => {})) {
-    // this.bufferMap_ = [];
 
     this.sourceBuffer_ = mediaSource.addSourceBuffer(mimeType_);
     this.initialMode_ = this.sourceBuffer_.mode;

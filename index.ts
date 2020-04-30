@@ -27,14 +27,18 @@ import { MPEGTSDemuxProcessor } from './src/processors/mpeg-ts-demux.processor';
 
 import { BroadwayProcessor } from './src/processors/broadway.processor';
 
-import { HttpToMediaSourceFlow } from './src/flows/http-to-media-source.flow';
+import { ChunkToMediaSourceFlow } from './src/flows/chunk-to-media-source.flow';
 import { CombineMp4sToMovFlow } from './src/flows/combine-mp4s-to-mov.flow';
 import { ConcatMp4sFlow } from './src/flows/concat-mp4s.flow';
+import { AacTranscodeFlow } from './src/flows/aac-transcode.flow';
+import { HlsToMediaSourceFlow } from './src/flows/hls-to-mse.flow';
+import { ElementaryStreamToMp4 } from './src/flows/es-to-mp4.flow';
 
 import * as Utils from './src/common-utils';
 import * as Crypto from './src/common-crypto';
 
 import { XhrSocket } from './src/io-sockets/xhr.socket';
+import { HlsOutputSocket } from './src/io-sockets/hls/hls-output-socket';
 
 // TODO: use node-externals in webpack config
 import { NodeFsWriteSocket } from './src/io-sockets/node-fs-write.socket';
@@ -50,7 +54,7 @@ import { Signal } from './src/core/signal';
 import { Flow, FlowErrorType, FlowEvent, FlowState } from './src/core/flow';
 
 import { WebFileChooserSocket } from './src/io-sockets/web-file-chooser.socket';
-import { HTML5MediaSourceBufferSocket } from './src/io-sockets/html5-media-source-buffer.socket';
+import { MediaSourceInputSocket } from './src/io-sockets/mse-input.socket';
 import { WebFileDownloadSocket } from './src/io-sockets/web-file-download.socket';
 import { ErrorCode, ErrorCodeSpace, getErrorNameByCode } from './src/core/error';
 
@@ -100,15 +104,19 @@ export const IoSockets = {
   XhrSocket,
   WebFileChooserSocket,
   WebFileDownloadSocket,
-  HTML5MediaSourceBufferSocket
+  MediaSourceInputSocket,
+  HlsOutputSocket
   // NodeFsReadSocket,
   // NodeFsWriteSocket
 };
 
 export const Flows = {
-  HttpToMediaSourceFlow,
+  AacTranscodeFlow,
+  ChunkToMediaSourceFlow,
   ConcatMp4sFlow,
-  CombineMp4sToMovFlow
+  CombineMp4sToMovFlow,
+  HlsToMediaSourceFlow,
+  ElementaryStreamToMp4
 };
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';

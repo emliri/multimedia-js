@@ -5,16 +5,16 @@ import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 import { BufferSlice } from '../core/buffer';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugAccessUnit, debugNALU, makeAnnexBAccessUnitFromNALUs } from './h264/h264-tools';
+import { debugAccessUnit, debugNALU, makeAnnexBAccessUnitFromNALUs, makeNALUFromH264RbspData } from './h264/h264-tools';
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
+import { NALU } from './h264/nalu';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.WARN, true);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.LOG, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
-
 const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true;
 
 const DEBUG_H264 = false;
@@ -22,6 +22,7 @@ export class H264ParseProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
   private _ppsSliceCache: BufferSlice = null;
+  private _seiCache: BufferSlice = null;
 
   static getName (): string {
     return 'H264ParseProcessor';
@@ -55,7 +56,7 @@ export class H264ParseProcessor extends Processor {
     return false;
   }
 
-  private _mayWriteAvcCDataFromSpsPpsCache(): BufferSlice {
+  private _attempWriteAvcCDataFromSpsPpsCache(): BufferSlice {
     if (!this._spsSliceCache || !this._ppsSliceCache) {
       return null;
     }
@@ -63,10 +64,12 @@ export class H264ParseProcessor extends Processor {
     const spsInfo: Sps = H264ParameterSetParser.parseSPS(this._spsSliceCache.getUint8Array().subarray(1));
     //const ppsInfo: Pps = H264ParameterSetParser.parsePPS(this._ppsSliceCache.getUint8Array().subarray(1));
 
+    debugNALU(this._spsSliceCache)
+    debugNALU(this._ppsSliceCache);
+
     const avcCodecDataBox: AvcCodecDataBox = new AvcCodecDataBox(
       [this._spsSliceCache.getUint8Array()],
       [this._ppsSliceCache.getUint8Array()],
-      0,
       spsInfo.profileIdc,
       64, // "profileCompatibility" - not sure exactly what this does but this value is in other common test-data
       spsInfo.levelIdc
@@ -77,8 +80,11 @@ export class H264ParseProcessor extends Processor {
     const bufferSlice = BufferSlice.allocateNew(numBytesAlloc);
     avcCodecDataBox.write(bufferSlice.getUint8Array());
 
+    // Reset here if need to handle multiple embedded SPS/PPS in stream
+    ///*
     this._spsSliceCache = null;
     this._ppsSliceCache = null;
+    //*/
 
     log('created AvcC atom data !')
 
@@ -108,45 +114,73 @@ export class H264ParseProcessor extends Processor {
 
       const propsCache = bufferSlice.props;
 
+      //*
       if (bufferSlice.props.tags.has('sei')) {
-        warn('dropping SEI NALU packet');
+        this._seiCache = bufferSlice;
+        //warn('dropping SEI NALU packet');
         return;
       }
+      //*/
 
       // cache last SPS/PPS slices
-      if (bufferSlice.props.tags.has('sps')) {
+      else if (bufferSlice.props.tags.has('sps')) {
+
         if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
-          this._spsSliceCache = bufferSlice;
-          bufferSlice = null;
-          const avcCDataSlice = this._mayWriteAvcCDataFromSpsPpsCache();
-          if (avcCDataSlice) {
-            bufferSlice = avcCDataSlice;
-            bufferSlice.props = propsCache;
-            bufferSlice.props.isBitstreamHeader = true;
+
+          if (this._spsSliceCache) {
+            bufferSlice = null;
+          } else {
+            this._spsSliceCache = bufferSlice;
+            bufferSlice = null;
+            const avcCDataSlice = this._attempWriteAvcCDataFromSpsPpsCache();
+            if (avcCDataSlice) {
+              bufferSlice = avcCDataSlice;
+              bufferSlice.props = propsCache;
+              bufferSlice.props.isBitstreamHeader = true;
+            }
           }
+
         }
 
       } else if (bufferSlice.props.tags.has('pps')) {
+
         if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
-          this._ppsSliceCache = bufferSlice;
-          bufferSlice = null;
-          const avcCDataSlice = this._mayWriteAvcCDataFromSpsPpsCache();
-          if (avcCDataSlice) {
-            bufferSlice = avcCDataSlice;
-            bufferSlice.props = propsCache;
-            bufferSlice.props.isBitstreamHeader = true;
+
+          if (this._ppsSliceCache) {
+            bufferSlice = null;
+          } else {
+            this._ppsSliceCache = bufferSlice;
+            bufferSlice = null;
+            const avcCDataSlice = this._attempWriteAvcCDataFromSpsPpsCache();
+            if (avcCDataSlice) {
+              bufferSlice = avcCDataSlice;
+              bufferSlice.props = propsCache;
+              bufferSlice.props.isBitstreamHeader = true;
+            }
           }
+
         }
 
-      } else {
+      } else { // handle any other NALU type
         if (ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK) {
 
           log('expecting NALU to repackage to AU:')
           DEBUG_H264 && debugNALU(bufferSlice);
 
-          bufferSlice = makeAnnexBAccessUnitFromNALUs([bufferSlice]);
+          /*
+          const auDelimiterNalu = makeNALUFromH264RbspData(
+            BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
+          */
+
+          if (propsCache.isKeyframe && this._seiCache) { // prepend IDR with SEI
+            bufferSlice = makeAnnexBAccessUnitFromNALUs([this._seiCache, bufferSlice]);
+            this._seiCache = null;
+          } else {
+            bufferSlice = makeAnnexBAccessUnitFromNALUs([bufferSlice]);
+          }
+
           bufferSlice.props = propsCache;
-          //bufferSlice.props.isKeyframe = propsCache.isKeyframe;
+
         }
       }
 
@@ -170,8 +204,7 @@ export class H264ParseProcessor extends Processor {
           debug('internal error is:', err)
         }
 
-      }
-      else if (p.defaultPayloadInfo.isKeyframe) {
+      } else if (p.defaultPayloadInfo.isKeyframe) {
         log('processing IDR containing frames AU');
         DEBUG_H264 && debugAccessUnit(bufferSlice, true);
 

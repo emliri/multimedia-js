@@ -57,10 +57,10 @@ import { getLogger, LoggerLevel } from '../../logger';
 import { BoxContainerBox, Box, RawTag } from './mp4iso-base';
 import { SampleTablePackager } from './mp4iso-sample-table';
 
-const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.WARN, true);
+const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.ON, true);
 
 let MAX_PACKETS_IN_CHUNK = Infinity;
-let SPLIT_AT_KEYFRAMES = true;
+let SPLIT_AT_KEYFRAMES = false;
 
 type CachedPacket = {
   packet: any;
@@ -114,6 +114,7 @@ export type VideoPacket = {
   codecDescription: string;
   data: Uint8Array;
   packetType: VideoPacketType;
+  decodingTime: number,
   compositionTime: number;
   horizontalOffset?: number;
   verticalOffset?: number;
@@ -307,6 +308,7 @@ export class MP4Mux {
       cto: number = 0,
       audioDetails: {sampleRate: number, sampleDepth: number, samplesPerFrame: number, numChannels: number} = null
     ) {
+
       if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._attemptToGenerateMovieHeader();
       }
@@ -365,6 +367,7 @@ export class MP4Mux {
             codecDescription: VIDEOCODECS[AVC_VIDEO_CODEC_ID],
             data,
             packetType: isInitData ? VideoPacketType.HEADER : VideoPacketType.NALU,
+            decodingTime: timestamp,
             compositionTime: timestamp + cto,
             sampleDescriptionIndex: videoTrack.initializationData.length
           };
@@ -540,23 +543,14 @@ export class MP4Mux {
         }
         case AVC_VIDEO_CODEC_ID:
         case VP6_VIDEO_CODEC_ID: {
-          let decodeTime = samplesProcessed * trackInfo.timescale / trackInfo.framerate; // ? not really needed in unfragmented mode
-          let lastDecodeTime = Math.round(decodeTime);
-
           for (var j = 0; j < trackPackets.length; j++) {
+
             const videoPacket: VideoPacket = trackPackets[j].packet;
-            const videoFrameRateScaled = trackInfo.timescale / trackInfo.framerate;
-            const nextDecodeTime = Math.round(samplesProcessed * videoFrameRateScaled);
-            const videoFrameDuration = nextDecodeTime - lastDecodeTime;
-
-            lastDecodeTime = nextDecodeTime;
-
-            const compositionTime = videoPacket.compositionTime + videoFrameDuration;
 
             const s: StblSample = {
               size: videoPacket.data.length,
-              dts,
-              cts: compositionTime,
+              dts: videoPacket.decodingTime,
+              cts: videoPacket.compositionTime,
               isRap: videoPacket.frameType === VideoFrameType.KEY,
               sampleDescriptionIndex: videoPacket.sampleDescriptionIndex
             };
@@ -566,11 +560,9 @@ export class MP4Mux {
             chunks[i].push(videoPacket.data);
 
             samplesProcessed++;
-
-            dts += videoFrameDuration || videoFrameRateScaled;
           }
 
-          trackState.cachedDuration = lastDecodeTime;
+          trackState.cachedDuration = dts;
           trackState.samplesProcessed = samplesProcessed;
 
           break;
@@ -721,7 +713,7 @@ export class MP4Mux {
           trakFlags, trackState, trackInfo, sampleDescEntry
         });
 
-        let trex = new TrackExtendsBox(trackState.trackId, 0, 0, 0, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
+        let trex = new TrackExtendsBox(trackState.trackId, 1, 0, 0, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
         trexs.push(trex);
       }
 
@@ -776,14 +768,13 @@ export class MP4Mux {
 
         if (fragmentedMode) {
           sampleTable = SampleTablePackager.createEmptyForFragmentedMode(sampleDescEntry);
-        } else {
+        } else if (samples) {
           sampleTable = SampleTablePackager.createFromSamplesInSingleChunk(sampleDescEntry, samples[i], mdatOffset);
+          // sum up all sample-sizes and add them up mdat offset now to shift the offset for the next track
+          mdatOffset += samples[i].reduce((totalSize, sample) => {
+            return totalSize + sample.size;
+          }, 0);
         }
-
-        // sum up all sample-sizes and add them up mdat offset now to shift the offset for the next track
-        mdatOffset += samples[i].reduce((totalSize, sample) => {
-          return totalSize + sample.size;
-        }, 0);
 
         let trak = null;
         if (trackState === this.audioTrackState) {

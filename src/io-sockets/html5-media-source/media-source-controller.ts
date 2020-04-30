@@ -6,9 +6,9 @@ import {
   SourceBufferQueueUpdateCallbackData
 } from './source-buffer-queue';
 
-import { getLogger } from '../../logger';
+import { getLogger, LoggerLevel } from '../../logger';
 
-const { error } = getLogger('MediaSourceController');
+const { error } = getLogger('MediaSourceController', LoggerLevel.ON, true);
 
 export enum MediaSourceControllerEvents {
   MEDIA_CLOCK_UPDATED = 'media-clock-updated',
@@ -74,7 +74,7 @@ export class MediaSourceController extends EventEmitter {
           this.onSourceBufferQueueUpdateCb_(sbQueue, eventData);
         });
 
-      // sbQueue.setModeSequential(true);
+        //sbQueue.setModeSequential(false);
 
       this.sourceBufferQueues_.push(sbQueue);
     } catch (err) {

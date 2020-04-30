@@ -19,7 +19,7 @@ export enum SocketEvent {
   EOS_PACKET_TRANSFERRED = 'eos-packet-transferred',
   ANY_PACKET_RECEIVED = 'any-packet-received',
   DATA_PACKET_RECEIVED = 'data-packet-received', // "non-symbolic"
-  EOS_PACKET_RECEIVED = 'eos-packet-received'
+  EOS_PACKET_RECEIVED = 'eos-packet-received',
 }
 
 export type SocketEventHandler = (event: SocketEvent) => void
@@ -110,13 +110,17 @@ export class SocketDescriptor {
   }
 }
 
-export abstract class SocketOwner implements SignalReceiver {
-  abstract getOwnSockets(): Set<Socket>;
-  abstract cast(signal: Signal): SignalReceiverCastResult;
+export interface SocketOwner extends SignalReceiver {
+  getOwnSockets(): Set<Socket>;
+  cast(signal: Signal): SignalReceiverCastResult;
 }
 
-export abstract class SeekableOutputSocket extends OutputSocket {
-  abstract seek(start: number, end?: number): boolean;
+export interface SeekableOutputSocket extends OutputSocket {
+  seek(start: number, end?: number): boolean;
+}
+
+export interface URLLoadingOutputSocket extends OutputSocket {
+  load(url: string): boolean;
 }
 
 export { Socket } from './socket-base';
