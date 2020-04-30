@@ -7,7 +7,7 @@ const path = require('path')
 // Main Library
 {
   const entrySrc = './index.ts'
-  const libName = 'MM'
+  const libName = 'mmjs'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true
