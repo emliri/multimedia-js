@@ -65,6 +65,8 @@ export const Common = {
   MimetypePrefix
 };
 
+export {VoidCallback} from "./src/common-types"
+
 export const Core = {
   Processor,
   ProcessorEvent,
