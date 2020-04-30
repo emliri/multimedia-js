@@ -80,6 +80,7 @@ To get started with Multimedia-js (mmjs), simply clone & build the project, and 
 
 ```
 git@github.com:emliri/multimedia-js.git
+git submodule update --init
 make # only needed once because we want to install some third-party binaries in publishable `vendor` directory
 npm start # if you only modify TS codebase, you can only run this next time
 ```
