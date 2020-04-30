@@ -4,7 +4,8 @@
   "description": "Multimedia streaming framework for browser and node",
   "main": "index.ts",
   "scripts": {
-    "build": "ts-node ./node_modules/.bin/webpack --progress",
+    "build": "ts-node ./node_modules/.bin/webpack --progress && npm run build-decl",
+    "build-decl": "tsc --declaration --emitDeclarationOnly --outDir dist/",
     "build:watch": "npm run build -- --watch",
     "lint": "eslint index.ts src test-cases --ext .ts --ext .js",
     "lint-fix": "npm run lint -- --fix",
