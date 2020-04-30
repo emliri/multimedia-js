@@ -2,7 +2,7 @@
 
 # SOURCE FILES (all files in `src`)
 
-SRC_FILES = $(shell find src -type f -name "*")
+SRC_FILES = $(shell find src -type f -name "*.ts") $(shell find src -type f -name "*.js")
 
 # VENDOR LIBS
 

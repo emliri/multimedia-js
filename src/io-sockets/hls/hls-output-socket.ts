@@ -1,6 +1,6 @@
-import { HlsLoader } from "../../ext-mod/emliri-es-libs/:rialto/lib/hls-loader";
-import { MediaSegment } from "../../ext-mod/emliri-es-libs/:rialto/lib/media-segment";
-import { TimeInterval } from "../../ext-mod/emliri-es-libs/:rialto/lib/time-intervals";
+import { HlsLoader } from "./hls-loader";
+import { MediaSegment } from "./media-segment";
+import { TimeInterval } from "./time-intervals";
 
 import { SeekableOutputSocket, SocketDescriptor, OutputSocket, URLLoadingOutputSocket } from "../../core/socket";
 import { Packet, PacketSymbol } from "../../core/packet";

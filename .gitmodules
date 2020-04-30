@@ -1,15 +1,3 @@
 [submodule "src/ext-mod/inspector.js"]
 	path = src/ext-mod/inspector.js
 	url = https://github.com/tchakabam/inspector.js.git
-[submodule "src/ext-mod/Broadway"]
-	path = src/ext-mod/Broadway
-	url = https://github.com/mbebenita/Broadway.git
-[submodule "src/ext-mod/mp4box.js"]
-	path = src/ext-mod/mp4box.js
-	url = https://github.com/gpac/mp4box.js.git
-[submodule "src/ext-mod/codem-isoboxer"]
-	path = src/ext-mod/codem-isoboxer
-	url = https://github.com/madebyhiro/codem-isoboxer.git
-[submodule "src/ext-mod/emliri-es-libs"]
-	path = src/ext-mod/emliri-es-libs
-	url = git@github.com:tchakabam/emliri-es-libs.git
