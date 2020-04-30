@@ -1,37 +1,16 @@
-# Use-case: Concatenation
-
-- Enable AAC codec data embedding / sample-description-indexing
-
-- Insert silent AAC soundtrack to movie file (special case of "remix")
-
 # Dependencies
 
-- Hard-fork/clone inspector.js into source-tree
-
-# CI
-
-- Set up CI running lint & tests on master/PRs
-
-- Setup strict compiler mode
+- Hard-fork/clone our inspector.js dev branch into source-tree
 
 # Bugs
 
-- Clone PayloadDetails when cloning BufferProps (and also add clone method to underlying PayloadDescription)
-
-- Move TS-demuxer to worker-proxy mode
-
-- Convert all MPEGTS-demuxer code to Typescript
-
-- Use proc-task workers for parallelizable (crypto-like or other heavy math) things
-
-- Remove hardcoded worker binary paths (make configurable)
+- Fix MP3 ES -> fMP4 case
 
 # Use-Cases
 
 - Accu-buffer
 
 - Method to create "grow" new BufferSlice from original data and (list of) additional slices
-
 
 - Abstract away read/write of binary data (byte-parser/writer) for using DataView implementations transparently
 
@@ -44,6 +23,16 @@
 - Inspect AAC (like for h264)
 
 - Essentialize/Cleanup Hlsjs-parser/muxer-parts
+
+# Use-case: MP4 Concatenation
+
+- Enable AAC codec data embedding / sample-description-indexing
+
+- Insert silent AAC soundtrack to movie file (special case of "remix")
+
+# CI
+
+- Setup strict compiler mode
 
 # Performance
 
@@ -76,12 +65,6 @@
   -> Handle case like: where MP4-muxer releases codec-info after
      parsing first bits and MediaSource can only be initialized async
   -> Socket has now `whenReady` promise to handle the async-io-socket case in a non-blocking-RAII-like way
-
-# Debugging
-
-- Apply lint rules / Remove console logs
-
-- Filterable logs (configure some env var at build time parsed into respective logger cat-instances)
 
 # Testing
 
