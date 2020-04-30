@@ -23,7 +23,9 @@ dist: $(SRC_FILES) package-lock.json.alias
 	rm -Rf dist
 	npm run build
 
-package-lock.json.alias: package.json
+node_modules: package-lock.json.alias
+
+package-lock.json.alias: package.json node_modules
 	rm -f package-lock.json.alias
 	npm install
 	touch package-lock.json.alias
