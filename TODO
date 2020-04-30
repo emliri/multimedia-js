@@ -22,8 +22,6 @@
 
 - Inspect AAC (like for h264)
 
-- Essentialize/Cleanup Hlsjs-parser/muxer-parts
-
 # Use-case: MP4 Concatenation
 
 - Enable AAC codec data embedding / sample-description-indexing
