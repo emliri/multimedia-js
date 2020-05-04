@@ -4,29 +4,10 @@ const configs = []
 
 const path = require('path')
 
-// Core Library
+// All Library
 {
   const entrySrc = './index.ts'
-  const libName = 'mmjs-core'
-  const buildPath = 'dist'
-  const libraryTarget = 'umd'
-  const debug = true
-
-  configs.push(
-    createWebpackConfig({
-      debug,
-      entrySrc,
-      libName,
-      libraryTarget,
-      buildPath
-    })
-  )
-}
-
-// Procs Library
-{
-  const entrySrc = './src/processors/index.ts'
-  const libName = 'mmjs-procs'
+  const libName = 'mmjs'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true
@@ -46,6 +27,29 @@ const path = require('path')
 {
   const entrySrc = './src/core/processor-proxy.worker.ts'
   const libName = 'mmjs-procs-worker'
+  const buildPath = 'dist'
+  const libraryTarget = 'umd'
+  const debug = true
+
+  configs.push(
+    createWebpackConfig({
+      debug,
+      entrySrc,
+      libName,
+      libraryTarget,
+      buildPath
+    })
+  )
+}
+
+//     "build-decls-post": "mv dist/index.d.ts dist/mmjs-core.umd.d.ts && cp dist/src/processors/index.d.ts dist/mmjs-procs.umd.d.ts && cp dist/src/io-sockets/index.d.ts dist/mmjs-io-sockets.umd.d.ts && cp dist/src/flows/index.d.ts dist/mmjs-flows.umd.d.ts",
+
+/*
+
+// Procs Library
+{
+  const entrySrc = './src/processors/index.ts'
+  const libName = 'mmjs-procs'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
   const debug = true
@@ -98,6 +102,8 @@ const path = require('path')
     })
   )
 }
+*/
+
 
 // TestCasesWeb
 {

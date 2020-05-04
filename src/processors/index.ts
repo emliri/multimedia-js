@@ -9,4 +9,3 @@ export { BroadwayProcessor } from './broadway.processor';
 
 export { LambdaProcessor } from './lambda.processor';
 
-export * as factory from '../core/processor-factory';

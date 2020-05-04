@@ -32,8 +32,15 @@ export {VoidCallback} from "./src/common-types"
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
+export * as IoSockets from './src/io-sockets/index'
+export * as Processors from './src/processors/index'
+export * as Flows from './src/flows/index'
+
+export * as factory from './src/core/processor-factory';
+
 export {
   setLocalLoggerLevel,
   createAndGetLocalLoggerConfig as getLocalLoggerConfig,
   removeLocalLoggerConfig
 } from './src/logger';
+
