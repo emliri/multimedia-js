@@ -2,7 +2,7 @@ import {createWebpackConfig} from './webpack-config-factory'
 
 const configs = []
 
-const path = require('path')
+const exec = require('child_process').exec;
 
 // All Library
 {
@@ -18,7 +18,21 @@ const path = require('path')
       entrySrc,
       libName,
       libraryTarget,
-      buildPath
+      buildPath,
+      plugins: [
+
+        // custom "AfterEmitPlugin" to exec shell script post-build
+        {
+          apply: (compiler) => {
+            compiler.hooks.afterEmit.tap('AfterEmitPlugin', (compilation) => {
+              exec('npm run build-decls \n npm run build-decls-post', (err, stdout, stderr) => {
+                if (stdout) process.stdout.write(stdout);
+                if (stderr) process.stderr.write(stderr);
+              });
+            });
+          }
+        }
+      ]
     })
   )
 }
@@ -42,7 +56,25 @@ const path = require('path')
   )
 }
 
-//     "build-decls-post": "mv dist/index.d.ts dist/mmjs-core.umd.d.ts && cp dist/src/processors/index.d.ts dist/mmjs-procs.umd.d.ts && cp dist/src/io-sockets/index.d.ts dist/mmjs-io-sockets.umd.d.ts && cp dist/src/flows/index.d.ts dist/mmjs-flows.umd.d.ts",
+
+// TestCasesWeb
+{
+  const entrySrc = './test-cases/web/index.ts'
+  const libName = 'mmjs-test-cases'
+  const buildPath = 'dist'
+  const libraryTarget = 'umd'
+  const debug = true
+
+  configs.push(
+    createWebpackConfig({
+      debug,
+      entrySrc,
+      libName,
+      libraryTarget,
+      buildPath
+    })
+  )
+}
 
 /*
 
@@ -104,25 +136,6 @@ const path = require('path')
 }
 */
 
-
-// TestCasesWeb
-{
-  const entrySrc = './test-cases/web/index.ts'
-  const libName = 'mmjs-test-cases'
-  const buildPath = 'dist'
-  const libraryTarget = 'umd'
-  const debug = true
-
-  configs.push(
-    createWebpackConfig({
-      debug,
-      entrySrc,
-      libName,
-      libraryTarget,
-      buildPath
-    })
-  )
-}
 
 // Task worker
 /*

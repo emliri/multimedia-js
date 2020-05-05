@@ -2,22 +2,21 @@
 /// <reference path="./node_modules/@types/node/index.d.ts"/>
 /// <reference path="./node_modules/@types/webpack/index.d.ts"/>
 
+import { WebpackOptions } from "webpack/lib/Compiler"
+
 const path = require('path')
 
-//const webpack = require('webpack')
+export type WebpackConfigFactoryOptions = {
+  entrySrc: string
+  buildPath: string
+  libName: string
+  libraryTarget: string
+  debug?: boolean,
+  externals?: string[]
+  plugins?: unknown[]
+}
 
-const env = process.env
-
-console.log('Release mode:', !!env.release, '\n')
-
-/**
-    @type {WebpackConfigFactoryOptions}
-    {string} buildPath
-    {string} libName
-    {libraryTarget} libraryTarget
-    {boolean} debug
- */
-export function createWebpackConfig(options, excludePaths: string[] = []) {
+export function createWebpackConfig(options: WebpackConfigFactoryOptions, excludePaths: string[] = []) {
 
   const libName = options.libName
 
@@ -27,8 +26,7 @@ export function createWebpackConfig(options, excludePaths: string[] = []) {
   console.log('Resolved build path:', buildPath)
 
   const baseConfig = {
-    mode: 'development',
-    devtool: 'source-map',
+    mode: options.debug ? "development" : "production",
     entry: options.entrySrc,
     externals: options.externals,
     output: {
@@ -54,7 +52,11 @@ export function createWebpackConfig(options, excludePaths: string[] = []) {
         }
       ]
     },
-    plugins: []
+    devtool: options.debug ? "inline-source-map" : "source-map",
+    optimization: {
+      minimize: ! options.debug
+    },
+    plugins: options.plugins || []
 
   }
 

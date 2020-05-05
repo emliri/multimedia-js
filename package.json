@@ -4,10 +4,10 @@
   "description": "Multimedia streaming framework for browser and node",
   "main": "index.ts",
   "scripts": {
-    "build": "ts-node ./node_modules/.bin/webpack --progress && npm run build-decls \n npm run build-decls-post",
+    "build": "ts-node ./node_modules/.bin/webpack --progress",
     "build-decls": "tsc --declaration --emitDeclarationOnly --outDir dist/",
     "build-decls-post": "mv dist/index.d.ts dist/mmjs.umd.d.ts",
-    "build:watch": "npm run build -- --watch",
+    "build-watch": "npm run build -- --watch",
     "lint": "eslint index.ts src test-cases --ext .ts --ext .js",
     "lint-fix": "npm run lint -- --fix",
     "prepublishOnly": "npm test && make",
