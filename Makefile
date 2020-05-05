@@ -23,7 +23,10 @@ dist: index.ts $(SRC_FILES) package-lock.json.alias tsconfig.json
 	rm -Rf dist
 	npm run build
 
-#node_modules: package-lock.json.alias // FIXME: we don't handle force-removal of node_modules (but this causes a circular dependency)
+node_modules:
+	rm -f package-lock.json.alias
+	npm install
+	touch package-lock.json.alias
 
 package-lock.json.alias: package.json node_modules
 	rm -f package-lock.json.alias
