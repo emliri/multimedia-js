@@ -56,7 +56,10 @@ export function createWebpackConfig(options: WebpackConfigFactoryOptions, exclud
     optimization: {
       minimize: ! options.debug
     },
-    plugins: options.plugins || []
+    plugins: options.plugins || [],
+    watchOptions: {
+      poll: 1000 // Check for changes every second
+    },
 
   }
 

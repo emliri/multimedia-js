@@ -7,11 +7,11 @@
     "build": "ts-node ./node_modules/.bin/webpack --progress",
     "build-decls": "tsc --declaration --emitDeclarationOnly --outDir dist/",
     "build-decls-post": "mv dist/index.d.ts dist/mmjs.umd.d.ts",
-    "build-watch": "npm run build -- --watch",
+    "build-watch": "DEBUG=1 npm run build -- --watch",
     "lint": "eslint index.ts src test-cases --ext .ts --ext .js",
     "lint-fix": "npm run lint -- --fix",
     "prepublishOnly": "npm test && make",
-    "start": "ts-node ./node_modules/.bin/webpack-dev-server --progress",
+    "start": "DEBUG=1 ts-node ./node_modules/.bin/webpack-dev-server --progress",
     "test": "jest"
   },
   "keywords": [],

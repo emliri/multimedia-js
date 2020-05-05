@@ -1,6 +1,7 @@
 import {createWebpackConfig} from './webpack-config-factory'
 
 const configs = []
+const debug = process.env.DEBUG === '1'
 
 const exec = require('child_process').exec;
 
@@ -10,7 +11,6 @@ const exec = require('child_process').exec;
   const libName = 'mmjs'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
-  const debug = true
 
   configs.push(
     createWebpackConfig({
@@ -43,7 +43,6 @@ const exec = require('child_process').exec;
   const libName = 'mmjs-procs-worker'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
-  const debug = true
 
   configs.push(
     createWebpackConfig({
@@ -63,7 +62,6 @@ const exec = require('child_process').exec;
   const libName = 'mmjs-test-cases'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
-  const debug = true
 
   configs.push(
     createWebpackConfig({
