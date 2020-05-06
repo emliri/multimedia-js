@@ -62,7 +62,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     public readonly flags: FlowConfigFlag = FlowConfigFlag.NONE,
     private onStateChangePerformed: FlowStateChangeCallback = () => {},
     private onStateChangeAborted: (reason: string) => void = () => {},
-    downloadSocketParams?: {el :HTMLElement, mimeType: string, filenameTemplateBase: string}
+    downloadSocketParams?: {el: HTMLElement, mimeType: string, filenameTemplateBase: string}
   ) {
     super();
 
