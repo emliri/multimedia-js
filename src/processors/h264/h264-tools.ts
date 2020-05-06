@@ -71,6 +71,42 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
   return true;
 }
 
+export function parseAccessUnit(bufferSlice: BufferSlice): NALU[] {
+  const avcStream = bufferSlice.getUint8Array();
+  const avcView = bufferSlice.getDataView();
+
+  let naluLength;
+  let naluCount = 0;
+
+  const nalus: NALU[] = [];
+
+  for (let naluOffset = 0; naluOffset < avcStream.byteLength; naluOffset += naluLength) {
+    naluLength = avcView.getUint32(naluOffset);
+
+    if (naluLength > avcStream.length) {
+      warn('no NALUs found in this data! (not an access-unit)');
+      return null;
+    }
+
+    naluOffset += 4;
+
+    const naluSlice = bufferSlice.unwrap(naluOffset, naluLength);
+    const naluBytes = naluSlice.getUint8Array();
+    const nalu = new NALU(naluBytes);
+
+    naluCount++;
+
+    //log(avcStream)
+
+    nalus.push(nalu);
+
+    log('In access-unit of size ', avcStream.byteLength,' bytes, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
+
+  }
+
+  return nalus;
+}
+
 /**
  *
  * @param rbspBodyData
