@@ -44,3 +44,5 @@ export {
   removeLocalLoggerConfig
 } from './src/logger';
 
+export * as Inspector from './src/ext-mod/inspector.js/src/index'
+
