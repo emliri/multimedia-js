@@ -154,6 +154,10 @@ export class MP4MuxProcessor extends Processor {
 
     } else if (p.defaultPayloadInfo.isVideo()) {
 
+      if (this.options_.fragmentedMode && p.defaultPayloadInfo.isBitstreamHeader) {
+        this.handleSymbolicPacket_(PacketSymbol.EOS);
+      }
+
       this.videoPacketQueue_.push(p);
 
       if (this.mp4Metadata_.tracks[this.socketToTrackIndexHash_[inputIndex]]) {
@@ -187,14 +191,15 @@ export class MP4MuxProcessor extends Processor {
       this._close();
       break;
     case PacketSymbol.EOS:
+      log('EOS received');
       this.flushCounter_++;
       if (this.flushCounter_ !== this.in.length) {
         break;
       }
 
       log('received EOS symbols count equal to inputs width, flushing');
-      this._flush();
       this.flushCounter_ = 0;
+      this._flush();
     default:
       break;
     }
@@ -361,7 +366,9 @@ export class MP4MuxProcessor extends Processor {
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
 
-    this.hasBeenClosed_ = true;
+    if (this.options_.fragmentedMode) {
+      this.hasBeenClosed_ = true;
+    }
   }
 
   private _getNextTrackId (): number {
