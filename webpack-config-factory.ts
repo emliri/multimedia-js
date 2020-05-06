@@ -52,7 +52,7 @@ export function createWebpackConfig(options: WebpackConfigFactoryOptions, exclud
         }
       ]
     },
-    devtool: options.debug ? "inline-source-map" : "source-map",
+    devtool: "source-map", // options.debug ? "inline-source-map" : "source-map",
     optimization: {
       minimize: ! options.debug
     },
