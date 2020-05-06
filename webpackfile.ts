@@ -5,6 +5,17 @@ const debug = process.env.DEBUG === '1'
 
 const exec = require('child_process').exec;
 
+const afterEmit = { // custom "AfterEmitPlugin" to exec shell script post-build
+  apply: (compiler) => {
+    compiler.hooks.afterEmit.tap('AfterEmitPlugin', (compilation) => {
+      exec('npm run build-decls \n npm run build-decls-post', (err, stdout, stderr) => {
+        if (stdout) process.stdout.write(stdout);
+        if (stderr) process.stderr.write(stderr);
+      });
+    });
+  }
+}
+
 // All Library
 {
   const entrySrc = './index.ts'
@@ -20,18 +31,7 @@ const exec = require('child_process').exec;
       libraryTarget,
       buildPath,
       plugins: [
-
-        // custom "AfterEmitPlugin" to exec shell script post-build
-        {
-          apply: (compiler) => {
-            compiler.hooks.afterEmit.tap('AfterEmitPlugin', (compilation) => {
-              exec('npm run build-decls \n npm run build-decls-post', (err, stdout, stderr) => {
-                if (stdout) process.stdout.write(stdout);
-                if (stderr) process.stderr.write(stderr);
-              });
-            });
-          }
-        }
+        afterEmit
       ]
     })
   )
