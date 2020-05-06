@@ -4,10 +4,10 @@ import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplate
 import { Packet } from '../core/packet';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { PayloadDescriptor, PayloadCodec } from '../core/payload-description';
-import { runMpegTsDemux } from './mpeg-ts/ts-demuxer-w';
+import { initMpegTsDemux, feedMpegTsDemux } from './mpeg-ts/ts-demuxer-w';
 import { debugAccessUnit, debugNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
+import TSDemuxer from './mpeg-ts/ts-demuxer';
 
 const { debug, log, warn } = getLogger('MPEGTSDemuxProcessor', LoggerLevel.WARN, true);
 
@@ -18,7 +18,6 @@ const getSocketDescriptor: SocketTemplateGenerator =
   );
 
 export class MPEGTSDemuxProcessor extends Processor {
-
 
   static getName (): string {
     return 'MPEGTSDemuxProcessor';
@@ -35,6 +34,8 @@ export class MPEGTSDemuxProcessor extends Processor {
 
   private _firstDtsOffset90khz: number | null = null; // WIP: actually build a packet-filter for this which will set each packet time-offset on a sequence
 
+  private _demux: TSDemuxer = initMpegTsDemux();
+
   constructor () {
     super();
     this.createInput();
@@ -44,55 +45,15 @@ export class MPEGTSDemuxProcessor extends Processor {
     return getSocketDescriptor(socketType);
   }
 
-  /*
-  protected onTaskWorkerMessage (event: Event) {
-    const p = Packet.fromTransferable((event as any).data.packet);
-
-    if (p.isSymbolic()) {
-      this.out.forEach((os) => os.transfer(p));
-      return;
-    }
-
-    this._processDemuxerOutputPacket(p);
-  }
-  */
-
-  /*
-  private _processDemuxerOutputPacket (p: Packet) {
-    const bs = p.data[0];
-
-    if (!this._haveVideo && PayloadCodec.isAvc(bs.props.codec)) {
-      this._haveVideo = true;
-    } else if (!this._haveAudio && PayloadCodec.isAac(bs.props.codec)) {
-      this._haveAudio = true;
-    }
-
-    // set fixed mpeg-ts timescale of 90000khz
-    p.setTimescale(MPEG_TS_TIMESCALE_HZ);
-
-    this._getOutputForPayload(bs.props).transfer(p);
-  }
-
-  private _getOutputForPayload (payloadDescriptor: PayloadDescriptor): OutputSocket {
-    const pid = payloadDescriptor.elementaryStreamId;
-    if (this._programMap[pid]) {
-      return this._programMap[pid];
-    }
-    log('creating new output for stream-id (PID):', pid, 'with codec:', payloadDescriptor.codec);
-    const s = this._programMap[pid] = this.createOutput(new SocketDescriptor([payloadDescriptor]));
-    return s;
-  }
-  */
-
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
 
     const perf = self.performance;
 
     const startDemuxingMs = perf.now()
 
-    log(`calling demuxer routine with packet of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 6)} Mbytes`)
+    log(`feeding demuxer with packet of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 6)} Mbytes`)
 
-    const outputPackets: Packet[] = runMpegTsDemux(inPacket);
+    const outputPackets: Packet[] = feedMpegTsDemux(this._demux, inPacket);
 
     const demuxingRunTimeMs = perf.now() - startDemuxingMs;
 

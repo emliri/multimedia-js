@@ -78,22 +78,10 @@ export type MpegTsDemuxerVideoTrackElementaryStream = {
   width: number
 }
 
-/**
- *
- * Wrapper to ease usage of our TS-demuxing functionnality that is very weakly type-spec'd.
- *
- * Given a packet of MPEG-TS input data, this function returns a list of timestamped packets containing slices of the ES streams payload
- * and appropriate BufferProps set to them.
- *
- * @param p Input packets of MPEG-TS data
- * @returns Demuxed streams packets with appropriate buffer-properties and timestamps
- */
-export function runMpegTsDemux (p: Packet): Packet[] {
+export function feedMpegTsDemux(demux: TSDemuxer, p: Packet): Packet[] {
   const outputPacketList: Packet[] = [];
 
-  log('will create TSDemuxer instance');
-
-  const demuxer = new TSDemuxer((
+  const onDemux = (
     audioTrackEsInfo: MpegTsDemuxerAudioTrackElementaryStream,
     avcTrackEsInfo: MpegTsDemuxerVideoTrackElementaryStream
     /*
@@ -243,19 +231,35 @@ export function runMpegTsDemux (p: Packet): Packet[] {
       });
     });
 
-    outputPacketList.push(Packet.newFlush());
-
     return void 0;
-  });
+  }
+
+  demux.onDemux = onDemux;
 
   log('will append data to TSDemuxer instance');
-
-  demuxer.reset();
   p.forEachBufferSlice((bufferSlice) => {
-    demuxer.append(bufferSlice.getUint8Array(), 0, true, 0);
+    demux.append(bufferSlice.getUint8Array(), 0, true, 0);
   });
-
   log('done appending data to TSDemuxer instance');
 
+  //outputPacketList.push(Packet.newFlush());
+
   return outputPacketList;
+}
+
+/**
+ *
+ * Wrapper to ease usage of our TS-demuxing functionnality that is very weakly type-spec'd.
+ *
+ * Given a packet of MPEG-TS input data, this function returns a list of timestamped packets containing slices of the ES streams payload
+ * and appropriate BufferProps set to them.
+ *
+ * @param p Input packets of MPEG-TS data
+ * @returns Demuxed streams packets with appropriate buffer-properties and timestamps
+ */
+export function initMpegTsDemux (): TSDemuxer {
+  log('creating TSDemuxer instance');
+  const demuxer = new TSDemuxer(null);
+  demuxer.reset();
+  return demuxer;
 }

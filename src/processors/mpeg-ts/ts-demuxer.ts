@@ -18,7 +18,7 @@ import MpegAudio from './mpeg-audio-parser';
 
 // import Hex from '../utils/hex';
 
-const { log, warn, error } = getLogger('TSDemuxer', LoggerLevel.ON, true);
+const { log, warn, error } = getLogger('TSDemuxer', LoggerLevel.OFF, true);
 
 // We are using fixed track IDs for driving the MP4 remuxer
 // instead of following the TS PIDs.
@@ -75,7 +75,7 @@ function appendFrameToTrack (track, data, offset, pts, frameIndex) {
 }
 
 export class TSDemuxer {
-  static probe (data): boolean {
+  static probe (data: Uint8Array): boolean {
     const syncOffset = TSDemuxer.findSyncOffset(data);
     if (syncOffset < 0) {
       return false;
@@ -88,7 +88,7 @@ export class TSDemuxer {
     }
   }
 
-  static findSyncOffset (data): number {
+  static findSyncOffset (data: Uint8Array): number {
     // scan 4096 first bytes
     const scanwindow = Math.min(4096, data.length - 3 * 188);
     let i = 0;
@@ -131,7 +131,9 @@ export class TSDemuxer {
 
   config: any;
   typeSupported: {mpeg: boolean, mp3: boolean};
-  onDemux: TSDemuxerCallback;
+
+  public onDemux: TSDemuxerCallback;
+
   sampleAes: any;
   observer: any;
   pmtParsed: boolean;
