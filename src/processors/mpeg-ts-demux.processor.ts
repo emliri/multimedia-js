@@ -18,13 +18,20 @@ const getSocketDescriptor: SocketTemplateGenerator =
   );
 
 export class MPEGTSDemuxProcessor extends Processor {
+
+
   static getName (): string {
     return 'MPEGTSDemuxProcessor';
   }
 
+  /*
   private _programMap: {[pid: number]: OutputSocket} = {};
   private _haveAudio: boolean = false;
   private _haveVideo: boolean = false;
+  */
+
+  private _audioSocket: OutputSocket = null;
+  private _videoSocket: OutputSocket = null;
 
   private _firstDtsOffset90khz: number | null = null; // WIP: actually build a packet-filter for this which will set each packet time-offset on a sequence
 
@@ -91,8 +98,8 @@ export class MPEGTSDemuxProcessor extends Processor {
 
     log(`got ${outputPackets.length} output packets from running demuxer (perf-stats: this took ${demuxingRunTimeMs.toFixed(3)} millis doing)`)
 
-    let audioSocket: OutputSocket = null;
-    let videoSocket: OutputSocket = null;
+    let audioSocket: OutputSocket = this._audioSocket;
+    let videoSocket: OutputSocket = this._videoSocket;
 
     outputPackets.forEach((p: Packet) => {
 
@@ -113,7 +120,7 @@ export class MPEGTSDemuxProcessor extends Processor {
       if (p.defaultPayloadInfo.isVideo()) {
         if (!videoSocket) {
           log('creating video output socket')
-          videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
+          this._videoSocket = videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
         //p.forEachBufferSlice((bs) => debugNALU(bs));
@@ -128,7 +135,7 @@ export class MPEGTSDemuxProcessor extends Processor {
       } else if (p.defaultPayloadInfo.isAudio()) {
         if (!audioSocket) {
           log('creating audio output socket')
-          audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
+          this._audioSocket = audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
         debug('transferring audio packet to default out');
