@@ -366,7 +366,7 @@ export class MP4MuxProcessor extends Processor {
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
 
-    if (this.options_.fragmentedMode) {
+    if (!this.options_.fragmentedMode) {
       this.hasBeenClosed_ = true;
     }
   }
