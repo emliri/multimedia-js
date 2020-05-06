@@ -1,5 +1,5 @@
 import { Processor, ProcessorEvent } from '../core/processor';
-import { Packet } from '../core/packet';
+import { Packet, PacketSymbol } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
 import { BufferSlice } from '../core/buffer';
@@ -184,6 +184,8 @@ export class H264ParseProcessor extends Processor {
         }
       }
 
+    } else {
+      throw new Error('Expected raw NALU tagged payload');
     }
 
     if (!bufferSlice) {
