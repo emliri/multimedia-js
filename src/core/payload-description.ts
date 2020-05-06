@@ -24,7 +24,10 @@ export enum CommonMimeTypes {
   VIDEO_MP4 = 'video/mp4',
   VIDEO_AVC = 'video/avc', // AnnexB format ("access units")
   VIDEO_H264 = 'video/h264', // raw NALUs
-  VIDEO_AAC = 'video/aac'
+  VIDEO_AAC = 'video/aac',
+  VIDEO_MPEGTS = 'video/MP2T',
+  APP_HLS = 'application/vnd.apple.mpegurl',
+  APP_XMPEGURL = 'application/x-mpegurl'
 }
 
 export enum CommonCodecFourCCs {
