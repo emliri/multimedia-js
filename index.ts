@@ -19,7 +19,7 @@ export * as Crypto from './src/common-crypto';
 
 export { Processor, ProcessorEvent, ProcessorEventData } from './src/core/processor';
 export { InputSocket, Socket, OutputSocket, SocketDescriptor, SocketEvent } from './src/core/socket';
-export { Packet } from './src/core/packet';
+export { Packet, PacketSymbol } from './src/core/packet';
 export { BufferSlice } from './src/core/buffer';
 export { BufferProperties } from './src/core/buffer-props';
 export { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails, PayloadCodec } from './src/core/payload-description';
