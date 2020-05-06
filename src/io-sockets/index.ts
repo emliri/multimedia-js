@@ -10,3 +10,6 @@ export { NodeFsReadSocket } from './src/io-sockets/node-fs-read.socket';
 export { WebFileChooserSocket } from './web-file-chooser.socket';
 export { MediaSourceInputSocket } from './mse-input.socket';
 export { WebFileDownloadSocket } from './web-file-download.socket';
+
+export {AppInputSocket} from './app-input-socket';
+export {AppOutputSocket, AppOutputSocketAsyncFunc, AppOutputSocketSyncFunc} from './app-output-socket';
