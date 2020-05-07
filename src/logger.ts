@@ -69,9 +69,9 @@ export const loggerConfig: LoggerConfig = createAndGetLocalLoggerConfig();
 export function createAndGetLocalLoggerConfig (): LoggerConfig {
   let config: LoggerConfig;
 
-  const globalScope = self;
+  const globalScope = typeof self !== 'undefined' ? self : global;
 
-  if (globalScope.localStorage) {
+  if ((globalScope as Window).localStorage) {
     let object: string = localStorage.getItem(LOGGER_CONFIG_STORAGE_KEY) || '{}';
 
     try {
@@ -84,7 +84,7 @@ export function createAndGetLocalLoggerConfig (): LoggerConfig {
 
     // persist if creating state first time
     persistConfig(config);
-  } else { // fallback for workers (or no LocalStorage API support)
+  } else { // fallback for Node.js or Workers (or browser Window has disabled LocalStorage-API support)
     config = globalScope[LOGGER_CONFIG_STORAGE_KEY] || defaultGlobalConfig;
     globalScope[LOGGER_CONFIG_STORAGE_KEY] = config;
   }
