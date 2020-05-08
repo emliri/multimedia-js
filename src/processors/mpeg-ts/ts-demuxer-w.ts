@@ -143,6 +143,8 @@ export function feedMpegTsDemux(demux: TSDemuxer, p: Packet): Packet[] {
       outputPacketList.push(packet);
     });
 
+    audioTrackEsInfo.samples = [];
+
     const avcSamples: Array<MpegTsDemuxerAvcAccessUnit> = avcTrackEsInfo.samples;
 
     const sampleDepth = 8; // TODO: parse SPS i.e move to h264-parse-proc
@@ -219,7 +221,7 @@ export function feedMpegTsDemux(demux: TSDemuxer, p: Packet): Packet[] {
           accessUnit.pts - accessUnit.dts
           );
 
-        packet.setTimestampOffset(videoDtsOffset);
+        packet.setTimestampOffset(videoDtsOffset); // check if this works out downstream
 
         packet.setTimescale(MPEG_TS_TIMESCALE_HZ
           // avcTrackEsInfo.inputTimeScale // TODO: remove 'inputTimeScale' from resulting object
@@ -229,6 +231,8 @@ export function feedMpegTsDemux(demux: TSDemuxer, p: Packet): Packet[] {
 
         outputPacketList.push(packet);
       });
+
+      avcTrackEsInfo.samples = []
     });
 
     return void 0;
@@ -236,11 +240,13 @@ export function feedMpegTsDemux(demux: TSDemuxer, p: Packet): Packet[] {
 
   demux.onDemux = onDemux;
 
-  log('will append data to TSDemuxer instance');
+  // TODO: warn if truncated packets (bytes % 188 != 0)
+
+  log(`will append ${p.getTotalBytes()} bytes (~${(p.getTotalBytes() / 188).toFixed(3)} packets)`);
   p.forEachBufferSlice((bufferSlice) => {
     demux.append(bufferSlice.getUint8Array(), 0, true, 0);
   });
-  log('done appending data to TSDemuxer instance');
+  log('done appending');
 
   //outputPacketList.push(Packet.newFlush());
 
