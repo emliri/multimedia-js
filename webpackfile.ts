@@ -55,7 +55,6 @@ const afterEmit = { // custom "AfterEmitPlugin" to exec shell script post-build
   )
 }
 
-
 // TestCasesWeb
 {
   const entrySrc = './test-cases/web/index.ts'
