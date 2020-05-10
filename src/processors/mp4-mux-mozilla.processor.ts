@@ -68,6 +68,7 @@ export enum MP4MuxProcessorSupportedCodecs {
 
 export type MP4MuxProcessorOptions = {
   fragmentedMode: boolean,
+  fragmentMinDurationSeconds: number,
   embedCodecDataOnKeyFrames: boolean,
   forceMp3: boolean
 }
@@ -85,6 +86,9 @@ export class MP4MuxProcessor extends Processor {
   private lastCodecInfo_: string[] = [];
   private flushCounter_: number = 0;
 
+  private _queuedVideoBitstreamHeader: boolean = false;
+  private _queuedAudioBitstreamHeader: boolean = false;
+
   private videoPacketQueue_: Packet[] = [];
   private audioPacketQueue_: Packet[] = [];
 
@@ -93,6 +97,7 @@ export class MP4MuxProcessor extends Processor {
 
   private options_: MP4MuxProcessorOptions = {
     fragmentedMode: OUTPUT_FRAGMENTED_MODE,
+    fragmentMinDurationSeconds: 1,
     embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
     forceMp3: FORCE_MP3
   }
@@ -130,6 +135,8 @@ export class MP4MuxProcessor extends Processor {
       return false;
     }
 
+    //p.setTimestampOffset(0)
+
     if (p.defaultPayloadInfo.isAudio()) {
       this.audioPacketQueue_.push(p);
 
@@ -154,8 +161,13 @@ export class MP4MuxProcessor extends Processor {
 
     } else if (p.defaultPayloadInfo.isVideo()) {
 
-      if (this.options_.fragmentedMode && p.defaultPayloadInfo.isBitstreamHeader) {
+      if (this.options_.fragmentedMode && p.defaultPayloadInfo.isKeyframe
+        && this._queuedVideoBitstreamHeader && this.videoPacketQueue_.length > 1) {
         this.handleSymbolicPacket_(PacketSymbol.EOS);
+      }
+
+      if (p.defaultPayloadInfo.isBitstreamHeader) {
+        this._queuedVideoBitstreamHeader = true
       }
 
       this.videoPacketQueue_.push(p);
@@ -359,6 +371,14 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _initMuxer () {
+
+    /*
+    if (this.mp4Muxer_) {
+      warn('_initMuxer called twice')
+      return;
+    }
+    */
+
     log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_);
 
     const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, this.options_.fragmentedMode);
