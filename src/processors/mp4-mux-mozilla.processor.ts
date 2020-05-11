@@ -161,13 +161,18 @@ export class MP4MuxProcessor extends Processor {
 
     } else if (p.defaultPayloadInfo.isVideo()) {
 
-      if (this.options_.fragmentedMode && p.defaultPayloadInfo.isKeyframe
-        && this._queuedVideoBitstreamHeader && this.videoPacketQueue_.length > 1) {
-        this.handleSymbolicPacket_(PacketSymbol.EOS);
+      if (this.options_.fragmentedMode
+        && !this._queuedVideoBitstreamHeader && !p.defaultPayloadInfo.isBitstreamHeader) {
+        return; // drop any packets received before we got codec init data
       }
 
       if (p.defaultPayloadInfo.isBitstreamHeader) {
         this._queuedVideoBitstreamHeader = true
+      }
+
+      if (this.options_.fragmentedMode && p.defaultPayloadInfo.isKeyframe
+        && this._queuedVideoBitstreamHeader && this.videoPacketQueue_.length > 1) {
+        this.handleSymbolicPacket_(PacketSymbol.EOS);
       }
 
       this.videoPacketQueue_.push(p);
