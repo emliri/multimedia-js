@@ -18,7 +18,7 @@ import MpegAudio from './mpeg-audio-parser';
 
 // import Hex from '../utils/hex';
 
-const { log, warn, error } = getLogger('TSDemuxer', LoggerLevel.OFF, true);
+const { log, info, warn, error } = getLogger('TSDemuxer', LoggerLevel.ON, true);
 
 // We are using fixed track IDs for driving the MP4 remuxer
 // instead of following the TS PIDs.
@@ -339,7 +339,7 @@ export class TSDemuxer {
         }
 
         if (unknownPIDs && !pmtParsed) {
-          log('reparse from beginning');
+          info('reparse from beginning');
           unknownPIDs = false;
           // we set it to -188, the += 188 in the for loop will reset start to 0
           start = syncOffset - 188;
@@ -386,6 +386,10 @@ export class TSDemuxer {
     } else {
       // either id3Data null or PES truncated, keep it for next frag parsing
       id3Track.pesData = id3Data;
+    }
+
+    if (avcTrack.samples.length <= 1) {
+      return;
     }
 
     if (this.sampleAes == null) {
