@@ -23,7 +23,7 @@ import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
 
 const OUTPUT_FRAGMENTED_MODE = false;
 const EMBED_CODEC_DATA_ON_KEYFRAME = true;
@@ -79,21 +79,20 @@ export class MP4MuxProcessor extends Processor {
     return 'MP4MuxProcessor';
   }
 
-  private hasBeenClosed_: boolean = false;
   private mp4Muxer_: MP4Mux = null;
   private mp4Metadata_: MP4Metadata = null;
   private keyFramePushed_: boolean = false;
   private lastCodecInfo_: string[] = [];
   private flushCounter_: number = 0;
 
-  private _queuedVideoBitstreamHeader: boolean = false;
   private _queuedAudioBitstreamHeader: boolean = false;
-
-  private videoPacketQueue_: Packet[] = [];
-  private audioPacketQueue_: Packet[] = [];
+  private _queuedVideoBitstreamHeader: boolean = false;
 
   private audioBitstreamHeader_: BufferSlice = null;
   private videoBitstreamHeader_: BufferSlice = null;
+
+  private audioPacketQueue_: Packet[] = [];
+  private videoPacketQueue_: Packet[] = [];
 
   private options_: MP4MuxProcessorOptions = {
     fragmentedMode: OUTPUT_FRAGMENTED_MODE,
@@ -171,7 +170,7 @@ export class MP4MuxProcessor extends Processor {
       }
 
       if (this.options_.fragmentedMode && p.defaultPayloadInfo.isKeyframe
-        && this._queuedVideoBitstreamHeader && this.videoPacketQueue_.length > 1) {
+        && this._queuedVideoBitstreamHeader && this.videoPacketQueue_.length > 1 + 1) {
         this.handleSymbolicPacket_(PacketSymbol.EOS);
       }
 
@@ -203,17 +202,12 @@ export class MP4MuxProcessor extends Processor {
 
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
     switch (symbol) {
-    case PacketSymbol.RESUME:
-      log('resume symbol received, closing state');
-      this._close();
-      break;
     case PacketSymbol.EOS:
       log('EOS received');
       this.flushCounter_++;
       if (this.flushCounter_ !== this.in.length) {
         break;
       }
-
       log('received EOS symbols count equal to inputs width, flushing');
       this.flushCounter_ = 0;
       this._flush();
@@ -377,12 +371,9 @@ export class MP4MuxProcessor extends Processor {
 
   private _initMuxer () {
 
-    /*
-    if (this.mp4Muxer_) {
-      warn('_initMuxer called twice')
-      return;
+    if (this.options_.fragmentedMode && this.mp4Muxer_) {
+      //return;
     }
-    */
 
     log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_);
 
@@ -390,21 +381,15 @@ export class MP4MuxProcessor extends Processor {
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
-
-    if (!this.options_.fragmentedMode) {
-      this.hasBeenClosed_ = true;
-    }
   }
 
   private _getNextTrackId (): number {
     return (this.mp4Metadata_.tracks.length + 1);
   }
 
-  private _close () {
-    log('closing state');
-    if (!this.hasBeenClosed_) {
-      this._initMuxer();
-    }
+  private _processQueues () {
+
+    this._initMuxer();
 
     log('processing video packet queue', this.videoPacketQueue_);
 
@@ -420,9 +405,8 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _flush () {
-    log('flush called');
-    this._close();
-    log('will flush internal muxer engine');
+    log('_flush() called, will flush internal muxer engine');
+    this._processQueues();
     this.mp4Muxer_.flush();
   }
 
