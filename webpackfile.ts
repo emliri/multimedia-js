@@ -3,18 +3,30 @@ import {createWebpackConfig} from './webpack-config-factory'
 const configs = []
 const debug = process.env.DEBUG === '1'
 const noFrills = process.env.NO_FRILLS === '1'
+const noTypes = process.env.NO_TYPES === '1'
 
 const exec = require('child_process').exec;
 
-const afterEmit = { // custom "AfterEmitPlugin" to exec shell script post-build
+function onAfterEmit(compilation) {
+  process.stdout.write('\nBuilding type declarations ...\n')
+  exec('npm run build-decls \n npm run build-decls-post', (err, stdout, stderr) => {
+    if (stdout) process.stdout.write(stdout);
+    if (stderr) process.stderr.write(stderr);
+  });
+}
+
+const afterEmitHookPlugin = { // custom "AfterEmitPlugin" to exec shell script post-build
   apply: (compiler) => {
-    compiler.hooks.afterEmit.tap('AfterEmitPlugin', (compilation) => {
-      exec('npm run build-decls \n npm run build-decls-post', (err, stdout, stderr) => {
-        if (stdout) process.stdout.write(stdout);
-        if (stderr) process.stderr.write(stderr);
-      });
+    compiler.hooks.afterEmit.tap('AfterEmitHookPlugin', (compilation) => {
+      onAfterEmit(compilation)
     });
   }
+}
+
+const plugins = [];
+
+if (!noTypes) {
+  plugins.push(afterEmitHookPlugin);
 }
 
 // All Library
@@ -31,9 +43,7 @@ const afterEmit = { // custom "AfterEmitPlugin" to exec shell script post-build
       libName,
       libraryTarget,
       buildPath,
-      plugins: [
-        afterEmit
-      ]
+      plugins
     })
   )
 }
@@ -158,8 +168,6 @@ if (!noFrills) {
   }
   */
 }
-
-
 
 export default configs
 
