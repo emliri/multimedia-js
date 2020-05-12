@@ -8,7 +8,7 @@ const noTypes = process.env.NO_TYPES === '1'
 const exec = require('child_process').exec;
 
 function onAfterEmit(compilation) {
-  process.stdout.write('\nBuilding type declarations ...\n')
+  process.stdout.write('\n\n ---> Building exported type declarations now...\n\n')
   exec('npm run build-decls \n npm run build-decls-post', (err, stdout, stderr) => {
     if (stdout) process.stdout.write(stdout);
     if (stderr) process.stderr.write(stderr);
@@ -16,7 +16,7 @@ function onAfterEmit(compilation) {
 }
 
 const afterEmitHookPlugin = { // custom "AfterEmitPlugin" to exec shell script post-build
-  apply: (compiler) => {
+  apply: function AfterEmitHookPlugin(compiler) {
     compiler.hooks.afterEmit.tap('AfterEmitHookPlugin', (compilation) => {
       onAfterEmit(compilation)
     });
