@@ -1,12 +1,11 @@
 import { Processor } from '../core/processor';
-
 import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplateGenerator } from '../core/socket';
 import { Packet } from '../core/packet';
-
 import { getLogger, LoggerLevel } from '../logger';
 import { initMpegTsDemux, feedMpegTsDemux } from './mpeg-ts/ts-demuxer-w';
 import { debugAccessUnit, debugNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
+
 import TSDemuxer from './mpeg-ts/ts-demuxer';
 
 const { debug, log, warn } = getLogger('MPEGTSDemuxProcessor', LoggerLevel.WARN, true);
