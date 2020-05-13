@@ -360,6 +360,7 @@ export class TSDemuxer {
       avcTrack.pesData = null;
     } else {
       // either avcData null or PES truncated, keep it for next frag parsing
+      warn('keeping truncated PES data on AVC track');
       avcTrack.pesData = avcData;
     }
 
