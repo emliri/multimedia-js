@@ -283,7 +283,7 @@ export class MP2TSDemuxProcessor extends Processor {
     debugNALU(bufferSlice)
 
     if (this._videoDtsOffset === null) {
-      this._videoDtsOffset = 0
+      this._videoDtsOffset = h264Event.dts
     }
 
     const packet = Packet.fromSlice(
