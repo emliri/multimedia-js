@@ -12,12 +12,12 @@ import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { NALU } from './h264/nalu';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.LOG, true);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
 const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true;
 
-const DEBUG_H264 = false;
+const DEBUG_H264 = true;
 export class H264ParseProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
@@ -113,6 +113,11 @@ export class H264ParseProcessor extends Processor {
        */
 
       const propsCache = bufferSlice.props;
+
+      if (bufferSlice.props.tags.has('aud')) {
+        warn('dropping AUD')
+        return;
+      }
 
       //*
       if (bufferSlice.props.tags.has('sei')) {
