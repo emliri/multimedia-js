@@ -1,6 +1,6 @@
 .PHONY: all clean
 
-# SOURCE FILES (all files in `src`)
+# SOURCE FILES (all JS/TS files in `src`)
 
 SRC_FILES = $(shell find src -type f -name "*.ts") $(shell find src -type f -name "*.js")
 
@@ -14,12 +14,13 @@ all: dist vendor/$(VENDOR_LIB_NAME_FFMPEG)
 
 clean:
 	rm -f package-lock.json.alias
+	rm -f .gitmodules.alias
 	rm -Rf node_modules
 	rm -Rf dist
 
 # TARGET FILES
 
-dist: index.ts $(SRC_FILES) package-lock.json.alias tsconfig.json
+dist: index.ts $(SRC_FILES) package-lock.json.alias tsconfig.json .gitmodules.alias
 	rm -Rf dist
 	npm run build
 
@@ -32,6 +33,10 @@ package-lock.json.alias: package.json node_modules
 	rm -f package-lock.json.alias
 	npm install
 	touch package-lock.json.alias
+
+.gitmodules.alias: .gitmodules
+	git submodule update --init
+	touch .gitmodules.alias
 
 vendor/$(VENDOR_LIB_NAME_FFMPEG): vendor package-lock.json.alias
 	rm -Rf vendor/$(VENDOR_LIB_NAME_FFMPEG)

@@ -8,3 +8,4 @@ npm-debug.log
 vendor
 
 package-lock.json.alias
+.gitmodules.alias

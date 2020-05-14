@@ -80,7 +80,6 @@ To get started with Multimedia-js (mmjs), simply clone & build the project, and 
 
 ```
 git@github.com:emliri/multimedia-js.git
-git submodule update --init
 make # only needed once because we want to install some third-party binaries in publishable `vendor` directory
 npm start # if you only modify TS codebase, you can only run this next time
 ```
@@ -213,8 +212,6 @@ Development on MS Windows is not supported at the moment, but you may try by ins
 ### To build just run ...
 
 First build? You don't need to care about installing dependencies! Our build system does it for you.
-
-IMPORTANT: You only need to setup Git submodules initially: `git submodule update --init`
 
 Then, just run:
 ```
