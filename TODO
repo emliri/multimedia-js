@@ -30,6 +30,8 @@
 
 # CI
 
+- Document NO_FRILLS & NO_TYPES env vars
+
 - Setup strict compiler mode
 
 # Performance
@@ -40,6 +42,8 @@
   * XHR-socket readystatechange event handler
 
 # Model design
+
+- Review PacketSymbols design
 
 - Take care of mime-types and 4cc codec strings properly
 
