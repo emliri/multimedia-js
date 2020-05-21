@@ -14,8 +14,8 @@ import { NALU } from './h264/nalu';
 
 const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
 
-const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true;
-const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true;
+const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make these runtime options
+const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true; // TODO: make these runtime options
 
 const DEBUG_H264 = true;
 export class H264ParseProcessor extends Processor {
@@ -109,7 +109,6 @@ export class H264ParseProcessor extends Processor {
 
       /**
        * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
-       * with our MPEG-TS-demux output that spits out raw NALUs
        */
 
       const propsCache = bufferSlice.props;
@@ -236,6 +235,6 @@ export class H264ParseProcessor extends Processor {
       );
     }
 
-    // TODO: allow to chunk up AU into single NALUs and output that
+    // TODO: also allow the other way round: to chunk up AU into single NALUs and output that
   }
 }
