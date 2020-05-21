@@ -9,10 +9,36 @@ import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit, debugNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
-import * as m2ts from '../ext-mod/mux.js/lib/m2ts/m2ts';
-import * as AdtsStream from '../ext-mod/mux.js/lib/codecs/adts.js';
-import * as H264Codec from '../ext-mod/mux.js/lib/codecs/h264'
-import * as MuxStream from '../ext-mod/mux.js/lib/utils/stream';
+import {
+  M2tDemuxPipeline,
+  M2tH264StreamEvent,
+  M2tStream,
+  M2tADTSStreamEvent,
+  M2tElementaryStreamEvent,
+  M2tNaluType,
+} from './muxjs-m2t/muxjs-m2t-types';
+
+import {
+  CaptionStream,
+  MetadataStream,
+  TransportPacketStream,
+  TransportParseStream,
+  ElementaryStream,
+  TimestampRolloverStream,
+  AdtsStream,
+  H264Codec
+} from './muxjs-m2t/muxjs-m2t';
+
+function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
+  switch(m2tNaluType) {
+  case M2tNaluType.AUD: return "aud";
+  case M2tNaluType.SPS: return "sps";
+  case M2tNaluType.PPS: return "pps";
+  case M2tNaluType.SEI: return "pps";
+  case M2tNaluType.IDR: return "idr";
+  default: return null
+  }
+}
 
 const MPEG_TS_TIMESCALE_HZ = 90000;
 
@@ -30,84 +56,6 @@ const getSocketDescriptor: SocketTemplateGenerator =
     SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
   );
 
-type StreamEventData = {
-  type: string
-}
-
-type Stream = MuxStream & {
-  on: (event: string, handler: (data: StreamEventData) => void) => Stream
-}
-
-enum M2tNaluType {
-  AUD = "access_unit_delimiter_rbsp",
-  SPS = "seq_parameter_set_rbsp",
-  PPS = "pic_parameter_set_rbsp",
-  SEI = "sei_rbsp",
-  IDR = "slice_layer_without_partitioning_rbsp_idr"
-}
-
-function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
-  switch(m2tNaluType) {
-  case M2tNaluType.AUD: return "aud";
-  case M2tNaluType.SPS: return "sps";
-  case M2tNaluType.PPS: return "pps";
-  case M2tNaluType.SEI: return "pps";
-  case M2tNaluType.IDR: return "idr";
-  default: return null
-  }
-}
-
-type M2tDemuxPipeline = {
-  metadataStream: Stream
-  packetStream: Stream,
-  parseStream: Stream,
-  elementaryStream: Stream,
-  timestampRolloverStream: Stream,
-  adtsStream: Stream,
-  h264Stream: Stream,
-  captionStream: Stream,
-  headOfPipeline: Stream
-};
-
-type M2tTrackType = "video" | "audio"
-
-type M2tTrack = {
-  codec: "avc" | "adts"
-  id: number
-  timelineStartInfo: {
-    baseMediaDecodeTime: number
-  }
-  type: M2tTrackType
-}
-
-type M2tElementaryStreamEvent = {
-  type: "metadata" | M2tTrackType
-  dts: number | undefined
-  pts: number | undefined
-  packetLength: number
-  trackId: number
-  dataAlignmentIndicator: boolean
-  data: Uint8Array
-  tracks?: Array<M2tTrack>
-}
-
-type M2tH264StreamEvent = {
-  type?: "metadata",
-  config?: {
-    height: number
-    width: number
-    levelIdc: number
-    profileCompatibility: number
-    profileIdc: number
-    sarRatio: [number, number]
-  }
-  data: Uint8Array
-  escapedRBSP?: Uint8Array
-  dts: number
-  pts: number
-  nalUnitType: M2tNaluType
-  trackId: number
-}
 
 export class MP2TSDemuxProcessor extends Processor {
 
@@ -125,13 +73,13 @@ export class MP2TSDemuxProcessor extends Processor {
   private _demuxPipeline: M2tDemuxPipeline;
 
   private _audioSocket: OutputSocket = null;
+  private _audioDtsOffset: number = null;
 
   private _videoSocket: OutputSocket = null;
   private _videoDtsOffset: number = null
   private _videoConfig: M2tH264StreamEvent = null;
 
   private _outPackets: Packet[] = [];
-
 
   constructor () {
     super();
@@ -148,16 +96,16 @@ export class MP2TSDemuxProcessor extends Processor {
 
     const pipeline: Partial<M2tDemuxPipeline> = {};
     this._demuxPipeline = pipeline as M2tDemuxPipeline;
-    pipeline.metadataStream = new m2ts.MetadataStream();
+    pipeline.metadataStream = new MetadataStream();
     // set up the parsing pipeline
-    pipeline.packetStream = new m2ts.TransportPacketStream() as unknown as Stream;
-    pipeline.parseStream = new m2ts.TransportParseStream() as unknown as Stream;
-    pipeline.elementaryStream = new m2ts.ElementaryStream() as unknown as Stream;
-    pipeline.timestampRolloverStream = new m2ts.TimestampRolloverStream() as unknown as Stream;
-    pipeline.adtsStream = new AdtsStream.default() as unknown as Stream;
-    pipeline.h264Stream = new H264Codec.H264Stream() as unknown as Stream;
-    pipeline.captionStream = new m2ts.CaptionStream() as unknown as Stream;
-    pipeline.headOfPipeline = pipeline.packetStream as unknown as Stream;
+    pipeline.packetStream = new TransportPacketStream() as unknown as M2tStream;
+    pipeline.parseStream = new TransportParseStream() as unknown as M2tStream;
+    pipeline.elementaryStream = new ElementaryStream() as unknown as M2tStream;
+    pipeline.timestampRolloverStream = new TimestampRolloverStream() as unknown as M2tStream;
+    pipeline.aacOrAdtsStream = new AdtsStream.default() as unknown as M2tStream;
+    pipeline.h264Stream = new H264Codec.H264Stream() as unknown as M2tStream;
+    pipeline.captionStream = new CaptionStream() as unknown as M2tStream;
+    pipeline.headOfPipeline = pipeline.packetStream as unknown as M2tStream;
 
     // disassemble MPEG2-TS packets into elementary streams
     pipeline.packetStream
@@ -171,77 +119,72 @@ export class MP2TSDemuxProcessor extends Processor {
       .pipe(pipeline.h264Stream);
 
     pipeline.timestampRolloverStream
-      .pipe(pipeline.adtsStream);
+      .pipe(pipeline.aacOrAdtsStream);
 
     pipeline.timestampRolloverStream
       .pipe(pipeline.metadataStream);
 
-
     // Hook up CEA-608/708 caption stream
     pipeline.h264Stream.pipe(pipeline.captionStream);
 
-    pipeline.h264Stream.on('data', (data) => {
+    pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       log('h264Stream:', data)
-      this._handleVideoNalu(data as M2tH264StreamEvent);
+      this._handleVideoNalu(data);
+    })
+
+    pipeline.aacOrAdtsStream.on('data', (data: M2tADTSStreamEvent) => {
+      log('aacOrAdtsStream:', data)
+      this._handleAudioNalu(data);
     })
 
     pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
-
       //log('ES:', data)
-      //
-
       if (data.type === 'metadata') {
-
+        //
       }
     });
 
   }
 
-  /*
-  private _handleAudioNalu(h264Event: M2tAACStreamEvent) {
+  private _handleAudioNalu(adtsEvent: M2tADTSStreamEvent) {
       // FIXME: move this out of iteration as well as creating BufferProperties once and
       // only mutating where necessary
-      const mimeType =  ? CommonMimeTypes.AUDIO_AAC : CommonMimeTypes.AUDIO_MP3;
+      const mimeType = CommonMimeTypes.AUDIO_AAC;
 
-      if (!esdsAtomData) {
-        esdsAtomData = makeEsdsAtomFromMpegAudioSpecificConfigInfoData(new Uint8Array(audioTrackEsInfo.config));
-
-        const esdsAtomBuffer = new BufferSlice(esdsAtomData);
-        esdsAtomBuffer.props = new BufferProperties(mimeType);
-        esdsAtomBuffer.props.isBitstreamHeader = true;
-
-        esdsAtomBuffer.props.codec = 'aac'; // 'mp4a' // audioTrackEsInfo.codec;
-        esdsAtomBuffer.props.elementaryStreamId = audioTrackEsInfo.pid;
-        esdsAtomBuffer.props.details.numChannels = audioTrackEsInfo.channelCount;
-
-        const audioConfigPacket = Packet.fromSlice(esdsAtomBuffer, 0);
-
-        audioConfigPacket.setTimescale(90000)
-
-        outputPacketList.push(audioConfigPacket);
-      }
-
-      const sampleData: Uint8Array = sample.unit;
+      const sampleData: Uint8Array = adtsEvent.data;
 
       const bufferSlice = new BufferSlice(
         sampleData.buffer.slice(0),
         sampleData.byteOffset,
         sampleData.byteLength);
 
-      bufferSlice.props = new BufferProperties(mimeType, audioTrackEsInfo.samplerate);
-      bufferSlice.props.codec = 'aac'; // 'mp4a' // audioTrackEsInfo.codec;
-      bufferSlice.props.elementaryStreamId = audioTrackEsInfo.pid;
-      bufferSlice.props.details.numChannels = audioTrackEsInfo.channelCount;
+      // TODO: To optimize performance, try to re-use the same heap-object instance here
+      // for as many buffers as possible
+      bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16);
+      bufferSlice.props.samplesCount = adtsEvent.sampleCount;
+      bufferSlice.props.codec = 'aac'; // 'mp4a'
+      bufferSlice.props.isKeyframe = true;
+      bufferSlice.props.isBitstreamHeader = true;
+      bufferSlice.props.details.samplesPerFrame = 1024;
+      bufferSlice.props.details.codecProfile = adtsEvent.audioobjecttype;
+      bufferSlice.props.details.numChannels = adtsEvent.channelcount;
 
       // bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
 
-      const packet = Packet.fromSlice(bufferSlice, sample.dts, sample.pts - sample.dts); // HACK !!!
+      if (this._audioDtsOffset === null) {
+        this._audioDtsOffset = adtsEvent.dts
+      }
 
+      const packet = Packet.fromSlice(bufferSlice,
+        adtsEvent.dts - this._audioDtsOffset,
+        adtsEvent.pts - adtsEvent.dts
+      );
+
+      packet.setTimestampOffset(this._audioDtsOffset);
       packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
 
-      outputPacketList.push(packet);
+      this._outPackets.push(packet);
   }
-  */
 
   private _handleVideoNalu(h264Event: M2tH264StreamEvent) {
 
@@ -272,7 +215,7 @@ export class MP2TSDemuxProcessor extends Processor {
     }
 
     bufferSlice.props.details.samplesPerFrame = 1;
-    bufferSlice.props.details.sequenceDurationInSeconds = 10; // HACK !!!
+    bufferSlice.props.details.sequenceDurationInSeconds = 10; // HACK !!! // FIXME
 
     bufferSlice.props.tags.add('nalu');
 
@@ -294,9 +237,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
 
-    packet.setTimescale(MPEG_TS_TIMESCALE_HZ
-      // avcTrackEsInfo.inputTimeScale // TODO: remove 'inputTimeScale' from resulting object
-    )
+    packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
 
     debug('created packet:', packet.toString());
 
@@ -324,7 +265,9 @@ export class MP2TSDemuxProcessor extends Processor {
         return;
       }
 
+      // FIXME: make two queues (audio/video) and optimize away this check here
       if (p.defaultPayloadInfo.isVideo()) {
+
         if (!videoSocket) {
           log('creating video output socket')
           this._videoSocket = videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
@@ -339,7 +282,10 @@ export class MP2TSDemuxProcessor extends Processor {
         }
 
         videoSocket.transfer(p);
+
+      // FIXME: make two queues (audio/video) and optimize away this check here
       } else if (p.defaultPayloadInfo.isAudio()) {
+
         if (!audioSocket) {
           log('creating audio output socket')
           this._audioSocket = audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
@@ -348,6 +294,7 @@ export class MP2TSDemuxProcessor extends Processor {
         debug('transferring audio packet to default out');
 
         audioSocket.transfer(p);
+
       } else {
         throw new Error('Unsupported payload: ' + p.defaultMimeType);
       }
