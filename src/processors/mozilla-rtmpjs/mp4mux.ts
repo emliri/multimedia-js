@@ -47,9 +47,9 @@ import {
   TrackFragmentFlags,
   TrackRunFlags,
   MediaDataBox,
-  SELF_CONTAINED_DATA_REFERENCE_FLAG,
   StblSample,
-  SoundMediaHeaderBox
+  SoundMediaHeaderBox,
+  SELF_CONTAINED_DATA_REFERENCE_FLAG
 } from './mp4iso-boxes';
 
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
@@ -62,13 +62,23 @@ const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.ON, true);
 let MAX_PACKETS_IN_CHUNK = Infinity;
 let SPLIT_AT_KEYFRAMES = false;
 
-type CachedPacket = {
-  packet: any;
-  timestamp: number;
-  trackId: number;
-}
-
 export const AAC_SAMPLES_PER_FRAME = 1024;
+
+export const AAC_SAMPLING_FREQUENCIES = [
+  96000,
+  88200,
+  64000,
+  48000,
+  44100,
+  32000,
+  24000,
+  22050,
+  16000,
+  12000,
+  11025,
+  8000,
+  7350
+];
 
 export const SOUNDRATES = [5500, 11025, 22050, 44100];
 
@@ -90,6 +100,12 @@ export const SOUNDFORMATS = [
 
 export const MP3_SOUND_CODEC_ID = 2;
 export const AAC_SOUND_CODEC_ID = 10;
+
+type CachedPacket = {
+  packet: any;
+  timestamp: number;
+  trackId: number;
+}
 
 export enum AudioPacketType {
     HEADER = 0,
@@ -221,6 +237,7 @@ export type MP4Track = {
     samplerate?: number;
     channels?: number;
     samplesize?: number;
+    audioObjectType?: number;
 
     framerate?: number;
     width?: number;
@@ -349,10 +366,7 @@ export class MP4Mux {
         case MP3_SOUND_CODEC_ID:
           break; // supported codec
         case AAC_SOUND_CODEC_ID:
-          if (audioPacket.packetType === AudioPacketType.HEADER) {
-            audioTrack.initializationData.push(audioPacket.data);
-            return;
-          }
+          if (!audioTrack.initializationData.length) audioTrack.initializationData = [new Uint8Array(0)];
           break;
         }
         this.cachedPackets.push({ packet: audioPacket, timestamp, trackId: audioTrack.trackId });
@@ -418,7 +432,8 @@ export class MP4Mux {
 
     private _checkIfNeedHeaderData () {
       if (this.trackStates.some((ts) =>
-        ts.trackInfo.codecId === AAC_SOUND_CODEC_ID || ts.trackInfo.codecId === AVC_VIDEO_CODEC_ID)) {
+        ts.trackInfo.codecId === AAC_SOUND_CODEC_ID
+        || ts.trackInfo.codecId === AVC_VIDEO_CODEC_ID)) {
         this.state = MP4MuxState.NEED_HEADER_DATA;
       } else {
         this.state = MP4MuxState.CAN_GENERATE_HEADER;
@@ -621,37 +636,59 @@ export class MP4Mux {
         switch (trackInfo.codecId) {
         case AAC_SOUND_CODEC_ID:
 
-          trackState.initializationData.forEach((audioSpecificConfig) => {
-            sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex, trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
-            const esdsData = audioSpecificConfig;
+          trackState.initializationData.forEach(() => {
+
+            sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex,
+              trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
+
+            const samplingFrequencyIndex = AAC_SAMPLING_FREQUENCIES.indexOf(trackInfo.samplerate);
+            if (samplingFrequencyIndex < 0) {
+              throw new Error('Sample-rate not supported for AAC (mp4a): ' + trackInfo.samplerate);
+            }
+
+            const esdsData = new Uint8Array([
+              0x00, // version
+              0x00, 0x00, 0x00, // flags
+
+              // ES_Descriptor
+              0x03, // tag, ES_DescrTag
+              0x19, // length
+              0x00, 0x00, // ES_ID
+              0x00, // streamDependenceFlag, URL_flag, reserved, streamPriority
+
+              // DecoderConfigDescriptor
+              0x04, // tag, DecoderConfigDescrTag
+              0x11, // length
+              0x40, // object type
+              0x15,  // streamType
+              0x00, 0x06, 0x00, // bufferSizeDB
+              0x00, 0x00, 0xda, 0xc0, // maxBitrate
+              0x00, 0x00, 0xda, 0xc0, // avgBitrate
+
+              // DecoderSpecificInfo
+              0x05, // tag, DecoderSpecificInfoTag
+              0x02, // length
+              // ISO/IEC 14496-3, AudioSpecificConfig
+              // for samplingFrequencyIndex see ISO/IEC 13818-7:2006, 8.1.3.2.2, Table 35
+              (trackInfo.audioObjectType << 3) | (samplingFrequencyIndex >>> 1),
+              (samplingFrequencyIndex << 7) | (trackInfo.channels << 3),
+              0x06, 0x01, 0x02 // GASpecificConfig
+            ])
+
             sampleEntry.otherBoxes = [
               new RawTag('esds', esdsData)
             ];
 
             sampleDescEntry.push(sampleEntry);
 
-            // FIXME: instead of taking the data inside the ES_Descriptor we are using the data contained in esds atom directly
-            // i.e the "framed" ES_Descriptor data
-            /*
-            var esdsData = new Uint8Array(41 + audioSpecificConfig.length);
-            esdsData.set(hexToBytes('0000000003808080'), 0);
-            esdsData[8] = 32 + audioSpecificConfig.length;
-            esdsData.set(hexToBytes('00020004808080'), 9);
-            esdsData[16] = 18 + audioSpecificConfig.length;
-            esdsData.set(hexToBytes('40150000000000FA000000000005808080'), 17);
-            esdsData[34] = audioSpecificConfig.length;
-            esdsData.set(audioSpecificConfig, 35);
-            esdsData.set(hexToBytes('068080800102'), 35 + audioSpecificConfig.length);
-            */
-
-            let objectType = (audioSpecificConfig[0] >> 3); // TODO 31
             // mp4a.40.objectType
 
             // FIXME: we are overriding previous writes here with the last entry of init datas.
             //        the problem with that is that we are only making one call to oncodecinfo callback
             //        so this could be changed to making several calls or passing an array of strings instead
             //        and making mimeTypeCodec field an array then.
-            trackState.mimeTypeCodec = 'mp4a.40.' + objectType; // 'mp4a.40.2'
+            trackState.mimeTypeCodec = 'mp4a.40.' + trackInfo.audioObjectType; // 'mp4a.40.2'
+
           });
           break;
 

@@ -23,7 +23,7 @@ import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
 const OUTPUT_FRAGMENTED_MODE = false;
 const EMBED_CODEC_DATA_ON_KEYFRAME = true;
@@ -81,14 +81,10 @@ export class MP4MuxProcessor extends Processor {
 
   private mp4Muxer_: MP4Mux = null;
   private mp4Metadata_: MP4Metadata = null;
-  private keyFramePushed_: boolean = false;
   private lastCodecInfo_: string[] = [];
   private flushCounter_: number = 0;
 
-  private _queuedAudioBitstreamHeader: boolean = false;
   private _queuedVideoBitstreamHeader: boolean = false;
-
-  private audioBitstreamHeader_: BufferSlice = null;
   private videoBitstreamHeader_: BufferSlice = null;
 
   private audioPacketQueue_: Packet[] = [];
@@ -153,7 +149,8 @@ export class MP4MuxProcessor extends Processor {
         p.defaultPayloadInfo.getSamplingRate(),
         p.defaultPayloadInfo.sampleDepth,
         p.defaultPayloadInfo.details.numChannels,
-        p.defaultPayloadInfo.details.sequenceDurationInSeconds
+        p.defaultPayloadInfo.details.codecProfile,
+        p.defaultPayloadInfo.details.sequenceDurationInSeconds || 10,
       );
 
       return true;
@@ -171,7 +168,8 @@ export class MP4MuxProcessor extends Processor {
 
       if (this.options_.fragmentedMode && p.defaultPayloadInfo.isKeyframe
         && this._queuedVideoBitstreamHeader && this.videoPacketQueue_.length > 1 + 1) {
-        this.handleSymbolicPacket_(PacketSymbol.EOS);
+        // FIXME: make this rather an optional feature
+        this._flush();
       }
 
       this.videoPacketQueue_.push(p);
@@ -306,10 +304,6 @@ export class MP4MuxProcessor extends Processor {
         p.getScaledCto(timescale) // TODO: replace by using input timescale when equal?
       );
 
-      if (!this.keyFramePushed_ &&
-        bufferSlice.props.isKeyframe) {
-        this.keyFramePushed_ = true;
-      }
     });
   }
 
@@ -329,11 +323,6 @@ export class MP4MuxProcessor extends Processor {
       const mp4Muxer = this.mp4Muxer_;
       const data = bufferSlice.getUint8Array();
 
-      if (bufferSlice.props.isBitstreamHeader) {
-        log('got audio bitstream header');
-        this.audioBitstreamHeader_ = bufferSlice;
-      }
-
       debug('audio packet:', p.toString());
 
       mp4Muxer.pushPacket(
@@ -343,16 +332,12 @@ export class MP4MuxProcessor extends Processor {
         data,
         p.getScaledDts(timescale),
         true, // NOTE: Non-raw mode expects FLV-packaged data
-        bufferSlice.props.isBitstreamHeader, // NOTE: we are expecting an actual MP4 `esds` ISOBMFF data atom as bitstream header
+        false,
         bufferSlice.props.isKeyframe,
         p.getScaledCto(timescale),
         audioDetails
       );
 
-      if (!this.keyFramePushed_ &&
-        bufferSlice.props.isKeyframe) {
-        this.keyFramePushed_ = true;
-      }
     });
   }
 
@@ -415,8 +400,11 @@ export class MP4MuxProcessor extends Processor {
     sampleRate: number,
     sampleSize: number,
     numChannels: number,
+    audioObjectType: number,
     durationSeconds: number,
-    language: string = 'und'): MP4Track {
+    language: string = 'und'
+    ): MP4Track {
+
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec);
     }
@@ -429,7 +417,8 @@ export class MP4MuxProcessor extends Processor {
       timescale: sampleRate,
       samplerate: sampleRate,
       channels: numChannels,
-      samplesize: sampleSize
+      samplesize: sampleSize,
+      audioObjectType
     };
 
     log('creating audio track:', audioCodec, audioTrack.duration / audioTrack.timescale, 'secs');
