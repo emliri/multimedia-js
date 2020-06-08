@@ -113,6 +113,8 @@ export enum AudioPacketType {
   }
 
 export type AudioPacket = {
+  decodingTime: number,
+  compositionTime: number,
   codecDescription: string;
   codecId: number;
   data: Uint8Array;
@@ -137,42 +139,6 @@ export type VideoPacket = {
   sampleDescriptionIndex: number;
 }
 
-export function parseAudiodata (data: Uint8Array): AudioPacket {
-  let i = 0;
-  let packetType = AudioPacketType.RAW;
-  let flags = data[i];
-  let codecId = flags >> 4;
-  let soundRateId = (flags >> 2) & 3;
-  let sampleSize = flags & 2 ? 16 : 8;
-  let channels = flags & 1 ? 2 : 1;
-  let samples: number;
-  i++;
-  switch (codecId) {
-  case AAC_SOUND_CODEC_ID:
-    var type = data[i++];
-    packetType = <AudioPacketType>type;
-    samples = AAC_SAMPLES_PER_FRAME; // AAC implementations typically represent 1024 PCM audio samples
-    break;
-  case MP3_SOUND_CODEC_ID:
-    var version = (data[i + 1] >> 3) & 3; // 3 - MPEG 1
-    var layer = (data[i + 1] >> 1) & 3; // 3 - Layer I, 2 - II, 1 - III
-    samples = layer === 1 ? (version === 3 ? 1152 : 576)
-      : (layer === 3 ? 384 : 1152);
-    break;
-  }
-  return {
-    codecDescription: SOUNDFORMATS[codecId],
-    codecId: codecId,
-    data: data.subarray(i),
-    rate: SOUNDRATES[soundRateId],
-    size: sampleSize,
-    channels: channels,
-    samples: samples,
-    packetType: packetType,
-    sampleDescriptionIndex: 0
-  };
-}
-
 export const VIDEOCODECS = [null, 'JPEG', 'Sorenson', 'Screen', 'VP6', 'VP6 alpha', 'Screen2', 'AVC'];
 export const VP6_VIDEO_CODEC_ID = 4;
 export const AVC_VIDEO_CODEC_ID = 7;
@@ -190,36 +156,6 @@ export enum VideoPacketType {
     NALU = 1,
     END = 2,
   }
-
-export function parseVideodata (data: Uint8Array): VideoPacket {
-  let i = 0;
-  let frameType = data[i] >> 4;
-  let codecId = data[i] & 15;
-  i++;
-  let videoPacket: Partial<VideoPacket> = {
-    frameType: <VideoFrameType> frameType,
-    codecId: codecId,
-    codecDescription: VIDEOCODECS[codecId]
-  };
-  switch (codecId) {
-  case AVC_VIDEO_CODEC_ID:
-    var type = data[i++];
-    videoPacket.packetType = <VideoPacketType>type;
-    videoPacket.compositionTime = ((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8)) >> 8;
-    i += 3;
-    break;
-  case VP6_VIDEO_CODEC_ID:
-    videoPacket.packetType = VideoPacketType.NALU;
-    videoPacket.horizontalOffset = (data[i] >> 4) & 15;
-    videoPacket.verticalOffset = data[i] & 15;
-    videoPacket.compositionTime = 0;
-    i++;
-    break;
-  }
-  videoPacket.data = data.subarray(i);
-  videoPacket.sampleDescriptionIndex = 0;
-  return <VideoPacket> videoPacket;
-}
 
 export enum MP4MuxPacketType {
   AUDIO_PACKET = 8,
@@ -344,6 +280,8 @@ export class MP4Mux {
 
           audioPacket = {
             data,
+            decodingTime: timestamp,
+            compositionTime: timestamp + cto,
             codecId,
             codecDescription: SOUNDFORMATS[codecId],
             rate: sampleRate,
@@ -351,25 +289,30 @@ export class MP4Mux {
             channels: numChannels,
             samples: samplesPerFrame,
             packetType: isInitData ? AudioPacketType.HEADER : AudioPacketType.RAW,
-            sampleDescriptionIndex: audioTrack.initializationData.length
+            sampleDescriptionIndex: 1 // FIXME: hard-coding to 1 breaks previous support
+                                      // for AAC codec config in-stream discontinuities (used rather in MOV mode)
+                                      // -> should use audioDetails as sortof high-level init-data here
           };
+
         } else {
-          audioPacket = parseAudiodata(data);
+          throw new Error('Non raw-mode not supported');
         }
 
         if (!audioTrack || audioTrack.trackInfo.codecId !== audioPacket.codecId) {
           throw new Error('Unexpected audio packet codec: ' + audioPacket.codecDescription);
         }
+
         switch (audioPacket.codecId) {
         default:
           throw new Error('Unsupported audio codec: ' + audioPacket.codecDescription);
         case MP3_SOUND_CODEC_ID:
           break; // supported codec
         case AAC_SOUND_CODEC_ID:
-          if (!audioTrack.initializationData.length) audioTrack.initializationData = [new Uint8Array(0)];
           break;
         }
+
         this.cachedPackets.push({ packet: audioPacket, timestamp, trackId: audioTrack.trackId });
+
         break;
       case MP4MuxPacketType.VIDEO_PACKET:
         var videoTrack = this.videoTrackState;
@@ -386,7 +329,7 @@ export class MP4Mux {
             sampleDescriptionIndex: videoTrack.initializationData.length
           };
         } else {
-          videoPacket = parseVideodata(data);
+          throw new Error('Non raw-mode not supported');
         }
         if (!videoTrack || videoTrack.trackInfo.codecId !== videoPacket.codecId) {
           throw new Error('Unexpected video packet codec: ' + videoPacket.codecDescription);
@@ -529,16 +472,13 @@ export class MP4Mux {
         case AAC_SOUND_CODEC_ID:
         case MP3_SOUND_CODEC_ID: {
           for (var j = 0; j < trackPackets.length; j++) {
-            // FIXME: re-use logic for audio & video
-            // FIXME: enforce DTS/CTS gap of 1/sample-rate
 
             const audioPacket: AudioPacket = trackPackets[j].packet;
-            const audioFrameDuration = Math.round(audioPacket.samples * trackInfo.timescale / trackInfo.samplerate);
 
             const s: StblSample = {
               size: audioPacket.data.length,
-              dts,
-              cts: dts,
+              dts: audioPacket.decodingTime,
+              cts: audioPacket.compositionTime,
               isRap: true,
               sampleDescriptionIndex: audioPacket.sampleDescriptionIndex
             };
@@ -547,12 +487,10 @@ export class MP4Mux {
             chunks[i].push(audioPacket.data);
 
             samplesProcessed += audioPacket.samples;
-            dts += audioFrameDuration;
           }
 
           trackState.samplesProcessed = samplesProcessed;
-          trackState.cachedDuration =
-            Math.round(trackState.samplesProcessed * trackInfo.timescale / trackInfo.samplerate);
+          trackState.cachedDuration = dts;
 
           break;
         }
@@ -577,8 +515,8 @@ export class MP4Mux {
             samplesProcessed++;
           }
 
-          trackState.cachedDuration = dts;
           trackState.samplesProcessed = samplesProcessed;
+          trackState.cachedDuration = dts;
 
           break;
         }
@@ -606,7 +544,6 @@ export class MP4Mux {
 
       const allInitializationDataExists = this.trackStates.every((ts) => {
         switch (ts.trackInfo.codecId) {
-        case AAC_SOUND_CODEC_ID:
         case AVC_VIDEO_CODEC_ID:
           return ts.initializationData.length > 0;
         default:
@@ -636,60 +573,57 @@ export class MP4Mux {
         switch (trackInfo.codecId) {
         case AAC_SOUND_CODEC_ID:
 
-          trackState.initializationData.forEach(() => {
+          sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex,
+            trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
 
-            sampleEntry = new AudioSampleEntry('mp4a', audioDataReferenceIndex,
-              trackInfo.channels, trackInfo.samplesize, trackInfo.samplerate);
+          const samplingFrequencyIndex = AAC_SAMPLING_FREQUENCIES.indexOf(trackInfo.samplerate);
+          if (samplingFrequencyIndex < 0) {
+            throw new Error('Sample-rate not supported for AAC (mp4a): ' + trackInfo.samplerate);
+          }
 
-            const samplingFrequencyIndex = AAC_SAMPLING_FREQUENCIES.indexOf(trackInfo.samplerate);
-            if (samplingFrequencyIndex < 0) {
-              throw new Error('Sample-rate not supported for AAC (mp4a): ' + trackInfo.samplerate);
-            }
+          const esdsData = new Uint8Array([
+            0x00, // version
+            0x00, 0x00, 0x00, // flags
 
-            const esdsData = new Uint8Array([
-              0x00, // version
-              0x00, 0x00, 0x00, // flags
+            // ES_Descriptor
+            0x03, // tag, ES_DescrTag
+            0x19, // length
+            0x00, 0x00, // ES_ID
+            0x00, // streamDependenceFlag, URL_flag, reserved, streamPriority
 
-              // ES_Descriptor
-              0x03, // tag, ES_DescrTag
-              0x19, // length
-              0x00, 0x00, // ES_ID
-              0x00, // streamDependenceFlag, URL_flag, reserved, streamPriority
+            // DecoderConfigDescriptor
+            0x04, // tag, DecoderConfigDescrTag
+            0x11, // length
+            0x40, // object type
+            0x15,  // streamType
+            0x00, 0x06, 0x00, // bufferSizeDB
+            0x00, 0x00, 0xda, 0xc0, // maxBitrate
+            0x00, 0x00, 0xda, 0xc0, // avgBitrate
 
-              // DecoderConfigDescriptor
-              0x04, // tag, DecoderConfigDescrTag
-              0x11, // length
-              0x40, // object type
-              0x15,  // streamType
-              0x00, 0x06, 0x00, // bufferSizeDB
-              0x00, 0x00, 0xda, 0xc0, // maxBitrate
-              0x00, 0x00, 0xda, 0xc0, // avgBitrate
+            // DecoderSpecificInfo
+            0x05, // tag, DecoderSpecificInfoTag
+            0x02, // length
+            // ISO/IEC 14496-3, AudioSpecificConfig
+            // for samplingFrequencyIndex see ISO/IEC 13818-7:2006, 8.1.3.2.2, Table 35
+            (trackInfo.audioObjectType << 3) | (samplingFrequencyIndex >>> 1),
+            (samplingFrequencyIndex << 7) | (trackInfo.channels << 3),
+            0x06, 0x01, 0x02 // GASpecificConfig
+          ])
 
-              // DecoderSpecificInfo
-              0x05, // tag, DecoderSpecificInfoTag
-              0x02, // length
-              // ISO/IEC 14496-3, AudioSpecificConfig
-              // for samplingFrequencyIndex see ISO/IEC 13818-7:2006, 8.1.3.2.2, Table 35
-              (trackInfo.audioObjectType << 3) | (samplingFrequencyIndex >>> 1),
-              (samplingFrequencyIndex << 7) | (trackInfo.channels << 3),
-              0x06, 0x01, 0x02 // GASpecificConfig
-            ])
+          sampleEntry.otherBoxes = [
+            new RawTag('esds', esdsData)
+          ];
 
-            sampleEntry.otherBoxes = [
-              new RawTag('esds', esdsData)
-            ];
+          sampleDescEntry.push(sampleEntry);
 
-            sampleDescEntry.push(sampleEntry);
+          // mp4a.40.objectType
 
-            // mp4a.40.objectType
+          // FIXME: we are overriding previous writes here with the last entry of init datas.
+          //        the problem with that is that we are only making one call to oncodecinfo callback
+          //        so this could be changed to making several calls or passing an array of strings instead
+          //        and making mimeTypeCodec field an array then.
+          trackState.mimeTypeCodec = 'mp4a.40.' + trackInfo.audioObjectType; // 'mp4a.40.2'
 
-            // FIXME: we are overriding previous writes here with the last entry of init datas.
-            //        the problem with that is that we are only making one call to oncodecinfo callback
-            //        so this could be changed to making several calls or passing an array of strings instead
-            //        and making mimeTypeCodec field an array then.
-            trackState.mimeTypeCodec = 'mp4a.40.' + trackInfo.audioObjectType; // 'mp4a.40.2'
-
-          });
           break;
 
         case MP3_SOUND_CODEC_ID:
@@ -903,90 +837,84 @@ export class MP4Mux {
           continue;
         }
 
-        // ??? not sure what this was doing but lets keep it around -> var currentTimestamp = (trackPackets[0].timestamp * trackInfo.timescale / 1000) | 0; ???
+        const tfdt = new TrackFragmentBaseMediaDecodeTimeBox(trackState.cachedDuration);
+        const trunSamples: TrackRunSample[] = [];
 
-        let tfdt = new TrackFragmentBaseMediaDecodeTimeBox(trackState.cachedDuration);
         let trun: TrackRunBox;
         let tfhd: TrackFragmentHeaderBox;
-        let trunSamples: TrackRunSample[];
 
         trafDataStarts.push(tdatPosition);
 
         switch (trackInfo.codecId) {
+
         case AAC_SOUND_CODEC_ID:
-        case MP3_SOUND_CODEC_ID:
+        case MP3_SOUND_CODEC_ID: {
 
-          trunSamples = [];
+          for (let j = 0; j < trackPackets.length; j++) {
 
-          for (var j = 0; j < trackPackets.length; j++) {
-            let audioPacket: AudioPacket = trackPackets[j].packet;
-            let audioFrameDuration = Math.round(audioPacket.samples * trackInfo.timescale / trackInfo.samplerate);
+            const audioPacket: AudioPacket = trackPackets[j].packet;
+            const audioFrameDuration = Math.round(trackInfo.timescale * audioPacket.samples / trackInfo.samplerate);
 
             tdatParts.push(audioPacket.data);
             tdatPosition += audioPacket.data.length;
 
             trunSamples.push({ duration: audioFrameDuration, size: audioPacket.data.length });
+
             trackState.samplesProcessed += audioPacket.samples;
+            trackState.cachedDuration += audioFrameDuration;
           }
 
-          var tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
+          const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
           tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
             SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
-          var trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT |
+          const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT |
                             TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT;
           trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, 0 /* first flags */);
 
-          trackState.cachedDuration =
-            Math.round(trackState.samplesProcessed * trackInfo.timescale / trackInfo.samplerate);
-
           break;
+        }
+
         case AVC_VIDEO_CODEC_ID:
-        case VP6_VIDEO_CODEC_ID:
+        case VP6_VIDEO_CODEC_ID: {
 
-          trunSamples = [];
+          for (let j = 0; j < trackPackets.length; j++) {
 
-          var samplesProcessed = trackState.samplesProcessed;
-          var decodeTime = samplesProcessed * trackInfo.timescale / trackInfo.framerate;
-          var lastTime = Math.round(decodeTime);
+            const videoPacket: VideoPacket = trackPackets[j].packet;
+            const videoFrameDuration = Math.round(trackInfo.timescale / trackInfo.samplerate);
 
-          for (var j = 0; j < trackPackets.length; j++) {
-            let videoPacket: VideoPacket = trackPackets[j].packet;
-            samplesProcessed++;
-            let nextTime = Math.round(samplesProcessed * trackInfo.timescale / trackInfo.framerate);
-            let videoFrameDuration = nextTime - lastTime;
-            lastTime = nextTime;
-
-            let compositionTime = (trackInfo.timescale / trackInfo.framerate) + videoPacket.compositionTime;
-
-            // ??? not sure what this was doing but lets keep it around ... Math.round(samplesProcessed * trackInfo.timescale / trackInfo.framerate + videoPacket.compositionTime * trackInfo.timescale / 1000);
-
-            // -> this seems more senseful given that CT is defined as CT(n)  =  DT(n)  +  CTO(n)
-            let compositionTimeOffset = compositionTime - nextTime;
+            const compositionTime = videoPacket.compositionTime;
+            const compositionTimeOffset = compositionTime - videoPacket.decodingTime;
 
             tdatParts.push(videoPacket.data);
             tdatPosition += videoPacket.data.length;
-            let frameFlags = videoPacket.frameType === VideoFrameType.KEY
+
+            const frameFlags = videoPacket.frameType === VideoFrameType.KEY
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
               : (SampleFlags.SAMPLE_DEPENDS_ON_OTHER | SampleFlags.SAMPLE_IS_NOT_SYNC);
+
             trunSamples.push({ duration: videoFrameDuration,
               size: videoPacket.data.length,
               flags: frameFlags,
               compositionTimeOffset });
+
+              trackState.samplesProcessed++;
+              trackState.cachedDuration = videoPacket.decodingTime;
           }
 
-          var tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
+          const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
+
           tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
             SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
-          var trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT | TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT |
+          const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT | TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT |
                             TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT |
                             TrackRunFlags.SAMPLE_FLAGS_PRESENT | TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET;
           trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
-          trackState.cachedDuration = lastTime;
-          trackState.samplesProcessed = samplesProcessed;
           break;
+        }
+
         default:
           throw new Error('Unknown codec');
         }
