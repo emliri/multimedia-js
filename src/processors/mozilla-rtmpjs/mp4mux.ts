@@ -827,12 +827,12 @@ export class MP4Mux {
       let trafDataStarts: number[] = [];
 
       for (let i = 0; i < this.trackStates.length; i++) {
-        let trackState = this.trackStates[i];
-        let trackInfo = trackState.trackInfo;
-        var trackId = trackState.trackId;
+        const trackState = this.trackStates[i];
+        const trackInfo = trackState.trackInfo;
+        const trackId = trackState.trackId;
 
         // Finding all packets for this track.
-        let trackPackets = cachedPackets.filter((cp) => cp.trackId === trackId);
+        const trackPackets = cachedPackets.filter((cachedPacket) => cachedPacket.trackId === trackId);
         if (trackPackets.length === 0) {
           continue;
         }
@@ -868,11 +868,14 @@ export class MP4Mux {
           }
 
           const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
-          tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
+
+          tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId,
+            0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
             SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
           const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT |
                             TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT;
+
           trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, 0 /* first flags */);
 
           break;
@@ -904,17 +907,19 @@ export class MP4Mux {
             });
 
             trackState.samplesProcessed++;
-            trackState.cachedDuration = videoPacket.decodingTime;
+            trackState.cachedDuration = videoFrameDuration
           }
 
           const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
 
-          tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId, 0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
+          tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId,
+            0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
             SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
           const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT | TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT |
                             TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT |
                             TrackRunFlags.SAMPLE_FLAGS_PRESENT | TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET;
+
           trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
           break;
@@ -924,7 +929,7 @@ export class MP4Mux {
           throw new Error('Unknown codec');
         }
 
-        let traf = new TrackFragmentBox(tfhd, tfdt, trun);
+        const traf = new TrackFragmentBox(tfhd, tfdt, trun);
         trafs.push(traf);
       }
 
