@@ -12,12 +12,12 @@ import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { NALU } from './h264/nalu';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
+const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.OFF, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make these runtime options
 const ENABLE_PACKAGE_OTHER_NALUS_TO_ANNEXB_HACK = true; // TODO: make these runtime options
 
-const DEBUG_H264 = true;
+const DEBUG_H264 = false;
 export class H264ParseProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
@@ -64,8 +64,8 @@ export class H264ParseProcessor extends Processor {
     const spsInfo: Sps = H264ParameterSetParser.parseSPS(this._spsSliceCache.getUint8Array().subarray(1));
     //const ppsInfo: Pps = H264ParameterSetParser.parsePPS(this._ppsSliceCache.getUint8Array().subarray(1));
 
-    debugNALU(this._spsSliceCache)
-    debugNALU(this._ppsSliceCache);
+    DEBUG_H264 && debugNALU(this._spsSliceCache)
+    DEBUG_H264 && debugNALU(this._ppsSliceCache);
 
     const avcCodecDataBox: AvcCodecDataBox = new AvcCodecDataBox(
       [this._spsSliceCache.getUint8Array()],
