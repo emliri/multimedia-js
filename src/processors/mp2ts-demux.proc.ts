@@ -164,7 +164,7 @@ export class MP2TSDemuxProcessor extends Processor {
       bufferSlice.props.samplesCount = adtsEvent.sampleCount;
       bufferSlice.props.codec = 'aac'; // 'mp4a'
       bufferSlice.props.isKeyframe = true;
-      bufferSlice.props.isBitstreamHeader = true;
+      bufferSlice.props.isBitstreamHeader = false;
       bufferSlice.props.details.samplesPerFrame = 1024;
       bufferSlice.props.details.codecProfile = adtsEvent.audioobjecttype;
       bufferSlice.props.details.numChannels = adtsEvent.channelcount;
