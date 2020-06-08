@@ -151,6 +151,7 @@ export class MP4MuxProcessor extends Processor {
         p.defaultPayloadInfo.details.numChannels,
         p.defaultPayloadInfo.details.codecProfile,
         p.defaultPayloadInfo.details.sequenceDurationInSeconds || 10,
+        p.getTimescale()
       );
 
       return true;
@@ -218,7 +219,6 @@ export class MP4MuxProcessor extends Processor {
 
   private _processVideoPacket (p: Packet) {
     const videoTrackMetadata = this.mp4Metadata_.tracks[this.videoTrackIndex_];
-    const timescale = videoTrackMetadata.timescale;
 
     p.forEachBufferSlice((bufferSlice) => {
 
@@ -297,11 +297,11 @@ export class MP4MuxProcessor extends Processor {
         MP4MuxPacketType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
         data,
-        p.timestamp, // TODO: replace by using input timescale when equal?
-        true, // NOTE: Non-raw mode expects FLV-packaged data
-        bufferSlice.props.isBitstreamHeader, // NOTE: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header
+        p.dts,
+        true, // TODO: remove raw-mode flag, deprecated
+        bufferSlice.props.isBitstreamHeader, // FIXME: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header, see H264-parse-proc
         bufferSlice.props.isKeyframe,
-        p.getScaledCto(timescale) // TODO: replace by using input timescale when equal?
+        p.cto
       );
 
     });
@@ -309,7 +309,6 @@ export class MP4MuxProcessor extends Processor {
 
   private _processAudioPacket (p: Packet) {
     const audioTrackMetadata = this.mp4Metadata_.tracks[this.audioTrackIndex_];
-    const timescale = audioTrackMetadata.timescale;
 
     // NOTE: Object-type is inherently defined by mp4mux.ts
     const audioDetails = {
@@ -330,11 +329,11 @@ export class MP4MuxProcessor extends Processor {
         // FIXME: get rid of FORCE_MP3 flag
         this.options_.forceMp3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
         data,
-        p.getScaledDts(timescale),
-        true, // NOTE: Non-raw mode expects FLV-packaged data
+        p.dts,
+        true, // TODO: remove raw-mode flag, deprecated
         false,
         bufferSlice.props.isKeyframe,
-        p.getScaledCto(timescale),
+        p.cto,
         audioDetails
       );
 
@@ -402,6 +401,7 @@ export class MP4MuxProcessor extends Processor {
     numChannels: number,
     audioObjectType: number,
     durationSeconds: number,
+    timescale: number,
     language: string = 'und'
     ): MP4Track {
 
@@ -414,7 +414,7 @@ export class MP4MuxProcessor extends Processor {
       codecDescription: audioCodec,
       codecId: getCodecId(audioCodec),
       language: language,
-      timescale: sampleRate,
+      timescale,
       samplerate: sampleRate,
       channels: numChannels,
       samplesize: sampleSize,
