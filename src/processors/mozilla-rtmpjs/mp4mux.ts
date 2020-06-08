@@ -542,10 +542,10 @@ export class MP4Mux {
         throw new Error('Should not get mdat box in fragmented mode');
       }
 
-      const allInitializationDataExists = this.trackStates.every((ts) => {
-        switch (ts.trackInfo.codecId) {
+      const allInitializationDataExists = this.trackStates.every((trackState) => {
+        switch (trackState.trackInfo.codecId) {
         case AVC_VIDEO_CODEC_ID:
-          return ts.initializationData.length > 0;
+          return trackState.initializationData.length > 0;
         default:
           return true;
         }
@@ -858,7 +858,10 @@ export class MP4Mux {
             tdatParts.push(audioPacket.data);
             tdatPosition += audioPacket.data.length;
 
-            trunSamples.push({ duration: audioFrameDuration, size: audioPacket.data.length });
+            trunSamples.push({
+              duration: audioFrameDuration,
+              size: audioPacket.data.length
+            });
 
             trackState.samplesProcessed += audioPacket.samples;
             trackState.cachedDuration += audioFrameDuration;
@@ -881,7 +884,7 @@ export class MP4Mux {
           for (let j = 0; j < trackPackets.length; j++) {
 
             const videoPacket: VideoPacket = trackPackets[j].packet;
-            const videoFrameDuration = Math.round(trackInfo.timescale / trackInfo.samplerate);
+            const videoFrameDuration = Math.round(trackInfo.timescale / trackInfo.framerate);
 
             const compositionTime = videoPacket.compositionTime;
             const compositionTimeOffset = compositionTime - videoPacket.decodingTime;
@@ -893,13 +896,15 @@ export class MP4Mux {
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
               : (SampleFlags.SAMPLE_DEPENDS_ON_OTHER | SampleFlags.SAMPLE_IS_NOT_SYNC);
 
-            trunSamples.push({ duration: videoFrameDuration,
+            trunSamples.push({
+              duration: videoFrameDuration,
+              compositionTimeOffset,
               size: videoPacket.data.length,
               flags: frameFlags,
-              compositionTimeOffset });
+            });
 
-              trackState.samplesProcessed++;
-              trackState.cachedDuration = videoPacket.decodingTime;
+            trackState.samplesProcessed++;
+            trackState.cachedDuration = videoPacket.decodingTime;
           }
 
           const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
