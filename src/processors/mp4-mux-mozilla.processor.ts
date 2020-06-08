@@ -382,6 +382,8 @@ export class MP4MuxProcessor extends Processor {
     });
     this.videoPacketQueue_ = [];
 
+    log('processing audio packet queue', this.audioPacketQueue_);
+
     this.audioPacketQueue_.forEach((packet: Packet) => {
       this._processAudioPacket(packet);
     });
