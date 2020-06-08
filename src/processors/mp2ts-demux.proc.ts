@@ -223,7 +223,7 @@ export class MP2TSDemuxProcessor extends Processor {
     naluTag && bufferSlice.props.tags.add(naluTag);
 
     log("Creating packet for AVC NALU data");
-    debugNALU(bufferSlice)
+    //debugNALU(bufferSlice)
 
     if (this._videoDtsOffset === null) {
       this._videoDtsOffset = h264Event.dts
