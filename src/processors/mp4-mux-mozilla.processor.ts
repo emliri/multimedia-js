@@ -81,7 +81,7 @@ export class MP4MuxProcessor extends Processor {
 
   private mp4Muxer_: MP4Mux = null;
   private mp4Metadata_: MP4Metadata = null;
-  private lastCodecInfo_: string[] = [];
+  private codecInfo_: string[] = [];
   private flushCounter_: number = 0;
 
   private _queuedVideoBitstreamHeader: boolean = false;
@@ -469,13 +469,30 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private onMp4MuxerData_ (data: Uint8Array) {
-    const p: Packet = Packet.fromArrayBuffer(data.buffer, `video/mp4; codecs="${this.lastCodecInfo_.join()}"`);
+
+    const codecs = this.codecInfo_.join();
+
+    const hasAudio = this.codecInfo_.some((val) => val.startsWith('mp4a.'));
+    const hasVideo = this.codecInfo_.some((val) => val.startsWith('avc1.'));
+
+    let mediaType: string;
+    if (hasAudio && !hasVideo) {
+      mediaType = 'audio';
+    } else if (hasVideo) {
+      mediaType = 'video';
+    } else {
+      throw new Error('Unexpected codec identifiers: ' + codecs);
+    }
+
+    const p: Packet = Packet.fromArrayBuffer(data.buffer, `${mediaType}/mp4; codecs="${codecs}"`);
+
     log('transferring new mp4 data:', p);
+
     this.out[0].transfer(p);
   }
 
   private onMp4MuxerCodecInfo_ (codecInfo: string[]) {
     log('got new codec info:', codecInfo);
-    this.lastCodecInfo_ = codecInfo;
+    this.codecInfo_ = codecInfo;
   }
 }
