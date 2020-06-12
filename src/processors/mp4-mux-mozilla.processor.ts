@@ -133,6 +133,11 @@ export class MP4MuxProcessor extends Processor {
     //p.setTimestampOffset(0)
 
     if (p.defaultPayloadInfo.isAudio()) {
+
+      if (this.options_.fragmentedMode) {
+        this._flush();
+      }
+
       this.audioPacketQueue_.push(p);
 
       if (this.mp4Metadata_.tracks[this.socketToTrackIndexHash_[inputIndex]]) {
@@ -163,10 +168,6 @@ export class MP4MuxProcessor extends Processor {
         return; // drop any packets received before we got codec init data
       }
 
-      if (p.defaultPayloadInfo.isBitstreamHeader) {
-        this._queuedVideoBitstreamHeader = true
-      }
-
       if (this.options_.fragmentedMode && p.defaultPayloadInfo.isKeyframe
         && this._queuedVideoBitstreamHeader && this.videoPacketQueue_.length > 1 + 1) {
         // FIXME: make this rather an optional feature
@@ -174,6 +175,10 @@ export class MP4MuxProcessor extends Processor {
       }
 
       this.videoPacketQueue_.push(p);
+
+      if (p.defaultPayloadInfo.isBitstreamHeader) {
+        this._queuedVideoBitstreamHeader = true
+      }
 
       if (this.mp4Metadata_.tracks[this.socketToTrackIndexHash_[inputIndex]]) {
         return true;
