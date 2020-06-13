@@ -21,6 +21,7 @@ export enum CommonMimeTypes {
   AUDIO_MP3 = 'audio/mpeg',
   AUDIO_AAC = 'audio/aac',
   AUDIO_OPUS = 'audio/opus',
+  AUDIO_MP4 = 'audio/mp4',
   VIDEO_MP4 = 'video/mp4',
   VIDEO_AVC = 'video/avc', // AnnexB format ("access units")
   VIDEO_H264 = 'video/h264', // raw NALUs
