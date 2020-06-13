@@ -24,7 +24,7 @@ import { NALU } from './h264/nalu';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { CommonMimeTypes } from '../core/payload-description';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
+const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
 
 const OUTPUT_FRAGMENTED_MODE = false;
 const EMBED_CODEC_DATA_ON_KEYFRAME = true;

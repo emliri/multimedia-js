@@ -58,7 +58,7 @@ import { SampleTablePackager } from './mp4iso-sample-table';
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
 import { getLogger, LoggerLevel } from '../../logger';
 
-const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.ON, true);
+const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.OFF, true);
 
 let MAX_PACKETS_IN_CHUNK = Infinity;
 
