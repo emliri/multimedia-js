@@ -112,7 +112,7 @@ export class MP4MuxProcessor extends Processor {
 
     this.createOutput();
 
-    this._initMP4Metadata();
+    this._initMovieMetadata();
 
     this.on(ProcessorEvent.INPUT_SOCKET_CREATED,
       (eventData: ProcessorEventData) => this._onInputCreated(eventData));
@@ -130,11 +130,11 @@ export class MP4MuxProcessor extends Processor {
       return false;
     }
 
-    //p.setTimestampOffset(0)
-
     if (p.defaultPayloadInfo.isAudio()) {
 
-      if (this.options_.fragmentedMode) {
+      if (this.options_.fragmentedMode
+        && this.audioPacketQueue_.length > 16) {
+        // FIXME: make this rather an optional feature
         this._flush();
       }
 
@@ -148,14 +148,15 @@ export class MP4MuxProcessor extends Processor {
         this.socketToTrackIndexHash_[inputIndex] =
           this.mp4Metadata_.tracks.length;
 
+      log('adding audio track with payload info:',p.defaultPayloadInfo)
+
       this._addAudioTrack(
-        // FIXME: get rid of FORCE_MP3 flag
         this.options_.forceMp3 ? MP4MuxProcessorSupportedCodecs.MP3 : MP4MuxProcessorSupportedCodecs.AAC,
         p.defaultPayloadInfo.getSamplingRate(),
         p.defaultPayloadInfo.sampleDepth,
         p.defaultPayloadInfo.details.numChannels,
         p.defaultPayloadInfo.details.codecProfile,
-        p.defaultPayloadInfo.details.sequenceDurationInSeconds || 10,
+        p.defaultPayloadInfo.details.sequenceDurationInSeconds,
         p.getTimescale()
       );
 
@@ -199,9 +200,12 @@ export class MP4MuxProcessor extends Processor {
       );
 
       return true;
+
     }
 
-    return true;
+    warn('Packet with hnhandled payload:', p);
+    return false;
+
   }
 
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
@@ -223,7 +227,6 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _processVideoPacket (p: Packet) {
-    const videoTrackMetadata = this.mp4Metadata_.tracks[this.videoTrackIndex_];
 
     p.forEachBufferSlice((bufferSlice) => {
 
@@ -349,7 +352,7 @@ export class MP4MuxProcessor extends Processor {
     log('input socket created');
   }
 
-  private _initMP4Metadata () {
+  private _initMovieMetadata () {
     this.mp4Metadata_ = {
       tracks: [],
       duration: 0,
@@ -360,13 +363,14 @@ export class MP4MuxProcessor extends Processor {
 
   private _initMuxer () {
 
-    if (this.options_.fragmentedMode && this.mp4Muxer_) {
-      //return;
-    }
+    const enableGenerateMoov: boolean
+      = this.options_.fragmentedMode ? this.codecInfo_.length === 0 : true;
 
-    log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_);
+    log('initMuxer() called with mp4 metadata model:', this.mp4Metadata_,
+      'options:', JSON.stringify(this.options_), 'generate-moov:', enableGenerateMoov);
 
-    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_, this.options_.fragmentedMode);
+    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4Metadata_,
+      this.options_.fragmentedMode, enableGenerateMoov);
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
@@ -475,21 +479,31 @@ export class MP4MuxProcessor extends Processor {
 
   private onMp4MuxerData_ (data: Uint8Array) {
 
-    const codecs = this.codecInfo_.join();
+    let mimeType: string;
 
-    const hasAudio = this.codecInfo_.some((val) => val.startsWith('mp4a.'));
-    const hasVideo = this.codecInfo_.some((val) => val.startsWith('avc1.'));
+    if (this.codecInfo_.length === 0) {
+      warn(`Got mp4 output data without priorly signaled codecs infos! Using generic mime-type 'video/mp4'.`);
+      mimeType = 'video/mp4';
 
-    let mediaType: string;
-    if (hasAudio && !hasVideo) {
-      mediaType = 'audio';
-    } else if (hasVideo) {
-      mediaType = 'video';
     } else {
-      throw new Error('Unexpected codec identifiers: ' + codecs);
+      const codecs = this.codecInfo_.join();
+
+      const hasAudio = this.codecInfo_.some((val) => val.startsWith('mp4a.'));
+      const hasVideo = this.codecInfo_.some((val) => val.startsWith('avc1.'));
+
+      let mediaType: string;
+      if (hasAudio && !hasVideo) {
+        mediaType = 'audio';
+      } else if (hasVideo) {
+        mediaType = 'video';
+      } else {
+        throw new Error('Unexpected codec identifiers: ' + codecs);
+      }
+
+      mimeType = `${mediaType}/mp4; codecs="${codecs}"`
     }
 
-    const p: Packet = Packet.fromArrayBuffer(data.buffer, `${mediaType}/mp4; codecs="${codecs}"`);
+    const p: Packet = Packet.fromArrayBuffer(data.buffer, mimeType);
 
     log('transferring new mp4 data:', p);
 
