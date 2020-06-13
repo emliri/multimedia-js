@@ -22,6 +22,7 @@ import { makeNALUFromH264RbspData, makeAnnexBAccessUnitFromNALUs, debugAccessUni
 import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
+import { CommonMimeTypes } from '../core/payload-description';
 
 const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.ON, true);
 
@@ -71,6 +72,7 @@ export type MP4MuxProcessorOptions = {
   fragmentMinDurationSeconds: number,
   embedCodecDataOnKeyFrames: boolean,
   forceMp3: boolean
+  maxAudioFramesPerChunk: number
 }
 
 export class MP4MuxProcessor extends Processor {
@@ -94,7 +96,8 @@ export class MP4MuxProcessor extends Processor {
     fragmentedMode: OUTPUT_FRAGMENTED_MODE,
     fragmentMinDurationSeconds: 1,
     embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
-    forceMp3: FORCE_MP3
+    forceMp3: FORCE_MP3,
+    maxAudioFramesPerChunk: 16
   }
 
   private socketToTrackIndexHash_: {[i: number]: number} = {};
@@ -110,7 +113,7 @@ export class MP4MuxProcessor extends Processor {
       this.options_ = Object.assign(this.options_, options);
     }
 
-    this.createOutput();
+    this.createOutput(SocketDescriptor.fromMimeType(CommonMimeTypes.VIDEO_MP4));
 
     this._initMovieMetadata();
 
@@ -133,7 +136,7 @@ export class MP4MuxProcessor extends Processor {
     if (p.defaultPayloadInfo.isAudio()) {
 
       if (this.options_.fragmentedMode
-        && this.audioPacketQueue_.length > 16) {
+        && this.audioPacketQueue_.length > this.options_.maxAudioFramesPerChunk) {
         // FIXME: make this rather an optional feature
         this._flush();
       }
@@ -483,7 +486,7 @@ export class MP4MuxProcessor extends Processor {
 
     if (this.codecInfo_.length === 0) {
       warn(`Got mp4 output data without priorly signaled codecs infos! Using generic mime-type 'video/mp4'.`);
-      mimeType = 'video/mp4';
+      mimeType = CommonMimeTypes.VIDEO_MP4;
 
     } else {
       const codecs = this.codecInfo_.join();
@@ -493,14 +496,14 @@ export class MP4MuxProcessor extends Processor {
 
       let mediaType: string;
       if (hasAudio && !hasVideo) {
-        mediaType = 'audio';
+        mediaType = CommonMimeTypes.AUDIO_MP4;
       } else if (hasVideo) {
-        mediaType = 'video';
+        mediaType = CommonMimeTypes.VIDEO_MP4;
       } else {
         throw new Error('Unexpected codec identifiers: ' + codecs);
       }
 
-      mimeType = `${mediaType}/mp4; codecs="${codecs}"`
+      mimeType = `${mediaType}; codecs="${codecs}"`
     }
 
     const p: Packet = Packet.fromArrayBuffer(data.buffer, mimeType);
