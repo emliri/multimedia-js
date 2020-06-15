@@ -181,7 +181,7 @@ export class MP2TSDemuxProcessor extends Processor {
         adtsEvent.pts - adtsEvent.dts
       );
 
-      packet.setTimestampOffset(this._audioDtsOffset);
+      //packet.setTimestampOffset(this._audioDtsOffset);
       packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
 
       this._outPackets.push(packet);
@@ -239,7 +239,7 @@ export class MP2TSDemuxProcessor extends Processor {
       h264Event.pts - h264Event.dts
       );
 
-    packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
+    //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
     packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
 
     debug('created packet:', packet.toString());
