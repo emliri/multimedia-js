@@ -210,7 +210,7 @@ export class MP2TSDemuxProcessor extends Processor {
       return;
     }
 
-    //if (h264Event.nalUnitType === M2tNaluType.AUD) return;
+    if (h264Event.nalUnitType === M2tNaluType.AUD) return;
 
     const bufferSlice = new BufferSlice(
       h264Event.data.buffer.slice(0),
