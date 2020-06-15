@@ -139,7 +139,7 @@ export class MP2TSDemuxProcessor extends Processor {
     })
 
     pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
-      //log('ES:', data)
+      //console.log('ES:', data)
       if (data.type === 'metadata') {
         //
       }
@@ -297,7 +297,7 @@ export class MP2TSDemuxProcessor extends Processor {
           this._videoSocket = videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
-        p.forEachBufferSlice((bs) => debugNALU(bs));
+        //p.forEachBufferSlice((bs) => debugNALU(bs));
 
         debug('transferring video packet to default out');
 
