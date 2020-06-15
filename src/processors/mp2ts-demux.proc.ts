@@ -138,6 +138,13 @@ export class MP2TSDemuxProcessor extends Processor {
       this._handleAudioNalu(data);
     })
 
+    // debug TS packets, find PAT/PMT
+    /*
+    pipeline.parseStream.on('data', (data) => {
+      console.log(data)
+    })
+    */
+
     pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
       //console.log('ES:', data)
       if (data.type === 'metadata') {
@@ -239,26 +246,27 @@ export class MP2TSDemuxProcessor extends Processor {
       this._videoDtsOffset = h264Event.dts
     }
 
-    let pts: number;
     let dts: number;
+    let cto: number;
 
     // Q: It is weird that we have to do this and is a bug in mux.js ???
     if (this._videoTimingCache) {
-      pts = this._videoTimingCache.pts - this._videoDtsOffset
-      dts = this._videoTimingCache.dts - this._videoDtsOffset;
-    } else {
-      pts = h264Event.pts - this._videoDtsOffset
       dts = h264Event.dts - this._videoDtsOffset;
+      cto = this._videoTimingCache.pts - this._videoTimingCache.dts;
+
+    } else {
+      dts = h264Event.dts - this._videoDtsOffset;
+      cto = h264Event.pts - h264Event.dts;
     }
     this._videoTimingCache = h264Event;
 
-    const cto = pts - dts;
+    //console.log(dts, cto, h264Event.data.byteLength)
 
     const packet = Packet.fromSlice(
       bufferSlice,
       dts,
       cto
-      );
+    );
 
     //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
     packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
