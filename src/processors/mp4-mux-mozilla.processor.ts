@@ -57,8 +57,8 @@ function isVideoCodec (codec: MP4MuxProcessorSupportedCodecs): boolean {
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
-    SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac'), // valid inputs
-    SocketDescriptor.fromMimeTypes('audio/mp4', 'video/mp4')); // possible output
+    SocketDescriptor.fromMimeTypes(CommonMimeTypes.AUDIO_MP3, CommonMimeTypes.AUDIO_AAC, CommonMimeTypes.VIDEO_AVC), // valid inputs
+    SocketDescriptor.fromMimeTypes(CommonMimeTypes.AUDIO_MP4, CommonMimeTypes.VIDEO_MP4)); // possible output
 
 export enum MP4MuxProcessorSupportedCodecs {
   AVC = 'avc',
