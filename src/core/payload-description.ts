@@ -241,16 +241,11 @@ export class PayloadDescriptor {
 }
 
 export class PayloadDetails {
-  /*
-  clone(details: PayloadDetails) {
-
-  }
-  */
 
   sequenceDurationInSeconds: number = NaN;
 
-  // place to put generic codec init-data // TODO: get rid of number[] here
-  codecConfigurationData: Uint8Array | number[] = null
+  // place to put generic codec extra-data
+  codecExtraData: ArrayBuffer = null
 
   codecProfile: number = NaN;
 
@@ -273,7 +268,7 @@ export class PayloadDetails {
   // ...
 
   toString () {
-    return `width=${this.width}[px];height=${this.height}[px];samplesPerFrame=${this.samplesPerFrame};cbr=${this.constantBitrate}[b/s];numChannels=${this.numChannels};codecConfigSize=${this.codecConfigurationData ? this.codecConfigurationData.length : 0}`;
+    return `width=${this.width}[px];height=${this.height}[px];samplesPerFrame=${this.samplesPerFrame};cbr=${this.constantBitrate}[b/s];numChannels=${this.numChannels};codecExtraDataLen=${this.codecExtraData.byteLength}`;
   }
 }
 
