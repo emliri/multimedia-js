@@ -78,6 +78,7 @@ export class MP2TSDemuxProcessor extends Processor {
   private _videoSocket: OutputSocket = null;
   private _videoDtsOffset: number = null
   private _videoConfig: M2tH264StreamEvent = null;
+  private _videoTimingCache: M2tH264StreamEvent = null;
 
   private _outPackets: Packet[] = [];
 
@@ -176,9 +177,12 @@ export class MP2TSDemuxProcessor extends Processor {
         this._audioDtsOffset = adtsEvent.dts
       }
 
+      const dts = adtsEvent.dts - this._audioDtsOffset;
+      const cto = adtsEvent.pts - adtsEvent.dts;
+
       const packet = Packet.fromSlice(bufferSlice,
-        adtsEvent.dts - this._audioDtsOffset,
-        adtsEvent.pts - adtsEvent.dts
+        dts,
+        cto
       );
 
       //packet.setTimestampOffset(this._audioDtsOffset);
@@ -233,10 +237,25 @@ export class MP2TSDemuxProcessor extends Processor {
       this._videoDtsOffset = h264Event.dts
     }
 
+    let pts: number;
+    let dts: number;
+
+    // Q: It is weird that we have to do this and is a bug in mux.js ???
+    if (this._videoTimingCache) {
+      pts = this._videoTimingCache.pts - this._videoDtsOffset
+      dts = this._videoTimingCache.dts - this._videoDtsOffset;
+    } else {
+      pts = h264Event.pts - this._videoDtsOffset
+      dts = h264Event.dts - this._videoDtsOffset;
+    }
+    this._videoTimingCache = h264Event;
+
+    const cto = pts - dts;
+
     const packet = Packet.fromSlice(
       bufferSlice,
-      h264Event.dts - this._videoDtsOffset,
-      h264Event.pts - h264Event.dts
+      dts,
+      cto
       );
 
     //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
