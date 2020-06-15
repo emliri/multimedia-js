@@ -48,7 +48,7 @@ import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
 import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
 */
 
-const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.DEBUG, true);
+const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -202,6 +202,8 @@ export class MP2TSDemuxProcessor extends Processor {
       warn('Skipping H264 data before got first SPS');
       return;
     }
+
+    //if (h264Event.nalUnitType === M2tNaluType.AUD) return;
 
     const bufferSlice = new BufferSlice(
       h264Event.data.buffer.slice(0),
