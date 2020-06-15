@@ -832,6 +832,7 @@ export class MP4Mux {
       let trafDataStarts: number[] = [];
 
       for (let i = 0; i < this.trackStates.length; i++) {
+
         const trackState = this.trackStates[i];
         const trackInfo = trackState.trackInfo;
         const trackId = trackState.trackId;
@@ -889,10 +890,13 @@ export class MP4Mux {
         case AVC_VIDEO_CODEC_ID:
         case VP6_VIDEO_CODEC_ID: {
 
+          const videoFrameDuration = Math.round(trackInfo.timescale / trackInfo.framerate);
+
+          //debug('Video frame duration computed:', videoFrameDuration)
+
           for (let j = 0; j < trackPackets.length; j++) {
 
             const videoPacket: VideoPacket = trackPackets[j].packet;
-            const videoFrameDuration = Math.round(trackInfo.timescale / trackInfo.framerate);
 
             const compositionTime = videoPacket.compositionTime;
             const compositionTimeOffset = compositionTime - videoPacket.decodingTime;
@@ -904,12 +908,14 @@ export class MP4Mux {
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
               : (SampleFlags.SAMPLE_DEPENDS_ON_OTHER | SampleFlags.SAMPLE_IS_NOT_SYNC);
 
-            trunSamples.push({
+            const trunSample: TrackRunSample = {
               duration: videoFrameDuration,
               compositionTimeOffset,
               size: videoPacket.data.length,
               flags: frameFlags,
-            });
+            }
+
+            trunSamples.push(trunSample);
 
             trackState.samplesProcessed++;
             trackState.cachedDuration = videoFrameDuration
