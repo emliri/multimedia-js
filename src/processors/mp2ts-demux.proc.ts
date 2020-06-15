@@ -50,7 +50,7 @@ import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
 import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
 */
 
-const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.INFO, true);
+const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -197,7 +197,7 @@ export class MP2TSDemuxProcessor extends Processor {
     if (h264Event.config) {
       this._videoConfig = h264Event;
       info('Got video codec config slice:', this._videoConfig);
-      info(H264ParameterSetParser.parseSPS(this._videoConfig.data.subarray(1)))
+      info('Parsed SPS:', H264ParameterSetParser.parseSPS(this._videoConfig.data.subarray(1)))
     }
 
     if (!this._videoConfig) {
