@@ -9,6 +9,8 @@ import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit, debugNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
+import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
+
 import {
   M2tDemuxPipeline,
   M2tH264StreamEvent,
@@ -48,7 +50,7 @@ import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
 import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
 */
 
-const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
+const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.INFO, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -56,19 +58,11 @@ const getSocketDescriptor: SocketTemplateGenerator =
     SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
   );
 
-
 export class MP2TSDemuxProcessor extends Processor {
 
   static getName (): string {
     return 'MP2TSDemuxProcessor';
   }
-
-  /*
-  private _programMap: {[pid: number]: OutputSocket} = {};
-  private _haveAudio: boolean = false;
-  private _haveVideo: boolean = false;
-  //private _firstDtsOffset90khz: number | null = null; // WIP: actually build a packet-filter for this which will set each packet time-offset on a sequence
-  */
 
   private _demuxPipeline: M2tDemuxPipeline;
 
@@ -203,6 +197,7 @@ export class MP2TSDemuxProcessor extends Processor {
     if (h264Event.config) {
       this._videoConfig = h264Event;
       info('Got video codec config slice:', this._videoConfig);
+      info(H264ParameterSetParser.parseSPS(this._videoConfig.data.subarray(1)))
     }
 
     if (!this._videoConfig) {
@@ -219,7 +214,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     bufferSlice.props = new BufferProperties(
       CommonMimeTypes.VIDEO_H264,
-      24, // sample-rate <--- FIXME: !!! :D
+      0, // sample-rate
       8, // sampleDepth
       1, // sample-duration num
       1 // samples-per-frame
@@ -253,14 +248,11 @@ export class MP2TSDemuxProcessor extends Processor {
     if (this._videoTimingCache) {
       dts = h264Event.dts - this._videoDtsOffset;
       cto = this._videoTimingCache.pts - this._videoTimingCache.dts;
-
     } else {
       dts = h264Event.dts - this._videoDtsOffset;
       cto = h264Event.pts - h264Event.dts;
     }
     this._videoTimingCache = h264Event;
-
-    //console.log(dts, cto, h264Event.data.byteLength)
 
     const packet = Packet.fromSlice(
       bufferSlice,
