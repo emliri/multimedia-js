@@ -890,9 +890,13 @@ export class MP4Mux {
         case AVC_VIDEO_CODEC_ID:
         case VP6_VIDEO_CODEC_ID: {
 
-          const videoFrameDuration = Math.round(trackInfo.timescale / trackInfo.framerate);
-
-          //debug('Video frame duration computed:', videoFrameDuration)
+          let videoFrameDuration: number;
+          if (trackPackets.length === 1) {
+            videoFrameDuration = Math.round(trackInfo.timescale / trackInfo.framerate);
+          } else {
+            videoFrameDuration = trackPackets[1].timestamp - trackPackets[0].timestamp;
+          }
+          debug('Video frame duration computed:', videoFrameDuration)
 
           for (let j = 0; j < trackPackets.length; j++) {
 
