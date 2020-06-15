@@ -34,7 +34,7 @@ function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
   case M2tNaluType.AUD: return "aud";
   case M2tNaluType.SPS: return "sps";
   case M2tNaluType.PPS: return "pps";
-  case M2tNaluType.SEI: return "pps";
+  case M2tNaluType.SEI: return "sei";
   case M2tNaluType.IDR: return "idr";
   default: return null
   }
