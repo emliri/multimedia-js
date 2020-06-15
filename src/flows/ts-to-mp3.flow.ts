@@ -1,6 +1,6 @@
 import { Flow, FlowStateChangeCallback, FlowConfigFlag } from '../core/flow';
 import { XhrSocket } from '../io-sockets/xhr.socket';
-import { MPEGTSDemuxProcessor } from '../processors/mpeg-ts-demux.processor';
+import { MP2TSDemuxProcessor } from '../processors/mp2ts-demux.proc';
 import { MP3ParseProcessor } from '../processors/mp3-parse.processor';
 import { ProcessorEvent } from '../core/processor';
 import { VoidCallback } from '../common-types';
@@ -19,7 +19,7 @@ export class TsToMp3Flow extends Flow {
       }
     );
 
-    const tsDemuxProc = new MPEGTSDemuxProcessor();
+    const tsDemuxProc = new MP2TSDemuxProcessor();
     const mp3ParseProc = new MP3ParseProcessor();
     const xhrSocket = this._xhrSocket = new XhrSocket(url);
 
