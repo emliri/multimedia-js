@@ -238,6 +238,10 @@ export class MP2TSDemuxProcessor extends Processor {
       isHeader = true;
     }
 
+    if (this._videoFramerate === null) {
+      warn('No video-fps/samplerate detectable yet');
+    }
+
     let dts: number;
     let cto: number;
 
@@ -272,7 +276,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     bufferSlice.props.details.width = this._videoConfig.config.width
     bufferSlice.props.details.height = this._videoConfig.config.height;
-    bufferSlice.props.details.codecProfile = null;
+    bufferSlice.props.details.codecProfile = this._videoConfig.config.profileIdc;
 
     bufferSlice.props.details.samplesPerFrame = 1;
 
