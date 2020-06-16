@@ -3,7 +3,7 @@ import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplate
 import { Packet } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
-import { CommonMimeTypes } from '../core/payload-description';
+import { CommonMimeTypes, CommonCodecFourCCs } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit, debugNALU } from './h264/h264-tools';
@@ -75,7 +75,7 @@ export class MP2TSDemuxProcessor extends Processor {
   private _videoConfig: M2tH264StreamEvent = null;
   private _videoPictureParamSet: boolean = false;
   private _videoTimingCache: M2tH264StreamEvent = null;
-  private _videoFramerate: number = NaN;
+  private _videoFramerate: number = 0;
 
   private _outPackets: Packet[] = [];
 
@@ -170,12 +170,15 @@ export class MP2TSDemuxProcessor extends Processor {
       // for as many buffers as possible
       bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16);
       bufferSlice.props.samplesCount = adtsEvent.sampleCount;
-      bufferSlice.props.codec = 'mp4a';
+      bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
       bufferSlice.props.isKeyframe = true;
       bufferSlice.props.isBitstreamHeader = false;
-      bufferSlice.props.details.samplesPerFrame = 1024;
+      bufferSlice.props.details.samplesPerFrame = 1024; // AAC has constant samples-per-frame rate
       bufferSlice.props.details.codecProfile = adtsEvent.audioobjecttype;
       bufferSlice.props.details.numChannels = adtsEvent.channelcount;
+
+      // TODO: compute bitrate
+      //bufferSlice.props.details.constantBitrate =
 
       if (this._audioDtsOffset === null) {
         this._audioDtsOffset = adtsEvent.dts
@@ -223,9 +226,12 @@ export class MP2TSDemuxProcessor extends Processor {
       isKeyframe = true;
       if (this._videoFirstKeyFrameDts === null) {
         this._videoFirstKeyFrameDts = h264Event.dts;
-        // may result in `Infinity` (allowed)
+        // may result in `Infinity` (unsafe)
         this._videoFramerate
           = MPEG_TS_TIMESCALE_HZ / (this._videoFirstKeyFrameDts - this._videoDtsOffset);
+        if (this._videoFramerate === Infinity) {
+          this._videoFramerate = 0;
+        }
       }
       if (!this._videoPictureParamSet) {
         warn('Got IDR without previously seeing a PPS NALU');
@@ -268,7 +274,7 @@ export class MP2TSDemuxProcessor extends Processor {
       1 // samples-per-frame
     );
 
-    bufferSlice.props.codec = 'avc1';
+    bufferSlice.props.codec = CommonCodecFourCCs.avc1;
     bufferSlice.props.elementaryStreamId = h264Event.trackId
 
     bufferSlice.props.isKeyframe = isKeyframe;
