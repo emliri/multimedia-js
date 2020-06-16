@@ -23,9 +23,9 @@ export enum CommonMimeTypes {
   AUDIO_OPUS = 'audio/opus',
   AUDIO_MP4 = 'audio/mp4',
   VIDEO_MP4 = 'video/mp4',
-  VIDEO_AVC = 'video/avc', // AnnexB format ("access units")
+  VIDEO_H264_ANNEXB = 'video/h264_annexb',
+  VIDEO_H264_AU = 'video/h264_au', // access units
   VIDEO_H264 = 'video/h264', // raw NALUs
-  VIDEO_AAC = 'video/aac',
   VIDEO_MPEGTS = 'video/MP2T',
   APP_HLS = 'application/vnd.apple.mpegurl',
   APP_XMPEGURL = 'application/x-mpegurl'
