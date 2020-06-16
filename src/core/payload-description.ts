@@ -20,9 +20,11 @@ export function isValidMimeTypeString(mimeType: string) {
 export enum CommonMimeTypes {
   AUDIO_MP3 = 'audio/mpeg',
   AUDIO_AAC = 'audio/aac',
+  AUDIO_ADTS = 'audio/adts', // ???
   AUDIO_OPUS = 'audio/opus',
   AUDIO_MP4 = 'audio/mp4',
   VIDEO_MP4 = 'video/mp4',
+  // ?
   VIDEO_H264_ANNEXB = 'video/h264_annexb',
   VIDEO_H264_AU = 'video/h264_au', // access units
   VIDEO_H264 = 'video/h264', // raw NALUs
@@ -32,7 +34,9 @@ export enum CommonMimeTypes {
 }
 
 export enum CommonCodecFourCCs {
-  // TODO ...
+  mp4a = 'mp4a',
+  avc1 = 'avc1',
+  mp3 = '.mp3'
 }
 
 export enum MimetypePrefix {
