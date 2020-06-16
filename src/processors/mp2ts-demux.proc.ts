@@ -33,7 +33,7 @@ import {
 
 function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
   switch(m2tNaluType) {
-  case M2tNaluType.AUD: return "aud";
+  case M2tNaluType.AUD: return "aud"; // TODO: make this stuff enums -> symbols or numbers (use actual NALU type ids)
   case M2tNaluType.SPS: return "sps";
   case M2tNaluType.PPS: return "pps";
   case M2tNaluType.SEI: return "sei";
@@ -71,8 +71,11 @@ export class MP2TSDemuxProcessor extends Processor {
 
   private _videoSocket: OutputSocket = null;
   private _videoDtsOffset: number = null
+  private _videoFirstKeyFrameDts: number = null;
   private _videoConfig: M2tH264StreamEvent = null;
+  private _videoPictureParamSet: boolean = false;
   private _videoTimingCache: M2tH264StreamEvent = null;
+  private _videoFramerate: number = NaN;
 
   private _outPackets: Packet[] = [];
 
@@ -167,7 +170,7 @@ export class MP2TSDemuxProcessor extends Processor {
       // for as many buffers as possible
       bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16);
       bufferSlice.props.samplesCount = adtsEvent.sampleCount;
-      bufferSlice.props.codec = 'aac'; // 'mp4a' ?
+      bufferSlice.props.codec = 'mp4a';
       bufferSlice.props.isKeyframe = true;
       bufferSlice.props.isBitstreamHeader = false;
       bufferSlice.props.details.samplesPerFrame = 1024;
@@ -201,44 +204,38 @@ export class MP2TSDemuxProcessor extends Processor {
     }
 
     if (!this._videoConfig) {
-      warn('Skipping H264 data before got first SPS');
+      warn('Skipping H264 data before got first param-sets, NALU-type:', mapNaluTypeToTag(h264Event.nalUnitType));
       return;
     }
 
     if (h264Event.nalUnitType === M2tNaluType.AUD) return;
 
-    const bufferSlice = new BufferSlice(
-      h264Event.data.buffer.slice(0),
-      h264Event.data.byteOffset,
-      h264Event.data.byteLength);
-
-    bufferSlice.props = new BufferProperties(
-      CommonMimeTypes.VIDEO_H264,
-      0, // sample-rate
-      8, // sampleDepth
-      1, // sample-duration num
-      1 // samples-per-frame
-    );
-
-    bufferSlice.props.codec = 'avc'; // 'avc1' ?
-    bufferSlice.props.elementaryStreamId = h264Event.trackId
-
-    bufferSlice.props.isKeyframe = h264Event.nalUnitType === M2tNaluType.IDR;
-    bufferSlice.props.isBitstreamHeader = h264Event.nalUnitType === M2tNaluType.SPS || h264Event.nalUnitType === M2tNaluType.PPS; // SPS/PPS
-
-    bufferSlice.props.details.width = this._videoConfig.config.width
-    bufferSlice.props.details.height = this._videoConfig.config.height;
-    bufferSlice.props.details.codecProfile = null;
-
-    bufferSlice.props.details.samplesPerFrame = 1;
-
-    bufferSlice.props.tags.add('nalu');
-
-    const naluTag = mapNaluTypeToTag(h264Event.nalUnitType) // may be null for non-IDR-slice
-    naluTag && bufferSlice.props.tags.add(naluTag);
-
     if (this._videoDtsOffset === null) {
       this._videoDtsOffset = h264Event.dts
+    }
+
+    if (h264Event.nalUnitType === M2tNaluType.PPS) {
+      this._videoPictureParamSet = true;
+    }
+
+    let isKeyframe: boolean = false;
+    if (h264Event.nalUnitType === M2tNaluType.IDR) {
+      isKeyframe = true;
+      if (this._videoFirstKeyFrameDts === null) {
+        this._videoFirstKeyFrameDts = h264Event.dts;
+        // may result in `Infinity` (allowed)
+        this._videoFramerate
+          = MPEG_TS_TIMESCALE_HZ / (this._videoFirstKeyFrameDts - this._videoDtsOffset);
+      }
+      if (!this._videoPictureParamSet) {
+        warn('Got IDR without previously seeing a PPS NALU');
+      }
+    }
+
+    let isHeader: boolean = false;
+    if (h264Event.nalUnitType === M2tNaluType.SPS
+      || h264Event.nalUnitType === M2tNaluType.PPS) {
+      isHeader = true;
     }
 
     let dts: number;
@@ -253,6 +250,38 @@ export class MP2TSDemuxProcessor extends Processor {
       cto = h264Event.pts - h264Event.dts;
     }
     this._videoTimingCache = h264Event;
+
+    const bufferSlice = new BufferSlice(
+      h264Event.data.buffer.slice(0),
+      h264Event.data.byteOffset,
+      h264Event.data.byteLength);
+
+    bufferSlice.props = new BufferProperties(
+      CommonMimeTypes.VIDEO_H264,
+      this._videoFramerate, // sample-rate (Hz)
+      8, // sampleDepth
+      1, // sample-duration num
+      1 // samples-per-frame
+    );
+
+    bufferSlice.props.codec = 'avc1';
+    bufferSlice.props.elementaryStreamId = h264Event.trackId
+
+    bufferSlice.props.isKeyframe = isKeyframe;
+    bufferSlice.props.isBitstreamHeader = isHeader;
+
+    bufferSlice.props.details.width = this._videoConfig.config.width
+    bufferSlice.props.details.height = this._videoConfig.config.height;
+    bufferSlice.props.details.codecProfile = null;
+
+    bufferSlice.props.details.samplesPerFrame = 1;
+
+    bufferSlice.props.tags.add('nalu');
+
+    const naluTag = mapNaluTypeToTag(h264Event.nalUnitType)
+
+    // may be null for non-IDR-slice
+    naluTag && bufferSlice.props.tags.add(naluTag);
 
     const packet = Packet.fromSlice(
       bufferSlice,
