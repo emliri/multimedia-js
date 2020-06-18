@@ -20,18 +20,23 @@ export function isValidMimeTypeString(mimeType: string) {
 export enum CommonMimeTypes {
   AUDIO_MP3 = 'audio/mpeg',
   AUDIO_AAC = 'audio/aac',
+  AUDIO_ADTS = 'audio/adts', // ???
   AUDIO_OPUS = 'audio/opus',
+  AUDIO_MP4 = 'audio/mp4',
   VIDEO_MP4 = 'video/mp4',
-  VIDEO_AVC = 'video/avc', // AnnexB format ("access units")
+  // ?
+  VIDEO_H264_ANNEXB = 'video/h264_annexb',
+  VIDEO_H264_AU = 'video/h264_au', // access units
   VIDEO_H264 = 'video/h264', // raw NALUs
-  VIDEO_AAC = 'video/aac',
   VIDEO_MPEGTS = 'video/MP2T',
   APP_HLS = 'application/vnd.apple.mpegurl',
   APP_XMPEGURL = 'application/x-mpegurl'
 }
 
 export enum CommonCodecFourCCs {
-  // TODO ...
+  mp4a = 'mp4a',
+  avc1 = 'avc1',
+  mp3 = '.mp3'
 }
 
 export enum MimetypePrefix {
@@ -240,16 +245,11 @@ export class PayloadDescriptor {
 }
 
 export class PayloadDetails {
-  /*
-  clone(details: PayloadDetails) {
-
-  }
-  */
 
   sequenceDurationInSeconds: number = NaN;
 
-  // place to put generic codec init-data // TODO: get rid of number[] here
-  codecConfigurationData: Uint8Array | number[] = null
+  // place to put generic codec extra-data
+  codecExtraData: ArrayBuffer = null
 
   codecProfile: number = NaN;
 
@@ -272,7 +272,7 @@ export class PayloadDetails {
   // ...
 
   toString () {
-    return `width=${this.width}[px];height=${this.height}[px];samplesPerFrame=${this.samplesPerFrame};cbr=${this.constantBitrate}[b/s];numChannels=${this.numChannels};codecConfigSize=${this.codecConfigurationData ? this.codecConfigurationData.length : 0}`;
+    return `width=${this.width}[px];height=${this.height}[px];samplesPerFrame=${this.samplesPerFrame};cbr=${this.constantBitrate}[b/s];numChannels=${this.numChannels};codecExtraDataLen=${this.codecExtraData.byteLength}`;
   }
 }
 

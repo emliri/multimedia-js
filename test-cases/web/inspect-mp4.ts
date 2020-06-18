@@ -5,7 +5,6 @@ import { XhrSocket } from '../../src/io-sockets/xhr.socket';
 import { ProcessorEvent, ProcessorEventData } from '../../src/core/processor';
 import { H264ParseProcessor } from '../../src/processors/h264-parse.processor';
 import { SocketEvent } from '../../src/core/socket';
-import { AACParseProcessor } from '../../src/processors/aac-parse.processor';
 import { LoggerLevel, getLogger } from '../../src/logger';
 import { OutputSocket } from '../../src/core/socket-output';
 
@@ -47,8 +46,7 @@ export class InspectMp4 extends MmjsTestCase {
         log(`audio track #${audioTrackNo} found`);
 
         if (ENABLE_INSPECT_AUDIO) {
-          aacParse = newProcessorWorkerShell(AACParseProcessor);
-          OutputSocket.fromUnsafe(data.socket).connect(aacParse.in[0]);
+          // TODO
         }
 
         OutputSocket.fromUnsafe(data.socket).addListener(SocketEvent.EOS_PACKET_TRANSFERRED, () => {

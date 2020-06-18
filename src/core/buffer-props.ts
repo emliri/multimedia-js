@@ -29,8 +29,8 @@ export class BufferProperties extends PayloadDescriptor {
       props.tags);
 
     newProps.elementaryStreamId = props.elementaryStreamId;
-    newProps.details = props.details;
     newProps.codec = props.codec;
+    newProps.details = Object.assign({}, props.details);
     return newProps;
   }
 

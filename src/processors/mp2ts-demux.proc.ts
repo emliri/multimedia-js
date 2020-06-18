@@ -3,11 +3,13 @@ import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplate
 import { Packet } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
-import { CommonMimeTypes } from '../core/payload-description';
+import { CommonMimeTypes, CommonCodecFourCCs } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit, debugNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
+
+import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 
 import {
   M2tDemuxPipeline,
@@ -31,10 +33,10 @@ import {
 
 function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
   switch(m2tNaluType) {
-  case M2tNaluType.AUD: return "aud";
+  case M2tNaluType.AUD: return "aud"; // TODO: make this stuff enums -> symbols or numbers (use actual NALU type ids)
   case M2tNaluType.SPS: return "sps";
   case M2tNaluType.PPS: return "pps";
-  case M2tNaluType.SEI: return "pps";
+  case M2tNaluType.SEI: return "sei";
   case M2tNaluType.IDR: return "idr";
   default: return null
   }
@@ -48,7 +50,7 @@ import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
 import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
 */
 
-const { debug, log, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
+const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -56,19 +58,11 @@ const getSocketDescriptor: SocketTemplateGenerator =
     SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
   );
 
-
 export class MP2TSDemuxProcessor extends Processor {
 
   static getName (): string {
     return 'MP2TSDemuxProcessor';
   }
-
-  /*
-  private _programMap: {[pid: number]: OutputSocket} = {};
-  private _haveAudio: boolean = false;
-  private _haveVideo: boolean = false;
-  //private _firstDtsOffset90khz: number | null = null; // WIP: actually build a packet-filter for this which will set each packet time-offset on a sequence
-  */
 
   private _demuxPipeline: M2tDemuxPipeline;
 
@@ -77,7 +71,11 @@ export class MP2TSDemuxProcessor extends Processor {
 
   private _videoSocket: OutputSocket = null;
   private _videoDtsOffset: number = null
+  private _videoFirstKeyFrameDts: number = null;
   private _videoConfig: M2tH264StreamEvent = null;
+  private _videoPictureParamSet: boolean = false;
+  private _videoTimingCache: M2tH264StreamEvent = null;
+  private _videoFramerate: number = 0;
 
   private _outPackets: Packet[] = [];
 
@@ -95,7 +93,7 @@ export class MP2TSDemuxProcessor extends Processor {
   private _setupPipeline() {
 
     const pipeline: Partial<M2tDemuxPipeline> = {};
-    this._demuxPipeline = pipeline as M2tDemuxPipeline;
+
     pipeline.metadataStream = new MetadataStream();
     // set up the parsing pipeline
     pipeline.packetStream = new TransportPacketStream() as unknown as M2tStream;
@@ -137,56 +135,134 @@ export class MP2TSDemuxProcessor extends Processor {
       this._handleAudioNalu(data);
     })
 
+    // debug TS packets, find PAT/PMT
+    /*
+    pipeline.parseStream.on('data', (data) => {
+      console.log(data)
+    })
+    */
+
     pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
-      //log('ES:', data)
+      //console.log('ES:', data)
       if (data.type === 'metadata') {
         //
       }
     });
 
+    this._demuxPipeline = pipeline as M2tDemuxPipeline;
+
   }
 
   private _handleAudioNalu(adtsEvent: M2tADTSStreamEvent) {
-      // FIXME: move this out of iteration as well as creating BufferProperties once and
-      // only mutating where necessary
-      const mimeType = CommonMimeTypes.AUDIO_AAC;
 
-      const sampleData: Uint8Array = adtsEvent.data;
+    const dts = adtsEvent.dts - this._audioDtsOffset;
+    const cto = adtsEvent.pts - adtsEvent.dts;
 
-      const bufferSlice = new BufferSlice(
-        sampleData.buffer.slice(0),
-        sampleData.byteOffset,
-        sampleData.byteLength);
+    const sampleData: Uint8Array = adtsEvent.data;
 
-      // TODO: To optimize performance, try to re-use the same heap-object instance here
-      // for as many buffers as possible
-      bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16);
-      bufferSlice.props.samplesCount = adtsEvent.sampleCount;
-      bufferSlice.props.codec = 'aac'; // 'mp4a'
-      bufferSlice.props.isKeyframe = true;
-      bufferSlice.props.isBitstreamHeader = true;
-      bufferSlice.props.details.samplesPerFrame = 1024;
-      bufferSlice.props.details.codecProfile = adtsEvent.audioobjecttype;
-      bufferSlice.props.details.numChannels = adtsEvent.channelcount;
+    const bufferSlice = new BufferSlice(
+      sampleData.buffer.slice(0),
+      sampleData.byteOffset,
+      sampleData.byteLength);
 
-      // bufferSlice.props.details.codecConfigurationData = new Uint8Array(audioTrack.config);
+    const packet = Packet.fromSlice(bufferSlice,
+      dts,
+      cto
+    );
 
-      if (this._audioDtsOffset === null) {
-        this._audioDtsOffset = adtsEvent.dts
-      }
+    // FIXME: move this out of iteration as well as creating BufferProperties once and
+    // only mutating where necessary
+    const mimeType = CommonMimeTypes.AUDIO_AAC;
 
-      const packet = Packet.fromSlice(bufferSlice,
-        adtsEvent.dts - this._audioDtsOffset,
-        adtsEvent.pts - adtsEvent.dts
-      );
+    // TODO: To optimize performance,
+    // try to re-use the same heap-object instance here
+    // for as many buffers as possible
+    bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16); // Q: is it always 16 bit ?
+    bufferSlice.props.samplesCount = adtsEvent.sampleCount;
+    bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
+    bufferSlice.props.isKeyframe = true;
+    bufferSlice.props.isBitstreamHeader = false;
+    bufferSlice.props.details.samplesPerFrame = 1024; // AAC has constant samples-per-frame rate of 1024
+    bufferSlice.props.details.codecProfile = adtsEvent.audioobjecttype;
+    bufferSlice.props.details.numChannels = adtsEvent.channelcount;
 
-      packet.setTimestampOffset(this._audioDtsOffset);
-      packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+    // TODO: compute bitrate
+    //bufferSlice.props.details.constantBitrate =
 
-      this._outPackets.push(packet);
+    if (this._audioDtsOffset === null) {
+      //this._audioDtsOffset = adtsEvent.dts
+      this._audioDtsOffset = 0
+    }
+
+    //packet.setTimestampOffset(this._audioDtsOffset);
+    packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+
+    this._outPackets.push(packet);
   }
 
   private _handleVideoNalu(h264Event: M2tH264StreamEvent) {
+
+    if (h264Event.config) {
+      this._videoConfig = h264Event;
+      info('Got video codec config slice:', this._videoConfig);
+      info('Parsed SPS:', H264ParameterSetParser.parseSPS(this._videoConfig.data.subarray(1)))
+    }
+
+    if (!this._videoConfig) {
+      warn('Skipping H264 data before got first param-sets, NALU-type:', mapNaluTypeToTag(h264Event.nalUnitType));
+      return;
+    }
+
+    if (h264Event.nalUnitType === M2tNaluType.AUD) return;
+
+    if (this._videoDtsOffset === null) {
+      //this._videoDtsOffset = h264Event.dts
+      this._videoDtsOffset = 0
+    }
+
+    if (h264Event.nalUnitType === M2tNaluType.PPS) {
+      this._videoPictureParamSet = true;
+    }
+
+    let isKeyframe: boolean = false;
+    if (h264Event.nalUnitType === M2tNaluType.IDR) {
+      isKeyframe = true;
+      if (this._videoFirstKeyFrameDts === null) {
+        this._videoFirstKeyFrameDts = h264Event.dts;
+        // may result in `Infinity` (unsafe)
+        this._videoFramerate
+          = MPEG_TS_TIMESCALE_HZ / (this._videoFirstKeyFrameDts - this._videoDtsOffset);
+        if (this._videoFramerate === Infinity) {
+          this._videoFramerate = 0;
+        }
+      }
+      if (!this._videoPictureParamSet) {
+        warn('Got IDR without previously seeing a PPS NALU');
+      }
+    }
+
+    let isHeader: boolean = false;
+    if (h264Event.nalUnitType === M2tNaluType.SPS
+      || h264Event.nalUnitType === M2tNaluType.PPS) {
+      isHeader = true;
+    }
+
+    if (this._videoFramerate === null) {
+      warn('No video-fps/samplerate detectable yet');
+    }
+
+    let dts: number;
+    let cto: number;
+
+    // Q: It is weird that we have to do this and is a bug in mux.js ???
+    if (this._videoTimingCache) {
+      dts = h264Event.dts - this._videoDtsOffset;
+      cto = this._videoTimingCache.pts - this._videoTimingCache.dts;
+    } else {
+      dts = h264Event.dts - this._videoDtsOffset;
+      cto = h264Event.pts - h264Event.dts;
+    }
+    this._videoTimingCache = h264Event;
 
     const bufferSlice = new BufferSlice(
       h264Event.data.buffer.slice(0),
@@ -195,48 +271,40 @@ export class MP2TSDemuxProcessor extends Processor {
 
     bufferSlice.props = new BufferProperties(
       CommonMimeTypes.VIDEO_H264,
-      30, 8, 1, 1
+      0, // sample-rate (Hz)
+      8, // sampleDepth
+      1, // sample-duration num
+      1 // samples-per-frame
     );
 
-    bufferSlice.props.codec = 'avc'; // avcTrack.codec;
+    bufferSlice.props.codec = CommonCodecFourCCs.avc1;
     bufferSlice.props.elementaryStreamId = h264Event.trackId
 
-    bufferSlice.props.isKeyframe = h264Event.nalUnitType === M2tNaluType.IDR;
-    bufferSlice.props.isBitstreamHeader = h264Event.nalUnitType === M2tNaluType.SPS || h264Event.nalUnitType === M2tNaluType.PPS; // SPS/PPS
+    bufferSlice.props.isKeyframe = isKeyframe;
+    bufferSlice.props.isBitstreamHeader = isHeader;
 
-    if (h264Event.config) {
-      this._videoConfig = h264Event;
-    }
-
-    if (this._videoConfig) {
-      bufferSlice.props.details.width = this._videoConfig.config.width
-      bufferSlice.props.details.height = this._videoConfig.config.height;
-      bufferSlice.props.details.codecProfile = null;
-    }
+    bufferSlice.props.details.width = this._videoConfig.config.width
+    bufferSlice.props.details.height = this._videoConfig.config.height;
+    bufferSlice.props.details.codecProfile = this._videoConfig.config.profileIdc;
 
     bufferSlice.props.details.samplesPerFrame = 1;
-    bufferSlice.props.details.sequenceDurationInSeconds = 10; // HACK !!! // FIXME
 
     bufferSlice.props.tags.add('nalu');
 
-    const naluTag = mapNaluTypeToTag(h264Event.nalUnitType) // may be null for non-IDR-slice
-    naluTag && bufferSlice.props.tags.add(naluTag);
+    const naluTag = mapNaluTypeToTag(h264Event.nalUnitType)
 
-    log("Creating packet for AVC NALU data");
-    debugNALU(bufferSlice)
-
-    if (this._videoDtsOffset === null) {
-      this._videoDtsOffset = h264Event.dts
+    // may be null for non-IDR-slice
+    if (naluTag) {
+      bufferSlice.props.tags.add(naluTag);
     }
 
     const packet = Packet.fromSlice(
       bufferSlice,
-      h264Event.dts - this._videoDtsOffset,
-      h264Event.pts - h264Event.dts
-      );
+      dts,
+      cto
+    );
 
-    packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
-
+    //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
     packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
 
     debug('created packet:', packet.toString());
@@ -268,8 +336,10 @@ export class MP2TSDemuxProcessor extends Processor {
       // FIXME: make two queues (audio/video) and optimize away this check here
       if (p.defaultPayloadInfo.isVideo()) {
 
+        debug('got video packet:', p.toString())
+
         if (!videoSocket) {
-          log('creating video output socket')
+          log('creating video output socket:', p.defaultPayloadInfo)
           this._videoSocket = videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
@@ -286,8 +356,10 @@ export class MP2TSDemuxProcessor extends Processor {
       // FIXME: make two queues (audio/video) and optimize away this check here
       } else if (p.defaultPayloadInfo.isAudio()) {
 
+        debug('got audio packet:', p.toString())
+
         if (!audioSocket) {
-          log('creating audio output socket')
+          log('creating audio output socket:', p.defaultPayloadInfo)
           this._audioSocket = audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
@@ -299,12 +371,13 @@ export class MP2TSDemuxProcessor extends Processor {
         throw new Error('Unsupported payload: ' + p.defaultMimeType);
       }
     });
+
     this._outPackets.length = 0; // clear queue
 
   }
 
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
-    log(`feeding demuxer with packet of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 6)} Mbytes`)
+    log(`feeding demuxer with chunk of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 3)} Kbytes`)
     const perf = self.performance;
     const startDemuxingMs = perf.now();
     this._demuxPipeline.headOfPipeline.push(inPacket.data[0].getUint8Array());

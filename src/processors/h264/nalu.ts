@@ -6,41 +6,57 @@ export enum H264SliceType {
   SI
 }
 
+export enum H264NaluType {
+  NOI = 1,
+  // TODO: add types 2 to 4
+  IDR = 5,
+  SEI = 6,
+  SPS = 7,
+  PPS = 8,
+  AUD = 9,
+  SEE = 10,
+  STE = 11
+}
+
+export function getH264NaluTypeTag(nalType: H264NaluType): string {
+  return H264NaluType[nalType].toLowerCase();
+}
+
 export class NALU {
   // TODO: make enum
 
   static get NON_IDR () {
-    return 1;
+    return H264NaluType.NOI;
   }
 
   // TODO: add types 2 to 4
 
   static get IDR () {
-    return 5;
+    return H264NaluType.IDR;
   }
 
   static get SEI () {
-    return 6;
+    return H264NaluType.SEI;
   }
 
   static get SPS () {
-    return 7;
+    return H264NaluType.SPS;
   }
 
   static get PPS () {
-    return 8;
+    return H264NaluType.PPS;
   }
 
   static get AU_DELIM () {
-    return 9;
+    return H264NaluType.AUD;
   }
 
   static get SEQ_END () {
-    return 10;
+    return H264NaluType.SEE;
   }
 
   static get STREAM_END () {
-    return 11;
+    return H264NaluType.STE;
   }
 
   static getNALUnitTypeName (nalType: number): string {
@@ -62,8 +78,8 @@ export class NALU {
     case NALU.STREAM_END:
       return 'END STREAM';
     default:
-      return 'Unknown NALU type: ' + nalType;
-            // throw new Error('Unknown NALU type: ' + nalType);
+      return `${nalType} (unknown NAL type)`;
+      // throw new Error('Unknown NALU type: ' + nalType);
     }
   }
 
