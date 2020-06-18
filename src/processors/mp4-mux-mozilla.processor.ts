@@ -73,6 +73,8 @@ export type MP4MuxProcessorOptions = {
   embedCodecDataOnKeyFrames: boolean,
   forceMp3: boolean
   maxAudioFramesPerChunk: number
+  maxVideoFramesPerChunk: number
+  flushOnKeyFrame: boolean
 }
 
 export class MP4MuxProcessor extends Processor {
@@ -97,7 +99,9 @@ export class MP4MuxProcessor extends Processor {
     fragmentMinDurationSeconds: 1,
     embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
     forceMp3: FORCE_MP3,
-    maxAudioFramesPerChunk: 16
+    maxAudioFramesPerChunk: 16, // 1 frame = ~24ms @44.1khz (with AAC 1024 samples/frame)
+    maxVideoFramesPerChunk: 8, // 1 frame = ~42ms @24fps
+    flushOnKeyFrame: false
   }
 
   private socketToTrackIndexHash_: {[i: number]: number} = {};
@@ -136,8 +140,7 @@ export class MP4MuxProcessor extends Processor {
     if (p.defaultPayloadInfo.isAudio()) {
 
       if (this.options_.fragmentedMode
-        && this.audioPacketQueue_.length > this.options_.maxAudioFramesPerChunk) {
-        // FIXME: make this rather an optional feature
+        && (this.audioPacketQueue_.length > this.options_.maxAudioFramesPerChunk)) {
         this._flush();
       }
 
@@ -167,15 +170,23 @@ export class MP4MuxProcessor extends Processor {
 
     } else if (p.defaultPayloadInfo.isVideo()) {
 
-      if (this.options_.fragmentedMode
-        && !this._queuedVideoBitstreamHeader && !p.defaultPayloadInfo.isBitstreamHeader) {
-        return; // drop any packets received before we got codec init data
-      }
+      if (this.options_.fragmentedMode) {
 
-      if (this.options_.fragmentedMode && p.defaultPayloadInfo.isKeyframe
-        && this._queuedVideoBitstreamHeader && this.videoPacketQueue_.length > 1 + 1) {
-        // FIXME: make this rather an optional feature
-        this._flush();
+        if (!this._queuedVideoBitstreamHeader && !p.defaultPayloadInfo.isBitstreamHeader)  {
+          return true; // drop any packets received before we got codec init data
+        }
+
+        if (this.options_.flushOnKeyFrame
+          && p.defaultPayloadInfo.isBitstreamHeader
+          && this._queuedVideoBitstreamHeader
+          && this.videoPacketQueue_.length > 1 + 1) {
+          this._flush();
+        } else if (!this.options_.flushOnKeyFrame
+          && this._queuedVideoBitstreamHeader
+          && this.videoPacketQueue_.length > this.options_.maxVideoFramesPerChunk + 1) {
+          this._flush();
+        }
+
       }
 
       this.videoPacketQueue_.push(p);
