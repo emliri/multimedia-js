@@ -6,8 +6,8 @@ import { InputSocket, SocketDescriptor, SocketType, SocketTemplateGenerator } fr
 import {
   MP4Mux,
   MP4Track,
-  MP4Metadata,
-  MP4MuxPacketType,
+  MP4MovieMetadata,
+  MP4MuxFrameType,
   MP3_SOUND_CODEC_ID,
   AAC_SOUND_CODEC_ID,
   AVC_VIDEO_CODEC_ID,
@@ -82,7 +82,7 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private mp4Muxer_: MP4Mux = null;
-  private mp4Metadata_: MP4Metadata = null;
+  private mp4Metadata_: MP4MovieMetadata = null;
   private codecInfo_: string[] = [];
   private flushCounter_: number = 0;
 
@@ -206,7 +206,7 @@ export class MP4MuxProcessor extends Processor {
 
     }
 
-    warn('Packet with hnhandled payload:', p);
+    warn('Packet with unhandled payload:', p);
     return false;
 
   }
@@ -304,8 +304,8 @@ export class MP4MuxProcessor extends Processor {
 
       const data = bufferSlice.getUint8Array();
 
-      mp4Muxer.pushPacket(
-        MP4MuxPacketType.VIDEO_PACKET,
+      mp4Muxer.pushFrame(
+        MP4MuxFrameType.VIDEO_PACKET,
         AVC_VIDEO_CODEC_ID,
         data,
         p.dts,
@@ -335,8 +335,8 @@ export class MP4MuxProcessor extends Processor {
 
       debug('audio packet:', p.toString());
 
-      mp4Muxer.pushPacket(
-        MP4MuxPacketType.AUDIO_PACKET,
+      mp4Muxer.pushFrame(
+        MP4MuxFrameType.AUDIO_PACKET,
         // FIXME: get rid of FORCE_MP3 flag
         this.options_.forceMp3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
         data,
