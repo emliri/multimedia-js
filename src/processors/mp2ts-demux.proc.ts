@@ -154,48 +154,50 @@ export class MP2TSDemuxProcessor extends Processor {
   }
 
   private _handleAudioNalu(adtsEvent: M2tADTSStreamEvent) {
-      // FIXME: move this out of iteration as well as creating BufferProperties once and
-      // only mutating where necessary
-      const mimeType = CommonMimeTypes.AUDIO_AAC;
 
-      const sampleData: Uint8Array = adtsEvent.data;
+    const dts = adtsEvent.dts - this._audioDtsOffset;
+    const cto = adtsEvent.pts - adtsEvent.dts;
 
-      const bufferSlice = new BufferSlice(
-        sampleData.buffer.slice(0),
-        sampleData.byteOffset,
-        sampleData.byteLength);
+    const sampleData: Uint8Array = adtsEvent.data;
 
-      // TODO: To optimize performance,
-      // try to re-use the same heap-object instance here
-      // for as many buffers as possible
-      bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16);
-      bufferSlice.props.samplesCount = adtsEvent.sampleCount;
-      bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
-      bufferSlice.props.isKeyframe = true;
-      bufferSlice.props.isBitstreamHeader = false;
-      bufferSlice.props.details.samplesPerFrame = 1024; // AAC has constant samples-per-frame rate
-      bufferSlice.props.details.codecProfile = adtsEvent.audioobjecttype;
-      bufferSlice.props.details.numChannels = adtsEvent.channelcount;
+    const bufferSlice = new BufferSlice(
+      sampleData.buffer.slice(0),
+      sampleData.byteOffset,
+      sampleData.byteLength);
 
-      // TODO: compute bitrate
-      //bufferSlice.props.details.constantBitrate =
+    const packet = Packet.fromSlice(bufferSlice,
+      dts,
+      cto
+    );
 
-      if (this._audioDtsOffset === null) {
-        this._audioDtsOffset = adtsEvent.dts
-      }
+    // FIXME: move this out of iteration as well as creating BufferProperties once and
+    // only mutating where necessary
+    const mimeType = CommonMimeTypes.AUDIO_AAC;
 
-      const dts = adtsEvent.dts - this._audioDtsOffset;
-      const cto = adtsEvent.pts - adtsEvent.dts;
+    // TODO: To optimize performance,
+    // try to re-use the same heap-object instance here
+    // for as many buffers as possible
+    bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16); // Q: is it always 16 bit ?
+    bufferSlice.props.samplesCount = adtsEvent.sampleCount;
+    bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
+    bufferSlice.props.isKeyframe = true;
+    bufferSlice.props.isBitstreamHeader = false;
+    bufferSlice.props.details.samplesPerFrame = 1024; // AAC has constant samples-per-frame rate of 1024
+    bufferSlice.props.details.codecProfile = adtsEvent.audioobjecttype;
+    bufferSlice.props.details.numChannels = adtsEvent.channelcount;
 
-      const packet = Packet.fromSlice(bufferSlice,
-        dts,
-        cto
-      );
+    // TODO: compute bitrate
+    //bufferSlice.props.details.constantBitrate =
 
-      //packet.setTimestampOffset(this._audioDtsOffset);
-      packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+    if (this._audioDtsOffset === null) {
+      //this._audioDtsOffset = adtsEvent.dts
+      this._audioDtsOffset = 0
+    }
 
-      this._outPackets.push(packet);
+    //packet.setTimestampOffset(this._audioDtsOffset);
+    packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+
+    this._outPackets.push(packet);
   }
 
   private _handleVideoNalu(h264Event: M2tH264StreamEvent) {
@@ -214,7 +216,8 @@ export class MP2TSDemuxProcessor extends Processor {
     if (h264Event.nalUnitType === M2tNaluType.AUD) return;
 
     if (this._videoDtsOffset === null) {
-      this._videoDtsOffset = h264Event.dts
+      //this._videoDtsOffset = h264Event.dts
+      this._videoDtsOffset = 0
     }
 
     if (h264Event.nalUnitType === M2tNaluType.PPS) {
@@ -268,7 +271,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     bufferSlice.props = new BufferProperties(
       CommonMimeTypes.VIDEO_H264,
-      this._videoFramerate, // sample-rate (Hz)
+      0, // sample-rate (Hz)
       8, // sampleDepth
       1, // sample-duration num
       1 // samples-per-frame
@@ -291,7 +294,9 @@ export class MP2TSDemuxProcessor extends Processor {
     const naluTag = mapNaluTypeToTag(h264Event.nalUnitType)
 
     // may be null for non-IDR-slice
-    naluTag && bufferSlice.props.tags.add(naluTag);
+    if (naluTag) {
+      bufferSlice.props.tags.add(naluTag);
+    }
 
     const packet = Packet.fromSlice(
       bufferSlice,
