@@ -254,7 +254,7 @@ export class MP4MuxProcessor extends Processor {
 
       if (bufferSlice.props.isKeyframe) {
 
-        console.log('got keyframe at:', p.toString());
+        //console.log('got keyframe at:', p.toString());
 
         if (this.options_.embedCodecDataOnKeyFrames) { // TODO: refix this creating avcC where we also make esds box (inside MP4Mux)
           if (!this.videoBitstreamHeader_) {
@@ -396,7 +396,7 @@ export class MP4MuxProcessor extends Processor {
 
     if (this.videoPacketQueue_.length) {
       debug('processing video packet queue:', this.videoPacketQueue_);
-      console.log('first video data', this.videoPacketQueue_[0].toString())
+      //console.log('first video data', this.videoPacketQueue_[0].toString())
       this.videoPacketQueue_.forEach((packet: Packet) => {
         this._processVideoPacket(packet);
       });
@@ -405,7 +405,7 @@ export class MP4MuxProcessor extends Processor {
 
     if (this.audioPacketQueue_.length) {
       debug('processing audio packet queue:', this.audioPacketQueue_);
-      console.log('first audio data', this.audioPacketQueue_[0].toString())
+      //console.log('first audio data', this.audioPacketQueue_[0].toString())
       this.audioPacketQueue_.forEach((packet: Packet) => {
         this._processAudioPacket(packet);
       });
