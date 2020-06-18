@@ -110,11 +110,11 @@ export type AudioFrame = {
   size: number;
   channels: number;
   samples: number;
-  packetType: AudioPacketType;
+  type: AudioFrameType;
   sampleDescriptionIndex: number;
 }
 
-export enum AudioPacketType {
+export enum AudioFrameType {
   HEADER = 0,
   RAW = 1,
 }
@@ -124,11 +124,11 @@ export const VP6_VIDEO_CODEC_ID = 4;
 export const AVC_VIDEO_CODEC_ID = 7;
 
 export type VideoFrame = {
-  frameType: VideoFrameType;
+  frameFlag: VideoFrameFlag;
   codecId: number;
   codecDescription: string;
   data: Uint8Array;
-  packetType: VideoPacketType;
+  type: VideoFrameType;
   decodingTime: number,
   compositionTime: number;
   horizontalOffset?: number;
@@ -136,8 +136,7 @@ export type VideoFrame = {
   sampleDescriptionIndex: number;
 }
 
-
-export enum VideoFrameType {
+export enum VideoFrameFlag {
   KEY = 1,
   INNER = 2,
   DISPOSABLE = 3,
@@ -145,15 +144,15 @@ export enum VideoFrameType {
   INFO = 5,
 }
 
-export enum VideoPacketType {
+export enum VideoFrameType {
   HEADER = 0,
   NALU = 1,
   END = 2,
 }
 
 export enum MP4MuxFrameType {
-  AUDIO_PACKET = 8,
-  VIDEO_PACKET = 9 // legacy support numbers, not sure if can be replaced
+  AUDIO = 8,
+  VIDEO = 9 // legacy support numbers (for FLV package! :D), not sure if can be replaced
 }
 
 export type MP4Track = {
@@ -183,6 +182,8 @@ export type MP4MovieMetadata = {
   duration: number;
   audioTrackId: number;
   videoTrackId: number;
+  audioBaseDts: number;
+  videoBaseDts: number;
 }
 
 export enum MP4MuxState {
@@ -228,22 +229,22 @@ export class MP4Mux {
 
     public constructor (private _metadata: MP4MovieMetadata,
       private _fragmentedMode: boolean = true,
-      private _generateHeader: boolean = true,
-      cachedDuration: number = 0) {
+      private _generateHeader: boolean = true) {
 
       this.trackStates = this._metadata.tracks.map((trackInfo: MP4Track, index) => {
         const state: MP4TrackState = {
           trackId: index + 1,
           trackInfo,
-          cachedDuration,
+          cachedDuration: 0,
           samplesProcessed: 0,
           initializationData: []
         };
-        // FIXME: very weird stuff, why can't track IDs be just arbitrary?? :D
         if (this._metadata.audioTrackId === state.trackId) {
+          state.cachedDuration = this._metadata.audioBaseDts;
           this.audioTrackState = state;
         }
         if (this._metadata.videoTrackId === state.trackId) {
+          state.cachedDuration = this._metadata.videoBaseDts;
           this.videoTrackState = state;
         }
         return state;
@@ -269,7 +270,7 @@ export class MP4Mux {
       }
 
       switch (type) {
-      case MP4MuxFrameType.AUDIO_PACKET: // audio
+      case MP4MuxFrameType.AUDIO: // audio
         const audioTrack = this.audioTrackState;
         let audioPacket: AudioFrame;
 
@@ -290,7 +291,7 @@ export class MP4Mux {
             size: sampleDepth,
             channels: numChannels,
             samples: samplesPerFrame,
-            packetType: isInitData ? AudioPacketType.HEADER : AudioPacketType.RAW,
+            type: isInitData ? AudioFrameType.HEADER : AudioFrameType.RAW,
             sampleDescriptionIndex: 1 // FIXME: hard-coding to 1 breaks previous support
                                       // for AAC codec config in-stream discontinuities (used rather in MOV mode)
                                       // -> should use audioDetails as sortof high-level init-data here
@@ -316,16 +317,16 @@ export class MP4Mux {
         this.cachedFrames.push({ frame: audioPacket, timestamp, trackId: audioTrack.trackId });
 
         break;
-      case MP4MuxFrameType.VIDEO_PACKET:
+      case MP4MuxFrameType.VIDEO:
         var videoTrack = this.videoTrackState;
         var videoPacket: VideoFrame;
         if (forceRaw) {
           videoPacket = {
-            frameType: isKeyframe ? VideoFrameType.KEY : VideoFrameType.INNER,
+            frameFlag: isKeyframe ? VideoFrameFlag.KEY : VideoFrameFlag.INNER,
             codecId: AVC_VIDEO_CODEC_ID,
             codecDescription: VIDEOCODECS[AVC_VIDEO_CODEC_ID],
             data,
-            packetType: isInitData ? VideoPacketType.HEADER : VideoPacketType.NALU,
+            type: isInitData ? VideoFrameType.HEADER : VideoFrameType.NALU,
             decodingTime: timestamp,
             compositionTime: timestamp + cto,
             sampleDescriptionIndex: videoTrack.initializationData.length
@@ -342,7 +343,7 @@ export class MP4Mux {
         case VP6_VIDEO_CODEC_ID:
           break; // supported
         case AVC_VIDEO_CODEC_ID:
-          if (videoPacket.packetType === VideoPacketType.HEADER) {
+          if (videoPacket.type === VideoFrameType.HEADER) {
             videoTrack.initializationData.push(videoPacket.data);
             return;
           }
@@ -518,7 +519,7 @@ export class MP4Mux {
               size: videoPacket.data.length,
               dts: videoPacket.decodingTime,
               cts: videoPacket.compositionTime,
-              isRap: videoPacket.frameType === VideoFrameType.KEY,
+              isRap: videoPacket.frameFlag === VideoFrameFlag.KEY,
               sampleDescriptionIndex: videoPacket.sampleDescriptionIndex
             };
 
@@ -909,7 +910,7 @@ export class MP4Mux {
             tdatParts.push(videoPacket.data);
             tdatPosition += videoPacket.data.length;
 
-            const frameFlags = videoPacket.frameType === VideoFrameType.KEY
+            const frameFlags = videoPacket.frameFlag === VideoFrameFlag.KEY
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
               : (SampleFlags.SAMPLE_DEPENDS_ON_OTHER | SampleFlags.SAMPLE_IS_NOT_SYNC);
 
