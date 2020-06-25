@@ -209,29 +209,32 @@ type CachedFrame = {
 
 export class MP4Mux {
 
-    private trackStates: MP4TrackState[] = null;
-    private audioTrackState: MP4TrackState = null;
-    private videoTrackState: MP4TrackState = null;
+    private _trackStates: MP4TrackState[] = null;
+    private _audioTrackState: MP4TrackState = null;
+    private _videoTrackState: MP4TrackState = null;
 
-    private filePos: number = 0;
-    private cachedFrames: CachedFrame[] = [];
-    private chunkIndex: number = 0;
+    private _cachedFrames: CachedFrame[] = [];
 
-    private state: MP4MuxState = null; // TODO: have proper init state in enum
+    private _filePos: number = 0;
+    private _fragmentCount: number = 0;
 
-    oncodecinfo: (codecs: string[]) => void = function (codecs: string[]) {
+    private _state: MP4MuxState = null; // TODO: have proper init state in enum
+
+    oncodecinfo: (codecs: string[]) => void = (codecs: string[]) => {
       throw new Error('MP4Mux.oncodecinfo is not set');
     };
 
-    ondata: (data) => void = function (data) {
+    ondata: (data: Uint8Array) => void = (data) => {
       throw new Error('MP4Mux.ondata is not set');
     };
 
-    public constructor (private _metadata: MP4MovieMetadata,
+    public constructor (
+      private _movMetadata: MP4MovieMetadata,
       private _fragmentedMode: boolean = true,
-      private _generateHeader: boolean = true) {
+      private _generateHeader: boolean = true
+      ) {
 
-      this.trackStates = this._metadata.tracks.map((trackInfo: MP4Track, index) => {
+      this._trackStates = this._movMetadata.tracks.map((trackInfo: MP4Track, index) => {
         const state: MP4TrackState = {
           trackId: index + 1,
           trackInfo,
@@ -239,18 +242,44 @@ export class MP4Mux {
           samplesProcessed: 0,
           initializationData: []
         };
-        if (this._metadata.audioTrackId === state.trackId) {
-          state.cachedDuration = this._metadata.audioBaseDts;
-          this.audioTrackState = state;
+        if (this._movMetadata.audioTrackId === state.trackId) {
+          state.cachedDuration = this._movMetadata.audioBaseDts;
+          this._audioTrackState = state;
         }
-        if (this._metadata.videoTrackId === state.trackId) {
-          state.cachedDuration = this._metadata.videoBaseDts;
-          this.videoTrackState = state;
+        if (this._movMetadata.videoTrackId === state.trackId) {
+          state.cachedDuration = this._movMetadata.videoBaseDts;
+          this._videoTrackState = state;
         }
         return state;
       }, this);
 
       this._checkIfNeedHeaderData();
+    }
+
+    /**
+     * @returns Number of fragments/chunks written (only fragmented mode)
+     */
+    public getFragmnentCount(): number {
+      return this._fragmentCount; // will be pre-incremented on each fragment
+    }
+
+    /**
+     * @returns {number} Position bytes offset of output file data
+     */
+    public getFilePosition(): number {
+      return this._filePos;
+    }
+
+    public getAudioTrackState(): MP4TrackState {
+      return this._audioTrackState;
+    }
+
+    public getVideoTrackState(): MP4TrackState {
+      return this._videoTrackState;
+    }
+
+    getMovieMetadata(): MP4MovieMetadata {
+      return this._movMetadata;
     }
 
     public pushFrame (
@@ -265,13 +294,13 @@ export class MP4Mux {
       audioDetails: {sampleRate: number, sampleDepth: number, samplesPerFrame: number, numChannels: number} = null
     ) {
 
-      if (this.state === MP4MuxState.CAN_GENERATE_HEADER) {
+      if (this._state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._generateMovieHeaderFragmentedMode();
       }
 
       switch (type) {
       case MP4MuxFrameType.AUDIO: // audio
-        const audioTrack = this.audioTrackState;
+        const audioTrack = this._audioTrackState;
         let audioPacket: AudioFrame;
 
         if (forceRaw) {
@@ -314,11 +343,11 @@ export class MP4Mux {
           break;
         }
 
-        this.cachedFrames.push({ frame: audioPacket, timestamp, trackId: audioTrack.trackId });
+        this._cachedFrames.push({ frame: audioPacket, timestamp, trackId: audioTrack.trackId });
 
         break;
       case MP4MuxFrameType.VIDEO:
-        var videoTrack = this.videoTrackState;
+        var videoTrack = this._videoTrackState;
         var videoPacket: VideoFrame;
         if (forceRaw) {
           videoPacket = {
@@ -349,27 +378,27 @@ export class MP4Mux {
           }
           break;
         }
-        this.cachedFrames.push({ frame: videoPacket, timestamp, trackId: videoTrack.trackId });
+        this._cachedFrames.push({ frame: videoPacket, timestamp, trackId: videoTrack.trackId });
         break;
       default:
         throw new Error('unknown packet type: ' + type);
       }
 
-      if (this.state === MP4MuxState.NEED_HEADER_DATA) {
+      if (this._state === MP4MuxState.NEED_HEADER_DATA) {
         this._generateMovieHeaderFragmentedMode();
       }
 
       //*
       if (this._fragmentedMode &&
-        this.cachedFrames.length >= MAX_PACKETS_IN_CHUNK &&
-          this.state === MP4MuxState.MAIN_PACKETS) {
+        this._cachedFrames.length >= MAX_PACKETS_IN_CHUNK &&
+          this._state === MP4MuxState.MAIN_PACKETS) {
         this._generateMovieFragment();
       }
       //*/
     }
 
     public flush () {
-      if (this.cachedFrames.length > 0) {
+      if (this._cachedFrames.length > 0) {
         if (this._fragmentedMode) {
           this._generateMovieFragment();
         } else {
@@ -379,17 +408,17 @@ export class MP4Mux {
     }
 
     public reset() {
-      this.filePos = 0;
-      this.chunkIndex = 0;
-      this.cachedFrames.length = 0;
+      this._filePos = 0;
+      this._fragmentCount = 0;
+      this._cachedFrames.length = 0;
     }
 
     private _checkIfNeedHeaderData () {
-      if (this.trackStates.some((ts) =>
+      if (this._trackStates.some((ts) =>
         ts.trackInfo.codecId === AVC_VIDEO_CODEC_ID)) {
-        this.state = MP4MuxState.NEED_HEADER_DATA;
+        this._state = MP4MuxState.NEED_HEADER_DATA;
       } else {
-        this.state = MP4MuxState.CAN_GENERATE_HEADER;
+        this._state = MP4MuxState.CAN_GENERATE_HEADER;
       }
     }
 
@@ -406,7 +435,7 @@ export class MP4Mux {
         throw new Error('Failed to generate moov header data for plain MOV file')
       }
 
-      this.oncodecinfo(this.trackStates.map((ts) => ts.mimeTypeCodec));
+      this.oncodecinfo(this._trackStates.map((ts) => ts.mimeTypeCodec));
       this.ondata(header);
     }
 
@@ -460,14 +489,14 @@ export class MP4Mux {
     }
 
     private _createPlainMovMediaData (): [MediaDataBox, StblSample[][]] {
-      const cachedPackets = this.cachedFrames;
+      const cachedPackets = this._cachedFrames;
       const sampleTablesData: StblSample[][] = [];
       const chunks: Uint8Array[][] = [];
 
       let samples: StblSample[] = null;
 
-      for (let i = 0; i < this.trackStates.length; i++) {
-        const trackState = this.trackStates[i];
+      for (let i = 0; i < this._trackStates.length; i++) {
+        const trackState = this._trackStates[i];
         const trackInfo = trackState.trackInfo;
         const trackId = trackState.trackId;
 
@@ -553,7 +582,7 @@ export class MP4Mux {
     }
 
     private _haveAllInitData(): boolean {
-      return this.trackStates.every((trackState) => {
+      return this._trackStates.every((trackState) => {
         switch (trackState.trackInfo.codecId) {
         case AVC_VIDEO_CODEC_ID:
           return trackState.initializationData.length > 0;
@@ -579,9 +608,9 @@ export class MP4Mux {
       const trexs: TrackExtendsBox[] = [];
       const traksData: {trakFlags: number, trackState: MP4TrackState, trackInfo: MP4Track, sampleDescEntry: SampleEntry[]}[] = [];
 
-      for (let i = 0; i < this.trackStates.length; i++) {
+      for (let i = 0; i < this._trackStates.length; i++) {
 
-        const trackState = this.trackStates[i];
+        const trackState = this._trackStates[i];
         const trackInfo = trackState.trackInfo;
         const sampleDescEntry: SampleEntry[] = [];
 
@@ -657,9 +686,13 @@ export class MP4Mux {
 
           // For AVC, support multiple video codec data entries
           trackState.initializationData.forEach((codecInitData) => {
-            let avcC = codecInitData;
 
-            sampleEntry = new VideoSampleEntry('avc1', videoDataReferenceIndex, trackInfo.width, trackInfo.height);
+            sampleEntry = new VideoSampleEntry('avc1',
+              videoDataReferenceIndex,
+              trackInfo.width,
+              trackInfo.height
+            );
+
             sampleEntry.otherBoxes = [
               new RawTag('avcC', avcC)
             ];
@@ -721,7 +754,7 @@ export class MP4Mux {
       /**
        * We are using the smallest of all track durations to set the movie header duration field and timescale
        */
-      const minDurationTrackInfo = this.trackStates
+      const minDurationTrackInfo = this._trackStates
         .sort((a, b) => (a.trackInfo.duration / a.trackInfo.timescale) -
                       (b.trackInfo.duration / b.trackInfo.timescale))
         [0].trackInfo;
@@ -729,7 +762,7 @@ export class MP4Mux {
       const mvhd = new MovieHeaderBox(
         1, // HACK
         minDurationTrackInfo.duration / minDurationTrackInfo.timescale,
-        this.trackStates.length + 1
+        this._trackStates.length + 1
       );
 
       // first we write the ftyp and eventually the wide & mdat boxes
@@ -766,9 +799,9 @@ export class MP4Mux {
         }
 
         let trak = null;
-        if (trackState === this.audioTrackState) {
+        if (trackState === this._audioTrackState) {
           trak = this._createTrackBox(trakFlags, trackState, trackInfo, 'soun', 'SoundHandler', sampleTable, i);
-        } else if (trackState === this.videoTrackState) {
+        } else if (trackState === this._videoTrackState) {
           trak = this._createTrackBox(trakFlags, trackState, trackInfo, 'vide', 'VideoHandler', sampleTable, i);
         }
 
@@ -801,7 +834,7 @@ export class MP4Mux {
         throw new Error('_generateMovieHeaderFragmentedMode can only be called in fragmented mode');
       }
 
-      if (!this._generateHeader || this.filePos > 0) return;
+      if (!this._generateHeader || this._filePos > 0) return;
 
       const header = this._makeMovHeader(true);
       if (!header) {
@@ -809,10 +842,10 @@ export class MP4Mux {
         return;
       }
 
-      this.filePos += header.length;
-      this.state = MP4MuxState.MAIN_PACKETS;
+      this._filePos += header.length;
+      this._state = MP4MuxState.MAIN_PACKETS;
 
-      this.oncodecinfo(this.trackStates.map((ts) => ts.mimeTypeCodec));
+      this.oncodecinfo(this._trackStates.map((ts) => ts.mimeTypeCodec));
       this.ondata(header);
     }
 
@@ -822,7 +855,7 @@ export class MP4Mux {
         throw new Error('_generateMovieFragment can only be called in fragmented mode');
       }
 
-      let cachedPackets = this.cachedFrames;
+      let cachedPackets = this._cachedFrames;
       if (cachedPackets.length === 0) {
         warn('_generateMovieFragment but no packets cached');
         return; // No data to produce.
@@ -833,9 +866,9 @@ export class MP4Mux {
       let trafs: TrackFragmentBox[] = [];
       let trafDataStarts: number[] = [];
 
-      for (let i = 0; i < this.trackStates.length; i++) {
+      for (let i = 0; i < this._trackStates.length; i++) {
 
-        const trackState = this.trackStates[i];
+        const trackState = this._trackStates[i];
         const trackInfo = trackState.trackInfo;
         const trackId = trackState.trackId;
 
@@ -950,9 +983,9 @@ export class MP4Mux {
         trafs.push(traf);
       }
 
-      this.cachedFrames.splice(0, cachedPackets.length);
+      this._cachedFrames.splice(0, cachedPackets.length);
 
-      let moofHeader = new MovieFragmentHeaderBox(++this.chunkIndex);
+      let moofHeader = new MovieFragmentHeaderBox(++this._fragmentCount);
       let moof = new MovieFragmentBox(moofHeader, trafs);
       let moofSize = moof.layout(0);
       let mdat = new MediaDataBox(tdatParts);
@@ -968,6 +1001,7 @@ export class MP4Mux {
       mdat.write(chunk);
 
       this.ondata(chunk);
-      this.filePos += chunk.length;
+
+      this._filePos += chunk.length;
     }
 }
