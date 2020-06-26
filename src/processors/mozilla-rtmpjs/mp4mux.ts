@@ -914,16 +914,20 @@ export class MP4Mux {
         case VP6_VIDEO_CODEC_ID: {
 
           let videoFrameDuration: number;
+          let ieFps: number;
+          const {timescale} = trackInfo;
           if (trackPackets.length === 1) {
-            videoFrameDuration = Math.round(trackInfo.timescale / trackInfo.framerate);
+            videoFrameDuration = Math.round(timescale / trackInfo.framerate);
+            ieFps = timescale / videoFrameDuration;
+            debug('Video frame duration computed from metadata FPS:', videoFrameDuration, 'inst. effect. FPS:', ieFps);
           } else {
             videoFrameDuration = trackPackets[1].timestamp - trackPackets[0].timestamp;
+            ieFps = timescale / videoFrameDuration;
+            debug('Video frame duration computed from timestamp-diff:', videoFrameDuration, 'inst. effect. FPS:', ieFps);
           }
 
-          debug('Video frame duration computed:', videoFrameDuration, 'instantaneously effective FPS:', 1 / videoFrameDuration)
-
           if (!Number.isFinite(videoFrameDuration)) {
-            throw new Error('Invalid instantaneous effective FPS value computed: ' + 1/videoFrameDuration);
+            throw new Error('Invalid inst. effec. FPS value computed: ' + 1 / videoFrameDuration);
           }
 
           for (let j = 0; j < trackPackets.length; j++) {
