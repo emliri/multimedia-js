@@ -2,6 +2,10 @@ import { VoidCallback, OneDeepNestedArray } from './common-types';
 
 export const noop = () => {};
 
+export function prntprtty(val: any, indent: number = 4): string {
+  return JSON.stringify(val, null, indent);
+}
+
 /**
  *
  * @param s template-able string value.
