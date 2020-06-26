@@ -306,7 +306,8 @@ export class Packet {
     const description =
       `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>` +
       ` #{(@${p.getTimestampOffset()} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.getTimescale()}` +
-      ` -> ${p.getNormalizedDts()} + ∂${p.getNormalizedCto()} [s]} `;
+      ` -> ${p.getNormalizedDts()} + ∂${p.getNormalizedCto()} [s]}` +
+      `k(${p.defaultPayloadInfo.isKeyframe ? '1' : '0'})|b(${p.defaultPayloadInfo.isBitstreamHeader ? '1' : '0'})`;
     return description;
   }
 }
