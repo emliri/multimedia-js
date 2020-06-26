@@ -143,10 +143,7 @@ export type VideoFrame = {
 
 export enum VideoFrameFlag {
   KEY = 1,
-  INNER = 2,
-  DISPOSABLE = 3,
-  GENERATED = 4,
-  INFO = 5,
+  INTRA = 2,
 }
 
 export enum VideoFrameType {
@@ -341,7 +338,7 @@ export class MP4Mux {
         const {trackId} = videoTrack;
         const frame: VideoFrame = {
           data,
-          frameFlag: isKeyframe ? VideoFrameFlag.KEY : VideoFrameFlag.INNER,
+          frameFlag: isKeyframe ? VideoFrameFlag.KEY : VideoFrameFlag.INTRA,
           codecId: AVC_VIDEO_CODEC_ID,
           codecDescription: VIDEOCODECS[AVC_VIDEO_CODEC_ID],
           type: isInitData ? VideoFrameType.HEADER : VideoFrameType.NALU,
@@ -922,7 +919,12 @@ export class MP4Mux {
           } else {
             videoFrameDuration = trackPackets[1].timestamp - trackPackets[0].timestamp;
           }
-          debug('Video frame duration computed:', videoFrameDuration)
+
+          debug('Video frame duration computed:', videoFrameDuration, 'instantaneously effective FPS:', 1 / videoFrameDuration)
+
+          if (!Number.isFinite(videoFrameDuration)) {
+            throw new Error('Invalid instantaneous effective FPS value computed: ' + 1/videoFrameDuration);
+          }
 
           for (let j = 0; j < trackPackets.length; j++) {
 
@@ -934,14 +936,15 @@ export class MP4Mux {
             tdatParts.push(videoPacket.data);
             tdatPosition += videoPacket.data.length;
 
-            const frameFlags = videoPacket.frameFlag === VideoFrameFlag.KEY
+            const frameFlags = (videoPacket.frameFlag === VideoFrameFlag.KEY)
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
               : (SampleFlags.SAMPLE_DEPENDS_ON_OTHER | SampleFlags.SAMPLE_IS_NOT_SYNC);
 
             debug('Frame flags at DTS/PTS:',
               videoPacket.frameFlag,
               videoPacket.decodingTime,
-              videoPacket.decodingTime, frameFlags);
+              videoPacket.decodingTime,
+            );
 
             const trunSample: TrackRunSample = {
               duration: videoFrameDuration,
@@ -953,7 +956,7 @@ export class MP4Mux {
             trunSamples.push(trunSample);
 
             trackState.samplesProcessed++;
-            trackState.cachedDuration = videoFrameDuration
+            trackState.cachedDuration = videoFrameDuration;
           }
 
           const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
