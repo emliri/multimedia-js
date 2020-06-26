@@ -75,7 +75,8 @@ export class MP2TSDemuxProcessor extends Processor {
   private _videoConfig: M2tH264StreamEvent = null;
   private _videoPictureParamSet: boolean = false;
   private _videoTimingCache: M2tH264StreamEvent = null;
-  private _videoFramerate: number = 0;
+  private _videoTimingQueue: M2tH264StreamEvent[] = [];
+  private _videoFramerate: number = null;
 
   private _outPackets: Packet[] = [];
 
@@ -99,7 +100,7 @@ export class MP2TSDemuxProcessor extends Processor {
     pipeline.packetStream = new TransportPacketStream() as unknown as M2tStream;
     pipeline.parseStream = new TransportParseStream() as unknown as M2tStream;
     pipeline.elementaryStream = new ElementaryStream() as unknown as M2tStream;
-    pipeline.timestampRolloverStream = new TimestampRolloverStream() as unknown as M2tStream;
+    pipeline.timestampRolloverStream = new TimestampRolloverStream(null) as unknown as M2tStream;
     pipeline.aacOrAdtsStream = new AdtsStream.default() as unknown as M2tStream;
     pipeline.h264Stream = new H264Codec.H264Stream() as unknown as M2tStream;
     pipeline.captionStream = new CaptionStream() as unknown as M2tStream;
@@ -127,7 +128,27 @@ export class MP2TSDemuxProcessor extends Processor {
 
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       log('h264Stream:', data)
-      this._handleVideoNalu(data);
+
+      if (this._videoFramerate === null) {
+        this._videoTimingQueue.push(data);
+        for (let i = this._videoTimingQueue.length - 1; i > 0; i--) { // -> will only run when queue length > 1
+          const frameDuration = (data.dts - this._videoTimingQueue[i - 1].dts);
+          if (frameDuration <= 0 || ! Number.isFinite(frameDuration)) {
+            continue;
+          }
+          this._videoFramerate = Math.round(MPEG_TS_TIMESCALE_HZ / frameDuration);
+          info('got frame duration / fps:,', frameDuration, this._videoFramerate)
+          break;
+        }
+        if (this._videoFramerate) {
+          this._videoTimingQueue.forEach((data) => {
+            this._handleVideoNalu(data);
+          });
+          this._videoTimingQueue.length = 0;
+        }
+      } else {
+        this._handleVideoNalu(data);
+      }
     })
 
     pipeline.aacOrAdtsStream.on('data', (data: M2tADTSStreamEvent) => {
@@ -229,12 +250,6 @@ export class MP2TSDemuxProcessor extends Processor {
       isKeyframe = true;
       if (this._videoFirstKeyFrameDts === null) {
         this._videoFirstKeyFrameDts = h264Event.dts;
-        // may result in `Infinity` (unsafe)
-        this._videoFramerate
-          = MPEG_TS_TIMESCALE_HZ / (this._videoFirstKeyFrameDts - this._videoDtsOffset);
-        if (this._videoFramerate === Infinity) {
-          this._videoFramerate = 0;
-        }
       }
       if (!this._videoPictureParamSet) {
         warn('Got IDR without previously seeing a PPS NALU');
@@ -262,6 +277,7 @@ export class MP2TSDemuxProcessor extends Processor {
       dts = h264Event.dts - this._videoDtsOffset;
       cto = h264Event.pts - h264Event.dts;
     }
+
     this._videoTimingCache = h264Event;
 
     const bufferSlice = new BufferSlice(
@@ -271,7 +287,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     bufferSlice.props = new BufferProperties(
       CommonMimeTypes.VIDEO_H264,
-      0, // sample-rate (Hz)
+      this._videoFramerate || 0, // sample-rate (Hz)
       8, // sampleDepth
       1, // sample-duration num
       1 // samples-per-frame
