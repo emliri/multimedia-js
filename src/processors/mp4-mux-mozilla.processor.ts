@@ -30,7 +30,7 @@ const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true)
 const OUTPUT_FRAGMENTED_MODE = false;
 const EMBED_CODEC_DATA_ON_KEYFRAME = false;
 const FORCE_MP3 = false; // FIXME: get rid of FORCE_MP3 flag
-const DEBUG_H264 = true;
+const DEBUG_H264 = false;
 
 function getCodecId (codec: MP4MuxProcessorSupportedCodecs): number {
   switch (codec) {
