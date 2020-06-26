@@ -61,8 +61,6 @@ import { getLogger, LoggerLevel } from '../../logger';
 
 const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.OFF, true);
 
-let MAX_PACKETS_IN_CHUNK = Infinity;
-
 export const AAC_SAMPLES_PER_FRAME = 1024;
 
 export const AAC_SAMPLING_FREQUENCIES = [
@@ -119,6 +117,13 @@ export enum AudioFrameType {
   RAW = 1,
 }
 
+export type AudioDetails = {
+  sampleRate: number,
+  sampleDepth: number,
+  samplesPerFrame: number,
+  numChannels: number
+}
+
 export const VIDEOCODECS = [null, 'JPEG', 'Sorenson', 'Screen', 'VP6', 'VP6 alpha', 'Screen2', 'AVC'];
 export const VP6_VIDEO_CODEC_ID = 4;
 export const AVC_VIDEO_CODEC_ID = 7;
@@ -128,7 +133,7 @@ export type VideoFrame = {
   codecId: number;
   codecDescription: string;
   data: Uint8Array;
-  type: VideoFrameType;
+  type: VideoFrameType; // TODO: get rid of this
   decodingTime: number,
   compositionTime: number;
   horizontalOffset?: number;
@@ -146,8 +151,7 @@ export enum VideoFrameFlag {
 
 export enum VideoFrameType {
   HEADER = 0,
-  NALU = 1,
-  END = 2,
+  NALU = 1
 }
 
 export enum MP4MuxFrameType {
@@ -253,7 +257,7 @@ export class MP4Mux {
         return state;
       }, this);
 
-      this._checkIfNeedHeaderData();
+      this._initNeedHeaderDataState();
     }
 
     /**
@@ -287,114 +291,85 @@ export class MP4Mux {
       codecId: number,
       data: Uint8Array,
       timestamp: number,
-      forceRaw: boolean = false,
       isInitData: boolean = false,
       isKeyframe: boolean = false,
       cto: number = 0,
-      audioDetails: {sampleRate: number, sampleDepth: number, samplesPerFrame: number, numChannels: number} = null
+      audioDetails: AudioDetails = null
     ) {
 
-      if (this._state === MP4MuxState.CAN_GENERATE_HEADER) {
-        this._generateMovieHeaderFragmentedMode();
+      switch (type) {
+
+      case MP4MuxFrameType.AUDIO: {
+        const audioTrack = this._audioTrackState;
+        const {trackId} = audioTrack;
+        let frame: AudioFrame;
+
+        if (!audioDetails) {
+          throw new Error('We need audio-details');
+        }
+
+        const { sampleRate, sampleDepth, samplesPerFrame, numChannels } = audioDetails;
+
+        frame = {
+          data,
+          decodingTime: timestamp,
+          compositionTime: timestamp + cto,
+          codecId,
+          codecDescription: SOUND_CODECS[codecId],
+          rate: sampleRate,
+          size: sampleDepth,
+          channels: numChannels,
+          samples: samplesPerFrame,
+          type: isInitData ? AudioFrameType.HEADER : AudioFrameType.RAW,
+          sampleDescriptionIndex: 1 // FIXME: hard-coding to 1 breaks previous support
+                                    // for AAC codec config in-stream discontinuities (used rather in MOV mode)
+                                    // -> should use audioDetails as sortof high-level init-data here
+        };
+
+        if (!audioTrack || audioTrack.trackInfo.codecId !== frame.codecId) {
+          throw new Error('Unexpected audio packet codec: ' + frame.codecDescription);
+        }
+
+        this._cachedFrames.push({ frame, timestamp, trackId });
+
+        break;
       }
 
-      switch (type) {
-      case MP4MuxFrameType.AUDIO: // audio
-        const audioTrack = this._audioTrackState;
-        let audioPacket: AudioFrame;
+      case MP4MuxFrameType.VIDEO: {
 
-        if (forceRaw) {
-          if (!audioDetails) {
-            throw new Error('We need audio-details in raw sample push mode');
-          }
+        const videoTrack = this._videoTrackState;
+        const {trackId} = videoTrack;
+        const frame: VideoFrame = {
+          data,
+          frameFlag: isKeyframe ? VideoFrameFlag.KEY : VideoFrameFlag.INNER,
+          codecId: AVC_VIDEO_CODEC_ID,
+          codecDescription: VIDEOCODECS[AVC_VIDEO_CODEC_ID],
+          type: isInitData ? VideoFrameType.HEADER : VideoFrameType.NALU,
+          decodingTime: timestamp,
+          compositionTime: timestamp + cto,
+          sampleDescriptionIndex: videoTrack.initializationData.length
+        };
 
-          const { sampleRate, sampleDepth, samplesPerFrame, numChannels } = audioDetails;
-
-          audioPacket = {
-            data,
-            decodingTime: timestamp,
-            compositionTime: timestamp + cto,
-            codecId,
-            codecDescription: SOUND_CODECS[codecId],
-            rate: sampleRate,
-            size: sampleDepth,
-            channels: numChannels,
-            samples: samplesPerFrame,
-            type: isInitData ? AudioFrameType.HEADER : AudioFrameType.RAW,
-            sampleDescriptionIndex: 1 // FIXME: hard-coding to 1 breaks previous support
-                                      // for AAC codec config in-stream discontinuities (used rather in MOV mode)
-                                      // -> should use audioDetails as sortof high-level init-data here
-          };
-
-        } else {
-          throw new Error('Non raw-mode not supported');
+        if (!videoTrack || videoTrack.trackInfo.codecId !== frame.codecId) {
+          throw new Error('Unexpected video packet codec: ' + frame.codecDescription);
         }
 
-        if (!audioTrack || audioTrack.trackInfo.codecId !== audioPacket.codecId) {
-          throw new Error('Unexpected audio packet codec: ' + audioPacket.codecDescription);
+        if (frame.type === VideoFrameType.NALU) { // store frame
+          this._cachedFrames.push({ frame, timestamp, trackId });
+        } else if (frame.type === VideoFrameType.HEADER) { // store init data
+          this._insertCodecInitData(videoTrack, frame);
         }
-
-        switch (audioPacket.codecId) {
-        default:
-          throw new Error('Unsupported audio codec: ' + audioPacket.codecDescription);
-        case MP3_SOUND_CODEC_ID:
-          break; // supported codec
-        case AAC_SOUND_CODEC_ID:
-          break;
-        }
-
-        this._cachedFrames.push({ frame: audioPacket, timestamp, trackId: audioTrack.trackId });
 
         break;
-      case MP4MuxFrameType.VIDEO:
-        var videoTrack = this._videoTrackState;
-        var videoPacket: VideoFrame;
-        if (forceRaw) {
-          videoPacket = {
-            frameFlag: isKeyframe ? VideoFrameFlag.KEY : VideoFrameFlag.INNER,
-            codecId: AVC_VIDEO_CODEC_ID,
-            codecDescription: VIDEOCODECS[AVC_VIDEO_CODEC_ID],
-            data,
-            type: isInitData ? VideoFrameType.HEADER : VideoFrameType.NALU,
-            decodingTime: timestamp,
-            compositionTime: timestamp + cto,
-            sampleDescriptionIndex: videoTrack.initializationData.length
-          };
-        } else {
-          throw new Error('Non raw-mode not supported');
-        }
-        if (!videoTrack || videoTrack.trackInfo.codecId !== videoPacket.codecId) {
-          throw new Error('Unexpected video packet codec: ' + videoPacket.codecDescription);
-        }
-        switch (videoPacket.codecId) {
-        default:
-          throw new Error('unsupported video codec: ' + videoPacket.codecDescription);
-        case VP6_VIDEO_CODEC_ID:
-          break; // supported
-        case AVC_VIDEO_CODEC_ID:
-          if (videoPacket.type === VideoFrameType.HEADER) {
-            videoTrack.initializationData.push(videoPacket.data);
-            return;
-          }
-          break;
-        }
-        this._cachedFrames.push({ frame: videoPacket, timestamp, trackId: videoTrack.trackId });
-        break;
+      }
+
       default:
         throw new Error('unknown packet type: ' + type);
       }
 
-      if (this._state === MP4MuxState.NEED_HEADER_DATA) {
+      if (this._state === MP4MuxState.CAN_GENERATE_HEADER) {
         this._generateMovieHeaderFragmentedMode();
       }
-
-      //*
-      if (this._fragmentedMode &&
-        this._cachedFrames.length >= MAX_PACKETS_IN_CHUNK &&
-          this._state === MP4MuxState.MAIN_PACKETS) {
-        this._generateMovieFragment();
-      }
-      //*/
     }
 
     public flush () {
@@ -413,12 +388,23 @@ export class MP4Mux {
       this._cachedFrames.length = 0;
     }
 
-    private _checkIfNeedHeaderData () {
+    private _initNeedHeaderDataState () {
       if (this._trackStates.some((ts) =>
         ts.trackInfo.codecId === AVC_VIDEO_CODEC_ID)) {
         this._state = MP4MuxState.NEED_HEADER_DATA;
       } else {
         this._state = MP4MuxState.CAN_GENERATE_HEADER;
+      }
+    }
+
+    private _insertCodecInitData(track: MP4TrackState, frame: VideoFrame) {
+      switch (frame.codecId) {
+      case VP6_VIDEO_CODEC_ID:
+      case AVC_VIDEO_CODEC_ID:
+        track.initializationData.push(frame.data);
+        this._state = MP4MuxState.CAN_GENERATE_HEADER; // this should only transit on init-data check for all tracks
+        break;
+      default: throw new Error('unsupported video codec: ' + frame.codecDescription);
       }
     }
 
@@ -687,6 +673,8 @@ export class MP4Mux {
           // For AVC, support multiple video codec data entries
           trackState.initializationData.forEach((codecInitData) => {
 
+            let avcC = codecInitData; // FIXME: synthesize avcC here from SPS/PPS duple
+
             sampleEntry = new VideoSampleEntry('avc1',
               videoDataReferenceIndex,
               trackInfo.width,
@@ -710,7 +698,9 @@ export class MP4Mux {
 
           brands.push('iso2', 'avc1', 'mp41');
           break;
+
         case VP6_VIDEO_CODEC_ID:
+
           sampleEntry = new VideoSampleEntry('VP6F', videoDataReferenceIndex, trackInfo.width, trackInfo.height);
           sampleEntry.otherBoxes = [
             new RawTag('glbl', hexToBytes('00'))
@@ -721,6 +711,7 @@ export class MP4Mux {
           // TODO to lie about codec to get it playing in MSE?
           trackState.mimeTypeCodec = 'avc1.42001E';
           break;
+
         default:
           throw new Error('not supported track type');
         }
@@ -946,6 +937,11 @@ export class MP4Mux {
             const frameFlags = videoPacket.frameFlag === VideoFrameFlag.KEY
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
               : (SampleFlags.SAMPLE_DEPENDS_ON_OTHER | SampleFlags.SAMPLE_IS_NOT_SYNC);
+
+            debug('Frame flags at DTS/PTS:',
+              videoPacket.frameFlag,
+              videoPacket.decodingTime,
+              videoPacket.decodingTime, frameFlags);
 
             const trunSample: TrackRunSample = {
               duration: videoFrameDuration,
