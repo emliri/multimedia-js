@@ -44,6 +44,8 @@ function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
 
 const MPEG_TS_TIMESCALE_HZ = 90000;
 
+const DEBUG_PACKETS = false;
+
 /*
 import * as AacStream from '../ext-mod/mux.js/lib/aac';
 import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
@@ -51,6 +53,8 @@ import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
 */
 
 const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
+
+const perf = self.performance;
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -126,6 +130,22 @@ export class MP2TSDemuxProcessor extends Processor {
     // Hook up CEA-608/708 caption stream
     pipeline.h264Stream.pipe(pipeline.captionStream);
 
+    if (DEBUG_PACKETS) {
+      // debug TS packets, find PAT/PMT
+      pipeline.parseStream.on('data', (data) => {
+        console.log('TS:',data)
+      })
+
+      pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
+        console.log('ES:', data)
+        /*
+        if (data.type === 'metadata') {
+          //
+        }
+        */
+      });
+    }
+
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       log('h264Stream:', data)
 
@@ -156,19 +176,7 @@ export class MP2TSDemuxProcessor extends Processor {
       this._handleAudioNalu(data);
     })
 
-    // debug TS packets, find PAT/PMT
-    /*
-    pipeline.parseStream.on('data', (data) => {
-      console.log(data)
-    })
-    */
 
-    pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
-      //console.log('ES:', data)
-      if (data.type === 'metadata') {
-        //
-      }
-    });
 
     this._demuxPipeline = pipeline as M2tDemuxPipeline;
 
@@ -394,7 +402,6 @@ export class MP2TSDemuxProcessor extends Processor {
 
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
     log(`feeding demuxer with chunk of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 3)} Kbytes`)
-    const perf = self.performance;
     const startDemuxingMs = perf.now();
     this._demuxPipeline.headOfPipeline.push(inPacket.data[0].getUint8Array());
     const demuxingRunTimeMs = perf.now() - startDemuxingMs;
