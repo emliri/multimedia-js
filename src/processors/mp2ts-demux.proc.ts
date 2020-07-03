@@ -54,7 +54,7 @@ import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
 
 const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
 
-const perf = self.performance;
+const perf = performance;
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
