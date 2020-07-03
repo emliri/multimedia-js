@@ -25,7 +25,7 @@ import { NALU } from './h264/nalu';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import { CommonMimeTypes } from '../core/payload-description';
 
-const { log, debug, warn } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
+const { warn, info, log, debug } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
 
 const OUTPUT_FRAGMENTED_MODE = false;
 const EMBED_CODEC_DATA_ON_KEYFRAME = false;
@@ -177,8 +177,9 @@ export class MP4MuxProcessor extends Processor {
 
       this.videoPacketQueue_.push(p);
 
-      if (p.defaultPayloadInfo.isBitstreamHeader) {
+      if (!this._queuedVideoBitstreamHeader && p.defaultPayloadInfo.isBitstreamHeader) {
         this._queuedVideoBitstreamHeader = true
+        info('queued first bitstream header @:', Date.now())
       }
 
       // check/create track meta
