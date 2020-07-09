@@ -157,7 +157,7 @@ export function makeNALUFromH264RbspData (
  *
  * @param naluData list of NAL units to package in an access unit
  */
-export function makeAnnexBAccessUnitFromNALUs (naluData: BufferSlice[]): BufferSlice {
+export function makeAccessUnitFromNALUs (naluData: BufferSlice[]): BufferSlice {
   const totalSizeOfNalus = BufferSlice.getTotalSize(naluData);
   const accessUnitData: BufferSlice = BufferSlice.allocateNew((4 * naluData.length) + totalSizeOfNalus);
   const auDataView: DataView = accessUnitData.getDataView();
