@@ -52,7 +52,7 @@ import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
 import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
 */
 
-const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.ON, true);
+const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
 
 const perf = performance;
 
@@ -61,6 +61,8 @@ const getSocketDescriptor: SocketTemplateGenerator =
     SocketDescriptor.fromMimeTypes('video/mp2t'), // valid inputs
     SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
   );
+
+type VideoNALUInfo = {nalu: M2tH264StreamEvent, dts: number, cto: number, isKeyframe: boolean, isHeader: boolean};
 
 export class MP2TSDemuxProcessor extends Processor {
 
@@ -79,7 +81,8 @@ export class MP2TSDemuxProcessor extends Processor {
   private _videoConfig: M2tH264StreamEvent = null;
   private _videoPictureParamSet: boolean = false;
   private _videoTimingCache: M2tH264StreamEvent = null;
-  private _videoTimingQueue: M2tH264StreamEvent[] = [];
+  private _videoTimingQueueIn: M2tH264StreamEvent[] = [];
+  private _videoTimingQueueOut: VideoNALUInfo[] = [];
   private _videoFramerate: number = null;
 
   private _outPackets: Packet[] = [];
@@ -164,9 +167,9 @@ export class MP2TSDemuxProcessor extends Processor {
   }
 
   private _queueVideoTimingNalu(data: M2tH264StreamEvent) {
-    this._videoTimingQueue.push(data);
-    for (let i = this._videoTimingQueue.length - 1; i > 0; i--) { // -> will only run when queue length > 1
-      const frameDuration = (data.dts - this._videoTimingQueue[i - 1].dts);
+    this._videoTimingQueueIn.push(data);
+    for (let i = this._videoTimingQueueIn.length - 1; i > 0; i--) { // -> will only run when queue length > 1
+      const frameDuration = (data.dts - this._videoTimingQueueIn[i - 1].dts);
       if (frameDuration <= 0 || ! Number.isFinite(frameDuration)) {
         continue;
       }
@@ -175,10 +178,10 @@ export class MP2TSDemuxProcessor extends Processor {
       break;
     }
     if (this._videoFramerate) {
-      this._videoTimingQueue.forEach((data) => {
+      this._videoTimingQueueIn.forEach((data) => {
         this._handleVideoNalu(data);
       });
-      this._videoTimingQueue.length = 0;
+      this._videoTimingQueueIn.length = 0;
     }
   }
 
@@ -287,53 +290,75 @@ export class MP2TSDemuxProcessor extends Processor {
     }
     this._videoTimingCache = h264Event;
 
-    const bufferSlice = new BufferSlice(
-      h264Event.data.buffer,
-      h264Event.data.byteOffset,
-      h264Event.data.byteLength);
+    this._pushVideoH264NALU({nalu: h264Event, dts, cto, isKeyframe, isHeader})
 
-    bufferSlice.props = new BufferProperties(
-      CommonMimeTypes.VIDEO_H264,
-      this._videoFramerate || 0, // sample-rate (Hz)
-      8, // sampleDepth
-      1, // sample-duration num
-      1 // samples-per-frame
-    );
+  }
 
-    bufferSlice.props.codec = CommonCodecFourCCs.avc1;
-    bufferSlice.props.elementaryStreamId = h264Event.trackId
+  private _pushVideoH264NALU(nalInfo: VideoNALUInfo) {
 
-    bufferSlice.props.isKeyframe = isKeyframe;
-    bufferSlice.props.isBitstreamHeader = isHeader;
+    const nextDts = nalInfo.dts;
 
-    bufferSlice.props.details.width = this._videoConfig.config.width
-    bufferSlice.props.details.height = this._videoConfig.config.height;
-    bufferSlice.props.details.codecProfile = this._videoConfig.config.profileIdc;
+    if (this._videoTimingQueueOut.length > 0
+      && nextDts !== this._videoTimingQueueOut[0].dts) {
 
-    bufferSlice.props.details.samplesPerFrame = 1;
+        const {dts, cto, nalu, isKeyframe, isHeader} = this._videoTimingQueueOut[0];
 
-    bufferSlice.props.tags.add('nalu');
+        const props = new BufferProperties(
+          CommonMimeTypes.VIDEO_H264,
+          this._videoFramerate || 0, // sample-rate (Hz)
+          8, // sampleDepth
+          1, // sample-duration num
+          1 // samples-per-frame
+        );
 
-    const naluTag = mapNaluTypeToTag(h264Event.nalUnitType)
+        props.codec = CommonCodecFourCCs.avc1;
+        props.elementaryStreamId = nalu.trackId
 
-    // may be null for non-IDR-slice
-    if (naluTag) {
-      bufferSlice.props.tags.add(naluTag);
+        props.isKeyframe = isKeyframe;
+        props.isBitstreamHeader = isHeader;
+
+        props.details.width = this._videoConfig.config.width
+        props.details.height = this._videoConfig.config.height;
+        props.details.codecProfile = this._videoConfig.config.profileIdc;
+
+        props.details.samplesPerFrame = 1;
+
+        props.tags.add('nalu');
+        // add NALU type tags for all slices
+        this._videoTimingQueueOut.forEach(({nalu}) => {
+          const naluTag = mapNaluTypeToTag(nalu.nalUnitType)
+          // may be null for non-IDR-slice
+          if (naluTag) {
+            props.tags.add(naluTag);
+          }
+        })
+
+        // create multi-slice packet
+        const slices = this._videoTimingQueueOut.map(({nalu}) => {
+          const bs = new BufferSlice(
+            nalu.data.buffer,
+            nalu.data.byteOffset,
+            nalu.data.byteLength,
+            props // share same props for all slices
+          );
+          return bs;
+        })
+
+        const packet = Packet.fromSlices(
+          dts,
+          cto,
+          ... slices
+        );
+
+        //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
+        packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+        debug('created/pushed packet:', packet.toString());
+        this._outPackets.push(packet);
+
+        this._videoTimingQueueOut.length = 0;
     }
 
-    const packet = Packet.fromSlice(
-      bufferSlice,
-      dts,
-      cto
-    );
-
-    //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
-    packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
-
-    debug('created packet:', packet.toString());
-
-    this._outPackets.push(packet);
-
+    this._videoTimingQueueOut.push(nalInfo);
   }
 
   private _onOutPacketsPushed() {
@@ -371,7 +396,7 @@ export class MP2TSDemuxProcessor extends Processor {
         debug('transferring video packet to default out');
 
         if (p.defaultPayloadInfo.isBitstreamHeader) {
-          log('found bitstream header part in packet:', p.defaultPayloadInfo.tags)
+          log('found bitstream header part in packet:', p.defaultPayloadInfo.tags, p.data)
         }
 
         videoSocket.transfer(p);
