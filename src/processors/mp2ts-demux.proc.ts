@@ -6,7 +6,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugAccessUnit, debugNALU } from './h264/h264-tools';
+import { debugAccessUnit, debugNALU, NALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
@@ -245,7 +245,13 @@ export class MP2TSDemuxProcessor extends Processor {
       return;
     }
 
-    if (h264Event.nalUnitType === M2tNaluType.AUD) return;
+    if (h264Event.nalUnitType === M2tNaluType.SEI) {
+      return;
+    }
+
+    if (h264Event.nalUnitType === M2tNaluType.AUD) {
+      return;
+    }
 
     if (this._videoDtsOffset === null) {
       //this._videoDtsOffset = h264Event.dts
