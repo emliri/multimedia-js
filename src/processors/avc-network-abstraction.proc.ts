@@ -11,7 +11,7 @@ import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.ON, true);
+const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.OFF, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make this runtime option
 
@@ -136,7 +136,6 @@ export class AVCNetworkAbstractionProcessor extends Processor {
       }
 
     } else {
-      console.log(p, p.defaultPayloadInfo.tags)
       throw new Error('Expecting parameter-set slices and got: ' + nalu.getTypeName());
     }
 
