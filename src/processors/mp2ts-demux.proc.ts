@@ -298,8 +298,10 @@ export class MP2TSDemuxProcessor extends Processor {
 
     const {dts: nextDts, isHeader: nextIsHeader} = nalInfo;
 
-    const needQueueFlush = this._videoTimingQueueOut.length > 0
-                          && (nextDts !== this._videoTimingQueueOut[0].dts || nextIsHeader);
+    const needQueueFlush = this._videoTimingQueueOut.length
+                          && ((nextDts !== this._videoTimingQueueOut[0].dts) // seperate nalus by dts
+                          || (this._videoTimingQueueOut[0].isHeader && !nextIsHeader) // seperate param-set/frame-slice data
+                          || (!this._videoTimingQueueOut[0].isHeader && nextIsHeader));
 
     if (needQueueFlush) {
 
