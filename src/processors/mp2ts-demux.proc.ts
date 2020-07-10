@@ -190,7 +190,7 @@ export class MP2TSDemuxProcessor extends Processor {
     const sampleData: Uint8Array = adtsEvent.data;
 
     const bufferSlice = new BufferSlice(
-      sampleData.buffer.slice(0),
+      sampleData.buffer,
       sampleData.byteOffset,
       sampleData.byteLength);
 
@@ -288,7 +288,7 @@ export class MP2TSDemuxProcessor extends Processor {
     this._videoTimingCache = h264Event;
 
     const bufferSlice = new BufferSlice(
-      h264Event.data.buffer.slice(0),
+      h264Event.data.buffer,
       h264Event.data.byteOffset,
       h264Event.data.byteLength);
 
