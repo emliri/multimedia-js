@@ -25,6 +25,8 @@ export function getH264NaluTypeTag(nalType: H264NaluType): string {
 export class NALU {
   // TODO: make enum
 
+  // TODO: remove
+
   static get NON_IDR () {
     return H264NaluType.NOI;
   }

@@ -5,18 +5,18 @@ import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 import { BufferSlice } from '../core/buffer';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs } from './h264/h264-tools';
+import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType } from './h264/h264-tools';
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.ON, true);
+const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.OFF, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make these runtime options
 const ENABLE_PACKAGE_OTHER_NALUS_TO_ACCESS_UNITS = true; // TODO: make these runtime options
 
-const DEBUG_H264 = true;
+const DEBUG_H264 = false;
 export class AVCNetworkAbstractionProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
@@ -83,40 +83,33 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
   private _onBufferSlice (p: Packet, bufferSlice: BufferSlice) {
 
-    if (p.data.length > 1) {
-      throw new Error('Not supporting packets with dimensional data (more than one slice)');
-    }
-
     // TODO: Move tagging here and use mime-type check also as fallback
 
-    if (bufferSlice.props.tags.has('nalu')) {
+    if (p.defaultPayloadInfo.tags.has('nalu')) {
 
-      debug('input slice is tagged as raw NALU (not access-unit)')
+      debug('input packet is tagged as raw NALU (not access-unit) with tags:', p.defaultPayloadInfo.tags)
 
       DEBUG_H264 && debugNALU(bufferSlice)
 
-      /**
-       * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
-       */
-
       const propsCache = bufferSlice.props;
+      const naluType = parseNALU(bufferSlice).nalType;
 
-      if (bufferSlice.props.tags.has('aud')) {
-        warn('dropping AUD')
+      if (naluType === H264NaluType.AUD) {
+        warn('dropping AUD NALU')
         return;
       }
 
-      //*
-      if (bufferSlice.props.tags.has('sei')) {
+      if (naluType === H264NaluType.SEI) {
         this._seiCache = bufferSlice;
-        //warn('dropping SEI NALU packet');
+        //warn('dropping SEI NALU');
         return;
-      }
-      //*/
 
       // cache last SPS/PPS slices
-      else if (bufferSlice.props.tags.has('sps')) {
+      } else if (naluType === H264NaluType.SPS) {
 
+        /**
+         * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
+         */
         if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
 
           if (this._spsSliceCache) {
@@ -131,11 +124,13 @@ export class AVCNetworkAbstractionProcessor extends Processor {
               bufferSlice.props.isBitstreamHeader = true;
             }
           }
-
         }
 
-      } else if (bufferSlice.props.tags.has('pps')) {
+      } else if (naluType === H264NaluType.PPS) {
 
+        /**
+         * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
+         */
         if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
 
           if (this._ppsSliceCache) {
@@ -150,13 +145,14 @@ export class AVCNetworkAbstractionProcessor extends Processor {
               bufferSlice.props.isBitstreamHeader = true;
             }
           }
-
         }
 
       } else { // handle any other NALU type
 
         if (ENABLE_PACKAGE_OTHER_NALUS_TO_ACCESS_UNITS) {
 
+          // add AU-delim unit on created AUs
+          // TODO: make optional
           /*
           const auDelimiterNalu = makeNALUFromH264RbspData(
             BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
@@ -190,20 +186,20 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         let avcC: AvcC;
         try {
           avcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
-          log('parsed MP4 video-atom:', avcC);
+          log('created MP4 AvcC atom:', avcC);
         } catch(err) {
-          warn('failed to parse slice-data expected to be AvcC atom:', bufferSlice)
-          debug('internal error is:', err)
+          warn('failed to parse data expected to be AvcC atom:', bufferSlice)
+          throw err;
         }
 
       } else if (p.defaultPayloadInfo.isKeyframe) {
 
-        log('processing IDR containing frames AU');
+        log('created IDR AU');
         DEBUG_H264 && debugAccessUnit(bufferSlice, true);
 
       } else {
 
-        log('processing non-IDR frames AU')
+        log('created non-IDR AU')
         DEBUG_H264 && debugAccessUnit(bufferSlice, true);
 
       }
@@ -221,8 +217,6 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         p
       );
     }
-
-    // TODO: also allow the other way round: to chunk up AU into single NALUs and output that
   }
 
 }

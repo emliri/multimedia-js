@@ -71,6 +71,12 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
   return true;
 }
 
+export function parseNALU(naluSlice: BufferSlice): NALU {
+  const naluBytes = naluSlice.getUint8Array();
+  const nalu = new NALU(naluBytes);
+  return nalu;
+}
+
 export function parseAccessUnit(bufferSlice: BufferSlice): NALU[] {
   const avcStream = bufferSlice.getUint8Array();
   const avcView = bufferSlice.getDataView();
@@ -172,3 +178,6 @@ export function makeAccessUnitFromNALUs (naluData: BufferSlice[]): BufferSlice {
 
   return accessUnitData;
 }
+
+export {NALU, H264NaluType, H264SliceType} from './nalu';
+
