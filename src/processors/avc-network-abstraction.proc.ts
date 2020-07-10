@@ -15,7 +15,7 @@ const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', 
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make this runtime option
 
-const DEBUG_H264 = true;
+const DEBUG_H264 = false;
 
 const auDelimiterNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), H264NaluType.AUD, 3)
 export class AVCNetworkAbstractionProcessor extends Processor {
