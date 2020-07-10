@@ -52,7 +52,7 @@ import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
 import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
 */
 
-const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
+const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.ON, true);
 
 const perf = performance;
 
@@ -99,15 +99,19 @@ export class MP2TSDemuxProcessor extends Processor {
 
     const pipeline: Partial<M2tDemuxPipeline> = {};
 
-    pipeline.metadataStream = new MetadataStream();
     // set up the parsing pipeline
     pipeline.packetStream = new TransportPacketStream() as unknown as M2tStream;
     pipeline.parseStream = new TransportParseStream() as unknown as M2tStream;
     pipeline.elementaryStream = new ElementaryStream() as unknown as M2tStream;
     pipeline.timestampRolloverStream = new TimestampRolloverStream(null) as unknown as M2tStream;
+    // payload demuxers
     pipeline.aacOrAdtsStream = new AdtsStream.default() as unknown as M2tStream;
     pipeline.h264Stream = new H264Codec.H264Stream() as unknown as M2tStream;
+    pipeline.metadataStream = new MetadataStream();
+    // CEA captions are special AVC NALUs
     pipeline.captionStream = new CaptionStream() as unknown as M2tStream;
+
+    // easy handle to headend of pipeline
     pipeline.headOfPipeline = pipeline.packetStream as unknown as M2tStream;
 
     // disassemble MPEG2-TS packets into elementary streams
@@ -116,7 +120,6 @@ export class MP2TSDemuxProcessor extends Processor {
       .pipe(pipeline.elementaryStream)
       .pipe(pipeline.timestampRolloverStream);
 
-    // !!THIS ORDER IS IMPORTANT!!
     // demux the streams
     pipeline.timestampRolloverStream
       .pipe(pipeline.h264Stream);
@@ -135,37 +138,17 @@ export class MP2TSDemuxProcessor extends Processor {
       pipeline.parseStream.on('data', (data) => {
         console.log('TS:',data)
       })
-
       pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
         console.log('ES:', data)
-        /*
-        if (data.type === 'metadata') {
-          //
-        }
-        */
       });
     }
 
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       log('h264Stream:', data)
 
+      // Video FPS not determined yet
       if (this._videoFramerate === null) {
-        this._videoTimingQueue.push(data);
-        for (let i = this._videoTimingQueue.length - 1; i > 0; i--) { // -> will only run when queue length > 1
-          const frameDuration = (data.dts - this._videoTimingQueue[i - 1].dts);
-          if (frameDuration <= 0 || ! Number.isFinite(frameDuration)) {
-            continue;
-          }
-          this._videoFramerate = Math.round(MPEG_TS_TIMESCALE_HZ / frameDuration);
-          info('got frame duration / fps:,', frameDuration, this._videoFramerate)
-          break;
-        }
-        if (this._videoFramerate) {
-          this._videoTimingQueue.forEach((data) => {
-            this._handleVideoNalu(data);
-          });
-          this._videoTimingQueue.length = 0;
-        }
+        this._queueVideoTimingNalu(data);
       } else {
         this._handleVideoNalu(data);
       }
@@ -176,10 +159,27 @@ export class MP2TSDemuxProcessor extends Processor {
       this._handleAudioNalu(data);
     })
 
-
-
     this._demuxPipeline = pipeline as M2tDemuxPipeline;
 
+  }
+
+  private _queueVideoTimingNalu(data: M2tH264StreamEvent) {
+    this._videoTimingQueue.push(data);
+    for (let i = this._videoTimingQueue.length - 1; i > 0; i--) { // -> will only run when queue length > 1
+      const frameDuration = (data.dts - this._videoTimingQueue[i - 1].dts);
+      if (frameDuration <= 0 || ! Number.isFinite(frameDuration)) {
+        continue;
+      }
+      this._videoFramerate = Math.round(MPEG_TS_TIMESCALE_HZ / frameDuration);
+      info('got frame-duration / fps:', frameDuration, '/ 90kHz ;', this._videoFramerate, '[f/s]')
+      break;
+    }
+    if (this._videoFramerate) {
+      this._videoTimingQueue.forEach((data) => {
+        this._handleVideoNalu(data);
+      });
+      this._videoTimingQueue.length = 0;
+    }
   }
 
   private _handleAudioNalu(adtsEvent: M2tADTSStreamEvent) {
@@ -285,7 +285,6 @@ export class MP2TSDemuxProcessor extends Processor {
       dts = h264Event.dts - this._videoDtsOffset;
       cto = h264Event.pts - h264Event.dts;
     }
-
     this._videoTimingCache = h264Event;
 
     const bufferSlice = new BufferSlice(

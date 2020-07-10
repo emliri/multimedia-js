@@ -4,7 +4,7 @@ import { MP2TSDemuxProcessor } from '../processors/mp2ts-demux.proc';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { Flow, FlowConfigFlag } from '../core/flow';
 import { OutputSocket } from '../core/socket';
-import { H264ParseProcessor } from '../processors/h264-parse.processor';
+import { AVCNetworkAbstractionProcessor } from '../processors/avc-network-abstraction.proc';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { getLogger, LoggerLevel } from '../logger';
 import { PayloadCodec } from '../core/payload-description';
@@ -38,7 +38,7 @@ export class ChunkToMediaSourceFlow extends Flow {
   protected onWaitingToFlowing_ (done: VoidCallback) {
     const mp4DemuxProc = newProcessorWorkerShell(MP4DemuxProcessor);
     const tsDemuxProc = newProcessorWorkerShell(MP2TSDemuxProcessor);
-    const h264ParseProc = newProcessorWorkerShell(H264ParseProcessor);
+    const h264ParseProc = newProcessorWorkerShell(AVCNetworkAbstractionProcessor);
     const mp4MuxProc = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor));
 
     const xhrSocket = this._xhrSocket = new XhrSocket(this._url);

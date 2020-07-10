@@ -19,7 +19,7 @@ import {
 import { isNumber } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { BufferSlice } from '../core/buffer';
-import { makeNALUFromH264RbspData, makeAnnexBAccessUnitFromNALUs, debugAccessUnit } from './h264/h264-tools';
+import { makeNALUFromH264RbspData, makeAccessUnitFromNALUs, debugAccessUnit } from './h264/h264-tools';
 import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
@@ -307,7 +307,7 @@ export class MP4MuxProcessor extends Processor {
             const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
 
             const codecInitAu: BufferSlice =
-              makeAnnexBAccessUnitFromNALUs([spsNalu, ppsNalu]);
+              makeAccessUnitFromNALUs([spsNalu, ppsNalu]);
 
             log('created codec-init AU data to insert in-stream')
 

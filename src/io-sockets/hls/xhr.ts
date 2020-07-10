@@ -6,6 +6,8 @@
  *
  */
 
+// TODO: ponyfill this ^ (and dedupe this)
+
 import {ByteRange} from './byte-range'
 
 import {getLogger} from '../../logger'

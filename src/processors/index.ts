@@ -1,5 +1,5 @@
 export { MP3ParseProcessor } from './mp3-parse.processor';
-export { H264ParseProcessor } from './h264-parse.processor';
+export { AVCNetworkAbstractionProcessor } from './avc-network-abstraction.proc';
 export { FFmpegConvertProcessor } from './ffmpeg-convert.processor';
 export { MP4MuxProcessor } from './mp4-mux-mozilla.processor';
 export { MP4DemuxProcessor } from './mp4-demux.processor';

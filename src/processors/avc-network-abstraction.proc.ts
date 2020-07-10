@@ -11,13 +11,13 @@ import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { debug, log, warn, error } = getLogger('H264ParseProcessor', LoggerLevel.ON, true);
+const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.ON, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make these runtime options
 const ENABLE_PACKAGE_OTHER_NALUS_TO_ACCESS_UNITS = true; // TODO: make these runtime options
 
 const DEBUG_H264 = true;
-export class H264ParseProcessor extends Processor {
+export class AVCNetworkAbstractionProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
   private _ppsSliceCache: BufferSlice = null;
@@ -40,19 +40,8 @@ export class H264ParseProcessor extends Processor {
 
   protected processTransfer_ (inS: InputSocket, p: Packet) {
     log('parsing packet:', p.toString());
-
-    p.forEachBufferSlice(
-      this._onBufferSlice.bind(this, p),
-      null, // this._onProcessingError.bind(this),
-      this);
-
+    p.forEachBufferSlice(this._onBufferSlice.bind(this, p), null, this);
     return true;
-  }
-
-  private _onProcessingError (bufferSlice: BufferSlice, err: Error): boolean {
-    error('H264Parse error:', err);
-
-    return false;
   }
 
   private _attempWriteAvcCDataFromSpsPpsCache(): BufferSlice {
@@ -104,7 +93,7 @@ export class H264ParseProcessor extends Processor {
 
       debug('input slice is tagged as raw NALU (not access-unit)')
 
-      // DEBUG_H264 && debugNALU(bufferSlice)
+      DEBUG_H264 && debugNALU(bufferSlice)
 
       /**
        * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
@@ -165,10 +154,8 @@ export class H264ParseProcessor extends Processor {
         }
 
       } else { // handle any other NALU type
-        if (ENABLE_PACKAGE_OTHER_NALUS_TO_ACCESS_UNITS) {
 
-          log('expecting NALU to repackage to AU:')
-          DEBUG_H264 && debugNALU(bufferSlice);
+        if (ENABLE_PACKAGE_OTHER_NALUS_TO_ACCESS_UNITS) {
 
           /*
           const auDelimiterNalu = makeNALUFromH264RbspData(
@@ -237,4 +224,5 @@ export class H264ParseProcessor extends Processor {
 
     // TODO: also allow the other way round: to chunk up AU into single NALUs and output that
   }
+
 }

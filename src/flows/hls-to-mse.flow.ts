@@ -2,7 +2,7 @@
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { MP2TSDemuxProcessor } from '../processors/mp2ts-demux.proc';
 import { MP4MuxProcessor, MP4MuxProcessorOptions } from '../processors/mp4-mux-mozilla.processor';
-import { H264ParseProcessor } from '../processors/h264-parse.processor';
+import { AVCNetworkAbstractionProcessor } from '../processors/avc-network-abstraction.proc';
 
 import { MediaSourceInputSocket } from '../io-sockets/mse-input.socket';
 import { HlsOutputSocket } from '../io-sockets/hls/hls-output-socket';
@@ -108,7 +108,7 @@ export class HlsToMediaSourceFlow extends Flow {
 
     const mp4DemuxProc = this.mp4DemuxProc_ = newProcessorWorkerShell(MP4DemuxProcessor);
     const tsDemuxProc = this.tsDemuxProc_ = newProcessorWorkerShell(MP2TSDemuxProcessor);
-    const h264ParseProc = this.h264ParseProc_ = newProcessorWorkerShell(H264ParseProcessor);
+    const h264ParseProc = this.h264ParseProc_ = newProcessorWorkerShell(AVCNetworkAbstractionProcessor);
     const mp4MuxOptions: Partial<MP4MuxProcessorOptions> = {
       fragmentedMode: true
     }
