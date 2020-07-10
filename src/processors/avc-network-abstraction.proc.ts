@@ -5,17 +5,19 @@ import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 import { BufferSlice } from '../core/buffer';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType } from './h264/h264-tools';
+import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType, makeNALUFromH264RbspData } from './h264/h264-tools';
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.OFF, true);
+const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.ON, true);
 
 const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make this runtime option
 
-const DEBUG_H264 = false;
+const DEBUG_H264 = true;
+
+const auDelimiterNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), H264NaluType.AUD, 3)
 export class AVCNetworkAbstractionProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
@@ -48,8 +50,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
       debug('input packet is tagged as NALU with tags:', p.defaultPayloadInfo.tags, 'and nb of slices:', p.dataSlicesLength);
 
-      if (p.defaultPayloadInfo.tags.has('sps') || p.defaultPayloadInfo.tags.has('pps')
-        || p.defaultPayloadInfo.tags.has('aud')) {
+      if (p.defaultPayloadInfo.tags.has('sps') || p.defaultPayloadInfo.tags.has('pps')) {
 
         p.forEachBufferSlice(this._onParameterSetSlice.bind(this, p), null, this);
 
@@ -58,12 +59,14 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         // add AU-delim unit on created AUs
         // TODO: make optional
         /*
-        const auDelimiterNalu = makeNALUFromH264RbspData(
-          BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
+
         */
 
         const slices = p.data;
-        const bufferSlice = makeAccessUnitFromNALUs(slices);
+        const bufferSlice = makeAccessUnitFromNALUs([
+          //auDelimiterNalu, // CHECK: are we generating correctly?
+          ... slices
+        ]);
 
         bufferSlice.props = p.defaultPayloadInfo;
         p.data[0] = bufferSlice;
@@ -89,11 +92,6 @@ export class AVCNetworkAbstractionProcessor extends Processor {
     const propsCache = bufferSlice.props;
     const nalu = parseNALU(bufferSlice);
     const naluType = nalu.nalType;
-
-    if (naluType === H264NaluType.AUD) {
-      warn('dropping AUD NALU')
-      return;
-    }
 
     if (naluType === H264NaluType.SPS) {
 
