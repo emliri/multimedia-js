@@ -20,7 +20,6 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
   private _spsSliceCache: BufferSlice = null;
   private _ppsSliceCache: BufferSlice = null;
-  private _seiCache: BufferSlice = null;
 
   static getName (): string {
     return 'H264ParseProcessor';
@@ -47,10 +46,10 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
     if (p.defaultPayloadInfo.tags.has('nalu')) {
 
-      debug('input packet is tagged as raw NALU (not access-unit) with tags:', p.defaultPayloadInfo.tags);
+      debug('input packet is tagged as NALU with tags:', p.defaultPayloadInfo.tags, 'and nb of slices:', p.dataSlicesLength);
 
       if (p.defaultPayloadInfo.tags.has('sps') || p.defaultPayloadInfo.tags.has('pps')
-      || p.defaultPayloadInfo.tags.has('aud') || p.defaultPayloadInfo.tags.has('sei')) {
+        || p.defaultPayloadInfo.tags.has('aud')) {
 
         p.forEachBufferSlice(this._onParameterSetSlice.bind(this, p), null, this);
 
@@ -64,14 +63,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         */
 
         const slices = p.data;
-
-        let bufferSlice;
-        if (p.defaultPayloadInfo.isKeyframe && this._seiCache) { // prepend IDR with SEI
-          bufferSlice = makeAccessUnitFromNALUs([this._seiCache, ... slices]);
-          this._seiCache = null;
-        } else {
-          bufferSlice = makeAccessUnitFromNALUs(slices);
-        }
+        const bufferSlice = makeAccessUnitFromNALUs(slices);
 
         bufferSlice.props = p.defaultPayloadInfo;
         p.data[0] = bufferSlice;
@@ -92,9 +84,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
   private _onParameterSetSlice (p: Packet, bufferSlice: BufferSlice) {
 
-    debug('input packet is tagged as raw NALU (not access-unit) with tags:', p.defaultPayloadInfo.tags)
-
-    DEBUG_H264 && debugNALU(bufferSlice)
+    //DEBUG_H264 && debugNALU(bufferSlice)
 
     const propsCache = bufferSlice.props;
     const nalu = parseNALU(bufferSlice);
@@ -105,13 +95,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
       return;
     }
 
-    if (naluType === H264NaluType.SEI) {
-      this._seiCache = bufferSlice;
-      //warn('dropping SEI NALU');
-      return;
-
-    // cache last SPS/PPS slices
-    } else if (naluType === H264NaluType.SPS) {
+    if (naluType === H264NaluType.SPS) {
 
       /**
        * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
@@ -155,7 +139,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
     } else {
       console.log(p, p.defaultPayloadInfo.tags)
-      throw new Error('Expecting parameter-set or AUD/SEI slices and got: ' + nalu.getTypeName());
+      throw new Error('Expecting parameter-set slices and got: ' + nalu.getTypeName());
     }
 
     if (!bufferSlice) {
