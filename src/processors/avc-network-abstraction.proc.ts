@@ -1,5 +1,5 @@
-import { Processor, ProcessorEvent } from '../core/processor';
-import { Packet, PacketSymbol } from '../core/packet';
+import { Processor } from '../core/processor';
+import { Packet } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 
 import { BufferSlice } from '../core/buffer';
@@ -13,8 +13,7 @@ import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.OFF, true);
 
-const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make these runtime options
-const ENABLE_PACKAGE_OTHER_NALUS_TO_ACCESS_UNITS = true; // TODO: make these runtime options
+const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK = true; // TODO: make this runtime option
 
 const DEBUG_H264 = false;
 export class AVCNetworkAbstractionProcessor extends Processor {
@@ -38,10 +37,158 @@ export class AVCNetworkAbstractionProcessor extends Processor {
     return new SocketDescriptor();
   }
 
-  protected processTransfer_ (inS: InputSocket, p: Packet) {
+  protected processTransfer_ (inS: InputSocket, p: Packet): boolean {
     log('parsing packet:', p.toString());
-    p.forEachBufferSlice(this._onBufferSlice.bind(this, p), null, this);
+
+    if (!p.defaultPayloadInfo) {
+      warn('no default payload info, dropping packet');
+      return false;
+    }
+
+    if (p.defaultPayloadInfo.tags.has('nalu')) {
+
+      debug('input packet is tagged as raw NALU (not access-unit) with tags:', p.defaultPayloadInfo.tags);
+
+      if (p.defaultPayloadInfo.tags.has('sps') || p.defaultPayloadInfo.tags.has('pps')
+      || p.defaultPayloadInfo.tags.has('aud') || p.defaultPayloadInfo.tags.has('sei')) {
+
+        p.forEachBufferSlice(this._onParameterSetSlice.bind(this, p), null, this);
+
+      } else {
+
+        // add AU-delim unit on created AUs
+        // TODO: make optional
+        /*
+        const auDelimiterNalu = makeNALUFromH264RbspData(
+          BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
+        */
+
+        const slices = p.data;
+
+        let bufferSlice;
+        if (p.defaultPayloadInfo.isKeyframe && this._seiCache) { // prepend IDR with SEI
+          bufferSlice = makeAccessUnitFromNALUs([this._seiCache, ... slices]);
+          this._seiCache = null;
+        } else {
+          bufferSlice = makeAccessUnitFromNALUs(slices);
+        }
+
+        bufferSlice.props = p.defaultPayloadInfo;
+        p.data[0] = bufferSlice;
+
+        log('wrote multi-slice AU');
+        DEBUG_H264 && debugAccessUnit(bufferSlice, true);
+
+        // just pass on the packet as is to only output
+        this.out[0].transfer(
+          p
+        );
+
+      }
+    }
+
     return true;
+  }
+
+  private _onParameterSetSlice (p: Packet, bufferSlice: BufferSlice) {
+
+    debug('input packet is tagged as raw NALU (not access-unit) with tags:', p.defaultPayloadInfo.tags)
+
+    DEBUG_H264 && debugNALU(bufferSlice)
+
+    const propsCache = bufferSlice.props;
+    const nalu = parseNALU(bufferSlice);
+    const naluType = nalu.nalType;
+
+    if (naluType === H264NaluType.AUD) {
+      warn('dropping AUD NALU')
+      return;
+    }
+
+    if (naluType === H264NaluType.SEI) {
+      this._seiCache = bufferSlice;
+      //warn('dropping SEI NALU');
+      return;
+
+    // cache last SPS/PPS slices
+    } else if (naluType === H264NaluType.SPS) {
+
+      /**
+       * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
+       */
+      if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
+
+        if (this._spsSliceCache) {
+          bufferSlice = null;
+        } else {
+          this._spsSliceCache = bufferSlice;
+          bufferSlice = null;
+          const avcCDataSlice = this._attempWriteAvcCDataFromSpsPpsCache();
+          if (avcCDataSlice) {
+            bufferSlice = avcCDataSlice;
+            bufferSlice.props = propsCache;
+            bufferSlice.props.isBitstreamHeader = true;
+          }
+        }
+      }
+
+    } else if (naluType === H264NaluType.PPS) {
+
+      /**
+       * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
+       */
+      if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
+
+        if (this._ppsSliceCache) {
+          bufferSlice = null;
+        } else {
+          this._ppsSliceCache = bufferSlice;
+          bufferSlice = null;
+          const avcCDataSlice = this._attempWriteAvcCDataFromSpsPpsCache();
+          if (avcCDataSlice) {
+            bufferSlice = avcCDataSlice;
+            bufferSlice.props = propsCache;
+            bufferSlice.props.isBitstreamHeader = true;
+          }
+        }
+      }
+
+    } else {
+      console.log(p, p.defaultPayloadInfo.tags)
+      throw new Error('Expecting parameter-set or AUD/SEI slices and got: ' + nalu.getTypeName());
+    }
+
+    if (!bufferSlice) {
+      log('slice dropped from packet data:', p.defaultPayloadInfo.tags)
+      return;
+    }
+
+    if (p.defaultPayloadInfo.isBitstreamHeader) {
+      log('packet has bitstream header flag');
+
+      let avcC: AvcC;
+      try {
+        avcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
+        log('wrote MP4 AvcC atom:', avcC);
+      } catch(err) {
+        warn('failed to parse data expected to be AvcC atom:', bufferSlice)
+        throw err;
+      }
+
+    } else {
+      log('wrote other AU:');
+      DEBUG_H264 && debugAccessUnit(bufferSlice, true);
+    }
+
+    if (bufferSlice) {
+      // replace the data
+      p.data[0] = bufferSlice;
+
+      // just pass on the packet as is to only output
+      this.out[0].transfer(
+        p
+      );
+    }
   }
 
   private _attempWriteAvcCDataFromSpsPpsCache(): BufferSlice {
@@ -74,149 +221,11 @@ export class AVCNetworkAbstractionProcessor extends Processor {
     this._ppsSliceCache = null;
     //*/
 
-    log('created AvcC atom data !')
+    log('made AvcC atom data')
 
     // we need to unwrap the first 8 bytes of iso-boxing because
     // downstream we only expect the actual atom payload data
     return bufferSlice.shrinkFront(8);
-  }
-
-  private _onBufferSlice (p: Packet, bufferSlice: BufferSlice) {
-
-    // TODO: Move tagging here and use mime-type check also as fallback
-
-    if (p.defaultPayloadInfo.tags.has('nalu')) {
-
-      debug('input packet is tagged as raw NALU (not access-unit) with tags:', p.defaultPayloadInfo.tags)
-
-      DEBUG_H264 && debugNALU(bufferSlice)
-
-      const propsCache = bufferSlice.props;
-      const naluType = parseNALU(bufferSlice).nalType;
-
-      if (naluType === H264NaluType.AUD) {
-        warn('dropping AUD NALU')
-        return;
-      }
-
-      if (naluType === H264NaluType.SEI) {
-        this._seiCache = bufferSlice;
-        //warn('dropping SEI NALU');
-        return;
-
-      // cache last SPS/PPS slices
-      } else if (naluType === H264NaluType.SPS) {
-
-        /**
-         * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
-         */
-        if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
-
-          if (this._spsSliceCache) {
-            bufferSlice = null;
-          } else {
-            this._spsSliceCache = bufferSlice;
-            bufferSlice = null;
-            const avcCDataSlice = this._attempWriteAvcCDataFromSpsPpsCache();
-            if (avcCDataSlice) {
-              bufferSlice = avcCDataSlice;
-              bufferSlice.props = propsCache;
-              bufferSlice.props.isBitstreamHeader = true;
-            }
-          }
-        }
-
-      } else if (naluType === H264NaluType.PPS) {
-
-        /**
-         * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
-         */
-        if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
-
-          if (this._ppsSliceCache) {
-            bufferSlice = null;
-          } else {
-            this._ppsSliceCache = bufferSlice;
-            bufferSlice = null;
-            const avcCDataSlice = this._attempWriteAvcCDataFromSpsPpsCache();
-            if (avcCDataSlice) {
-              bufferSlice = avcCDataSlice;
-              bufferSlice.props = propsCache;
-              bufferSlice.props.isBitstreamHeader = true;
-            }
-          }
-        }
-
-      } else { // handle any other NALU type
-
-        if (ENABLE_PACKAGE_OTHER_NALUS_TO_ACCESS_UNITS) {
-
-          // add AU-delim unit on created AUs
-          // TODO: make optional
-          /*
-          const auDelimiterNalu = makeNALUFromH264RbspData(
-            BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
-          */
-
-          if (propsCache.isKeyframe && this._seiCache) { // prepend IDR with SEI
-            bufferSlice = makeAccessUnitFromNALUs([this._seiCache, bufferSlice]);
-            this._seiCache = null;
-          } else {
-            bufferSlice = makeAccessUnitFromNALUs([bufferSlice]);
-          }
-
-          bufferSlice.props = propsCache;
-
-        }
-      }
-
-    } else {
-      throw new Error('Expected raw NALU tagged payload');
-    }
-
-    if (!bufferSlice) {
-      log('packet/slice dropped:', p.toString())
-      return;
-    }
-
-    if (p.defaultPayloadInfo) {
-      if (p.defaultPayloadInfo.isBitstreamHeader) {
-        log('packet has bitstream header flag');
-
-        let avcC: AvcC;
-        try {
-          avcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
-          log('created MP4 AvcC atom:', avcC);
-        } catch(err) {
-          warn('failed to parse data expected to be AvcC atom:', bufferSlice)
-          throw err;
-        }
-
-      } else if (p.defaultPayloadInfo.isKeyframe) {
-
-        log('created IDR AU');
-        DEBUG_H264 && debugAccessUnit(bufferSlice, true);
-
-      } else {
-
-        log('created non-IDR AU')
-        DEBUG_H264 && debugAccessUnit(bufferSlice, true);
-
-      }
-    } else {
-      warn('no default payload info, dropping packet');
-      return;
-    }
-
-    if (bufferSlice) {
-      // replace the data
-      p.data[0] = bufferSlice;
-
-      // just pass on the packet as is to only output
-      this.out[0].transfer(
-        p
-      );
-    }
   }
 
 }
