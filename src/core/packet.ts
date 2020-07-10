@@ -144,7 +144,7 @@ export class Packet {
     context: any = null) {
     let abort = false;
     // we use an on-stack shallow copy of the array to prevent any
-    // side-effects on other manipulation of the packet itself from within
+    // side-effects on other manipulation of the puacket itself from within
     // the loop we will run here.
     this.data.slice().forEach((bufferSlice) => {
       if (abort) {
@@ -169,6 +169,10 @@ export class Packet {
         }
       }
     });
+  }
+
+  get dataSlicesLength() {
+    return this.data ? this.data.length : 0;
   }
 
   get symbol (): PacketSymbol {
