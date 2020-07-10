@@ -296,66 +296,68 @@ export class MP2TSDemuxProcessor extends Processor {
 
   private _pushVideoH264NALU(nalInfo: VideoNALUInfo) {
 
-    const nextDts = nalInfo.dts;
+    const {dts: nextDts, isHeader: nextIsHeader} = nalInfo;
 
-    if (this._videoTimingQueueOut.length > 0
-      && nextDts !== this._videoTimingQueueOut[0].dts) {
+    const needQueueFlush = this._videoTimingQueueOut.length > 0
+                          && (nextDts !== this._videoTimingQueueOut[0].dts || nextIsHeader);
 
-        const {dts, cto, nalu, isKeyframe, isHeader} = this._videoTimingQueueOut[0];
+    if (needQueueFlush) {
 
-        const props = new BufferProperties(
-          CommonMimeTypes.VIDEO_H264,
-          this._videoFramerate || 0, // sample-rate (Hz)
-          8, // sampleDepth
-          1, // sample-duration num
-          1 // samples-per-frame
+      const {dts, cto, nalu, isKeyframe, isHeader} = this._videoTimingQueueOut[0];
+
+      const props = new BufferProperties(
+        CommonMimeTypes.VIDEO_H264,
+        this._videoFramerate || 0, // sample-rate (Hz)
+        8, // sampleDepth
+        1, // sample-duration num
+        1 // samples-per-frame
+      );
+
+      props.codec = CommonCodecFourCCs.avc1;
+      props.elementaryStreamId = nalu.trackId
+
+      props.isKeyframe = isKeyframe;
+      props.isBitstreamHeader = isHeader;
+
+      props.details.width = this._videoConfig.config.width
+      props.details.height = this._videoConfig.config.height;
+      props.details.codecProfile = this._videoConfig.config.profileIdc;
+
+      props.details.samplesPerFrame = 1;
+
+      props.tags.add('nalu');
+      // add NALU type tags for all slices
+      this._videoTimingQueueOut.forEach(({nalu}) => {
+        const naluTag = mapNaluTypeToTag(nalu.nalUnitType)
+        // may be null for non-IDR-slice
+        if (naluTag) {
+          props.tags.add(naluTag);
+        }
+      })
+
+      // create multi-slice packet
+      const slices = this._videoTimingQueueOut.map(({nalu}) => {
+        const bs = new BufferSlice(
+          nalu.data.buffer,
+          nalu.data.byteOffset,
+          nalu.data.byteLength,
+          props // share same props for all slices
         );
+        return bs;
+      })
 
-        props.codec = CommonCodecFourCCs.avc1;
-        props.elementaryStreamId = nalu.trackId
+      const packet = Packet.fromSlices(
+        dts,
+        cto,
+        ... slices
+      );
 
-        props.isKeyframe = isKeyframe;
-        props.isBitstreamHeader = isHeader;
+      //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
+      packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+      debug('created/pushed packet:', packet.toString());
+      this._outPackets.push(packet);
 
-        props.details.width = this._videoConfig.config.width
-        props.details.height = this._videoConfig.config.height;
-        props.details.codecProfile = this._videoConfig.config.profileIdc;
-
-        props.details.samplesPerFrame = 1;
-
-        props.tags.add('nalu');
-        // add NALU type tags for all slices
-        this._videoTimingQueueOut.forEach(({nalu}) => {
-          const naluTag = mapNaluTypeToTag(nalu.nalUnitType)
-          // may be null for non-IDR-slice
-          if (naluTag) {
-            props.tags.add(naluTag);
-          }
-        })
-
-        // create multi-slice packet
-        const slices = this._videoTimingQueueOut.map(({nalu}) => {
-          const bs = new BufferSlice(
-            nalu.data.buffer,
-            nalu.data.byteOffset,
-            nalu.data.byteLength,
-            props // share same props for all slices
-          );
-          return bs;
-        })
-
-        const packet = Packet.fromSlices(
-          dts,
-          cto,
-          ... slices
-        );
-
-        //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
-        packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
-        debug('created/pushed packet:', packet.toString());
-        this._outPackets.push(packet);
-
-        this._videoTimingQueueOut.length = 0;
+      this._videoTimingQueueOut.length = 0;
     }
 
     this._videoTimingQueueOut.push(nalInfo);
