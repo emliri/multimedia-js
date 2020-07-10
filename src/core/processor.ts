@@ -163,7 +163,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       } else { // make sure the error is being seen if we have no listeners
         console.error(`Unhandled error code ${code}: ${message}`);
         if (nativeError) {
-          console.error('Inner error:', nativeError);
+          console.error('Inner exception thrown:', nativeError);
         }
       }
     }
