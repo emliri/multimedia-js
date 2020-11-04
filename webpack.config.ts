@@ -1,3 +1,5 @@
+import path from 'path';
+
 import {createWebpackConfig} from './webpack-config-factory'
 
 const configs = []
@@ -17,8 +19,8 @@ function onAfterEmit(compilation) {
   }, 0)
 }
 
-const afterEmitHookPlugin = { // custom "AfterEmitPlugin" to exec shell script post-build
-  apply: function AfterEmitHookPlugin(compiler) {
+function AfterEmitHookPlugin(onAfterEmit) {
+  this.apply = function AfterEmitHookPlugin(compiler) {
     compiler.hooks.afterEmit.tap('AfterEmitHookPlugin', (compilation) => {
       onAfterEmit(compilation)
     });
@@ -28,16 +30,17 @@ const afterEmitHookPlugin = { // custom "AfterEmitPlugin" to exec shell script p
 const plugins = [];
 
 if (!noTypes) {
-  plugins.push(afterEmitHookPlugin);
+  plugins.push(new AfterEmitHookPlugin(onAfterEmit));
 }
 
 // All Library
 {
-  const entrySrc = './index.ts'
+  const entrySrc = path.resolve(__dirname, 'index.ts')
   const libName = 'mmjs'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
 
+  /*
   configs.push(
     createWebpackConfig({
       debug,
@@ -48,13 +51,14 @@ if (!noTypes) {
       plugins
     })
   )
+  */
 }
 
 if (!noFrills) {
 
   // Processor-proxy worker
   {
-    const entrySrc = './src/core/processor-proxy.worker.ts'
+    const entrySrc = path.resolve(__dirname, './src/core/processor-proxy.worker.ts')
     const libName = 'mmjs-procs-worker'
     const buildPath = 'dist'
     const libraryTarget = 'umd'
@@ -70,9 +74,10 @@ if (!noFrills) {
     )
   }
 
+
   // TestCasesWeb
   {
-    const entrySrc = './test-cases/web/index.ts'
+    const entrySrc = path.resolve('./test-cases/web/index.ts')
     const libName = 'mmjs-test-cases'
     const buildPath = 'dist'
     const libraryTarget = 'umd'

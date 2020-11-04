@@ -1,9 +1,3 @@
-/* not needed for compilation, just for VS Code intellisense */
-/// <reference path="./node_modules/@types/node/index.d.ts"/>
-/// <reference path="./node_modules/@types/webpack/index.d.ts"/>
-
-import { WebpackOptions } from "webpack/lib/Compiler"
-
 const path = require('path')
 
 export type WebpackConfigFactoryOptions = {
