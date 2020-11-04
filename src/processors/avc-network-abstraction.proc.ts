@@ -65,7 +65,8 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         const slices = p.data;
         const bufferSlice = makeAccessUnitFromNALUs([
           //auDelimiterNalu, // CHECK: are we generating correctly?
-          ... slices
+          //... slices
+          slices[0]
         ]);
 
         bufferSlice.props = p.defaultPayloadInfo;

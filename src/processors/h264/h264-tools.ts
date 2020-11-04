@@ -50,7 +50,9 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
 
     //log(avcStream)
 
-    log('In access-unit of size ', avcStream.byteLength,' bytes, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
+    log('In access-unit of size ', avcStream.byteLength,' bytes,',
+    'found NALU of type ', nalu.getTypeName(),
+    ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
 
     if (debugRbspData) {
       switch (nalu.nalType) {

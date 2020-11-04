@@ -102,7 +102,7 @@ export class NALU {
     return NALU.getNALUnitTypeName(this.nalType);
   }
 
-  getAnnexBnalUnitSize () {
+  getAccessUnitSize () {
     return 4 + this.payload.byteLength;
   }
 
@@ -110,10 +110,10 @@ export class NALU {
    * @deprecated
    * Redundant, see h264-tools.ts `makeAnnexBAccessUnitFromNALUs`
    */
-  copyToAnnexBAccessUnit (): Uint8Array {
-    const result = new Uint8Array(this.getAnnexBnalUnitSize());
+  copyToAccessUnit (): Uint8Array {
+    const result = new Uint8Array(this.getAccessUnitSize());
     const view = new DataView(result.buffer);
-    view.setUint32(0, this.getAnnexBnalUnitSize() - 4);
+    view.setUint32(0, this.getAccessUnitSize() - 4);
     result.set(this.payload, 4);
     return result;
   }
