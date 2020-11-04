@@ -20,8 +20,8 @@ function onAfterEmit(compilation) {
 }
 
 function AfterEmitHookPlugin(onAfterEmit) {
-  this.apply = function AfterEmitHookPlugin(compiler) {
-    compiler.hooks.afterEmit.tap('AfterEmitHookPlugin', (compilation) => {
+  this.apply = function AfterEmitHook(compiler) {
+    compiler.hooks.afterEmit.tap('AfterEmitHook', (compilation) => {
       onAfterEmit(compilation)
     });
   }
@@ -35,12 +35,11 @@ if (!noTypes) {
 
 // All Library
 {
-  const entrySrc = path.resolve(__dirname, 'index.ts')
+  const entrySrc = './index.ts'
   const libName = 'mmjs'
   const buildPath = 'dist'
   const libraryTarget = 'umd'
 
-  /*
   configs.push(
     createWebpackConfig({
       debug,
@@ -51,14 +50,13 @@ if (!noTypes) {
       plugins
     })
   )
-  */
 }
 
 if (!noFrills) {
 
   // Processor-proxy worker
   {
-    const entrySrc = path.resolve(__dirname, './src/core/processor-proxy.worker.ts')
+    const entrySrc = './src/core/processor-proxy.worker.ts'
     const libName = 'mmjs-procs-worker'
     const buildPath = 'dist'
     const libraryTarget = 'umd'
@@ -77,7 +75,7 @@ if (!noFrills) {
 
   // TestCasesWeb
   {
-    const entrySrc = path.resolve('./test-cases/web/index.ts')
+    const entrySrc = './test-cases/web/index.ts'
     const libName = 'mmjs-test-cases'
     const buildPath = 'dist'
     const libraryTarget = 'umd'
