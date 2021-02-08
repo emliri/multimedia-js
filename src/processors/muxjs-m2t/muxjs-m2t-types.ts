@@ -8,6 +8,17 @@ export enum M2tNaluType {
   IDR = "slice_layer_without_partitioning_rbsp_idr"
 }
 
+export type M2tPacketStreamProgramTableEvent = {
+  type: "pat" | "pmt"
+  pid: number
+  payloadUnitStartIndicator: boolean
+  pmtPid?: number,
+  programMapTable?: {
+    audio: number | null
+    video: number | null
+  }
+}
+
 export type M2tTrackType = "video" | "audio"
 
 export type M2tTrack = {
@@ -60,7 +71,7 @@ export type M2tADTSStreamEvent = {
   samplingfrequencyindex: number
 }
 
-export type M2tStreamEventData = M2tElementaryStreamEvent | M2tADTSStreamEvent | M2tH264StreamEvent;
+export type M2tStreamEventData = M2tPacketStreamProgramTableEvent | M2tElementaryStreamEvent | M2tADTSStreamEvent | M2tH264StreamEvent;
 
 export type M2tStream = MuxStream & {
   on: (event: string, handler: (data: M2tStreamEventData) => void) => M2tStream

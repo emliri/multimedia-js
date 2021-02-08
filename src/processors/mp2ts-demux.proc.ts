@@ -1,9 +1,9 @@
-import { Processor } from '../core/processor';
+import { Processor, ProcessorEvent } from '../core/processor';
 import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplateGenerator } from '../core/socket';
 import { Packet } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
-import { CommonMimeTypes, CommonCodecFourCCs } from '../core/payload-description';
+import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit, debugNALU, NALU } from './h264/h264-tools';
@@ -17,6 +17,7 @@ import {
   M2tStream,
   M2tADTSStreamEvent,
   M2tElementaryStreamEvent,
+  M2tPacketStreamProgramTableEvent,
   M2tNaluType,
 } from './muxjs-m2t/muxjs-m2t-types';
 
@@ -30,6 +31,7 @@ import {
   AdtsStream,
   H264Codec
 } from './muxjs-m2t/muxjs-m2t';
+import { ShadowOutputSocket } from '../core/socket-output';
 
 function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
   switch(m2tNaluType) {
@@ -44,7 +46,7 @@ function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
 
 const MPEG_TS_TIMESCALE_HZ = 90000;
 
-const DEBUG_PACKETS = false;
+const DEBUG_PACKETS = true;
 
 /*
 import * as AacStream from '../ext-mod/mux.js/lib/aac';
@@ -71,6 +73,8 @@ export class MP2TSDemuxProcessor extends Processor {
   }
 
   private _demuxPipeline: M2tDemuxPipeline;
+
+  private _pmtCache: M2tPacketStreamProgramTableEvent;
 
   private _audioSocket: OutputSocket = null;
   private _audioDtsOffset: number = null;
@@ -123,6 +127,23 @@ export class MP2TSDemuxProcessor extends Processor {
       .pipe(pipeline.elementaryStream)
       .pipe(pipeline.timestampRolloverStream);
 
+    pipeline.parseStream.on('data', (data: M2tPacketStreamProgramTableEvent) => {
+      if (!this._pmtCache && data.type === 'pmt') {
+        log('First PMT packet:', data)
+        this._pmtCache = data;
+        const mimeTypes: MimetypePrefix[] = []
+        if (data.programMapTable?.audio) {
+          mimeTypes.push(MimetypePrefix.AUDIO);
+        }
+        if (data.programMapTable?.video) {
+          mimeTypes.push(MimetypePrefix.VIDEO);
+        }
+        this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
+          socket: new ShadowOutputSocket(mimeTypes),
+        });
+      }
+    });
+
     // demux the streams
     pipeline.timestampRolloverStream
       .pipe(pipeline.h264Stream);
@@ -135,16 +156,6 @@ export class MP2TSDemuxProcessor extends Processor {
 
     // Hook up CEA-608/708 caption stream
     pipeline.h264Stream.pipe(pipeline.captionStream);
-
-    if (DEBUG_PACKETS) {
-      // debug TS packets, find PAT/PMT
-      pipeline.parseStream.on('data', (data) => {
-        console.log('TS:',data)
-      })
-      pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
-        console.log('ES:', data)
-      });
-    }
 
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       log('h264Stream:', data)
@@ -192,7 +203,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     const sampleData: Uint8Array = adtsEvent.data;
 
-    const bufferSlice = new BufferSlice(
+    const bufferSlice = new BufferSlice( // fromTypedArray
       sampleData.buffer,
       sampleData.byteOffset,
       sampleData.byteLength);
