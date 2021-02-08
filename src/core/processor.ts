@@ -13,6 +13,7 @@ export enum ProcessorEvent {
     ANY_SOCKET_CREATED = 'processor:socket-created',
     INPUT_SOCKET_CREATED = 'processor:input-socket-created',
     OUTPUT_SOCKET_CREATED = 'processor:output-socket-created',
+    OUTPUT_SOCKET_SHADOW = 'processor:output-socket-shadow',
     SYMBOLIC_PACKET = 'processor:symbolic-packet',
     SIGNAL = 'processor:signal',
     ERROR = 'processor:error'
@@ -163,6 +164,10 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
         throw new Error('Event data must point to this');
       }
       return super.emit(event, data);
+    }
+
+    emitEvent(event: ProcessorEvent, props: ProcessorEventDataProps) {
+      this.emit(event, this.createEvent(event, props));
     }
 
     on (event: ProcessorEvent, handler: ProcessorEventHandler) {
