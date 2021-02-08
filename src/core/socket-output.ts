@@ -3,6 +3,7 @@ import { Packet } from './packet';
 import { makeLogTimestamped, getLogger, LoggerLevel } from '../logger';
 import { Signal, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 import { Socket } from './socket-base';
+import { PayloadDescriptor, MimetypePrefix } from './payload-description';
 
 const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
 export class OutputSocket extends Socket {
@@ -139,4 +140,12 @@ export class OutputSocket extends Socket {
 
   private onPacketTransferredToPeerInput_ (peerTransferReturnVal: boolean) {}
   private onPacketTransferredToPeerOutput_ (peerTransferReturnVal: boolean) {}
+}
+
+export class ShadowOutputSocket extends OutputSocket {
+  constructor(payloadShadowTypes: MimetypePrefix[]) {
+    super(SocketDescriptor
+      .fromPayloads(
+        payloadShadowTypes.map(prefix => PayloadDescriptor.fromMimeTypeShadow(prefix))));
+  }
 }
