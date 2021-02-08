@@ -9,8 +9,6 @@ import { ErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 
 const { debug, log, error } = getLogger('Processor');
 
-// import WorkerLoader from "worker-loader!../base.worker";
-
 export enum ProcessorEvent {
     ANY_SOCKET_CREATED = 'processor:socket-created',
     INPUT_SOCKET_CREATED = 'processor:input-socket-created',
@@ -68,20 +66,9 @@ export function createProcessorConfigParamsFromArguments (args: any[]): Processo
 }
 
 export abstract class Processor extends EventEmitter<ProcessorEvent> implements SocketOwner, SignalReceiver {
-  static getName (): string {
-    return null;
-  }
-
-  // FIXME: crashes with "Object prototype may only be an Object or null"
-  /*
-    static createWorkerShell(onReady: VoidCallback = noop): ProcessorProxy {
-      const name = this.getName();
-      if (!name) {
-        throw new Error('Can not use factory, static name is not defined');
-      }
-      return new ProcessorProxy(name, onReady);
-    };
-    */
+    static getName (): string {
+      return null;
+    }
 
     private inputs_: InputSocket[] = [];
     private outputs_: OutputSocket[] = [];
