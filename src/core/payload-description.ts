@@ -75,6 +75,10 @@ export class PayloadDescriptor {
     throw new Error('Not implemented');
   }
 
+  static fromMimeTypeShadow(prefix: MimetypePrefix): PayloadDescriptor {
+    return new PayloadDescriptor(prefix + '/*');
+  }
+
   /**
    * mime-type if defined
    */
