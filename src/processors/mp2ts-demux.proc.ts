@@ -78,11 +78,9 @@ export class MP2TSDemuxProcessor extends Processor {
   private _audioDtsOffset: number = null;
 
   private _videoSocket: OutputSocket = null;
-  private _videoDtsOffset: number = null
   private _videoFirstKeyFrameDts: number = null;
   private _videoConfig: M2tH264StreamEvent = null;
   private _videoPictureParamSet: boolean = false;
-  private _videoTimingCache: M2tH264StreamEvent = null;
   private _videoTimingQueueIn: M2tH264StreamEvent[] = [];
   private _videoTimingQueueOut: VideoNALUInfo[] = [];
   private _videoFramerate: number = null;
@@ -260,11 +258,6 @@ export class MP2TSDemuxProcessor extends Processor {
       return;
     }
 
-    if (this._videoDtsOffset === null) {
-      //this._videoDtsOffset = h264Event.dts
-      this._videoDtsOffset = 0
-    }
-
     if (h264Event.nalUnitType === M2tNaluType.PPS) {
       this._videoPictureParamSet = true;
     }
@@ -290,18 +283,8 @@ export class MP2TSDemuxProcessor extends Processor {
       warn('No video-fps/samplerate detectable yet');
     }
 
-    let dts: number;
-    let cto: number;
-
-    // Q: It is weird that we have to do this and is a bug in mux.js ???
-    if (this._videoTimingCache) {
-      dts = h264Event.dts - this._videoDtsOffset;
-      cto = this._videoTimingCache.pts - this._videoTimingCache.dts;
-    } else {
-      dts = h264Event.dts - this._videoDtsOffset;
-      cto = h264Event.pts - h264Event.dts;
-    }
-    this._videoTimingCache = h264Event;
+    const dts = h264Event.dts;
+    const cto = h264Event.pts - h264Event.dts;
 
     this._pushVideoH264NALU({nalu: h264Event, dts, cto, isKeyframe, isHeader})
 
