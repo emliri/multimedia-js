@@ -80,9 +80,9 @@ export class MP2TSDemuxProcessor extends Processor {
   private _videoSocket: OutputSocket = null;
   private _videoFirstKeyFrameDts: number = null;
   private _videoConfig: M2tH264StreamEvent = null;
-  private _videoPictureParamSet: boolean = false;
+  private _gotVideoPictureParamSet: boolean = false;
   private _videoTimingQueueIn: M2tH264StreamEvent[] = [];
-  private _videoTimingQueueOut: VideoNALUInfo[] = [];
+  private _videoNaluQueueOut: VideoNALUInfo[] = [];
   private _videoFramerate: number = null;
 
   private _outPackets: Packet[] = [];
@@ -158,7 +158,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
       // Video FPS not determined yet
       if (this._videoFramerate === null) {
-        this._queueVideoTimingNalu(data);
+        this._enqueueVideoTimingNalu(data);
       } else {
         this._handleVideoNalu(data);
       }
@@ -173,7 +173,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
   }
 
-  private _queueVideoTimingNalu(data: M2tH264StreamEvent) {
+  private _enqueueVideoTimingNalu(data: M2tH264StreamEvent) {
     this._videoTimingQueueIn.push(data);
     for (let i = this._videoTimingQueueIn.length - 1; i > 0; i--) { // -> will only run when queue length > 1
       const frameDuration = (data.dts - this._videoTimingQueueIn[i - 1].dts);
@@ -250,34 +250,27 @@ export class MP2TSDemuxProcessor extends Processor {
       return;
     }
 
+    // NOTE: keep ?
     if (h264Event.nalUnitType === M2tNaluType.SEI) {
       return;
     }
 
-    if (h264Event.nalUnitType === M2tNaluType.AUD) {
-      return;
-    }
-
     if (h264Event.nalUnitType === M2tNaluType.PPS) {
-      this._videoPictureParamSet = true;
+      this._gotVideoPictureParamSet = true;
     }
 
-    let isKeyframe: boolean = false;
-    if (h264Event.nalUnitType === M2tNaluType.IDR) {
-      isKeyframe = true;
+    const isKeyframe: boolean = h264Event.nalUnitType === M2tNaluType.IDR;
+    if (isKeyframe) {
       if (this._videoFirstKeyFrameDts === null) {
         this._videoFirstKeyFrameDts = h264Event.dts;
       }
-      if (!this._videoPictureParamSet) {
+      if (!this._gotVideoPictureParamSet) {
         warn('Got IDR without previously seeing a PPS NALU');
       }
     }
 
-    let isHeader: boolean = false;
-    if (h264Event.nalUnitType === M2tNaluType.SPS
-      || h264Event.nalUnitType === M2tNaluType.PPS) {
-      isHeader = true;
-    }
+    const isHeader: boolean = h264Event.nalUnitType === M2tNaluType.SPS
+                              || h264Event.nalUnitType === M2tNaluType.PPS;
 
     if (this._videoFramerate === null) {
       warn('No video-fps/samplerate detectable yet');
@@ -286,80 +279,89 @@ export class MP2TSDemuxProcessor extends Processor {
     const dts = h264Event.dts;
     const cto = h264Event.pts - h264Event.dts;
 
-    this._pushVideoH264NALU({nalu: h264Event, dts, cto, isKeyframe, isHeader})
+    this._pushVideoNalu({nalu: h264Event, dts, cto, isKeyframe, isHeader})
 
   }
 
-  private _pushVideoH264NALU(nalInfo: VideoNALUInfo) {
+  private _pushVideoNalu(nalInfo: VideoNALUInfo) {
 
     const {dts: nextDts, isHeader: nextIsHeader} = nalInfo;
+    const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
 
-    const needQueueFlush = this._videoTimingQueueOut.length
-                          && ((nextDts !== this._videoTimingQueueOut[0].dts) // seperate nalus by dts
-                          || (this._videoTimingQueueOut[0].isHeader && !nextIsHeader) // seperate param-set/frame-slice data
-                          || (!this._videoTimingQueueOut[0].isHeader && nextIsHeader));
+    const needQueueFlush = this._videoNaluQueueOut.length
+                          && (
+                            // seperate by AUD always
+                            nextIsAuDelimiter
+                            // seperate nalus by dts (but only if next is AUD)
+                            || (nextIsAuDelimiter
+                              && nextDts !== this._videoNaluQueueOut[0].dts)
+                            // seperate param-set / any frame-slice data
+                            || (this._videoNaluQueueOut[0].isHeader && !nextIsHeader)
+                            || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader));
 
     if (needQueueFlush) {
-
-      const {dts, cto, nalu, isKeyframe, isHeader} = this._videoTimingQueueOut[0];
-
-      const props = new BufferProperties(
-        CommonMimeTypes.VIDEO_H264,
-        this._videoFramerate || 0, // sample-rate (Hz)
-        8, // sampleDepth
-        1, // sample-duration num
-        1 // samples-per-frame
-      );
-
-      props.codec = CommonCodecFourCCs.avc1;
-      props.elementaryStreamId = nalu.trackId
-
-      props.isKeyframe = isKeyframe;
-      props.isBitstreamHeader = isHeader;
-
-      props.details.width = this._videoConfig.config.width
-      props.details.height = this._videoConfig.config.height;
-      props.details.codecProfile = this._videoConfig.config.profileIdc;
-
-      props.details.samplesPerFrame = 1;
-
-      props.tags.add('nalu');
-      // add NALU type tags for all slices
-      this._videoTimingQueueOut.forEach(({nalu}) => {
-        const naluTag = mapNaluTypeToTag(nalu.nalUnitType)
-        // may be null for non-IDR-slice
-        if (naluTag) {
-          props.tags.add(naluTag);
-        }
-      })
-
-      // create multi-slice packet
-      const slices = this._videoTimingQueueOut.map(({nalu}) => {
-        const bs = new BufferSlice(
-          nalu.data.buffer,
-          nalu.data.byteOffset,
-          nalu.data.byteLength,
-          props // share same props for all slices
-        );
-        debugNALU(bs, log)
-        return bs;
-      })
-
-      const packet = Packet.fromSlices(
-        dts,
-        cto,
-        ... slices
-      );
-
-      //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
-      packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
-      debug('created/pushed packet:', packet.toString(), `(${packet.getTotalBytes()} bytes in ${packet.dataSlicesLength} buffer-slices)`);
-      this._outPackets.push(packet);
-
-      this._videoTimingQueueOut.length = 0;
+      this._flushVideoNaluQueueOut();
     }
+    this._videoNaluQueueOut.push(nalInfo);
+  }
 
-    this._videoTimingQueueOut.push(nalInfo);
+  private _flushVideoNaluQueueOut() {
+    const {dts, cto, nalu, isKeyframe, isHeader} = this._videoNaluQueueOut[0];
+
+    const props = new BufferProperties(
+      CommonMimeTypes.VIDEO_H264,
+      this._videoFramerate || 0, // sample-rate (Hz)
+      8, // sampleDepth
+      1, // sample-duration num
+      1 // samples-per-frame
+    );
+
+    props.codec = CommonCodecFourCCs.avc1;
+    props.elementaryStreamId = nalu.trackId
+
+    props.isKeyframe = isKeyframe;
+    props.isBitstreamHeader = isHeader;
+
+    props.details.width = this._videoConfig.config.width
+    props.details.height = this._videoConfig.config.height;
+    props.details.codecProfile = this._videoConfig.config.profileIdc;
+
+    props.details.samplesPerFrame = 1;
+
+    props.tags.add('nalu');
+    // add NALU type tags for all slices
+    this._videoNaluQueueOut.forEach(({nalu}) => {
+      const naluTag = mapNaluTypeToTag(nalu.nalUnitType)
+      // may be null for non-IDR-slice
+      if (naluTag) {
+        props.tags.add(naluTag);
+      }
+    })
+
+    // create multi-slice packet
+    const slices = this._videoNaluQueueOut.map(({nalu}) => {
+      const bs = new BufferSlice(
+        nalu.data.buffer,
+        nalu.data.byteOffset,
+        nalu.data.byteLength,
+        props // share same props for all slices
+      );
+      debugNALU(bs, log)
+      return bs;
+    })
+
+    const packet = Packet.fromSlices(
+      dts,
+      cto,
+      ... slices
+    );
+
+    //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
+    packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+    debug('created/pushed packet:', packet.toString(), `(${packet.getTotalBytes()} bytes in ${packet.dataSlicesLength} buffer-slices)`);
+    this._outPackets.push(packet);
+
+    this._videoNaluQueueOut.length = 0;
   }
 
   private _onOutPacketsPushed() {
