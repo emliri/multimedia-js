@@ -1,5 +1,3 @@
-// TODO: Move to Objec-TS long-term
-
 const PREFIX_ROOT = 'mm';
 
 const LOGGER_CONFIG_STORAGE_KEY = 'mmjs:LoggerConfig';

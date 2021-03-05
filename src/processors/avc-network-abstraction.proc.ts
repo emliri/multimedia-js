@@ -56,24 +56,24 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
       } else {
 
-        // add AU-delim unit on created AUs
-        // TODO: make optional
-        /*
-
-        */
-
+        // packet data might contain multiple slices for the frame
         const slices = p.data;
+
+        //const frameNalus =
+
         const bufferSlice = makeAccessUnitFromNALUs([
-          //auDelimiterNalu, // CHECK: are we generating correctly?
-          //... slices
-          slices[0]
+          //auDelimiterNalu,
+          ... slices
         ]);
 
         bufferSlice.props = p.defaultPayloadInfo;
-        p.data[0] = bufferSlice;
+        // first drop all slices from data list
+        p.data.length = 0;
+        // set as data single buffer with frame AU
+        p.data.push(bufferSlice);
 
-        log('wrote multi-slice AU');
-        DEBUG_H264 && debugAccessUnit(bufferSlice, true);
+        log('wrote multi-slice AU for packet:', p.toString());
+        DEBUG_H264 && debugAccessUnit(bufferSlice, true, log);
 
         // just pass on the packet as is to only output
         this.out[0].transfer(
@@ -81,6 +81,9 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         );
 
       }
+    } else {
+      error('Got packet not tagged NALU')
+      return false;
     }
 
     return true;
@@ -96,9 +99,6 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
     if (naluType === H264NaluType.SPS) {
 
-      /**
-       * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
-       */
       if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
 
         if (this._spsSliceCache) {
@@ -117,9 +117,6 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
     } else if (naluType === H264NaluType.PPS) {
 
-      /**
-       * HACK to allow using RTMPJS-MP4-mux (expects AvcC atom as "bitstream-header")
-       */
       if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX_HACK) {
 
         if (this._ppsSliceCache) {
@@ -141,7 +138,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
     }
 
     if (!bufferSlice) {
-      log('slice dropped from packet data:', p.defaultPayloadInfo.tags)
+      log('slice dropped from packet data (needed out-of-band):', p.defaultPayloadInfo.tags)
       return;
     }
 
@@ -159,7 +156,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
     } else {
       log('wrote other AU:');
-      DEBUG_H264 && debugAccessUnit(bufferSlice, true);
+      DEBUG_H264 && debugAccessUnit(bufferSlice, true, log);
     }
 
     if (bufferSlice) {
@@ -181,8 +178,8 @@ export class AVCNetworkAbstractionProcessor extends Processor {
     const spsInfo: Sps = H264ParameterSetParser.parseSPS(this._spsSliceCache.getUint8Array().subarray(1));
     //const ppsInfo: Pps = H264ParameterSetParser.parsePPS(this._ppsSliceCache.getUint8Array().subarray(1));
 
-    DEBUG_H264 && debugNALU(this._spsSliceCache)
-    DEBUG_H264 && debugNALU(this._ppsSliceCache);
+    DEBUG_H264 && debugNALU(this._spsSliceCache, log)
+    DEBUG_H264 && debugNALU(this._ppsSliceCache, log);
 
     const avcCodecDataBox: AvcCodecDataBox = new AvcCodecDataBox(
       [this._spsSliceCache.getUint8Array()],

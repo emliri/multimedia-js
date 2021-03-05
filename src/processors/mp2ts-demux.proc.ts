@@ -46,8 +46,6 @@ function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
 
 const MPEG_TS_TIMESCALE_HZ = 90000;
 
-const DEBUG_PACKETS = true;
-
 /*
 import * as AacStream from '../ext-mod/mux.js/lib/aac';
 import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
@@ -213,13 +211,11 @@ export class MP2TSDemuxProcessor extends Processor {
       cto
     );
 
-    // FIXME: move this out of iteration as well as creating BufferProperties once and
-    // only mutating where necessary
+
     const mimeType = CommonMimeTypes.AUDIO_AAC;
 
-    // TODO: To optimize performance,
-    // try to re-use the same heap-object instance here
-    // for as many buffers as possible
+    // NOTE: buffer-props is per-se not cloned on packet transfer,
+    // so we must create/ref a single prop-object per packet (full-ownership).
     bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16); // Q: is it always 16 bit ?
     bufferSlice.props.samplesCount = adtsEvent.sampleCount;
     bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
@@ -362,6 +358,7 @@ export class MP2TSDemuxProcessor extends Processor {
           nalu.data.byteLength,
           props // share same props for all slices
         );
+        debugNALU(bs, log)
         return bs;
       })
 
@@ -373,7 +370,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
       //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
       packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
-      debug('created/pushed packet:', packet.toString());
+      debug('created/pushed packet:', packet.toString(), `(${packet.getTotalBytes()} bytes in ${packet.dataSlicesLength} buffer-slices)`);
       this._outPackets.push(packet);
 
       this._videoTimingQueueOut.length = 0;
