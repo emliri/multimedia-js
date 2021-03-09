@@ -61,7 +61,12 @@ const getSocketDescriptor: SocketTemplateGenerator =
     SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
   );
 
-type VideoNALUInfo = {nalu: M2tH264StreamEvent, dts: number, cto: number, isKeyframe: boolean, isHeader: boolean};
+type VideoNALUInfo = {
+  nalu: M2tH264StreamEvent,
+  dts: number, cto: number,
+  isKeyframe: boolean,
+  isHeader: boolean
+};
 
 export class MP2TSDemuxProcessor extends Processor {
 
@@ -295,11 +300,9 @@ export class MP2TSDemuxProcessor extends Processor {
                           && (
                             // seperate by AUD always
                             (nextIsAuDelimiter)
-                            // seperate nalus by dts (but only if next is AUD)
-                            //(nextDts !== this._videoNaluQueueOut[0].dts)
-                            // seperate param-set / any frame-slice data
-                            || (this._videoNaluQueueOut[0].isHeader && !nextIsHeader && !lastIsAuDelimiter)
-                            || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader && !lastIsAuDelimiter));
+                            || (!lastIsAuDelimiter
+                              && ((this._videoNaluQueueOut[0].isHeader && !nextIsHeader)
+                                || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader))));
 
     if (needQueueFlush) {
       this._flushVideoNaluQueueOut();
@@ -332,8 +335,14 @@ export class MP2TSDemuxProcessor extends Processor {
 
     props.tags.add('nalu');
     // add NALU type tags for all slices
-    this._videoNaluQueueOut.forEach(({nalu}) => {
-      const naluTag = mapNaluTypeToTag(nalu.nalUnitType)
+    this._videoNaluQueueOut.forEach(({nalu, isHeader, isKeyframe}) => {
+      if (isHeader) {
+        props.isBitstreamHeader = true;
+      }
+      if (isKeyframe) {
+        props.isKeyframe = true;
+      }
+      const naluTag = mapNaluTypeToTag(nalu.nalUnitType);
       // may be null for non-IDR-slice
       if (naluTag) {
         props.tags.add(naluTag);

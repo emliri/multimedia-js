@@ -127,12 +127,13 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         }
       }
 
+    } else if (naluType === H264NaluType.AUD) {
+      bufferSlice = null;
     } else {
       throw new Error('Expecting parameter-set slices and got: ' + nalu.getTypeName());
     }
 
     if (!bufferSlice) {
-      log('slice dropped from packet data (needed out-of-band):', p.defaultPayloadInfo.tags)
       return;
     }
 

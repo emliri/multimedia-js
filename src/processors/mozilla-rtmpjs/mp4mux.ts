@@ -59,7 +59,7 @@ import { SampleTablePackager } from './mp4iso-sample-table';
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
 import { getLogger, LoggerLevel } from '../../logger';
 
-const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.OFF, true);
+const { warn, debug } = getLogger('Mp4Mux', LoggerLevel.OFF, true);
 
 export const AAC_SAMPLES_PER_FRAME = 1024;
 
