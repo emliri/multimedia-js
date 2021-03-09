@@ -58,13 +58,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
 
         // packet data might contain multiple slices for the frame
         const slices = p.data;
-
-        //const frameNalus =
-
-        const bufferSlice = makeAccessUnitFromNALUs([
-          //auDelimiterNalu,
-          ... slices
-        ]);
+        const bufferSlice = makeAccessUnitFromNALUs(slices);
 
         bufferSlice.props = p.defaultPayloadInfo;
         // first drop all slices from data list

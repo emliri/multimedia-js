@@ -6,7 +6,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugAccessUnit, debugNALU, NALU } from './h264/h264-tools';
+import { debugNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
@@ -16,7 +16,6 @@ import {
   M2tH264StreamEvent,
   M2tStream,
   M2tADTSStreamEvent,
-  M2tElementaryStreamEvent,
   M2tPacketStreamProgramTableEvent,
   M2tNaluType,
 } from './muxjs-m2t/muxjs-m2t-types';
@@ -285,19 +284,22 @@ export class MP2TSDemuxProcessor extends Processor {
 
   private _pushVideoNalu(nalInfo: VideoNALUInfo) {
 
-    const {dts: nextDts, isHeader: nextIsHeader} = nalInfo;
+    const {dts: nextDts, cto: nextCto, isHeader: nextIsHeader} = nalInfo;
     const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
+    const lastIsAuDelimiter =
+      this._videoNaluQueueOut.length ?
+        this._videoNaluQueueOut[this._videoNaluQueueOut.length - 1]
+          .nalu.nalUnitType === M2tNaluType.AUD : false;
 
     const needQueueFlush = this._videoNaluQueueOut.length
                           && (
                             // seperate by AUD always
-                            nextIsAuDelimiter
+                            (nextIsAuDelimiter)
                             // seperate nalus by dts (but only if next is AUD)
-                            || (nextIsAuDelimiter
-                              && nextDts !== this._videoNaluQueueOut[0].dts)
+                            //(nextDts !== this._videoNaluQueueOut[0].dts)
                             // seperate param-set / any frame-slice data
-                            || (this._videoNaluQueueOut[0].isHeader && !nextIsHeader)
-                            || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader));
+                            || (this._videoNaluQueueOut[0].isHeader && !nextIsHeader && !lastIsAuDelimiter)
+                            || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader && !lastIsAuDelimiter));
 
     if (needQueueFlush) {
       this._flushVideoNaluQueueOut();

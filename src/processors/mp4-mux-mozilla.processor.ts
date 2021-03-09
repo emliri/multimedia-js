@@ -321,6 +321,10 @@ export class MP4MuxProcessor extends Processor {
         }
       }
 
+      if (!bufferSlice.props.isBitstreamHeader) {
+        debugAccessUnit(bufferSlice, false, log);
+      }
+
       const data = bufferSlice.getUint8Array();
 
       mp4Muxer.pushFrame(
