@@ -24,11 +24,11 @@ export { BufferSlice } from './src/core/buffer';
 export { BufferProperties } from './src/core/buffer-props';
 export { CommonMimeTypes, MimetypePrefix, PayloadDescriptor, PayloadDetails, PayloadCodec } from './src/core/payload-description';
 export { Signal } from './src/core/signal';
-export { Flow, FlowErrorType, FlowEvent, FlowState, FlowConfigFlag } from './src/core/flow';
+export { Flow, FlowError, FlowErrorType, FlowEvent, FlowState, FlowConfigFlag, DefaultFlow } from './src/core/flow';
 
-export { ErrorCode, ErrorCodeSpace, getErrorNameByCode } from './src/core/error';
+export { ErrorCode, ErrorCodeSpace, getErrorNameByCode, cloneErrorInfo, cloneErrorInfoSafe, assignErrorInfo } from './src/core/error';
 
-export {VoidCallback} from "./src/common-types"
+export { VoidCallback } from "./src/common-types"
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
