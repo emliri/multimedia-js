@@ -340,7 +340,9 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
 
     this._whenCompletedReject(errorData);
 
-    // error data can be retrieved by app from whenCompleted().catch(...) when needed
+    // error data can be retrieved by app:
+    // - from this class error prop (whenever needed, right inside error-event handler)
+    // - from whenCompleted().catch(...) in async
     this.emit(FlowEvent.ERROR);
   }
 
@@ -351,4 +353,13 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   protected abstract onCompleted_(done: VoidCallback);
 
   protected abstract onStateChangeAborted_(reason: string);
+}
+
+export class DefaultFlow extends Flow {
+  protected onVoidToWaiting_(done: VoidCallback) {}
+  protected onWaitingToVoid_(done: VoidCallback) {}
+  protected onWaitingToFlowing_(done: VoidCallback) {}
+  protected onFlowingToWaiting_(done: VoidCallback) {}
+  protected onCompleted_(done: VoidCallback) {}
+  protected onStateChangeAborted_(reason: string) {}
 }
