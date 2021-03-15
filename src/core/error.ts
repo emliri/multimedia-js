@@ -42,9 +42,9 @@ export function cloneErrorInfo (errorInfo: ErrorInfo,
     };
   }
   if (clone.innerError) {
-    clone.innerError = cloneErrorInfo(errorInfo, synthesizeNativeError);
+    clone.innerError = cloneErrorInfo(clone.innerError,
+      synthesizeNativeError, onlyGenericProps, withCustomData);
   }
-
   return clone;
 }
 
