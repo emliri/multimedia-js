@@ -18,6 +18,8 @@ import {
   M2tADTSStreamEvent,
   M2tPacketStreamProgramTableEvent,
   M2tNaluType,
+  M2tStreamEventData,
+  M2tElementaryStreamEvent,
 } from './muxjs-m2t/muxjs-m2t-types';
 
 import {
@@ -89,6 +91,8 @@ export class MP2TSDemuxProcessor extends Processor {
   private _videoNaluQueueOut: VideoNALUInfo[] = [];
   private _videoFramerate: number = null;
 
+  private _metadataSocketMap: {[pid: number]: OutputSocket} = {};
+
   private _outPackets: Packet[] = [];
 
   constructor () {
@@ -138,10 +142,40 @@ export class MP2TSDemuxProcessor extends Processor {
         if (data.programMapTable?.video) {
           mimeTypes.push(MimetypePrefix.VIDEO);
         }
+        Object.keys(data.programMapTable["timed-metadata"]).forEach((pid) => {
+          const streamType = data.programMapTable["timed-metadata"][pid];
+          mimeTypes.push(MimetypePrefix.APPLICATION);
+        });
         this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
           socket: new ShadowOutputSocket(mimeTypes),
         });
       }
+    });
+
+
+    pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
+      if (!this._pmtCache) return;
+      const appDataStreamType =
+        this._pmtCache.programMapTable["timed-metadata"][data.trackId]
+      if (!appDataStreamType) {
+        return;
+      }
+      const bs = BufferSlice.fromTypedArray(data.data,
+        new BufferProperties(MimetypePrefix.APPLICATION + '/unknown'));
+      const timestamp = Number.isFinite(data.dts) ? data.dts : data.pts;
+      let packet;
+      if (Number.isFinite(timestamp)) {
+        packet = Packet.fromSlice(bs, timestamp);
+      } else {
+        packet = Packet.fromSlice(bs);
+      }
+      if (!this._metadataSocketMap[data.trackId]) {
+        this._metadataSocketMap[data.trackId] =
+          this.createOutput(SocketDescriptor.fromPayloads(
+              [packet.defaultPayloadInfo]
+          ));
+      }
+      this._metadataSocketMap[data.trackId].transfer(packet);
     });
 
     // demux the streams
