@@ -15,7 +15,8 @@
         "vendor",
         "node_modules",
         "test-data",
-        "**/*.spec.ts"
+        "**/*.spec.ts",
+        "src/ext-mod/mux.js/test"
     ],
     "include": [
         "index.ts",
