@@ -1,7 +1,7 @@
 import { InputSocket, SocketDescriptor } from '../core/socket';
 import { Packet } from '../core/packet';
 
-export type AppInputCallback = (data: Blob | ArrayBuffer | Uint8Array, mimeType?: string) => void;
+export type AppInputCallback = (data: Blob | ArrayBuffer | Uint8Array, mimeType: string | null, timestamp: number) => void;
 
 export class AppInputSocket extends InputSocket {
   constructor (
@@ -24,9 +24,9 @@ export class AppInputSocket extends InputSocket {
         }
 
         const blob = new Blob([buffer], { type: mimeType });
-        this._appCallback(blob);
+        this._appCallback(blob, null, p.timestamp);
       } else {
-        this._appCallback(buffer, mimeType);
+        this._appCallback(buffer, mimeType, p.timestamp);
       }
     });
 
