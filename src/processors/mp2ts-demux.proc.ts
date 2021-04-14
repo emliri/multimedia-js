@@ -118,10 +118,6 @@ export class MP2TSDemuxProcessor extends Processor {
     // payload demuxers
     pipeline.aacOrAdtsStream = new AdtsStream.default() as unknown as M2tStream;
     pipeline.h264Stream = new H264Codec.H264Stream() as unknown as M2tStream;
-    pipeline.metadataStream = new MetadataStream();
-    // CEA captions are special AVC NALUs
-    pipeline.captionStream = new CaptionStream() as unknown as M2tStream;
-
     // easy handle to headend of pipeline
     pipeline.headOfPipeline = pipeline.packetStream as unknown as M2tStream;
 
@@ -151,7 +147,6 @@ export class MP2TSDemuxProcessor extends Processor {
         });
       }
     });
-
 
     pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
       if (!this._pmtCache) return;
@@ -185,12 +180,6 @@ export class MP2TSDemuxProcessor extends Processor {
 
     pipeline.timestampRolloverStream
       .pipe(pipeline.aacOrAdtsStream);
-
-    pipeline.timestampRolloverStream
-      .pipe(pipeline.metadataStream);
-
-    // Hook up CEA-608/708 caption stream
-    pipeline.h264Stream.pipe(pipeline.captionStream);
 
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       log('h264Stream:', data)
