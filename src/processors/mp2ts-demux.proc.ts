@@ -131,19 +131,19 @@ export class MP2TSDemuxProcessor extends Processor {
       if (!this._pmtCache && data.type === 'pmt') {
         log('First PMT packet:', data)
         this._pmtCache = data;
-        const mimeTypes: MimetypePrefix[] = []
+        const avMimeTypes: MimetypePrefix[] = []
         if (data.programMapTable?.audio) {
-          mimeTypes.push(MimetypePrefix.AUDIO);
+          avMimeTypes.push(MimetypePrefix.AUDIO);
         }
         if (data.programMapTable?.video) {
-          mimeTypes.push(MimetypePrefix.VIDEO);
+          avMimeTypes.push(MimetypePrefix.VIDEO);
         }
-        Object.keys(data.programMapTable["timed-metadata"]).forEach((pid) => {
-          const streamType = data.programMapTable["timed-metadata"][pid];
-          mimeTypes.push(MimetypePrefix.APPLICATION);
-        });
-        this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
-          socket: new ShadowOutputSocket(mimeTypes),
+        Object.keys(data.programMapTable["timed-metadata"]).forEach((pid: string) => {
+          const streamType: number = data.programMapTable["timed-metadata"][pid];
+          // TODO: extract stream-descriptors from PMT data
+          this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
+            socket: new ShadowOutputSocket([MimetypePrefix.APPLICATION], Number(pid)),
+          });
         });
       }
     });
