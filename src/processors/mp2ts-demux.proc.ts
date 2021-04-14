@@ -163,12 +163,13 @@ export class MP2TSDemuxProcessor extends Processor {
       const bs = BufferSlice.fromTypedArray(data.data,
         new BufferProperties(MimetypePrefix.APPLICATION + '/unknown'));
       const timestamp = Number.isFinite(data.dts) ? data.dts : data.pts;
-      let packet;
+      let packet: Packet;
       if (Number.isFinite(timestamp)) {
         packet = Packet.fromSlice(bs, timestamp);
       } else {
         packet = Packet.fromSlice(bs);
       }
+      packet.setSynchronizationId(data.trackId);
       if (!this._metadataSocketMap[data.trackId]) {
         this._metadataSocketMap[data.trackId] =
           this.createOutput(SocketDescriptor.fromPayloads(
