@@ -138,6 +138,10 @@ export class MP2TSDemuxProcessor extends Processor {
         if (data.programMapTable?.video) {
           avMimeTypes.push(MimetypePrefix.VIDEO);
         }
+        this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
+          socket: new ShadowOutputSocket(avMimeTypes),
+        });
+
         Object.keys(data.programMapTable["timed-metadata"]).forEach((pid: string) => {
           const streamType: number = data.programMapTable["timed-metadata"][pid];
           // TODO: extract stream-descriptors from PMT data
@@ -145,6 +149,7 @@ export class MP2TSDemuxProcessor extends Processor {
             socket: new ShadowOutputSocket([MimetypePrefix.APPLICATION], Number(pid)),
           });
         });
+
       }
     });
 
