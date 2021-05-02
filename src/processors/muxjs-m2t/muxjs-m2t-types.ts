@@ -9,13 +9,14 @@ export enum M2tNaluType {
 }
 
 export type M2tPacketStreamProgramTableEvent = {
-  type: "pat" | "pmt"
+  type: "pat" | "pmt" | "pes"
   pid: number
   payloadUnitStartIndicator: boolean
   pmtPid?: number,
   programMapTable?: {
     audio: number | null
     video: number | null
+    "timed-metadata": {[pid: number]: number}
   }
 }
 

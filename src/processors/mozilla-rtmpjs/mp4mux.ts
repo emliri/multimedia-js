@@ -59,7 +59,7 @@ import { SampleTablePackager } from './mp4iso-sample-table';
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
 import { getLogger, LoggerLevel } from '../../logger';
 
-const { warn, debug } = getLogger('MP4Mux(moz)', LoggerLevel.OFF, true);
+const { warn, debug } = getLogger('Mp4Mux', LoggerLevel.OFF, true);
 
 export const AAC_SAMPLES_PER_FRAME = 1024;
 
@@ -919,23 +919,24 @@ export class MP4Mux {
           if (trackPackets.length === 1) {
             videoFrameDuration = Math.round(timescale / trackInfo.framerate);
             ieFps = timescale / videoFrameDuration;
-            debug('Video frame duration computed from metadata FPS:', videoFrameDuration, 'inst. effect. FPS:', ieFps);
+            debug('Video frame duration computed from metadata FPS:', videoFrameDuration, 'effective FPS:', ieFps);
           } else {
             videoFrameDuration = trackPackets[1].timestamp - trackPackets[0].timestamp;
             ieFps = timescale / videoFrameDuration;
-            debug('Video frame duration computed from timestamp-diff:', videoFrameDuration, 'inst. effect. FPS:', ieFps);
+            debug('Video frame duration computed from timestamp-diff:', videoFrameDuration, 'effective FPS:', ieFps);
           }
 
           if (!Number.isFinite(videoFrameDuration)) {
-            throw new Error('Invalid inst. effec. FPS value computed: ' + 1 / videoFrameDuration);
+            throw new Error('Invalid effective FPS value computed: ' + 1 / videoFrameDuration);
           }
 
           for (let j = 0; j < trackPackets.length; j++) {
 
             const videoPacket: VideoFrame = trackPackets[j].frame as VideoFrame;
 
+            const decodingTime = videoPacket.decodingTime;
             const compositionTime = videoPacket.compositionTime;
-            const compositionTimeOffset = compositionTime - videoPacket.decodingTime;
+            const compositionTimeOffset = compositionTime - decodingTime;
 
             tdatParts.push(videoPacket.data);
             tdatPosition += videoPacket.data.length;
@@ -947,7 +948,7 @@ export class MP4Mux {
             debug('Frame flags at DTS/PTS:',
               videoPacket.frameFlag,
               videoPacket.decodingTime,
-              videoPacket.decodingTime,
+              videoPacket.compositionTime,
             );
 
             const trunSample: TrackRunSample = {

@@ -143,9 +143,12 @@ export class OutputSocket extends Socket {
 }
 
 export class ShadowOutputSocket extends OutputSocket {
-  constructor(payloadShadowTypes: MimetypePrefix[]) {
-    super(SocketDescriptor
-      .fromPayloads(
-        payloadShadowTypes.map(prefix => PayloadDescriptor.fromMimeTypeShadow(prefix))));
+  constructor(payloadShadowTypes: MimetypePrefix[], streamId?: number) {
+    const sockDes = SocketDescriptor.fromPayloads(
+        payloadShadowTypes.map(prefix => PayloadDescriptor.fromMimeTypeShadow(prefix)));
+    if (Number.isFinite(streamId)) {
+      sockDes.payload().elementaryStreamId = streamId;
+    }
+    super(sockDes);
   }
 }

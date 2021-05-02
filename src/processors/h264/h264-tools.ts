@@ -7,11 +7,11 @@ import { NALU } from './nalu';
 import { H264ParameterSetParser } from '../../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps, Pps } from '../../ext-mod/inspector.js/src/codecs/h264/nal-units';
 
-const { log, warn } = getLogger('H264Tools', LoggerLevel.ON, true);
+const { log, warn, error } = getLogger('H264Tools', LoggerLevel.ON, true);
 
-export function debugNALU (bufferSlice: BufferSlice) {
+export function debugNALU (bufferSlice: BufferSlice, logFunc: LoggerFunc = log) {
   const nalu: NALU = new NALU(bufferSlice.getUint8Array());
-  log(`parsed NALU of type ${nalu.getTypeName()}:`, nalu);
+  logFunc(`parsed NALU of type ${nalu.getTypeName()}:`, nalu);
 }
 
 /**
@@ -25,7 +25,7 @@ export function debugNALU (bufferSlice: BufferSlice) {
  * @param debugRbspData
  * @returns true when AU could be parsed, or false if not
  */
-export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolean = false): boolean {
+export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolean = false, logFunc: LoggerFunc = log): boolean {
   const avcStream = bufferSlice.getUint8Array();
   const avcView = bufferSlice.getDataView();
 
@@ -36,7 +36,7 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
     naluLength = avcView.getUint32(naluOffset);
 
     if (naluLength > avcStream.length) {
-      warn('no NALUs found in this data! (not an access-unit)');
+      error('no NALUs found in this data! (not an access-unit)');
       return false;
     }
 
@@ -48,9 +48,7 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
 
     naluCount++;
 
-    //log(avcStream)
-
-    log('In access-unit of size ', avcStream.byteLength,' bytes,',
+    logFunc('In access-unit of size ', avcStream.byteLength,' bytes,',
     'found NALU of type ', nalu.getTypeName(),
     ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
 
@@ -59,12 +57,12 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
       case NALU.SPS:
         // we need to skip first byte of NALU data
         const sps: Sps = H264ParameterSetParser.parseSPS(nalu.payload.subarray(1));
-        log('Parsed SPS:', sps);
+        logFunc('Parsed SPS:', sps);
         break;
       case NALU.PPS:
         // we need to skip first byte of NALU data
         const pps: Pps = H264ParameterSetParser.parsePPS(nalu.payload.subarray(1));
-        log('Parsed PPS:', pps);
+        logFunc('Parsed PPS:', pps);
         break;
       }
     }

@@ -16,8 +16,23 @@ export type ErrorInfoSpace<T extends ErrorCodeSpace> = ErrorInfo & {
  * In case you want that actually copied, take care of it yourself
  * @param errorInfo
  */
-export function cloneErrorInfo (errorInfo: ErrorInfo, synthesizeNativeError: boolean = false): ErrorInfo {
-  const clone = Object.assign({}, errorInfo);
+export function cloneErrorInfo (errorInfo: ErrorInfo,
+  synthesizeNativeError: boolean = false,
+  onlyGenericProps: boolean = false,
+  withCustomData: boolean = true): ErrorInfo {
+  let clone: ErrorInfo;
+  if (onlyGenericProps) {
+    clone = {
+      space: errorInfo.space,
+      code: errorInfo.code,
+      message: errorInfo.message,
+      innerError: errorInfo.innerError,
+      nativeError: errorInfo.nativeError,
+      customData: withCustomData ? errorInfo.customData : null
+    }
+  } else {
+    clone = assignErrorInfo({}, errorInfo);
+  }
   if (synthesizeNativeError && clone.nativeError) {
     const { message, stack, name } = clone.nativeError;
     clone.nativeError = {
@@ -27,16 +42,21 @@ export function cloneErrorInfo (errorInfo: ErrorInfo, synthesizeNativeError: boo
     };
   }
   if (clone.innerError) {
-    clone.innerError = cloneErrorInfo(errorInfo, synthesizeNativeError);
+    clone.innerError = cloneErrorInfo(clone.innerError,
+      synthesizeNativeError, onlyGenericProps, withCustomData);
   }
   return clone;
+}
+
+export function cloneErrorInfoSafe(errorInfo: ErrorInfo): ErrorInfo {
+  return cloneErrorInfo(errorInfo, true, true, false);
 }
 
 /**
  * Uses `cloneErrorInfo` applied to an existing object of a type extending (i.e overlaping completely with) `ErrorInfo`.
  * @param errorInfo
  */
-export function assignErrorInfo<E extends ErrorInfo> (errorInfoOut: E, errorInfoIn: ErrorInfo): ErrorInfo {
+export function assignErrorInfo<E extends ErrorInfo> (errorInfoOut: Partial<E>, errorInfoIn: ErrorInfo): ErrorInfo {
   return Object.assign(errorInfoOut, errorInfoIn);
 }
 

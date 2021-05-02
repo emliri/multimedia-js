@@ -127,9 +127,9 @@ export class Packet {
     public timestamp: number = 0,
     public presentationTimeOffset: number = 0,
     public createdAt: Date = new Date(),
-    public readonly synchronizationId: number = null
+    private _synchronizationId: number = null
   ) {
-    if (synchronizationId !== null && !Number.isSafeInteger(synchronizationId)) {
+    if (_synchronizationId !== null && !Number.isSafeInteger(_synchronizationId)) {
       throw new Error('Synchronization-id must be a safe integer value');
     }
   }
@@ -223,6 +223,10 @@ export class Packet {
   get dts () {
     return this.timestamp;
   }
+
+  get synchronizationId(): number { return this._synchronizationId; }
+
+  setSynchronizationId(id: number) { this._synchronizationId = id; }
 
   /**
    * CTS <==> PTS

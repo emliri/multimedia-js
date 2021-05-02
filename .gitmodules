@@ -3,4 +3,4 @@
 	url = https://github.com/emliri/inspector.js.git
 [submodule "src/ext-mod/mux.js"]
 	path = src/ext-mod/mux.js
-	url = https://github.com/videojs/mux.js.git
+	url = https://github.com/emliri/mux.js.git

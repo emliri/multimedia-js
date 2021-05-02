@@ -107,7 +107,8 @@ export class MP4MuxProcessor extends Processor {
 
   private socketToTrackIndexHash_: {[i: number]: number} = {};
 
-  // this simpler approach will restrict us to have only one audio and one video track for now
+  // this simpler approach will restrict us
+  // to have only one audio and one video track for now
   private videoTrackIndex_: number;
   private audioTrackIndex_: number;
 
@@ -272,14 +273,10 @@ export class MP4MuxProcessor extends Processor {
 
       if (bufferSlice.props.isKeyframe) {
 
-        //console.log('got keyframe at:', p.toString());
-
         if (this.options_.embedCodecDataOnKeyFrames) { // TODO: refix this creating avcC where we also make esds box (inside MP4Mux)
           if (!this.videoBitstreamHeader_) {
             throw new Error('not video bitstream header found to embed');
           }
-
-          //const avcC: AvcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
 
           let avcC: AvcC;
           try {
@@ -294,8 +291,6 @@ export class MP4MuxProcessor extends Processor {
           /*
           const auDelimiterNalu = makeNALUFromH264RbspData(
             BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), NALU.AU_DELIM, 3)
-
-          /*
           const endOfSeq = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 10, 3)
           const endOfStream = makeNALUFromH264RbspData(BufferSlice.allocateNew(0), 11, 3)
           */
@@ -311,14 +306,16 @@ export class MP4MuxProcessor extends Processor {
 
             log('created codec-init AU data to insert in-stream')
 
-            //DEBUG_H264 && debugAccessUnit(codecInitAu, false);
-
             bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
 
             DEBUG_H264 && debugAccessUnit(bufferSlice, false);
           }
 
         }
+      }
+
+      if (!bufferSlice.props.isBitstreamHeader) {
+        debugAccessUnit(bufferSlice, false, log);
       }
 
       const data = bufferSlice.getUint8Array();
