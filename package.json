@@ -12,6 +12,7 @@
     "lint-fix": "npm run lint -- --fix",
     "prepublishOnly": "npm test && make",
     "start": "DEBUG=1 webpack serve --progress",
+    "start-proc": "ts-node ./bin/mmjs-proc",
     "test": "jest"
   },
   "keywords": [],
@@ -35,7 +36,8 @@
     "m3u8-parser": "^4.2.0",
     "node-http-xhr": "^1.3.4",
     "url-toolkit": "^2.1.4",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "yargs": "^11.0.0"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.0",
