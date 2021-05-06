@@ -6,7 +6,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugNALU } from './h264/h264-tools';
+import { debugNALU, parseNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
@@ -283,6 +283,12 @@ export class MP2TSDemuxProcessor extends Processor {
       return;
     }
 
+     const naluParsed = parseNALU(BufferSlice.fromTypedArray(h264Event.data));
+     if (naluParsed.nalType === 12) {
+       warn(`Found unhandled NAL type ${naluParsed.nalType} (dropped)`);
+       return;
+     }
+
     // NOTE: keep ?
     if (h264Event.nalUnitType === M2tNaluType.SEI) {
       return;
@@ -324,12 +330,16 @@ export class MP2TSDemuxProcessor extends Processor {
       this._videoNaluQueueOut.length ?
         this._videoNaluQueueOut[this._videoNaluQueueOut.length - 1]
           .nalu.nalUnitType === M2tNaluType.AUD : false;
+    const hasIncrPts = this._videoNaluQueueOut.length ?
+       nalInfo.nalu.pts - this._videoNaluQueueOut[0].nalu.pts > 0 : false;
 
     const needQueueFlush = this._videoNaluQueueOut.length
                           && (
+                            hasIncrPts
+                            ||
                             // seperate by AUD always
                             (nextIsAuDelimiter)
-                            || (!lastIsAuDelimiter
+                            || (!lastIsAuDelimiter
                               && ((this._videoNaluQueueOut[0].isHeader && !nextIsHeader)
                                 || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader))));
 
