@@ -289,10 +289,12 @@ export class MP2TSDemuxProcessor extends Processor {
        return;
      }
 
-    // NOTE: keep ?
+    // NOTE: kept for debug
+    /*
     if (h264Event.nalUnitType === M2tNaluType.SEI) {
-      return;
+      //
     }
+    */
 
     if (h264Event.nalUnitType === M2tNaluType.PPS) {
       this._gotVideoPictureParamSet = true;
