@@ -284,8 +284,9 @@ export class MP2TSDemuxProcessor extends Processor {
     }
 
      const naluParsed = parseNALU(BufferSlice.fromTypedArray(h264Event.data));
+
+     // drop "filler data" nal-units (used by some encoders on CBR channels)
      if (naluParsed.nalType === 12) {
-       warn(`Found unhandled NAL type ${naluParsed.nalType} (dropped)`);
        return;
      }
 
