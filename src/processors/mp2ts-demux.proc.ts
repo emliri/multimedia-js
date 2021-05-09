@@ -324,7 +324,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
   private _pushVideoNalu(nalInfo: VideoNALUInfo) {
 
-    const {dts: nextDts, cto: nextCto, isHeader: nextIsHeader} = nalInfo;
+    const {dts: nextDts, cto: nextCto, isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame} = nalInfo;
     const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
     const firstIsAuDelimiter =
       this._videoNaluQueueOut.length ?
@@ -337,14 +337,15 @@ export class MP2TSDemuxProcessor extends Processor {
     const hasIncrPts = this._videoNaluQueueOut.length ?
        nalInfo.nalu.pts - this._videoNaluQueueOut[0].nalu.pts > 0 : false;
 
-    const needQueueFlushNoAud = (hasIncrPts && !(firstIsAuDelimiter || lastIsAuDelimiter || nextIsAuDelimiter));
+    const needQueueFlushNoAud = (hasIncrPts && !nextIsKeyFrame
+      && !(firstIsAuDelimiter || lastIsAuDelimiter || nextIsAuDelimiter));
 
     const needQueueFlush = this._videoNaluQueueOut.length
                           && (
                             needQueueFlushNoAud ||
                             // seperate by AUD always
-                            (nextIsAuDelimiter)
-                            || (!lastIsAuDelimiter
+                            nextIsAuDelimiter ||
+                            (!lastIsAuDelimiter
                               && ((this._videoNaluQueueOut[0].isHeader && !nextIsHeader)
                                 || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader))));
 
