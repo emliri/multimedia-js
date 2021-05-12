@@ -6,7 +6,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugNALU, parseNALU } from './h264/h264-tools';
+import { debugNALU, H264NaluType, NALU, parseNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
@@ -285,17 +285,14 @@ export class MP2TSDemuxProcessor extends Processor {
 
      const naluParsed = parseNALU(BufferSlice.fromTypedArray(h264Event.data));
 
-     // drop "filler data" nal-units (used by some encoders on CBR channels)
-     if (naluParsed.nalType === 12) {
-       return;
-     }
-
-    // NOTE: kept for debug
-    /*
-    if (h264Event.nalUnitType === M2tNaluType.SEI) {
-      //
+    // drop "filler data" nal-units (used by some encoders on CBR channels)
+    if (naluParsed.nalType === H264NaluType.FIL) {
+      return;
     }
-    */
+
+    if (h264Event.nalUnitType === M2tNaluType.SEI) {
+      return;
+    }
 
     if (h264Event.nalUnitType === M2tNaluType.PPS) {
       this._gotVideoPictureParamSet = true;
