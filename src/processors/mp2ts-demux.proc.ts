@@ -6,7 +6,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugNALU } from './h264/h264-tools';
+import { debugNALU, H264NaluType, NALU, parseNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
@@ -283,7 +283,13 @@ export class MP2TSDemuxProcessor extends Processor {
       return;
     }
 
-    // NOTE: keep ?
+     const naluParsed = parseNALU(BufferSlice.fromTypedArray(h264Event.data));
+
+    // drop "filler data" nal-units (used by some encoders on CBR channels)
+    if (naluParsed.nalType === H264NaluType.FIL) {
+      return;
+    }
+
     if (h264Event.nalUnitType === M2tNaluType.SEI) {
       return;
     }
@@ -318,18 +324,28 @@ export class MP2TSDemuxProcessor extends Processor {
 
   private _pushVideoNalu(nalInfo: VideoNALUInfo) {
 
-    const {dts: nextDts, cto: nextCto, isHeader: nextIsHeader} = nalInfo;
+    const {dts: nextDts, cto: nextCto, isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame} = nalInfo;
     const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
+    const firstIsAuDelimiter =
+      this._videoNaluQueueOut.length ?
+        this._videoNaluQueueOut[0]
+          .nalu.nalUnitType === M2tNaluType.AUD : false;
     const lastIsAuDelimiter =
       this._videoNaluQueueOut.length ?
         this._videoNaluQueueOut[this._videoNaluQueueOut.length - 1]
           .nalu.nalUnitType === M2tNaluType.AUD : false;
+    const hasIncrPts = this._videoNaluQueueOut.length ?
+       nalInfo.nalu.pts - this._videoNaluQueueOut[0].nalu.pts > 0 : false;
+
+    const needQueueFlushNoAud = (hasIncrPts && !nextIsKeyFrame
+      && !(firstIsAuDelimiter || lastIsAuDelimiter || nextIsAuDelimiter));
 
     const needQueueFlush = this._videoNaluQueueOut.length
                           && (
+                            needQueueFlushNoAud ||
                             // seperate by AUD always
-                            (nextIsAuDelimiter)
-                            || (!lastIsAuDelimiter
+                            nextIsAuDelimiter ||
+                            (!lastIsAuDelimiter
                               && ((this._videoNaluQueueOut[0].isHeader && !nextIsHeader)
                                 || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader))));
 
@@ -386,7 +402,7 @@ export class MP2TSDemuxProcessor extends Processor {
         nalu.data.byteLength,
         props // share same props for all slices
       );
-      debugNALU(bs, log)
+      debugNALU(bs, debug);
       return bs;
     })
 

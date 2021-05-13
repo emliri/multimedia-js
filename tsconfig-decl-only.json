@@ -1,26 +1,31 @@
 {
   "compilerOptions": {
-    "allowJs": true,
+    "noEmitOnError": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "allowJs": false,
     "esModuleInterop": true,
-    "sourceMap": true,
-    //"inlineSourceMap": true,
     "module": "commonjs",
     "target": "ES5",
     "lib": [
       "ES6",
       "DOM"
+    ],
+    "typeRoots": [
+      "./node_modules/@types"
     ]
   },
   "include": [
     "index.ts",
     "src/**/*",
-    "test-cases/**/*"
   ],
   "exclude": [
     "vendors/**/*",
     "node_modules/**/*",
     "test-data/**/*",
+    "test-cases/**/*",
     "**/*.spec.ts",
     "src/ext-mod/mux.js/test/**/*"
-  ]
+  ],
 }
