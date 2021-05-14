@@ -16,7 +16,8 @@
 
 import { Box } from './mp4iso-base';
 
-import { SampleTableBox,
+import {
+  SampleTableBox,
   SampleDescriptionBox,
   DecodingTimeToSampleBox,
   CompositionTimeToSampleBox,
@@ -26,7 +27,8 @@ import { SampleTableBox,
   DecodingTimeToSampleEntry,
   CompositionTimeToSampleEntry,
   SampleToChunkEntry,
-  SyncSampleBox } from './mp4iso-boxes';
+  SyncSampleBox
+} from './mp4iso-boxes';
 
 import { getLogger, LoggerLevel } from '../../logger';
 

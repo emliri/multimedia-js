@@ -1,18 +1,18 @@
 
-import {EventEmitter} from 'eventemitter3'
+import { EventEmitter } from 'eventemitter3';
 
 import {
-  resolveUri,
-  //URLObject
-} from './url'
+  resolveUri
+  // URLObject
+} from './url';
 
 import {
   XHRMethod,
   XHRResponseType,
-  XHRState,
-} from './xhr'
+  XHRState
+} from './xhr';
 
-import {ByteRange} from './byte-range'
+import { ByteRange } from './byte-range';
 import { ResourceRequestMaker, IResourceRequest, makeDefaultRequest, ResourceRequestResponseData } from './resource-request';
 
 export enum ResourceEvents {
@@ -41,7 +41,6 @@ export interface DecryptableResource extends Resource {
 }
 
 export class Resource extends EventEmitter {
-
   private uri_: string;
   private baseUri_: string;
   private byteRange_: ByteRange;
@@ -70,83 +69,83 @@ export class Resource extends EventEmitter {
    * @param baseUri
    * @param mimeType
    */
-  constructor(uri: string, byteRange: ByteRange = null, baseUri: string = null, mimeType: string = null) {
-    super()
+  constructor (uri: string, byteRange: ByteRange = null, baseUri: string = null, mimeType: string = null) {
+    super();
 
-    this.uri_ = uri
-    this.baseUri_ = baseUri
-    this.byteRange_ = byteRange
-    this.mimeType_ = mimeType
+    this.uri_ = uri;
+    this.baseUri_ = baseUri;
+    this.byteRange_ = byteRange;
+    this.mimeType_ = mimeType;
 
-    this.ab_ = null
+    this.ab_ = null;
 
-    this.abortedCnt_ = 0
-    this.fetchAttemptCnt_ = 0
+    this.abortedCnt_ = 0;
+    this.fetchAttemptCnt_ = 0;
 
-    this.request_ = null
+    this.request_ = null;
   }
 
-  get uri(): string {
-    return this.uri_
+  get uri (): string {
+    return this.uri_;
   }
 
-  get baseUri(): string {
-    return this.baseUri_
+  get baseUri (): string {
+    return this.baseUri_;
   }
 
-  get byteRange(): ByteRange {
-    return this.byteRange_
+  get byteRange (): ByteRange {
+    return this.byteRange_;
   }
 
-  get mimeType(): string {
-    return this.mimeType_
+  get mimeType (): string {
+    return this.mimeType_;
   }
 
-  get hasBuffer(): boolean {
-    return this.ab_ !== null
+  get hasBuffer (): boolean {
+    return this.ab_ !== null;
   }
 
-  get hasRequestResponses(): boolean {
+  get hasRequestResponses (): boolean {
     return this.requestResponseData_.length > 0;
   }
 
-  get hasData(): boolean {
+  get hasData (): boolean {
     return this.hasBuffer || this.hasRequestResponses;
   }
 
-  get buffer(): ArrayBuffer {
-    return this.ab_
+  get buffer (): ArrayBuffer {
+    return this.ab_;
   }
 
-  get timesAborted(): number {
-    return this.abortedCnt_
+  get timesAborted (): number {
+    return this.abortedCnt_;
   }
 
-  get timesFetchAttempted(): number {
-    return this.fetchAttemptCnt_
+  get timesFetchAttempted (): number {
+    return this.fetchAttemptCnt_;
   }
 
-  get isFetching(): boolean {
-    return !! this.request_
+  get isFetching (): boolean {
+    return !!this.request_;
   }
 
-  get fetchLatency(): number {
-    return this.fetchLatency_
+  get fetchLatency (): number {
+    return this.fetchLatency_;
   }
 
-  get requestedBytesLoaded(): number {
-    return this.requestBytesLoaded_ || 0
-  };
+  get requestedBytesLoaded (): number {
+    return this.requestBytesLoaded_ || 0;
+  }
 
-  get requestedBytesTotal(): number {
-    return this.requestBytesTotal_ || 0
-  };
+  get requestedBytesTotal (): number {
+    return this.requestBytesTotal_ || 0;
+  }
 
-  getRecordedTransmissionRateBps(): number {
+  getRecordedTransmissionRateBps (): number {
     return 8 * this.requestBytesLoaded_ / this.fetchLatency_;
   }
 
-  setBaseUri(baseUri: string) {
+  setBaseUri (baseUri: string) {
     this.baseUri_ = baseUri;
   }
 
@@ -156,8 +155,8 @@ export class Resource extends EventEmitter {
    * (which overrides the base of this instance for this resolution, but does not overwrite it).
    * Create a new resource object to do that.
    */
-  getUrl(base?: string): string {
-    return resolveUri(this.uri, base ? base : this.baseUri_)
+  getUrl (base?: string): string {
+    return resolveUri(this.uri, base || this.baseUri_);
   }
 
   /*
@@ -166,33 +165,33 @@ export class Resource extends EventEmitter {
   }
   */
 
-  setBuffer(ab: ArrayBuffer): void {
-    this.ab_ = ab
-    this.emit(ResourceEvents.BUFFER_SET)
+  setBuffer (ab: ArrayBuffer): void {
+    this.ab_ = ab;
+    this.emit(ResourceEvents.BUFFER_SET);
   }
 
-  clearBuffer(ab): void {
-    this.ab_ = null
-    this.emit(ResourceEvents.BUFFER_CLEAR)
+  clearBuffer (ab): void {
+    this.ab_ = null;
+    this.emit(ResourceEvents.BUFFER_CLEAR);
   }
 
-  fetch(
+  fetch (
     responseType: XHRResponseType = XHRResponseType.ARRAY_BUFFER,
     method: XHRMethod = XHRMethod.GET
-    ): Promise<Resource> {
-    this.fetchAttemptCnt_++
+  ): Promise<Resource> {
+    this.fetchAttemptCnt_++;
 
     if (this.request_) {
       throw new Error('Assertion failed: resource already has request for ongoing fetch');
     }
 
     const fetchPromise = new Promise<Resource>((resolve, reject) => {
-      this.fetchResolve_ = resolve
-      this.fetchReject_ = reject
-    })
+      this.fetchResolve_ = resolve;
+      this.fetchReject_ = reject;
+    });
 
     const url = this.getUrl();
-    //console.log(url);
+    // console.log(url);
 
     const makeRequest = this.getRequestMaker();
 
@@ -206,46 +205,46 @@ export class Resource extends EventEmitter {
       byteRange: this.byteRange
     });
 
-    return fetchPromise
+    return fetchPromise;
   }
 
-  abort() {
+  abort () {
     if (!this.request_) {
       throw new Error('Assertion failed: can`t abort, resource has no ongoing request');
     }
 
-    this.abortedCnt_++
-    this.request_.abort()
+    this.abortedCnt_++;
+    this.request_.abort();
   }
 
   /**
    *
    * @param rm passing null means use default
    */
-  setRequestMaker(rm: ResourceRequestMaker | null) {
+  setRequestMaker (rm: ResourceRequestMaker | null) {
     this.requestMaker_ = rm;
   }
 
-  getRequestMaker(): ResourceRequestMaker {
+  getRequestMaker (): ResourceRequestMaker {
     if (this.requestMaker_) {
       return this.requestMaker_;
     }
     return makeDefaultRequest;
   }
 
-  hasCustomRequestMaker(): boolean {
+  hasCustomRequestMaker (): boolean {
     return !!this.requestMaker_;
   }
 
-  getRequestResponses(): ResourceRequestResponseData[] {
+  getRequestResponses (): ResourceRequestResponseData[] {
     return this.requestResponseData_;
   }
 
-  flushAllRequestResponses(): void {
+  flushAllRequestResponses (): void {
     this.requestResponseData_ = [];
   }
 
-  getRequestResponse(pop: boolean = false) {
+  getRequestResponse (pop: boolean = false) {
     if (pop) {
       return this.requestResponseData_.pop();
     } else {
@@ -256,16 +255,15 @@ export class Resource extends EventEmitter {
     }
   }
 
-  setExternalyFetchedBytes(loaded: number, total: number, latency: number) {
+  setExternalyFetchedBytes (loaded: number, total: number, latency: number) {
     this.requestBytesLoaded_ = loaded;
     this.requestBytesTotal_ = total;
     this.fetchLatency_ = latency;
     this.emit(ResourceEvents.FETCH_PROGRESS);
   }
 
-  private onRequestCallback_(request: IResourceRequest, isProgressUpdate: boolean) {
-
-    //console.log('onRequestCallback', request.xhrState, XHRState.DONE)
+  private onRequestCallback_ (request: IResourceRequest, isProgressUpdate: boolean) {
+    // console.log('onRequestCallback', request.xhrState, XHRState.DONE)
 
     let reset: boolean = false;
 
@@ -274,28 +272,26 @@ export class Resource extends EventEmitter {
     }
 
     if (request.xhrState === XHRState.DONE) {
-
       this.fetchLatency_ = request.secondsUntilDone;
 
       if (request.wasSuccessful()) {
-        const response = new ResourceRequestResponseData(request, this)
+        const response = new ResourceRequestResponseData(request, this);
         this.requestResponseData_.push(response);
-        //console.log('data', request.responseData)
-        this.setBuffer(response.getArrayBuffer())
-        //console.log('resolve')
-        this.fetchResolve_(this)
-        this.emit(ResourceEvents.FETCH_SUCCEEDED)
+        // console.log('data', request.responseData)
+        this.setBuffer(response.getArrayBuffer());
+        // console.log('resolve')
+        this.fetchResolve_(this);
+        this.emit(ResourceEvents.FETCH_SUCCEEDED);
       } else {
         // this.fetchReject_(); // reject or just let time-out in case?
         this.emit(ResourceEvents.FETCH_SUCCEEDED_NOT);
       }
 
       reset = true;
-
     } else if (request.xhrState === XHRState.LOADING) {
-      this.fetchLatency_ = request.secondsUntilLoading
+      this.fetchLatency_ = request.secondsUntilLoading;
     } else if (request.xhrState === XHRState.HEADERS_RECEIVED) {
-      this.fetchLatency_ = request.secondsUntilHeaders
+      this.fetchLatency_ = request.secondsUntilHeaders;
     } else if (request.xhrState === XHRState.OPENED) {
       //
     }
@@ -307,24 +303,23 @@ export class Resource extends EventEmitter {
     }
 
     if (request.hasBeenAborted) {
-      this.emit(ResourceEvents.FETCH_ABORTED)
+      this.emit(ResourceEvents.FETCH_ABORTED);
 
-      this.fetchReject_(new Error('Fetching media segment was aborted'))
+      this.fetchReject_(new Error('Fetching media segment was aborted'));
     }
 
     if (request.hasErrored) {
-      this.emit(ResourceEvents.FETCH_ERRORED)
+      this.emit(ResourceEvents.FETCH_ERRORED);
 
-      this.fetchReject_(request.error)
+      this.fetchReject_(request.error);
     }
 
     if (reset) {
       // reset fetch promise hooks
-      this.fetchReject_ = null
-      this.fetchResolve_ = null
+      this.fetchReject_ = null;
+      this.fetchResolve_ = null;
       // XHR object is done and over, let's get rid of it
-      this.request_ = null
+      this.request_ = null;
     }
   }
-
 }

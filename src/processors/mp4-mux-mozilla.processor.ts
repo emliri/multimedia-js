@@ -1,7 +1,7 @@
 import { Processor, ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { Packet, PacketSymbol } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType, SocketTemplateGenerator } from '../core/socket';
-import { prntprtty } from '../common-utils';
+import { prntprtty, isNumber } from '../common-utils';
 
 // This version of our mp4-mux processor is based on the mozilla rtmpjs code
 import {
@@ -16,7 +16,6 @@ import {
   AAC_SAMPLES_PER_FRAME
 } from './mozilla-rtmpjs/mp4mux';
 
-import { isNumber } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { BufferSlice } from '../core/buffer';
 import { makeNALUFromH264RbspData, makeAccessUnitFromNALUs, debugAccessUnit } from './h264/h264-tools';
@@ -79,7 +78,6 @@ export type MP4MuxProcessorOptions = {
 }
 
 export class MP4MuxProcessor extends Processor {
-
   static getName (): string {
     return 'MP4MuxProcessor';
   }
@@ -140,12 +138,10 @@ export class MP4MuxProcessor extends Processor {
     }
 
     if (p.defaultPayloadInfo.isAudio()) {
-
       this.audioPacketQueue_.push(p);
 
       // check/create track meta
       if (!this._haveTrackMetadataForSocketIndex(inputIndex)) {
-
         this.audioTrackIndex_ =
         this.socketToTrackIndexHash_[inputIndex] =
           this.mp4MovieMetadata_.tracks.length;
@@ -161,26 +157,24 @@ export class MP4MuxProcessor extends Processor {
         );
       }
 
-      if (this.options_.fragmentedMode
-        && (this.audioPacketQueue_.length >= this.options_.maxAudioFramesPerChunk)) {
+      if (this.options_.fragmentedMode &&
+        (this.audioPacketQueue_.length >= this.options_.maxAudioFramesPerChunk)) {
         this._flush();
       }
 
       return true;
-
     } else if (p.defaultPayloadInfo.isVideo()) {
-
       // drop any packets received before we got codec init data
-      if (this.options_.fragmentedMode
-        && !this._queuedVideoBitstreamHeader && !p.defaultPayloadInfo.isBitstreamHeader)  {
+      if (this.options_.fragmentedMode &&
+        !this._queuedVideoBitstreamHeader && !p.defaultPayloadInfo.isBitstreamHeader) {
         return true;
       }
 
       this.videoPacketQueue_.push(p);
 
       if (!this._queuedVideoBitstreamHeader && p.defaultPayloadInfo.isBitstreamHeader) {
-        this._queuedVideoBitstreamHeader = true
-        info('queued first bitstream header @:', Date.now())
+        this._queuedVideoBitstreamHeader = true;
+        info('queued first bitstream header @:', Date.now());
       }
 
       // check/create track meta
@@ -200,18 +194,16 @@ export class MP4MuxProcessor extends Processor {
       }
 
       if (this.options_.fragmentedMode) {
-
-        if (this.options_.flushOnKeyFrame
-          && p.defaultPayloadInfo.isKeyframe
-          && this._queuedVideoBitstreamHeader
-          && this.videoPacketQueue_.length > 1 + 1) { // Q: why ?
-           this._flush();
-        } else if (!this.options_.flushOnKeyFrame
-          && this._queuedVideoBitstreamHeader
-          && this.videoPacketQueue_.length >= this.options_.maxVideoFramesPerChunk) {
+        if (this.options_.flushOnKeyFrame &&
+          p.defaultPayloadInfo.isKeyframe &&
+          this._queuedVideoBitstreamHeader &&
+          this.videoPacketQueue_.length > 1 + 1) { // Q: why ?
+          this._flush();
+        } else if (!this.options_.flushOnKeyFrame &&
+          this._queuedVideoBitstreamHeader &&
+          this.videoPacketQueue_.length >= this.options_.maxVideoFramesPerChunk) {
           this._flush();
         }
-
       }
 
       return true;
@@ -219,7 +211,6 @@ export class MP4MuxProcessor extends Processor {
 
     warn('Packet with unhandled payload:', p);
     return false;
-
   }
 
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
@@ -240,22 +231,19 @@ export class MP4MuxProcessor extends Processor {
     return super.handleSymbolicPacket_(symbol);
   }
 
-  private _haveTrackMetadataForSocketIndex(inputIndex: number): boolean {
-    return !! this._getTrackMetadataForSocketIdx(inputIndex);
+  private _haveTrackMetadataForSocketIndex (inputIndex: number): boolean {
+    return !!this._getTrackMetadataForSocketIdx(inputIndex);
   }
 
-  private _getTrackMetadataForSocketIdx(inputIndex: number): MP4Track {
-    return this.mp4MovieMetadata_.tracks[this.socketToTrackIndexHash_[inputIndex]]
+  private _getTrackMetadataForSocketIdx (inputIndex: number): MP4Track {
+    return this.mp4MovieMetadata_.tracks[this.socketToTrackIndexHash_[inputIndex]];
   }
 
   private _processVideoPacket (p: Packet) {
-
     p.forEachBufferSlice((bufferSlice) => {
-
       const mp4Muxer = this.mp4Muxer_;
 
       if (bufferSlice.props.isBitstreamHeader) {
-
         if (this.videoBitstreamHeader_ && this.options_.fragmentedMode) {
           warn('dropping video codec info as in frag-mode and already got first one');
           return;
@@ -272,7 +260,6 @@ export class MP4MuxProcessor extends Processor {
       }
 
       if (bufferSlice.props.isKeyframe) {
-
         if (this.options_.embedCodecDataOnKeyFrames) { // TODO: refix this creating avcC where we also make esds box (inside MP4Mux)
           if (!this.videoBitstreamHeader_) {
             throw new Error('not video bitstream header found to embed');
@@ -282,9 +269,9 @@ export class MP4MuxProcessor extends Processor {
           try {
             avcC = <AvcC> AvcC.parse(this.videoBitstreamHeader_.getUint8Array());
             log('parsed MP4 video-atom:', avcC);
-          } catch(err) {
-            warn('failed to parse slice-data expected to be AvcC atom:', this.videoBitstreamHeader_)
-            debug('internal error is:', err)
+          } catch (err) {
+            warn('failed to parse slice-data expected to be AvcC atom:', this.videoBitstreamHeader_);
+            debug('internal error is:', err);
             return;
           }
 
@@ -304,13 +291,12 @@ export class MP4MuxProcessor extends Processor {
             const codecInitAu: BufferSlice =
               makeAccessUnitFromNALUs([spsNalu, ppsNalu]);
 
-            log('created codec-init AU data to insert in-stream')
+            log('created codec-init AU data to insert in-stream');
 
             bufferSlice = bufferSlice.prepend(codecInitAu, bufferSlice.props);
 
             DEBUG_H264 && debugAccessUnit(bufferSlice, false);
           }
-
         }
       }
 
@@ -329,7 +315,6 @@ export class MP4MuxProcessor extends Processor {
         bufferSlice.props.isKeyframe,
         p.cto
       );
-
     });
   }
 
@@ -361,7 +346,6 @@ export class MP4MuxProcessor extends Processor {
         p.cto,
         audioDetails
       );
-
     });
   }
 
@@ -381,16 +365,15 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _resetMuxer (audioBaseDts: number = 0, videoBaseDts: number = 0) {
-
-    const enableGenerateMoov: boolean
-      = this.options_.fragmentedMode ? this.codecInfo_.length === 0 : true;
+    const enableGenerateMoov: boolean =
+      this.options_.fragmentedMode ? this.codecInfo_.length === 0 : true;
 
     this.mp4MovieMetadata_.audioBaseDts = audioBaseDts;
     this.mp4MovieMetadata_.videoBaseDts = videoBaseDts;
 
     log('_resetMuxer() called with metadata:', prntprtty(this.mp4MovieMetadata_),
-        'options:', prntprtty(this.options_),
-        'generate-moov:', enableGenerateMoov);
+      'options:', prntprtty(this.options_),
+      'generate-moov:', enableGenerateMoov);
 
     const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4MovieMetadata_,
       this.options_.fragmentedMode, enableGenerateMoov);
@@ -404,12 +387,11 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _processQueues () {
-
     this._resetMuxer(this.audioPacketQueue_[0]?.dts, this.videoPacketQueue_[0]?.dts);
 
     if (this.videoPacketQueue_.length) {
       debug('processing video packet queue of length', this.videoPacketQueue_.length);
-      //console.log('first video data', this.videoPacketQueue_[0].toString())
+      // console.log('first video data', this.videoPacketQueue_[0].toString())
       this.videoPacketQueue_.forEach((packet: Packet) => {
         this._processVideoPacket(packet);
       });
@@ -418,13 +400,12 @@ export class MP4MuxProcessor extends Processor {
 
     if (this.audioPacketQueue_.length) {
       debug('processing audio packet queue of length', this.audioPacketQueue_.length);
-      //console.log('first audio data', this.audioPacketQueue_[0].toString())
+      // console.log('first audio data', this.audioPacketQueue_[0].toString())
       this.audioPacketQueue_.forEach((packet: Packet) => {
         this._processAudioPacket(packet);
       });
       this.audioPacketQueue_.length = 0;
     }
-
   }
 
   private _flush () {
@@ -442,13 +423,12 @@ export class MP4MuxProcessor extends Processor {
     durationSeconds: number,
     timescale: number,
     language: string = 'und'
-    ): MP4Track {
-
+  ): MP4Track {
     if (isVideoCodec(audioCodec)) {
       throw new Error('Not an audio codec: ' + audioCodec);
     }
 
-    let audioTrack: MP4Track = {
+    const audioTrack: MP4Track = {
       duration: (durationSeconds || 0) * timescale,
       codecDescription: audioCodec,
       codecId: getCodecId(audioCodec),
@@ -480,7 +460,7 @@ export class MP4MuxProcessor extends Processor {
       throw new Error('Not a video codec: ' + videoCodec);
     }
 
-    let videoTrack: MP4Track = {
+    const videoTrack: MP4Track = {
       duration: (durationSeconds || 0) * timescale,
       codecDescription: videoCodec,
       codecId: getCodecId(videoCodec),
@@ -506,13 +486,11 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private onMp4MuxerData_ (data: Uint8Array) {
-
     let mimeType: string;
 
     if (this.codecInfo_.length === 0) {
-      warn(`Got mp4 output data without priorly signaled codecs infos! Using generic mime-type 'video/mp4'.`);
+      warn('Got mp4 output data without priorly signaled codecs infos! Using generic mime-type \'video/mp4\'.');
       mimeType = CommonMimeTypes.VIDEO_MP4;
-
     } else {
       const codecs = this.codecInfo_.join();
 
@@ -520,11 +498,11 @@ export class MP4MuxProcessor extends Processor {
       const hasVideo = this.codecInfo_.some((val) => val.startsWith('avc1.'));
       const hasBothAAndV = hasAudio && hasVideo;
 
-      //let baseMediaDts =
+      // let baseMediaDts =
       let mediaType: string;
       if (hasAudio && !hasVideo) {
         mediaType = CommonMimeTypes.AUDIO_MP4;
-      } else if(hasBothAAndV) {
+      } else if (hasBothAAndV) {
         mediaType = CommonMimeTypes.VIDEO_MP4;
       } else if (hasVideo) {
         mediaType = CommonMimeTypes.VIDEO_MP4;
@@ -532,7 +510,7 @@ export class MP4MuxProcessor extends Processor {
         throw new Error('Unexpected codec identifiers: ' + codecs);
       }
 
-      mimeType = `${mediaType}; codecs="${codecs}"`
+      mimeType = `${mediaType}; codecs="${codecs}"`;
     }
 
     const p: Packet = Packet.fromArrayBuffer(data.buffer, mimeType);

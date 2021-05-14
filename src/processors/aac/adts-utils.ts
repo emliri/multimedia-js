@@ -51,14 +51,14 @@ export function probeAACByteStream (data, offset): boolean {
   // or end of data is reached
   if (offset + 1 < data.length && isAacADTSHeaderPattern(data, offset)) {
     // ADTS header Length
-    let headerLength = getADTSHeaderLength(data, offset);
+    const headerLength = getADTSHeaderLength(data, offset);
     // ADTS frame Length
     let frameLength = <number> headerLength;
     if (offset + 5 < data.length) {
       frameLength = getFullAACFrameLength(data, offset);
     }
 
-    let newOffset = offset + frameLength;
+    const newOffset = offset + frameLength;
     if (newOffset === data.length || (newOffset + 1 < data.length && isAacADTSHeaderPattern(data, newOffset))) {
       return true;
     }
@@ -79,7 +79,7 @@ export function parseAacADTSHeaderInfo (
   let headerLength;
   let frameLength;
   let timestamp;
-  let length = data.length;
+  const length = data.length;
 
   // The protection skip bit tells us if we have 2 bytes of CRC data at the end of the ADTS header
   headerLength = getADTSHeaderLength(data, offset);

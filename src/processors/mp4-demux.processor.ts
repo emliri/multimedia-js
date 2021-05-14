@@ -92,7 +92,7 @@ export class MP4DemuxProcessor extends Processor {
         for (const trackId in tracks) {
           const track: Mp4Track = <Mp4Track> tracks[trackId];
 
-          log('analyzing track with id:', trackId)
+          log('analyzing track with id:', trackId);
 
           log(
             'mime-type:', track.mimeType,
@@ -118,14 +118,13 @@ export class MP4DemuxProcessor extends Processor {
           let sampleRate: number = NaN;
           let sampleDurationNum: number = 1;
           let numChannels: number = NaN;
-          let samplesCount: number = 1;
+          const samplesCount: number = 1;
           let constantBitrate: number = NaN;
-          let codecDataList: Uint8Array[] = [];
+          const codecDataList: Uint8Array[] = [];
           let codecProfile: number = NaN;
 
           if (track.isVideo()) {
-
-            log('video track found with id:', track.id)
+            log('video track found with id:', track.id);
 
             const videoAtom = <VideoAtom> track.getMetadataAtom();
             // FIXME: support HEVC too
@@ -189,8 +188,7 @@ export class MP4DemuxProcessor extends Processor {
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
           } else if (track.isAudio()) {
-
-            log('audio track found with id:', track.id)
+            log('audio track found with id:', track.id);
 
             const audioAtom = <AudioAtom> track.getMetadataAtom();
             sampleDepth = audioAtom.sampleSize;
@@ -216,15 +214,13 @@ export class MP4DemuxProcessor extends Processor {
 
             const esdsData = esds.data;
             codecDataList.push(esdsData);
-
           } else {
-
-            warn('track found is unhandled kind:', track.mimeType)
+            warn('track found is unhandled kind:', track.mimeType);
 
             throw new Error('Unhandled mp4 track-type. Mime-type is: ' + track.mimeType);
           }
 
-          let sampleDuration = track.getDefaults() ? track.getDefaults().sampleDuration : 1;
+          const sampleDuration = track.getDefaults() ? track.getDefaults().sampleDuration : 1;
 
           log('sample-duration found:', sampleDuration, 'numerator:', sampleDurationNum, 'sample-rate:', sampleRate);
 

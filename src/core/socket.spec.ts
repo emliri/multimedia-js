@@ -91,9 +91,9 @@ describe('InputSocket', () => {
   it('should be constructable with a PacketReceiveCallback and a SocketDescriptor', () => {
     const cb = (p: Packet) => true;
 
-    let sd = new SocketDescriptor();
+    const sd = new SocketDescriptor();
 
-    let is = new InputSocket(cb, sd);
+    const is = new InputSocket(cb, sd);
 
     is.isTransferring().should.be.equal(false);
 
@@ -101,11 +101,11 @@ describe('InputSocket', () => {
   });
 
   it('should transfer a packet to the callback and set the transferring state flag during transfer accordingly', async () => {
-    let packet = new Packet();
-    let cbRetVal = true;
+    const packet = new Packet();
+    const cbRetVal = true;
     let is;
 
-    let sd = new SocketDescriptor();
+    const sd = new SocketDescriptor();
 
     const cb = (p: Packet) => {
       p.should.be.equal(packet);
@@ -123,8 +123,8 @@ describe('InputSocket', () => {
   });
 
   it('should transfer a packet to the callback and set the transferring state flag during transfer accordingly (with falsy callback return val)', async () => {
-    let packet = new Packet();
-    let cbRetVal = false;
+    const packet = new Packet();
+    const cbRetVal = false;
     let is;
 
     const cb = (p: Packet) => {
@@ -187,8 +187,8 @@ describe('InputSocket', () => {
 
 describe('OutputSocket', () => {
   it('should be constructable with a SocketDescriptor (same as base class)', () => {
-    let sd = new SocketDescriptor();
-    let os = new OutputSocket(sd);
+    const sd = new SocketDescriptor();
+    const os = new OutputSocket(sd);
 
     os.payloads().should.be.equal(sd.payloads);
 
@@ -197,10 +197,10 @@ describe('OutputSocket', () => {
   });
 
   it('should be able to connect/disconnect an OutputSocket and give access to peer sockets related methods', () => {
-    let sd = new SocketDescriptor();
-    let os = new OutputSocket(sd);
+    const sd = new SocketDescriptor();
+    const os = new OutputSocket(sd);
 
-    let os2 = new OutputSocket(sd);
+    const os2 = new OutputSocket(sd);
 
     os.connect(os2).should.be.equal(os);
 
@@ -239,8 +239,8 @@ describe('OutputSocket', () => {
 
   it('should be able to connect/disconnect an InputSocket and give access to peer sockets related methods', () => {
     let is;
-    let sd = new SocketDescriptor();
-    let os = new OutputSocket(sd);
+    const sd = new SocketDescriptor();
+    const os = new OutputSocket(sd);
 
     const cb = (p: Packet) => true;
 
@@ -262,9 +262,9 @@ describe('OutputSocket', () => {
   it('should be able to transfer a Packet to a peer InputSocket', async () => {
     let is;
     let packetCount = 0;
-    let sd = new SocketDescriptor();
-    let os = new OutputSocket(sd);
-    let packet = new Packet();
+    const sd = new SocketDescriptor();
+    const os = new OutputSocket(sd);
+    const packet = new Packet();
 
     const cb = (p: Packet) => {
       p.should.be.equal(packet);
@@ -284,12 +284,12 @@ describe('OutputSocket', () => {
   it('should be able to transfer a Packet to a peer OutputSocket (and on to its peers)', async () => {
     let is;
     let packetCount = 0;
-    let sd = new SocketDescriptor();
-    let os = new OutputSocket(sd);
-    let os2 = new OutputSocket(sd);
-    let packet = new Packet();
+    const sd = new SocketDescriptor();
+    const os = new OutputSocket(sd);
+    const os2 = new OutputSocket(sd);
+    const packet = new Packet();
 
-    let cbRetVal = false;
+    const cbRetVal = false;
 
     const cb = (p: Packet) => {
       p.should.be.equal(packet);

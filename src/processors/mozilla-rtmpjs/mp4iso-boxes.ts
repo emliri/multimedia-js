@@ -23,9 +23,9 @@ import {
 
 import { Box, BoxContainerBox, FullBox } from './mp4iso-base';
 
-export let START_DATE = -2082844800000; /* midnight after Jan. 1, 1904 */
-export let DEFAULT_MOVIE_MATRIX: number[] = [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0];
-export let DEFAULT_OP_COLOR: number[] = [0, 0, 0];
+export const START_DATE = -2082844800000; /* midnight after Jan. 1, 1904 */
+export const DEFAULT_MOVIE_MATRIX: number[] = [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0];
+export const DEFAULT_OP_COLOR: number[] = [0, 0, 0];
 
 export class FileTypeBox extends Box {
     public majorBrand: string;
@@ -141,6 +141,7 @@ export class TrackHeaderBox extends FullBox {
                 public modificationTime: number = START_DATE) {
     super('tkhd', 0, flags);
   }
+
   public layout (offset: number): number {
     this.size = super.layout(offset) + 20 + 8 + 6 + 2 + 36 + 8;
     return this.size;
@@ -185,13 +186,14 @@ export class MediaHeaderBox extends FullBox {
                 public modificationTime: number = START_DATE) {
     super('mdhd', 0, 0);
   }
+
   public layout (offset: number): number {
     this.size = super.layout(offset) + 16 + 4;
     return this.size;
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     // Only version 0
     writeInt32(data, this.offset + offset, encodeDate(this.creationTime));
     writeInt32(data, this.offset + offset + 4, encodeDate(this.modificationTime));
@@ -210,6 +212,7 @@ export class HandlerBox extends FullBox {
       super('hdlr', 0, 0);
       this._encodedName = utf8decode(this.name);
     }
+
     public layout (offset: number): number {
       this.size = super.layout(offset) + 8 + 12 + (this._encodedName.length + 1);
       return this.size;
@@ -241,7 +244,7 @@ export class SoundMediaHeaderBox extends FullBox {
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     writeInt32(data, this.offset + offset, encodeFloat_8_8(this.balance) << 16);
     return offset + 4;
   }
@@ -259,7 +262,7 @@ export class VideoMediaHeaderBox extends FullBox {
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     writeInt32(data, this.offset + offset, (this.graphicsMode << 16) | this.opColor[0]);
     writeInt32(data, this.offset + offset + 4, (this.opColor[1] << 16) | this.opColor[2]);
     return offset + 8;
@@ -622,7 +625,7 @@ export class TrackExtendsBox extends FullBox {
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     writeInt32(data, this.offset + offset, this.trackId);
     writeInt32(data, this.offset + offset + 4, this.defaultSampleDescriptionIndex);
     writeInt32(data, this.offset + offset + 8, this.defaultSampleDuration);
@@ -645,6 +648,7 @@ export class MetaBox extends FullBox {
                 public otherBoxes: Box[]) {
     super('meta', 0, 0);
   }
+
   public layout (offset: number): number {
     let size = super.layout(offset);
     size += this.handler.layout(offset + size);
@@ -675,7 +679,7 @@ export class MovieFragmentHeaderBox extends FullBox {
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     writeInt32(data, this.offset + offset, this.sequenceNumber);
     return offset + 4;
   }
@@ -702,7 +706,7 @@ export class TrackFragmentHeaderBox extends FullBox {
 
   public layout (offset: number): number {
     let size = super.layout(offset) + 4;
-    let flags = this.flags;
+    const flags = this.flags;
     if (flags & TrackFragmentFlags.BASE_DATA_OFFSET_PRESENT) {
       size += 8;
     }
@@ -723,7 +727,7 @@ export class TrackFragmentHeaderBox extends FullBox {
 
   public write (data: Uint8Array): number {
     let offset = super.write(data);
-    let flags = this.flags;
+    const flags = this.flags;
     writeInt32(data, this.offset + offset, this.trackId);
     offset += 4;
     if (flags & TrackFragmentFlags.BASE_DATA_OFFSET_PRESENT) {
@@ -762,7 +766,7 @@ export class TrackFragmentBaseMediaDecodeTimeBox extends FullBox {
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     writeInt32(data, this.offset + offset, this.baseMediaDecodeTime);
     return offset + 4;
   }
@@ -814,8 +818,8 @@ export class TrackRunBox extends FullBox {
 
   public layout (offset: number): number {
     let size = super.layout(offset) + 4;
-    let samplesCount = this.samples.length;
-    let flags = this.flags;
+    const samplesCount = this.samples.length;
+    const flags = this.flags;
     if (flags & TrackRunFlags.DATA_OFFSET_PRESENT) {
       size += 4;
     }
@@ -839,8 +843,8 @@ export class TrackRunBox extends FullBox {
 
   public write (data: Uint8Array): number {
     let offset = super.write(data);
-    let samplesCount = this.samples.length;
-    let flags = this.flags;
+    const samplesCount = this.samples.length;
+    const flags = this.flags;
     writeInt32(data, this.offset + offset, samplesCount);
     offset += 4;
     if (flags & TrackRunFlags.DATA_OFFSET_PRESENT) {
@@ -852,7 +856,7 @@ export class TrackRunBox extends FullBox {
       offset += 4;
     }
     for (let i = 0; i < samplesCount; i++) {
-      let sample = this.samples[i];
+      const sample = this.samples[i];
       if (flags & TrackRunFlags.SAMPLE_DURATION_PRESENT) {
         writeInt32(data, this.offset + offset, sample.duration);
         offset += 4;
@@ -916,7 +920,7 @@ export class SampleEntry extends Box {
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     writeInt32(data, this.offset + offset, 0);
     writeInt32(data, this.offset + offset + 4, this.dataReferenceIndex);
     return offset + 8;
@@ -1026,11 +1030,15 @@ export class AvcCodecDataBox extends Box {
 
   public layout (offset: number): number {
     let size = super.layout(offset);
-    size += 7 // 5 fixed field bytes + 2 bytes for SPS/PPS size
-      + this.spsNALUs.reduce((accu, data) => { return accu + data.byteLength }, 0)
-      + (2 * this.spsNALUs.length)
-      + this.ppsNALUs.reduce((accu, data) => { return accu + data.byteLength }, 0)
-      + (2 * this.ppsNALUs.length)
+    size += 7 + // 5 fixed field bytes + 2 bytes for SPS/PPS size
+      this.spsNALUs.reduce((accu, data) => {
+        return accu + data.byteLength;
+      }, 0) +
+      (2 * this.spsNALUs.length) +
+      this.ppsNALUs.reduce((accu, data) => {
+        return accu + data.byteLength;
+      }, 0) +
+      (2 * this.ppsNALUs.length);
     return (this.size = size);
   }
 

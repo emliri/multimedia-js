@@ -16,7 +16,7 @@ BroadwayPlayer.prototype._createBasicCanvasObj = function (options) {
   console.log('create-canvas method overload');
 
   options = options || {};
-  let obj: any = {};
+  const obj: any = {};
   let width = options.width;
   if (!width) {
     width = this._config.size.width;

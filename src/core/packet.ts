@@ -171,7 +171,7 @@ export class Packet {
     });
   }
 
-  get dataSlicesLength() {
+  get dataSlicesLength () {
     return this.data ? this.data.length : 0;
   }
 
@@ -224,9 +224,13 @@ export class Packet {
     return this.timestamp;
   }
 
-  get synchronizationId(): number { return this._synchronizationId; }
+  get synchronizationId (): number {
+    return this._synchronizationId;
+  }
 
-  setSynchronizationId(id: number) { this._synchronizationId = id; }
+  setSynchronizationId (id: number) {
+    this._synchronizationId = id;
+  }
 
   /**
    * CTS <==> PTS
@@ -241,7 +245,7 @@ export class Packet {
     return this._timestampOffset + this.timestamp;
   }
 
-  getCompositionTimeOffset() {
+  getCompositionTimeOffset () {
     return this.presentationTimeOffset;
   }
 

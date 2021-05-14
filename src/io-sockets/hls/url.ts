@@ -6,7 +6,7 @@ import {
   buildURLFromParts,
   normalizePath,
   parseURL
-} from 'url-toolkit'
+} from 'url-toolkit';
 
 /**
  * Idea is to extend from the URL W3C standard interface
@@ -22,24 +22,18 @@ export class URLObject extends URL {
 }
 */
 
-export function resolveUri(relativeUri: string, baseUri: string): string {
-
-  //console.log('resolveUri:', relativeUri, baseUri);
+export function resolveUri (relativeUri: string, baseUri: string): string {
+  // console.log('resolveUri:', relativeUri, baseUri);
 
   if (!baseUri) {
-    return relativeUri
+    return relativeUri;
   }
 
   const resolvedUrl = buildAbsoluteURL(baseUri, relativeUri, {
     alwaysNormalize: true
   });
 
-  //console.log(resolvedUrl);
+  // console.log(resolvedUrl);
 
   return resolvedUrl;
 }
-
-
-
-
-

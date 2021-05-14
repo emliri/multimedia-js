@@ -22,7 +22,7 @@ export class MP3Parser {
   static probe (data) {
     // check if data contains ID3 timestamp and MPEG sync word
     let offset; let length;
-    let id3Data = ID3Parser.getID3Data(data, 0);
+    const id3Data = ID3Parser.getID3Data(data, 0);
     if (id3Data && ID3Parser.getTimeStamp(id3Data) !== undefined) {
       // Look for MPEG header | 1111 1111 | 111X XYZX | where X can be either 0 or 1 and Y or Z should be 1
       // Layer bits (position 14 and 15) in header should be always different from 0 (Layer I or Layer II or Layer III)

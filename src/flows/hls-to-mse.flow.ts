@@ -20,12 +20,11 @@ import { ProcessorProxy } from '../core/processor-proxy';
 
 const { log } = getLogger('HlsToMediaSourceFlow', LoggerLevel.ON, true);
 
-const ENABLE_AUDIO = false
-const ENABLE_VIDEO = true
+const ENABLE_AUDIO = false;
+const ENABLE_VIDEO = true;
 
 const USE_TS_DEMUX = true;
 export class HlsToMediaSourceFlow extends Flow {
-
   private _hlsOutSocket: HlsOutputSocket;
   private _mseInSocket: MediaSourceInputSocket;
 
@@ -69,26 +68,20 @@ export class HlsToMediaSourceFlow extends Flow {
     let mp4MuxerInputSocket;
 
     if (data.processor === this.mp4DemuxProc_) {
-
       demuxOutputSocket.connect(this.h264ParseProc_.in[0]);
       mp4MuxerInputSocket = this.mp4MuxProc_.createInput();
       this.h264ParseProc_.out[0].connect(mp4MuxerInputSocket);
-
     } else if (data.processor === this.tsDemuxProc_) {
-
       if (!this._haveVideo &&
           PayloadCodec.isAvc(payloadDescriptor.codec)) {
-
         log('got video payload');
         this._haveVideo = true;
 
         demuxOutputSocket.connect(this.h264ParseProc_.in[0]);
         mp4MuxerInputSocket = this.mp4MuxProc_.createInput();
         this.h264ParseProc_.out[0].connect(mp4MuxerInputSocket);
-
       } else if (!this._haveAudio &&
           PayloadCodec.isAac(payloadDescriptor.codec)) {
-
         log('got audio payload');
 
         /*
@@ -96,13 +89,11 @@ export class HlsToMediaSourceFlow extends Flow {
         muxerInputSocket = mp4MuxProc.createInput();
         demuxOutputSocket.connect(muxerInputSocket);
         */
-
       }
     }
   };
 
   protected onVoidToWaiting_ (done: VoidCallback) {
-
     const mediaSource = this._mediaSource = new MediaSource();
     const inSocket = this._mseInSocket = new MediaSourceInputSocket(mediaSource, 'video/mp4');
 
@@ -111,7 +102,7 @@ export class HlsToMediaSourceFlow extends Flow {
     const h264ParseProc = this.h264ParseProc_ = newProcessorWorkerShell(AVCNetworkAbstractionProcessor);
     const mp4MuxOptions: Partial<MP4MuxProcessorOptions> = {
       fragmentedMode: true
-    }
+    };
     const mp4MuxProc = this.mp4MuxProc_ = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor), [mp4MuxOptions]);
 
     const outSocket = this._hlsOutSocket = new HlsOutputSocket();
@@ -128,7 +119,7 @@ export class HlsToMediaSourceFlow extends Flow {
     }
 
     mp4MuxProc.out[0].connect(inSocket);
-    //this.connectWithAllExternalSockets(mp4MuxProc.out[0]);
+    // this.connectWithAllExternalSockets(mp4MuxProc.out[0]);
 
     this._videoEl.src = URL.createObjectURL(mediaSource);
     this._videoEl.play();

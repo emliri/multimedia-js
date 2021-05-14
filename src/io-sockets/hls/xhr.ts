@@ -8,30 +8,30 @@
 
 // TODO: ponyfill this ^ (and dedupe this)
 
-import {ByteRange} from './byte-range'
+import { ByteRange } from './byte-range';
 
-import {getLogger} from '../../logger'
+import { getLogger } from '../../logger';
 import { IResourceRequest } from './resource-request';
 
-import {utf8StringToArray} from './bytes-read-write';
+import { utf8StringToArray } from './bytes-read-write';
 
 const {
   log
-} = getLogger('xhr')
+} = getLogger('xhr');
 
-const PROGRESS_UPDATES_ENABLED = true
+const PROGRESS_UPDATES_ENABLED = true;
 
-const createXHRHeadersMapFromString = function(rawHeaders: string): {[header: string]: string} {
+const createXHRHeadersMapFromString = function (rawHeaders: string): {[header: string]: string} {
   const arr = rawHeaders.trim().split(/[\r\n]+/);
-  const map: {[header: string]: string} = {}
+  const map: {[header: string]: string} = {};
   arr.forEach(function (line) {
     const parts = line.split(': ');
     const header = parts.shift();
     const value = parts.join(': ');
     map[header] = value;
   });
-  return map
-}
+  return map;
+};
 
 export type XHRHeader = [string, string]
 
@@ -49,12 +49,12 @@ export enum XHRMethod {
 }
 
 export enum XHRResponseType {
-  VOID = "", //	DOMString (this is the default value)
-  ARRAY_BUFFER = "arraybuffer", //	ArrayBuffer
-  BLOB = "blob", //	Blob
-  DOCUMENT = "document", //	Document
-  JSON = "json", //	JSON
-  TEXT = "text" //	DOMString
+  VOID = '', //	DOMString (this is the default value)
+  ARRAY_BUFFER = 'arraybuffer', //	ArrayBuffer
+  BLOB = 'blob', //	Blob
+  DOCUMENT = 'document', //	Document
+  JSON = 'json', //	JSON
+  TEXT = 'text' //	DOMString
 }
 
 export enum XHRState {
@@ -104,22 +104,20 @@ export type XHRCallbackFunction = (xhr: XHR, isProgressUpdate: boolean) => void
  * @constructor
  */
 export class XHR implements IResourceRequest {
-
-  static forJsonPost(
+  static forJsonPost (
     url: string,
     payload: any,
     xhrCallback?: XHRCallbackFunction,
     responseType: XHRResponseType = XHRResponseType.TEXT): XHR {
-
     return new XHR(
       url,
       xhrCallback,
       XHRMethod.POST,
       responseType,
       null,
-      [["Content-Type", "application/json;charset=UTF-8"]],
+      [['Content-Type', 'application/json;charset=UTF-8']],
       JSON.stringify(payload)
-    )
+    );
   }
 
   private _whenDone: Promise<void> = null;
@@ -147,7 +145,7 @@ export class XHR implements IResourceRequest {
   public enableContentRange: boolean = false;
   public encodeStringsToUtf8Buffer: boolean = false;
 
-  constructor(
+  constructor (
     url: string,
     xhrCallback: XHRCallbackFunction = () => {},
     method: XHRMethod = XHRMethod.GET,
@@ -159,7 +157,6 @@ export class XHR implements IResourceRequest {
     timeout: number = 0,
     forceXMLMimeType: boolean = false
   ) {
-
     this._createdAt = new Date();
     this._xhrCallback = xhrCallback;
     this._whenDone = new Promise<void>((resolve, reject) => {
@@ -171,121 +168,120 @@ export class XHR implements IResourceRequest {
 
     xhr.open(method, url, true);
     xhr.responseType = responseType;
-    xhr.onreadystatechange = this.onReadyStateChange.bind(this)
-    xhr.onerror = this.onError.bind(this)
-    xhr.onabort = this.onAbort.bind(this)
-    xhr.onprogress = this.onProgress.bind(this)
+    xhr.onreadystatechange = this.onReadyStateChange.bind(this);
+    xhr.onerror = this.onError.bind(this);
+    xhr.onabort = this.onAbort.bind(this);
+    xhr.onprogress = this.onProgress.bind(this);
 
     if (byteRange) {
-      //log('set byte-range:', byteRange.toHttpHeaderValue(), byteRange.toString())
+      // log('set byte-range:', byteRange.toHttpHeaderValue(), byteRange.toString())
       if (this.enableContentRange) {
-        xhr.setRequestHeader('Content-Range', byteRange.toHttpHeaderValue(true))
+        xhr.setRequestHeader('Content-Range', byteRange.toHttpHeaderValue(true));
       }
-      xhr.setRequestHeader('Range', byteRange.toHttpHeaderValue(false))
+      xhr.setRequestHeader('Range', byteRange.toHttpHeaderValue(false));
     }
 
     if (headers) {
       headers.forEach(([header, value]) => {
-        xhr.setRequestHeader(header, value)
-      })
+        xhr.setRequestHeader(header, value);
+      });
     }
 
     if (data === null) {
-      data = undefined
+      data = undefined;
     }
 
-    xhr.timeout = timeout
+    xhr.timeout = timeout;
 
-    xhr.withCredentials = withCredentials
+    xhr.withCredentials = withCredentials;
 
     if (forceXMLMimeType) {
       xhr.overrideMimeType('text/xml');
     }
 
-    xhr.send(data)
-
+    xhr.send(data);
   }
 
-  get whenReady(): Promise<void> {
+  get whenReady (): Promise<void> {
     return this._whenDone;
   }
 
-  get isInfo(): boolean {
-    return this._xhr.status >= 100 && this._xhr.status <= 199
+  get isInfo (): boolean {
+    return this._xhr.status >= 100 && this._xhr.status <= 199;
   }
 
   /**
    * @returns {boolean} Returns `true` when request status code is in range [200-299] (success)
    */
-  get isSuccess(): boolean {
-    return this._xhr.status >= 200 && this._xhr.status <= 299
+  get isSuccess (): boolean {
+    return this._xhr.status >= 200 && this._xhr.status <= 299;
   }
 
   /**
    * @returns {boolean} Returns `true` when request status code is signaling redirection
    */
-  get isRedirect(): boolean {
-    return this._xhr.status >= 300 && this._xhr.status <= 399
+  get isRedirect (): boolean {
+    return this._xhr.status >= 300 && this._xhr.status <= 399;
   }
 
-  get isRequestError(): boolean {
-    return this._xhr.status >= 400 && this._xhr.status <= 499
+  get isRequestError (): boolean {
+    return this._xhr.status >= 400 && this._xhr.status <= 499;
   }
 
-  get isServerError(): boolean {
-    return this._xhr.status >= 500 && this._xhr.status <= 599
+  get isServerError (): boolean {
+    return this._xhr.status >= 500 && this._xhr.status <= 599;
   }
 
-  get isCustomServerError(): boolean {
-    return this._xhr.status >= 900 && this._xhr.status <= 999
+  get isCustomServerError (): boolean {
+    return this._xhr.status >= 900 && this._xhr.status <= 999;
   }
 
-  get isContentRange(): boolean {
-    return this._xhr.status === 206
+  get isContentRange (): boolean {
+    return this._xhr.status === 206;
   }
 
-  get isVoidStatus(): boolean {
-    return this._xhr.status === 0
+  get isVoidStatus (): boolean {
+    return this._xhr.status === 0;
   }
 
-  get error(): Error {
-    return this._error
+  get error (): Error {
+    return this._error;
   }
 
   /**
    * Native Upload object
    * @readonly
    */
-  get upload(): XMLHttpRequestUpload {
-    return this._xhr.upload
+  get upload (): XMLHttpRequestUpload {
+    return this._xhr.upload;
   }
 
   /**
    * Native XHR object
    * @readonly
    */
-  get xhr(): XMLHttpRequest {
-    return this._xhr
+  get xhr (): XMLHttpRequest {
+    return this._xhr;
   }
 
-  get xhrState(): XHRState {
-    return this._state
+  get xhrState (): XHRState {
+    return this._state;
   }
 
-  get status(): number {
-    return this._xhr.status
+  get status (): number {
+    return this._xhr.status;
   }
 
-  get statusText(): string {
-    return this._xhr.statusText
+  get statusText (): string {
+    return this._xhr.statusText;
   }
 
-  get responseHeaders(): object {
-    return this._responseHeadersMap
+  get responseHeaders (): object {
+    return this._responseHeadersMap;
   }
 
-  get responseType(): XHRResponseType {
-    switch(this._xhr.responseType) {
+  get responseType (): XHRResponseType {
+    switch (this._xhr.responseType) {
     case 'arraybuffer': return XHRResponseType.ARRAY_BUFFER;
     case 'blob': return XHRResponseType.BLOB;
     case 'document': return XHRResponseType.DOCUMENT;
@@ -301,7 +297,7 @@ export class XHR implements IResourceRequest {
     */
   }
 
-  get responseData(): XHRData {
+  get responseData (): XHRData {
     if (this._xhr.responseType === 'text') {
       if (this.encodeStringsToUtf8Buffer) {
         return utf8StringToArray(this.responseText);
@@ -309,125 +305,124 @@ export class XHR implements IResourceRequest {
         return this.responseText;
       }
     }
-    return this._xhr.response
+    return this._xhr.response;
   }
 
-  get responseText(): string {
+  get responseText (): string {
     // when the response is not text and we call on the property, native XHR crashes
     try {
-      return this._xhr.responseText
-    } catch(invalidStateError) {
+      return this._xhr.responseText;
+    } catch (invalidStateError) {
       return null;
     }
   }
 
-  get responseDocument(): Document {
-    return this._xhr.responseXML
+  get responseDocument (): Document {
+    return this._xhr.responseXML;
   }
 
-  get responseURL(): string {
-    return this._xhr.responseURL
+  get responseURL (): string {
+    return this._xhr.responseURL;
   }
 
-  get hasBeenAborted(): boolean {
-    return this._aborted
+  get hasBeenAborted (): boolean {
+    return this._aborted;
   }
 
-  get hasErrored(): boolean {
-    return !! this._error
+  get hasErrored (): boolean {
+    return !!this._error;
   }
 
-  get loadedBytes() {
-    return this._loadedBytes
+  get loadedBytes () {
+    return this._loadedBytes;
   }
 
-  get totalBytes() {
-    return this._totalBytes
+  get totalBytes () {
+    return this._totalBytes;
   }
 
-  get secondsUntilHeaders() {
-    return this._timeUntilHeaders
+  get secondsUntilHeaders () {
+    return this._timeUntilHeaders;
   }
 
-  get secondsUntilLoading() {
-    return this._timeUntilLoading
+  get secondsUntilLoading () {
+    return this._timeUntilLoading;
   }
 
-  get secondsUntilDone() {
-    return this._timeUntilDone
+  get secondsUntilDone () {
+    return this._timeUntilDone;
   }
 
   /**
    * @returns {number}
    */
-  get loadedFraction() {
-    return this._loadedBytes / this._totalBytes
+  get loadedFraction () {
+    return this._loadedBytes / this._totalBytes;
   }
 
-  setProgressUpdatesEnabled(enabled: boolean) {
-    this._progressUpdatesEnabled = enabled
+  setProgressUpdatesEnabled (enabled: boolean) {
+    this._progressUpdatesEnabled = enabled;
   }
 
-  getSecondsSinceCreated() {
-    return (new Date().getTime() - this._createdAt.getTime()) / 1000
+  getSecondsSinceCreated () {
+    return (new Date().getTime() - this._createdAt.getTime()) / 1000;
   }
 
-  abort() {
-    this._xhr.abort()
+  abort () {
+    this._xhr.abort();
   }
 
-  wasSuccessful(): boolean {
+  wasSuccessful (): boolean {
     return (this.getStatusCategory() === XHRStatusCategory.SUCCESS);
   }
 
-  wasFailure(): boolean {
+  wasFailure (): boolean {
     return (this.hasErrored || this.isRequestError || this.isServerError);
   }
 
-  getStatusCategory(): XHRStatusCategory {
+  getStatusCategory (): XHRStatusCategory {
     if (this.isInfo) {
-      return XHRStatusCategory.INFO
+      return XHRStatusCategory.INFO;
     }
     if (this.isSuccess) {
-      return XHRStatusCategory.SUCCESS
+      return XHRStatusCategory.SUCCESS;
     }
     if (this.isRedirect) {
-      return XHRStatusCategory.REDIRECT
+      return XHRStatusCategory.REDIRECT;
     }
     if (this.isRequestError) {
-      return XHRStatusCategory.REQUEST_ERROR
+      return XHRStatusCategory.REQUEST_ERROR;
     }
     if (this.isServerError) {
-      return XHRStatusCategory.SERVER_ERROR
+      return XHRStatusCategory.SERVER_ERROR;
     }
     if (this.isCustomServerError) {
-      return XHRStatusCategory.SERVER_ERROR
+      return XHRStatusCategory.SERVER_ERROR;
     }
-    return XHRStatusCategory.VOID
+    return XHRStatusCategory.VOID;
   }
 
-  private onReadyStateChange() {
+  private onReadyStateChange () {
+    const xhr = this._xhr;
 
-    const xhr = this._xhr
+    this._state = xhr.readyState;
 
-    this._state = xhr.readyState
-
-    switch(xhr.readyState) {
+    switch (xhr.readyState) {
     case XMLHttpRequest.UNSENT:
       break;
     case XMLHttpRequest.OPENED:
       break;
     case XMLHttpRequest.HEADERS_RECEIVED:
-      this._timeUntilHeaders = this.getSecondsSinceCreated()
+      this._timeUntilHeaders = this.getSecondsSinceCreated();
 
-      const headers = xhr.getAllResponseHeaders()
-      this._responseHeadersMap = createXHRHeadersMapFromString(headers)
+      const headers = xhr.getAllResponseHeaders();
+      this._responseHeadersMap = createXHRHeadersMapFromString(headers);
       break;
     case XMLHttpRequest.LOADING:
-      this._timeUntilLoading = this.getSecondsSinceCreated()
+      this._timeUntilLoading = this.getSecondsSinceCreated();
       break;
     case XMLHttpRequest.DONE:
-      this._timeUntilDone = this.getSecondsSinceCreated()
+      this._timeUntilDone = this.getSecondsSinceCreated();
       break;
     }
 
@@ -437,10 +432,10 @@ export class XHR implements IResourceRequest {
       this._whenDoneReject(this.status);
     }
 
-    this._xhrCallback(this, false)
+    this._xhrCallback(this, false);
   }
 
-  private onError(event: ErrorEvent) {
+  private onError (event: ErrorEvent) {
     if (event.error) {
       this._error = event.error;
     } else {
@@ -449,23 +444,23 @@ export class XHR implements IResourceRequest {
 
     this._whenDoneReject(this._error);
 
-    this._xhrCallback(this, false)
+    this._xhrCallback(this, false);
   }
 
-  private onAbort(event: Event) {
-    this._aborted = true
+  private onAbort (event: Event) {
+    this._aborted = true;
 
     this._whenDoneReject(this._error);
 
-    this._xhrCallback(this, false)
+    this._xhrCallback(this, false);
   }
 
-  private onProgress(event: ProgressEvent) {
-    this._loadedBytes = event.loaded
-    this._totalBytes = event.total
+  private onProgress (event: ProgressEvent) {
+    this._loadedBytes = event.loaded;
+    this._totalBytes = event.total;
 
     if (this._progressUpdatesEnabled) {
-      this._xhrCallback(this, true)
+      this._xhrCallback(this, true);
     }
   }
 }

@@ -93,11 +93,11 @@ export class SocketDescriptor {
     return this.payloads[0];
   }
 
-  hasAudio(): boolean {
+  hasAudio (): boolean {
     return this.payloads.some((payload) => payload.isAudio());
   }
 
-  hasVideo(): boolean {
+  hasVideo (): boolean {
     return this.payloads.some((payload) => payload.isVideo());
   }
 

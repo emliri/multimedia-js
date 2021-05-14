@@ -13,10 +13,9 @@ import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/proces
 
 const { log } = getLogger('ChunkToMediaSourceFlow', LoggerLevel.ON, true);
 
-const ENABLE_AUDIO = false
-const ENABLE_VIDEO = true
+const ENABLE_AUDIO = false;
+const ENABLE_VIDEO = true;
 export class ChunkToMediaSourceFlow extends Flow {
-
   private _xhrSocket: XhrSocket;
 
   private _haveVideo = false;
@@ -53,16 +52,12 @@ export class ChunkToMediaSourceFlow extends Flow {
       const payloadDescriptor = demuxOutputSocket.payload();
 
       if (data.processor === mp4DemuxProc) {
-
         demuxOutputSocket.connect(h264ParseProc.in[0]);
         muxerInputSocket = mp4MuxProc.createInput();
         h264ParseProc.out[0].connect(muxerInputSocket);
-
       } else if (data.processor === tsDemuxProc) {
-
         if (!this._haveVideo &&
             PayloadCodec.isAvc(payloadDescriptor.codec)) {
-
           log('got video payload');
 
           this._haveVideo = true;
@@ -70,10 +65,8 @@ export class ChunkToMediaSourceFlow extends Flow {
           demuxOutputSocket.connect(h264ParseProc.in[0]);
           muxerInputSocket = mp4MuxProc.createInput();
           h264ParseProc.out[0].connect(muxerInputSocket);
-
         } else if (!this._haveAudio &&
             PayloadCodec.isAac(payloadDescriptor.codec)) {
-
           log('got audio payload');
 
           /*
@@ -81,7 +74,6 @@ export class ChunkToMediaSourceFlow extends Flow {
           muxerInputSocket = mp4MuxProc.createInput();
           demuxOutputSocket.connect(muxerInputSocket);
           */
-
         }
       }
     };
@@ -97,7 +89,7 @@ export class ChunkToMediaSourceFlow extends Flow {
       xhrSocket.connect(mp4DemuxProc.in[0]);
     }
 
-    this.connectWithAllExternalSockets(mp4MuxProc.out[0])
+    this.connectWithAllExternalSockets(mp4MuxProc.out[0]);
 
     done();
   }

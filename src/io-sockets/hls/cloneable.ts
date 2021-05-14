@@ -11,12 +11,12 @@ export interface Cloneable<T> {
  * "stringify" proven fastest method to do deep-cloning @see http://jsben.ch/bWfk9
  * @param o
  */
-export function deepCloneObject<T>(o: any): T {
+export function deepCloneObject<T> (o: any): T {
   // Deep clone will fail if we have circular dependencies
   try {
-    return JSON.parse(JSON.stringify(o))
-  } catch(e) {
-    throw new Error('Failed to deep-clone object. Inner error: ' + e.message)
+    return JSON.parse(JSON.stringify(o));
+  } catch (e) {
+    throw new Error('Failed to deep-clone object. Inner error: ' + e.message);
   }
 }
 
@@ -31,8 +31,8 @@ export function deepCloneObject<T>(o: any): T {
  * @param o
  * @param asMap
  */
-export function shallowCloneObject<T>(o: any, asMap: boolean): T {
-  return Object.assign(asMap ? Object.create(null) : {}, o)
+export function shallowCloneObject<T> (o: any, asMap: boolean): T {
+  return Object.assign(asMap ? Object.create(null) : {}, o);
 }
 
 /**
@@ -46,16 +46,16 @@ export function shallowCloneObject<T>(o: any, asMap: boolean): T {
  * @param o
  * @param proto
  */
-export function shallowCloneObjectWithPrototype<T>(o: any, proto: object, properties: PropertyDescriptorMap): T {
-  return Object.assign(Object.create(proto, properties), o)
+export function shallowCloneObjectWithPrototype<T> (o: any, proto: object, properties: PropertyDescriptorMap): T {
+  return Object.assign(Object.create(proto, properties), o);
 }
 
 /**
  * Implements Cloneable interface with deep method
  */
 export class CloneableObject<T> implements Cloneable<T> {
-  clone(): T {
-    return deepCloneObject<T>(this)
+  clone (): T {
+    return deepCloneObject<T>(this);
   }
 }
 
@@ -63,8 +63,8 @@ export class CloneableObject<T> implements Cloneable<T> {
  * Implements cloneable interface with shallow method.
  */
 export class CloneableScaffold<T> implements Cloneable<T> {
-  clone(): T {
-    return shallowCloneObject<T>(this, true)
+  clone (): T {
+    return shallowCloneObject<T>(this, true);
   }
 }
 
@@ -75,11 +75,11 @@ export class CloneableScaffold<T> implements Cloneable<T> {
  * and uses `asMap` flag for shallow-copy.
  */
 export class CloneableDictionnary<T> implements Cloneable<T> {
-  constructor() {
-    return Object.create(null)
+  constructor () {
+    return Object.create(null);
   }
 
-  clone(): T {
-    return shallowCloneObject<T>(this, true)
+  clone (): T {
+    return shallowCloneObject<T>(this, true);
   }
 }

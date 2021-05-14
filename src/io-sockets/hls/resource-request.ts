@@ -1,7 +1,7 @@
-import { XHRCallbackFunction, XHRMethod, XHRResponseType, XHRHeaders, XHRData, XHR, XHRState } from "./xhr";
-import { ByteRange } from "./byte-range";
-import { utf8StringToArray, unicodeBytesToString, utf8BytesToString } from "./bytes-read-write";
-import { Resource } from "./resource";
+import { XHRCallbackFunction, XHRMethod, XHRResponseType, XHRHeaders, XHRData, XHR, XHRState } from './xhr';
+import { ByteRange } from './byte-range';
+import { utf8StringToArray, unicodeBytesToString, utf8BytesToString } from './bytes-read-write';
+import { Resource } from './resource';
 
 export interface IResourceRequest {
   abort();
@@ -26,45 +26,41 @@ export interface IResourceRequest {
 }
 
 export class ResourceRequestResponseData {
-  constructor(public readonly request: IResourceRequest, public readonly resource: Resource) {}
+  constructor (public readonly request: IResourceRequest, public readonly resource: Resource) {}
 
-  isBinary() {
-    return this.request.responseData === XHRResponseType.ARRAY_BUFFER
-      || this.request.responseData === XHRResponseType.BLOB
+  isBinary () {
+    return this.request.responseData === XHRResponseType.ARRAY_BUFFER ||
+      this.request.responseData === XHRResponseType.BLOB;
   }
 
-  isChars() {
-    return this.request.responseType === XHRResponseType.TEXT
-      || this.request.responseType === XHRResponseType.JSON;
+  isChars () {
+    return this.request.responseType === XHRResponseType.TEXT ||
+      this.request.responseType === XHRResponseType.JSON;
   }
 
-  getArrayBuffer(): ArrayBuffer {
-    if (this.request.responseType === XHRResponseType.TEXT
-      || this.request.responseType === XHRResponseType.JSON) {
+  getArrayBuffer (): ArrayBuffer {
+    if (this.request.responseType === XHRResponseType.TEXT ||
+      this.request.responseType === XHRResponseType.JSON) {
       return utf8StringToArray(<string> this.request.responseData);
-    }
-    else if (this.request.responseType === XHRResponseType.ARRAY_BUFFER) {
+    } else if (this.request.responseType === XHRResponseType.ARRAY_BUFFER) {
       return <ArrayBuffer> (this.request.responseData as any);
-    }
-    else {
+    } else {
       console.error('Can not convert response data to arraybuffer for url: ' + this.resource.getUrl());
       return null;
     }
   }
 
-  getString(unicode16: boolean = false): string {
-    if (this.request.responseType === XHRResponseType.TEXT
-      || this.request.responseType === XHRResponseType.JSON) {
-        return <string> this.request.responseData;
-    }
-    else if (this.request.responseType === XHRResponseType.ARRAY_BUFFER) {
+  getString (unicode16: boolean = false): string {
+    if (this.request.responseType === XHRResponseType.TEXT ||
+      this.request.responseType === XHRResponseType.JSON) {
+      return <string> this.request.responseData;
+    } else if (this.request.responseType === XHRResponseType.ARRAY_BUFFER) {
       if (unicode16) {
         return unicodeBytesToString(new Uint16Array(<ArrayBuffer> (this.request.responseData as any)));
       } else {
         return utf8BytesToString(new Uint8Array(<ArrayBuffer> (this.request.responseData as any)));
       }
-    }
-    else {
+    } else {
       console.error('Can not convert response data to string');
       return null;
     }
@@ -89,8 +85,8 @@ export type ResourceRequestOptions = Partial<{
 
 export type ResourceRequestMaker = (url: string, opts: ResourceRequestOptions) => IResourceRequest;
 
-export const makeDefaultRequest: ResourceRequestMaker
-  = (url, opts) => new XHR(url,
+export const makeDefaultRequest: ResourceRequestMaker =
+  (url, opts) => new XHR(url,
     opts.requestCallback,
     opts.method,
     opts.responseType,
@@ -101,4 +97,3 @@ export const makeDefaultRequest: ResourceRequestMaker
     opts.timeout,
     opts.forceXMLMimeType
   );
-

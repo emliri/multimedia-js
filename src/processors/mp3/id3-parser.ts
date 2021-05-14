@@ -137,7 +137,7 @@ export class ID3Parser {
     const size = ID3Parser._readSize(data, 4);
 
     // skip frame id, size, and flags
-    let offset = 10;
+    const offset = 10;
 
     return { type, size, data: data.subarray(offset, offset + size) };
   }
@@ -294,10 +294,10 @@ export class ID3Parser {
     let char3;
     let out = '';
     let i = 0;
-    let length = array.length;
+    const length = array.length;
 
     while (i < length) {
-      let c = array[i++];
+      const c = array[i++];
       switch (c >> 4) {
       case 0:
         return out;

@@ -356,10 +356,10 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
 }
 
 export class DefaultFlow extends Flow {
-  protected onVoidToWaiting_(done: VoidCallback) {}
-  protected onWaitingToVoid_(done: VoidCallback) {}
-  protected onWaitingToFlowing_(done: VoidCallback) {}
-  protected onFlowingToWaiting_(done: VoidCallback) {}
-  protected onCompleted_(done: VoidCallback) {}
-  protected onStateChangeAborted_(reason: string) {}
+  protected onVoidToWaiting_ (done: VoidCallback) {}
+  protected onWaitingToVoid_ (done: VoidCallback) {}
+  protected onWaitingToFlowing_ (done: VoidCallback) {}
+  protected onFlowingToWaiting_ (done: VoidCallback) {}
+  protected onCompleted_ (done: VoidCallback) {}
+  protected onStateChangeAborted_ (reason: string) {}
 }

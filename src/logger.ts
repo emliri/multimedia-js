@@ -70,7 +70,7 @@ export function createAndGetLocalLoggerConfig (): LoggerConfig {
   const globalScope = typeof self !== 'undefined' ? self : global;
 
   if ((globalScope as Window).localStorage) {
-    let object: string = localStorage.getItem(LOGGER_CONFIG_STORAGE_KEY) || '{}';
+    const object: string = localStorage.getItem(LOGGER_CONFIG_STORAGE_KEY) || '{}';
 
     try {
       config = JSON.parse(object);

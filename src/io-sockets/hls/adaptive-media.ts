@@ -1,6 +1,6 @@
-import { CloneableScaffold } from "./cloneable";
+import { CloneableScaffold } from './cloneable';
 
-import {MediaSegment} from './media-segment'
+import { MediaSegment } from './media-segment';
 
 import {
   VideoInfo,
@@ -10,15 +10,15 @@ import {
   MediaContainer,
   MediaContainerInfo,
   MediaTypeSet
-} from './media-container-info'
+} from './media-container-info';
 
 import { ByteRange } from './byte-range';
 import { AdaptiveMediaEngine } from './adaptive-media-client';
-import { MediaClockTime } from "./media-locator";
-import { TimeIntervalContainer, TimeInterval } from "./time-intervals";
-import { getLogger } from "../../logger";
+import { MediaClockTime } from './media-locator';
+import { TimeIntervalContainer, TimeInterval } from './time-intervals';
+import { getLogger } from '../../logger';
 
-const { log, error, warn } = getLogger("adaptive-media-client");
+const { log, error, warn } = getLogger('adaptive-media-client');
 
 /**
  * Essentially, a sequence of media segments that can be consumed as a stream.
@@ -28,14 +28,13 @@ const { log, error, warn } = getLogger("adaptive-media-client");
  * Contains an array of segments and the metadata in common about these.
  */
 export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
-
   private _segments: MediaSegment[] = [];
   private _timeRanges: TimeIntervalContainer = new TimeIntervalContainer();
   private _lastRefreshAt: number = 0;
   private _lastTimeRangesCreatedAt: number = 0;
   private _updateTimer: number;
 
-  constructor(public mediaEngine: AdaptiveMediaEngine = null) {
+  constructor (public mediaEngine: AdaptiveMediaEngine = null) {
     super();
   }
 
@@ -91,15 +90,15 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
   /**
    * tamper-safe copy of internal data
    */
-  get segments(): MediaSegment[] {
+  get segments (): MediaSegment[] {
     return this._segments.slice(0);
   }
 
-  get lastRefreshedAt(): number {
+  get lastRefreshedAt (): number {
     return this._lastRefreshAt;
   }
 
-  addSegment(mediaSegment: MediaSegment, reorderAndDedupe: boolean = true) {
+  addSegment (mediaSegment: MediaSegment, reorderAndDedupe: boolean = true) {
     if (reorderAndDedupe) {
       this._updateSegments([mediaSegment]);
     } else {
@@ -107,18 +106,18 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
     }
   }
 
-  getUrl(): string {
+  getUrl (): string {
     return this.segmentIndexUri || null;
   }
 
-  getEarliestTimestamp(): MediaClockTime {
+  getEarliestTimestamp (): MediaClockTime {
     if (!this._segments.length) {
       return NaN;
     }
     return this._segments[0].startTime;
   }
 
-  getMeanSegmentDuration(): number {
+  getMeanSegmentDuration (): number {
     return this._segments.reduce((accu, segment) => {
       return accu + segment.duration;
     }, 0) / this._segments.length;
@@ -128,24 +127,24 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
    * @returns duration as sum of all segment durations. will be equal to window duration
    * if the media is gapless and has no time-plane discontinuities.
    */
-  getCumulatedDuration(): MediaClockTime {
+  getCumulatedDuration (): MediaClockTime {
     return this.getSeekableTimeRanges().getCumulatedDuration();
   }
 
   /**
    * @returns duration as difference between last segment endTime and first segment startTime
    */
-  getWindowDuration(): MediaClockTime {
+  getWindowDuration (): MediaClockTime {
     return this.getSeekableTimeRanges().getWindowDuration();
   }
 
   /**
    * Refresh/enrich media segments (e.g for external segment indices and for live)
    */
-  refresh(autoReschedule: boolean = false,
+  refresh (autoReschedule: boolean = false,
     onSegmentsUpdate: () => void = null): Promise<AdaptiveMedia> {
     if (!this.segmentIndexProvider) {
-      return Promise.reject("No segment index provider set");
+      return Promise.reject('No segment index provider set');
     }
     this._lastRefreshAt = Date.now();
 
@@ -155,14 +154,13 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
           onSegmentsUpdate();
         }
         doAutoReschedule();
-      })
-    }
+      });
+    };
 
     log('going to refresh media index:', this.getUrl());
 
     return this.segmentIndexProvider()
       .then((newSegments) => {
-
         // update segment-list models
         this._updateSegments(newSegments);
 
@@ -184,9 +182,9 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
       });
   }
 
-  scheduleUpdate(timeSeconds: number, onRefresh: () => void = null) {
+  scheduleUpdate (timeSeconds: number, onRefresh: () => void = null) {
     if (!Number.isFinite(timeSeconds)) {
-      warn('attempt to schedule media update with invalid time-value:', timeSeconds)
+      warn('attempt to schedule media update with invalid time-value:', timeSeconds);
       return;
     }
     log('scheduling update of adaptive media index in:', timeSeconds);
@@ -196,21 +194,21 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
         if (onRefresh) {
           onRefresh();
         }
-      })
+      });
     }, timeSeconds * 1000);
   }
 
   /**
    * Activates/enables this media with the attached engine
    */
-  activate(): Promise<boolean> {
+  activate (): Promise<boolean> {
     if (this.mediaEngine) {
-      return this.mediaEngine.activateMediaStream(this)
+      return this.mediaEngine.activateMediaStream(this);
     }
     return Promise.reject(false);
   }
 
-  getSeekableTimeRanges(): TimeIntervalContainer {
+  getSeekableTimeRanges (): TimeIntervalContainer {
     if (this._lastRefreshAt > this._lastTimeRangesCreatedAt) {
       this._updateTimeRanges();
     }
@@ -223,7 +221,7 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
    * @param partial
    * @returns segments array which are fully contained inside `range` (or only overlap when `partial` is true)
    */
-  findSegmentsForTimeRange(range: TimeInterval, partial: boolean = false): MediaSegment[] {
+  findSegmentsForTimeRange (range: TimeInterval, partial: boolean = false): MediaSegment[] {
     if (!partial) {
       return this._segments.filter((segment) => range.contains(segment.getTimeInterval()));
     } else {
@@ -231,7 +229,7 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
     }
   }
 
-  private _updateTimeRanges() {
+  private _updateTimeRanges () {
     this._timeRanges = new TimeIntervalContainer();
     this._segments.forEach((segment) => {
       this._timeRanges.add(new TimeInterval(segment.startTime, segment.endTime));
@@ -239,9 +237,8 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
     this._lastTimeRangesCreatedAt = Date.now();
   }
 
-  private _updateSegments(newSegments: MediaSegment[]) {
-
-    log('starting update of media segment - got new segments list of size:', newSegments.length)
+  private _updateSegments (newSegments: MediaSegment[]) {
+    log('starting update of media segment - got new segments list of size:', newSegments.length);
 
     // pre-deduplicate new segments by ordinal-index
     // this is to make sure we are not throwing out any already existing
@@ -252,8 +249,8 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
           return false;
         }
         return s.getOrdinalIndex() === segment.getOrdinalIndex();
-      }) < 0;  // true when we didn't find any segment with that ordinal index yet
-              // which means we should let it pass the filter function to be added
+      }) < 0; // true when we didn't find any segment with that ordinal index yet
+      // which means we should let it pass the filter function to be added
     });
 
     if (newSegments.length === 0) {
@@ -263,20 +260,20 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
 
     Array.prototype.push.apply(this._segments, newSegments);
 
-    log('new deduplicated list size is:', this._segments.length)
+    log('new deduplicated list size is:', this._segments.length);
 
     if (this._segments.length === 0) {
       return;
     }
 
-    let startedAt: number = Date.now()
+    const startedAt: number = Date.now();
 
     let lastOrdinalIdx: number = -1;
     let lastSegmentEndTime: number = -1;
 
     log('first/last ordinal index is:',
       newSegments[0].getOrdinalIndex(),
-      newSegments[newSegments.length -1].getOrdinalIndex())
+      newSegments[newSegments.length - 1].getOrdinalIndex());
 
     const segments: MediaSegment[] = [];
 
@@ -288,13 +285,12 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
       }
       return 0;
     }).forEach((segment) => { // extract segments in ordinal index order and deduplicate them
-
       const index = segment.getOrdinalIndex();
 
       // remove redundant indices
       // if it's NaN we don't care about this (it means there are no indices)
-      if (Number.isFinite(index)
-        && index === lastOrdinalIdx) { // deduplicate
+      if (Number.isFinite(index) &&
+        index === lastOrdinalIdx) { // deduplicate
         return;
       }
 
@@ -303,33 +299,32 @@ export class AdaptiveMedia extends CloneableScaffold<AdaptiveMedia> {
       // apply offset to model continuous timeline
       if (segment.startTime < lastSegmentEndTime) {
         const offset = lastSegmentEndTime - segment.startTime;
-        //debug('applying offset to segment to achieve timeplane continuity:', index, offset);
+        // debug('applying offset to segment to achieve timeplane continuity:', index, offset);
         segment.setTimeOffset(offset);
       }
 
-      if (lastOrdinalIdx !== -1 // initial case
-        && index !== lastOrdinalIdx + 1) {
-        warn("ordinal indices should grow monitonically but diff is:", index - lastOrdinalIdx);
+      if (lastOrdinalIdx !== -1 && // initial case
+        index !== lastOrdinalIdx + 1) {
+        warn('ordinal indices should grow monitonically but diff is:', index - lastOrdinalIdx);
       }
 
       lastOrdinalIdx = index;
       lastSegmentEndTime = segment.endTime;
 
       segments.push(segment);
-    })
+    });
 
     this._segments = segments;
 
-    log('updated and reorder/deduped media segment list, new length is:', segments.length)
+    log('updated and reorder/deduped media segment list, new length is:', segments.length);
 
     log('first/last ordinal index is:',
-      segments[0].getOrdinalIndex(), segments[segments.length -1].getOrdinalIndex())
+      segments[0].getOrdinalIndex(), segments[segments.length - 1].getOrdinalIndex());
 
-    log('new cummulated/window duration is:', this.getCumulatedDuration(), '/', this.getWindowDuration())
+    log('new cummulated/window duration is:', this.getCumulatedDuration(), '/', this.getWindowDuration());
 
     log('updating segments done, processing took millis:', Date.now() - startedAt);
   }
-
 }
 
 /**
@@ -345,7 +340,7 @@ export class AdaptiveMediaSet extends Set<AdaptiveMedia> implements MediaContain
    * @returns The default media if advertised,
    * or falls back on first media representation of the first set
    */
-  getDefaultMedia(): AdaptiveMedia {
+  getDefaultMedia (): AdaptiveMedia {
     return Array.from(this.values())[0];
   }
 }
@@ -354,25 +349,24 @@ export class AdaptiveMediaSet extends Set<AdaptiveMedia> implements MediaContain
  * A queriable collection of adaptive media sets. For example, each set might be an adaptation state.
  */
 export class AdaptiveMediaPeriod {
-
   sets: AdaptiveMediaSet[] = [];
 
   /**
    * @returns The default adaptive-media-set if advertised,
    * or falls back on first media representation of the first set
    */
-  getDefaultSet(): AdaptiveMediaSet {
+  getDefaultSet (): AdaptiveMediaSet {
     if (this.sets[0].size === 0) {
       throw new Error('No default media set found');
     }
     return this.sets[0];
   }
 
-  getMediaListFromSet(index: number): AdaptiveMedia[] {
+  getMediaListFromSet (index: number): AdaptiveMedia[] {
     return Array.from(this.sets[index]);
   }
 
-  addSet(set: AdaptiveMediaSet) {
+  addSet (set: AdaptiveMediaSet) {
     if (set.parent) {
       throw new Error('Set already has a parent period');
     }
@@ -380,9 +374,9 @@ export class AdaptiveMediaPeriod {
     this.sets.push(set);
   }
 
-  filterByContainedMediaTypes(mediaTypeFlags: MediaTypeSet, identical = false): AdaptiveMediaSet[] {
+  filterByContainedMediaTypes (mediaTypeFlags: MediaTypeSet, identical = false): AdaptiveMediaSet[] {
     return this.sets.filter((mediaSet) =>
       mediaSet.mediaContainerInfo.intersectsMediaTypeSet(mediaTypeFlags, identical)
-    )
+    );
   }
 }

@@ -82,7 +82,7 @@ export class CombineMp4sToMovFlow extends Flow {
         = new HTML5MediaSourceBufferSocket(new MediaSource()); // avc1.4d401f 'video/mp4; codecs=avc1.64001f'
     */
 
-    let mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
+    const mp4DemuxProcAudio = newProcessorWorkerShell(MP4DemuxProcessor);
 
     // hook up transcoding stage
     let mp4AudioOutSocket = xhrSocketAudioFile;

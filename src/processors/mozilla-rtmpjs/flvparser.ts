@@ -56,9 +56,9 @@ export class FLVParser {
     public push (data: Uint8Array) {
       let parseBuffer;
       if (this.bufferSize > 0) {
-        let needLength = this.bufferSize + data.length;
+        const needLength = this.bufferSize + data.length;
         if (this.buffer.byteLength < needLength) {
-          let tmp = new Uint8Array(this.buffer, 0, this.bufferSize);
+          const tmp = new Uint8Array(this.buffer, 0, this.bufferSize);
           this.buffer = new ArrayBuffer(needLength);
           parseBuffer = new Uint8Array(this.buffer);
           parseBuffer.set(tmp);
@@ -70,7 +70,7 @@ export class FLVParser {
         parseBuffer = data;
       }
 
-      let parsed = 0; let end = parseBuffer.length;
+      let parsed = 0; const end = parseBuffer.length;
       while (parsed < end) {
         let chunkParsed = 0;
         switch (this.state) {

@@ -74,7 +74,7 @@ export class MediaSourceController extends EventEmitter {
           this.onSourceBufferQueueUpdateCb_(sbQueue, eventData);
         });
 
-        //sbQueue.setModeSequential(false);
+      // sbQueue.setModeSequential(false);
 
       this.sourceBufferQueues_.push(sbQueue);
     } catch (err) {

@@ -1,7 +1,7 @@
-import {Resource, DecryptableResource, ParseableResource} from './resource'
+import { Resource, DecryptableResource, ParseableResource } from './resource';
 
-import {mediaCacheInstance} from './media-cache'
-import {MediaLocator, MediaClockTime} from './media-locator'
+import { mediaCacheInstance } from './media-cache';
+import { MediaLocator, MediaClockTime } from './media-locator';
 
 import {
   VideoInfo,
@@ -10,14 +10,14 @@ import {
   MediaTypeFlag,
   MediaContainer,
   MediaContainerInfo
-} from './media-container-info'
+} from './media-container-info';
 
-import {getLogger} from '../../logger'
+import { getLogger } from '../../logger';
 import { TimeInterval } from './time-intervals';
 
 const {
   log
-} = getLogger('media-segment')
+} = getLogger('media-segment');
 
 /**
  *
@@ -32,7 +32,6 @@ const {
  * @fires buffer:clear
  */
 export class MediaSegment extends Resource implements MediaContainer, DecryptableResource {
-
   public cached: boolean;
 
   private locator_: MediaLocator;
@@ -43,46 +42,54 @@ export class MediaSegment extends Resource implements MediaContainer, Decryptabl
 
   mediaContainerInfo: MediaContainerInfo = new MediaContainerInfo()
 
-  constructor(locator: MediaLocator, mimeType: string = null, cached = false) {
-    super(locator.uri, locator.byteRange, null, mimeType)
+  constructor (locator: MediaLocator, mimeType: string = null, cached = false) {
+    super(locator.uri, locator.byteRange, null, mimeType);
 
-    this.cached = cached
-    this.locator_ = locator
+    this.cached = cached;
+    this.locator_ = locator;
   }
 
-  hasBeenParsed() { return false }
-
-  parse() { return Promise.resolve(this) }
-
-  decrypt() {
-    return null
+  hasBeenParsed () {
+    return false;
   }
 
-  getTimeInterval(): TimeInterval {
+  parse () {
+    return Promise.resolve(this);
+  }
+
+  decrypt () {
+    return null;
+  }
+
+  getTimeInterval (): TimeInterval {
     return new TimeInterval(this.startTime, this.endTime);
   }
 
-  setTimeOffset(o: number) {
+  setTimeOffset (o: number) {
     this.timeOffset_ = o;
   }
 
-  getTimeOffset(): number { return this.timeOffset_; }
+  getTimeOffset (): number {
+    return this.timeOffset_;
+  }
 
-  setOrdinalIndex(i: number) {
+  setOrdinalIndex (i: number) {
     this.ordinalIndex_ = i;
   }
 
-  getOrdinalIndex(): number { return this.ordinalIndex_; }
+  getOrdinalIndex (): number {
+    return this.ordinalIndex_;
+  }
 
-  get duration(): MediaClockTime {
+  get duration (): MediaClockTime {
     return this.endTime - this.startTime;
   }
 
-  get startTime(): MediaClockTime {
-    return this.locator_.startTime + this.timeOffset_
+  get startTime (): MediaClockTime {
+    return this.locator_.startTime + this.timeOffset_;
   }
 
-  get endTime(): MediaClockTime {
-    return this.locator_.endTime + this.timeOffset_
+  get endTime (): MediaClockTime {
+    return this.locator_.endTime + this.timeOffset_;
   }
 }

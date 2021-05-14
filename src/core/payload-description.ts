@@ -75,7 +75,7 @@ export class PayloadDescriptor {
     throw new Error('Not implemented');
   }
 
-  static fromMimeTypeShadow(prefix: MimetypePrefix): PayloadDescriptor {
+  static fromMimeTypeShadow (prefix: MimetypePrefix): PayloadDescriptor {
     return new PayloadDescriptor(prefix + '/*');
   }
 
@@ -249,7 +249,6 @@ export class PayloadDescriptor {
 }
 
 export class PayloadDetails {
-
   sequenceDurationInSeconds: number = NaN;
 
   // place to put generic codec extra-data

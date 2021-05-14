@@ -29,7 +29,7 @@ export function cloneErrorInfo (errorInfo: ErrorInfo,
       innerError: errorInfo.innerError,
       nativeError: errorInfo.nativeError,
       customData: withCustomData ? errorInfo.customData : null
-    }
+    };
   } else {
     clone = assignErrorInfo({}, errorInfo);
   }
@@ -48,7 +48,7 @@ export function cloneErrorInfo (errorInfo: ErrorInfo,
   return clone;
 }
 
-export function cloneErrorInfoSafe(errorInfo: ErrorInfo): ErrorInfo {
+export function cloneErrorInfoSafe (errorInfo: ErrorInfo): ErrorInfo {
   return cloneErrorInfo(errorInfo, true, true, false);
 }
 

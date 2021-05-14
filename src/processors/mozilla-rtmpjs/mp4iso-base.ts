@@ -59,8 +59,8 @@ export class Box {
   }
 
   public toUint8Array (): Uint8Array {
-    let size = this.layout(0);
-    let data = new Uint8Array(size);
+    const size = this.layout(0);
+    const data = new Uint8Array(size);
     this.write(data);
     return data;
   }
@@ -112,7 +112,7 @@ export class FullBox extends Box {
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     writeInt32(data, this.offset + offset, (this.version << 24) | this.flags);
     return offset + 4;
   }
@@ -125,13 +125,14 @@ export class RawTag extends Box {
     super(type);
     this.data = data;
   }
+
   public layout (offset: number): number {
     this.size = super.layout(offset) + this.data.length;
     return this.size;
   }
 
   public write (data: Uint8Array): number {
-    let offset = super.write(data);
+    const offset = super.write(data);
     data.set(this.data, this.offset + offset);
     return offset + this.data.length;
   }

@@ -48,9 +48,9 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
 
     naluCount++;
 
-    logFunc('In access-unit of size ', avcStream.byteLength,' bytes,',
-    'found NALU of type ', nalu.getTypeName(),
-    ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
+    logFunc('In access-unit of size ', avcStream.byteLength, ' bytes,',
+      'found NALU of type ', nalu.getTypeName(),
+      ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
 
     if (debugRbspData) {
       switch (nalu.nalType) {
@@ -71,13 +71,13 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
   return true;
 }
 
-export function parseNALU(naluSlice: BufferSlice): NALU {
+export function parseNALU (naluSlice: BufferSlice): NALU {
   const naluBytes = naluSlice.getUint8Array();
   const nalu = new NALU(naluBytes);
   return nalu;
 }
 
-export function parseAccessUnit(bufferSlice: BufferSlice): NALU[] {
+export function parseAccessUnit (bufferSlice: BufferSlice): NALU[] {
   const avcStream = bufferSlice.getUint8Array();
   const avcView = bufferSlice.getDataView();
 
@@ -102,12 +102,11 @@ export function parseAccessUnit(bufferSlice: BufferSlice): NALU[] {
 
     naluCount++;
 
-    //log(avcStream)
+    // log(avcStream)
 
     nalus.push(nalu);
 
-    log('In access-unit of size ', avcStream.byteLength,' bytes, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
-
+    log('In access-unit of size ', avcStream.byteLength, ' bytes, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
   }
 
   return nalus;
@@ -179,5 +178,4 @@ export function makeAccessUnitFromNALUs (naluData: BufferSlice[]): BufferSlice {
   return accessUnitData;
 }
 
-export {NALU, H264NaluType, H264SliceType} from './nalu';
-
+export { NALU, H264NaluType, H264SliceType } from './nalu';

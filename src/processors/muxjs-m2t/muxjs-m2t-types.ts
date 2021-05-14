@@ -1,29 +1,29 @@
 import * as MuxStream from '../../ext-mod/mux.js/lib/utils/stream';
 
 export enum M2tNaluType {
-  AUD = "access_unit_delimiter_rbsp",
-  SPS = "seq_parameter_set_rbsp",
-  PPS = "pic_parameter_set_rbsp",
-  SEI = "sei_rbsp",
-  IDR = "slice_layer_without_partitioning_rbsp_idr"
+  AUD = 'access_unit_delimiter_rbsp',
+  SPS = 'seq_parameter_set_rbsp',
+  PPS = 'pic_parameter_set_rbsp',
+  SEI = 'sei_rbsp',
+  IDR = 'slice_layer_without_partitioning_rbsp_idr'
 }
 
 export type M2tPacketStreamProgramTableEvent = {
-  type: "pat" | "pmt" | "pes"
+  type: 'pat' | 'pmt' | 'pes'
   pid: number
   payloadUnitStartIndicator: boolean
   pmtPid?: number,
   programMapTable?: {
     audio: number | null
     video: number | null
-    "timed-metadata": {[pid: number]: number}
+    'timed-metadata': {[pid: number]: number}
   }
 }
 
-export type M2tTrackType = "video" | "audio"
+export type M2tTrackType = 'video' | 'audio'
 
 export type M2tTrack = {
-  codec: "avc" | "adts"
+  codec: 'avc' | 'adts'
   id: number
   timelineStartInfo: {
     baseMediaDecodeTime: number
@@ -32,7 +32,7 @@ export type M2tTrack = {
 }
 
 export type M2tElementaryStreamEvent = {
-  type: "metadata" | M2tTrackType
+  type: 'metadata' | M2tTrackType
   dts: number | undefined
   pts: number | undefined
   packetLength: number
@@ -43,7 +43,7 @@ export type M2tElementaryStreamEvent = {
 }
 
 export type M2tH264StreamEvent = {
-  type?: "metadata",
+  type?: 'metadata',
   config?: {
     height: number
     width: number

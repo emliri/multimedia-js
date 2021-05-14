@@ -2,7 +2,7 @@ import { VoidCallback, OneDeepNestedArray } from './common-types';
 
 export const noop = () => {};
 
-export function prntprtty(val: any, indent: number = 4): string {
+export function prntprtty (val: any, indent: number = 4): string {
   return JSON.stringify(val, null, indent);
 }
 
@@ -31,7 +31,7 @@ export function isNumber (n: number): boolean {
   return Number.isFinite(n);
 }
 
-export function printNumberScaledAtDecimalOrder(value: number, order: number = 1): string {
+export function printNumberScaledAtDecimalOrder (value: number, order: number = 1): string {
   return (value / Math.pow(10, order)).toFixed(order);
 }
 
@@ -227,7 +227,7 @@ export function parseOptionsFromQueryString (
   let i = 0;
   while (i <= queryTokens.length) {
     if (validProperties) {
-      let validPropsIndex = validProperties.indexOf(queryTokens[i]);
+      const validPropsIndex = validProperties.indexOf(queryTokens[i]);
       if (validPropsIndex >= 0) {
         options[validProperties[validPropsIndex]] = queryTokens[i + 1];
       }
@@ -256,8 +256,8 @@ export const unicodeCharsToString = (hexChars: Uint16Array): string => {
 };
 
 export function utf8StringToBuffer (str: string): ArrayBuffer {
-  let buf = new ArrayBuffer(str.length); // 2 bytes for each char
-  let bufView = new Uint8Array(buf);
+  const buf = new ArrayBuffer(str.length); // 2 bytes for each char
+  const bufView = new Uint8Array(buf);
   for (let i = 0, strLen = str.length; i < strLen; i++) {
     bufView[i] = str.charCodeAt(i);
   }
@@ -281,8 +281,8 @@ export function utf8StringToBuffer (str: string): ArrayBuffer {
  */
 
 export function hexToBytes (s: string): Uint8Array {
-  let len = s.length >> 1;
-  let arr = new Uint8Array(len);
+  const len = s.length >> 1;
+  const arr = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
     arr[i] = parseInt(s.substr(i * 2, 2), 16);
   }
@@ -290,7 +290,7 @@ export function hexToBytes (s: string): Uint8Array {
 }
 
 export function utf8decode (str) {
-  let bytes = new Uint8Array(str.length * 4);
+  const bytes = new Uint8Array(str.length * 4);
   let b = 0;
   for (let i = 0, j = str.length; i < j; i++) {
     let code = str.charCodeAt(i);
@@ -299,7 +299,7 @@ export function utf8decode (str) {
       continue;
     }
     if (code >= 0xD800 && code <= 0xDBFF) {
-      let codeLow = str.charCodeAt(i + 1);
+      const codeLow = str.charCodeAt(i + 1);
       if (codeLow >= 0xDC00 && codeLow <= 0xDFFF) {
         // convert only when both high and low surrogates are present
         code = ((code & 0x3FF) << 10) + (codeLow & 0x3FF) + 0x10000;
@@ -421,7 +421,7 @@ export function bitMaskCombineFlags (value1: number, value2: number): number {
 export function bitMaskInvertFlags (value: number, enumSize: number = MAX_BITMASK_WIDTH): number {
   let retValue = 0;
   for (let i = 0; i < enumSize; i++) {
-    let maskSweepValue = (1 << i);
+    const maskSweepValue = (1 << i);
     if (!(value & maskSweepValue)) {
       retValue |= maskSweepValue;
     }

@@ -5,11 +5,11 @@
 
 export const MPEGAudioSamplingRates: number[] = [44100, 48000, 32000, 22050, 24000, 16000, 11025, 12000, 8000];
 
-export const MPEGAudioBitratesTable: number[] = [ 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,
+export const MPEGAudioBitratesTable: number[] = [32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,
   32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384,
   32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,
   32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256,
-  8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160 ];
+  8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
 
 export type MPEGAudioHeader = {
     sampleRate: number
@@ -51,20 +51,20 @@ export class MPEGAudioParser {
   }
 
   static parseHeader (data: Uint8Array, offset: number): MPEGAudioHeader {
-    let headerB = (data[offset + 1] >> 3) & 3;
-    let headerC = (data[offset + 1] >> 1) & 3;
-    let headerE = (data[offset + 2] >> 4) & 15;
-    let headerF = (data[offset + 2] >> 2) & 3;
-    let headerG = !!(data[offset + 2] & 2);
+    const headerB = (data[offset + 1] >> 3) & 3;
+    const headerC = (data[offset + 1] >> 1) & 3;
+    const headerE = (data[offset + 2] >> 4) & 15;
+    const headerF = (data[offset + 2] >> 2) & 3;
+    const headerG = !!(data[offset + 2] & 2);
 
     if (headerB !== 1 && headerE !== 0 && headerE !== 15 && headerF !== 3) {
-      let columnInBitrates = headerB === 3 ? (3 - headerC) : (headerC === 3 ? 3 : 4);
-      let bitRate = MPEGAudioBitratesTable[columnInBitrates * 14 + headerE - 1] * 1000;
-      let columnInSampleRates = headerB === 3 ? 0 : headerB === 2 ? 1 : 2;
-      let sampleRate = MPEGAudioSamplingRates[columnInSampleRates * 3 + headerF];
-      let padding = headerG ? 1 : 0;
-      let channelCount = data[offset + 3] >> 6 === 3 ? 1 : 2; // If bits of channel mode are `11` then it is a single channel (Mono)
-      let frameLength = headerC === 3
+      const columnInBitrates = headerB === 3 ? (3 - headerC) : (headerC === 3 ? 3 : 4);
+      const bitRate = MPEGAudioBitratesTable[columnInBitrates * 14 + headerE - 1] * 1000;
+      const columnInSampleRates = headerB === 3 ? 0 : headerB === 2 ? 1 : 2;
+      const sampleRate = MPEGAudioSamplingRates[columnInSampleRates * 3 + headerF];
+      const padding = headerG ? 1 : 0;
+      const channelCount = data[offset + 3] >> 6 === 3 ? 1 : 2; // If bits of channel mode are `11` then it is a single channel (Mono)
+      const frameLength = headerC === 3
         ? ((headerB === 3 ? 12 : 6) * bitRate / sampleRate + padding) << 2
         : ((headerB === 3 ? 144 : 72) * bitRate / sampleRate + padding) | 0;
 
@@ -95,14 +95,14 @@ export class MPEGAudioParser {
     // or end of data is reached
     if (offset + 1 < data.length && MPEGAudioParser.isHeaderPattern(data, offset)) {
       // MPEG header Length
-      let headerLength = 4;
+      const headerLength = 4;
       // MPEG frame Length
-      let header = MPEGAudioParser.parseHeader(data, offset);
+      const header = MPEGAudioParser.parseHeader(data, offset);
       let frameLength = headerLength;
       if (header && header.frameLength) {
         frameLength = header.frameLength;
       }
-      let newOffset = offset + frameLength;
+      const newOffset = offset + frameLength;
       if (newOffset === data.length || (newOffset + 1 < data.length && MPEGAudioParser.isHeaderPattern(data, newOffset))) {
         return true;
       }

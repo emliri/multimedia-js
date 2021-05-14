@@ -18,7 +18,6 @@ export class AppInputSocket extends InputSocket {
       const mimeType = this._mimeType || p.defaultMimeType || null;
 
       if (this._blobMode) {
-
         if (!mimeType) {
           throw new Error('No mime-type could be determined to build output in blob mode');
         }

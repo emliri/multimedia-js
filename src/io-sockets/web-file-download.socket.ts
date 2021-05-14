@@ -39,7 +39,6 @@ export class WebFileDownloadSocket extends InputSocket {
     debug('received:', p.toString(), 'total bytes:', p.getTotalBytes());
 
     p.forEachBufferSlice((bs) => {
-
       debug('accumulating slice data', bs.size());
 
       const blob = new Blob([bs.newArrayBuffer()], { type: this._mimeType });

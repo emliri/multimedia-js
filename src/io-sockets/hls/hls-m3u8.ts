@@ -1,12 +1,12 @@
 import * as m3u8Parser from 'm3u8-parser';
 
-import {Resource, ResourceEvents, ParseableResource} from './resource'
+import { Resource, ResourceEvents, ParseableResource } from './resource';
 
-import {ByteRange} from './byte-range'
+import { ByteRange } from './byte-range';
 
-import {AdaptiveMediaPeriod, AdaptiveMediaSet, AdaptiveMedia} from './adaptive-media'
+import { AdaptiveMediaPeriod, AdaptiveMediaSet, AdaptiveMedia } from './adaptive-media';
 
-import {getLogger, LoggerLevel as LoggerLevels} from '../../logger'
+import { getLogger, LoggerLevel as LoggerLevels } from '../../logger';
 import { MediaSegment } from './media-segment';
 import { MediaLocator } from './media-locator';
 import { resolveUri } from './url';
@@ -16,7 +16,7 @@ import { XHRResponseType } from './xhr';
 const {
   log,
   warn
-} = getLogger('hls-m3u8', LoggerLevels.ON)
+} = getLogger('hls-m3u8', LoggerLevels.ON);
 
 export enum HlsM3u8FileType {
   MASTER = 'master',
@@ -28,8 +28,7 @@ export enum HlsM3u8MediaPlaylistType {
   VOD = 'vod'
 }
 
-export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveMediaPeriod[]>  {
-
+export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveMediaPeriod[]> {
   private _m3u8ParserResult: any; // this comes from the plain JS m3u8-parser module
   private _parsed: boolean = false;
 
@@ -39,44 +38,44 @@ export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveM
   private _periods: AdaptiveMediaPeriod[] = [new AdaptiveMediaPeriod()];
   private _adaptiveMediaSet: AdaptiveMediaSet = new AdaptiveMediaSet();
 
-  constructor(uri, fileType: HlsM3u8FileType = null, baseUri?: string) {
+  constructor (uri, fileType: HlsM3u8FileType = null, baseUri?: string) {
     super(uri, null, baseUri);
 
     this._fileType = fileType;
     this._periods[0].sets.push(this._adaptiveMediaSet);
   }
 
-  hasBeenParsed() {
-    return this._parsed
+  hasBeenParsed () {
+    return this._parsed;
   }
 
-  parse(): Promise<AdaptiveMediaPeriod[]> {
-    const buf = this.buffer
+  parse (): Promise<AdaptiveMediaPeriod[]> {
+    const buf = this.buffer;
     if (!buf) {
-      throw new Error('No data to parse')
+      throw new Error('No data to parse');
     }
 
     if (this._parsed) {
       return Promise.resolve(this._periods);
     }
 
-    const text = utf8BytesToString(new Uint8Array(buf))
+    const text = utf8BytesToString(new Uint8Array(buf));
 
-    //console.log(text)
+    // console.log(text)
 
     const parser: any = new (<() => void> m3u8Parser.Parser)();
 
     parser.push(text);
     parser.end();
 
-    //console.log(parser.manifest);
+    // console.log(parser.manifest);
 
     const manifest = this._m3u8ParserResult = parser.manifest;
 
     if (manifest.playlists && manifest.playlists.length) {
       this._fileType = HlsM3u8FileType.MASTER;
       this._processMasterPlaylist();
-    } else if(manifest.segments && manifest.segments.length) {
+    } else if (manifest.segments && manifest.segments.length) {
       this._fileType = HlsM3u8FileType.MEDIA;
       this._processMediaVariantPlaylist();
     } else {
@@ -87,9 +86,8 @@ export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveM
     return Promise.resolve(this._periods);
   }
 
-  private _processMasterPlaylist() {
+  private _processMasterPlaylist () {
     this._m3u8ParserResult.playlists.forEach((playlist) => {
-
       const media: AdaptiveMedia = new AdaptiveMedia();
 
       const a = playlist.attributes;
@@ -99,7 +97,7 @@ export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveM
       media.videoInfo = {
         width: a.RESOLUTION.width,
         height: a.RESOLUTION.height
-      }
+      };
       media.label = a.NAME;
 
       media.segmentIndexUri = resolveUri(playlist.uri, this.getUrl());
@@ -114,13 +112,12 @@ export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveM
 
       media.segmentIndexProvider = () => {
         return hlsMediaPlaylist.fetch()
-          .then(() =>  hlsMediaPlaylist.parse())
+          .then(() => hlsMediaPlaylist.parse())
           .then((adaptiveMedia: AdaptiveMedia) => {
-
             // pass back info from master-playlist to model created when parsing variant list
             adaptiveMedia.bandwidth = media.bandwidth;
             adaptiveMedia.codecs = media.codecs;
-            adaptiveMedia.videoInfo = media.videoInfo
+            adaptiveMedia.videoInfo = media.videoInfo;
             adaptiveMedia.label = media.label;
             adaptiveMedia.segmentIndexUri = media.segmentIndexUri;
             adaptiveMedia.segmentIndexRange = media.segmentIndexRange;
@@ -131,25 +128,25 @@ export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveM
             // pass back info from variant list to master model
             media.externalIndex = adaptiveMedia.externalIndex;
 
-            return adaptiveMedia.segments
-          })
-      }
+            return adaptiveMedia.segments;
+          });
+      };
 
       this._hlsMediaPlaylists.push(hlsMediaPlaylist);
       this._adaptiveMediaSet.add(media);
     });
   }
 
-  private _processMediaVariantPlaylist() {
+  private _processMediaVariantPlaylist () {
     log('parsing media playlist:', this.getUrl());
 
-    let media: AdaptiveMedia = new AdaptiveMedia();
+    const media: AdaptiveMedia = new AdaptiveMedia();
 
     const hlsMediaPlaylist = new HlsM3u8MediaPlaylist(this);
 
     const mediaSequenceIndex = this._m3u8ParserResult.mediaSequence;
-    const isLive: boolean = !this._m3u8ParserResult.playlistType
-      || this._m3u8ParserResult.playlistType.toLowerCase() === 'live';
+    const isLive: boolean = !this._m3u8ParserResult.playlistType ||
+      this._m3u8ParserResult.playlistType.toLowerCase() === 'live';
 
     // TODO handle discontinuities
 
@@ -159,13 +156,13 @@ export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveM
     media.segmentIndexProvider = () => {
       return hlsMediaPlaylist.fetch()
         .then(() => hlsMediaPlaylist.parse())
-        .then((adaptiveMedia: AdaptiveMedia) => adaptiveMedia.segments)
-    }
+        .then((adaptiveMedia: AdaptiveMedia) => adaptiveMedia.segments);
+    };
 
     let startTime: number = 0;
     let segmentIndex: number = 0;
 
-    //console.log(this._m3u8ParserResult)
+    // console.log(this._m3u8ParserResult)
 
     this._m3u8ParserResult.segments.forEach((segment: {duration: number, timeline: number, uri: string}) => {
       const endTime = startTime + segment.duration;
@@ -191,22 +188,22 @@ export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveM
     this._adaptiveMediaSet.add(media);
   }
 
-  fetch(): Promise<Resource> {
+  fetch (): Promise<Resource> {
     return super.fetch(XHRResponseType.TEXT).then((r: Resource) => {
-      log('data loaded')
+      log('data loaded');
       // reset parsed flag
       this._parsed = false;
       return this;
     }).then(() => {
       return this;
-    })
+    });
   }
 
-  getM3u8FileType(): HlsM3u8FileType {
+  getM3u8FileType (): HlsM3u8FileType {
     return this._fileType;
   }
 
-  getM3u8ParserResult(): any {
+  getM3u8ParserResult (): any {
     return this._m3u8ParserResult;
   }
 }
@@ -214,7 +211,7 @@ export class HlsM3u8File extends Resource implements ParseableResource<AdaptiveM
 export class HlsM3u8MediaPlaylist extends Resource implements ParseableResource<AdaptiveMedia> {
   private _file: HlsM3u8File;
 
-  constructor(m3u8File: HlsM3u8File) {
+  constructor (m3u8File: HlsM3u8File) {
     // automatically resolve the inner resource if it has a base URI
     super(m3u8File.getUrl());
 
@@ -227,26 +224,25 @@ export class HlsM3u8MediaPlaylist extends Resource implements ParseableResource<
     this._file = m3u8File;
   }
 
-  hasBeenParsed() {
+  hasBeenParsed () {
     return this._file.hasBeenParsed();
   }
 
-  parse(): Promise<AdaptiveMedia> {
+  parse (): Promise<AdaptiveMedia> {
     return this._file.parse()
       .then((adaptiveMediaPeriods) => {
-
         const media = adaptiveMediaPeriods[0].getDefaultSet().getDefaultMedia();
 
-        log('parsed media playlist:', this.getUrl())
+        log('parsed media playlist:', this.getUrl());
 
         // We assume that the embedded file object
         // only parsed exactly one adaptive-media list
         // and has one period - always the case with an HLS chunklist.
         return media;
-      })
+      });
   }
 
-  fetch(): Promise<Resource> {
+  fetch (): Promise<Resource> {
     return this._file.fetch();
   }
 }

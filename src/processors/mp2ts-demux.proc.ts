@@ -19,7 +19,7 @@ import {
   M2tPacketStreamProgramTableEvent,
   M2tNaluType,
   M2tStreamEventData,
-  M2tElementaryStreamEvent,
+  M2tElementaryStreamEvent
 } from './muxjs-m2t/muxjs-m2t-types';
 
 import {
@@ -34,14 +34,14 @@ import {
 } from './muxjs-m2t/muxjs-m2t';
 import { ShadowOutputSocket } from '../core/socket-output';
 
-function mapNaluTypeToTag(m2tNaluType: M2tNaluType): string {
-  switch(m2tNaluType) {
-  case M2tNaluType.AUD: return "aud"; // TODO: make this stuff enums -> symbols or numbers (use actual NALU type ids)
-  case M2tNaluType.SPS: return "sps";
-  case M2tNaluType.PPS: return "pps";
-  case M2tNaluType.SEI: return "sei";
-  case M2tNaluType.IDR: return "idr";
-  default: return null
+function mapNaluTypeToTag (m2tNaluType: M2tNaluType): string {
+  switch (m2tNaluType) {
+  case M2tNaluType.AUD: return 'aud'; // TODO: make this stuff enums -> symbols or numbers (use actual NALU type ids)
+  case M2tNaluType.SPS: return 'sps';
+  case M2tNaluType.PPS: return 'pps';
+  case M2tNaluType.SEI: return 'sei';
+  case M2tNaluType.IDR: return 'idr';
+  default: return null;
   }
 }
 
@@ -71,7 +71,6 @@ type VideoNALUInfo = {
 };
 
 export class MP2TSDemuxProcessor extends Processor {
-
   static getName (): string {
     return 'MP2TSDemuxProcessor';
   }
@@ -99,15 +98,14 @@ export class MP2TSDemuxProcessor extends Processor {
     super();
     this.createInput();
 
-    this._setupPipeline()
+    this._setupPipeline();
   }
 
   templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
     return getSocketDescriptor(socketType);
   }
 
-  private _setupPipeline() {
-
+  private _setupPipeline () {
     const pipeline: Partial<M2tDemuxPipeline> = {};
 
     // set up the parsing pipeline
@@ -129,9 +127,9 @@ export class MP2TSDemuxProcessor extends Processor {
 
     pipeline.parseStream.on('data', (data: M2tPacketStreamProgramTableEvent) => {
       if (!this._pmtCache && data.type === 'pmt') {
-        log('First PMT packet:', data)
+        log('First PMT packet:', data);
         this._pmtCache = data;
-        const avMimeTypes: MimetypePrefix[] = []
+        const avMimeTypes: MimetypePrefix[] = [];
         if (data.programMapTable?.audio) {
           avMimeTypes.push(MimetypePrefix.AUDIO);
         }
@@ -139,24 +137,23 @@ export class MP2TSDemuxProcessor extends Processor {
           avMimeTypes.push(MimetypePrefix.VIDEO);
         }
         this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
-          socket: new ShadowOutputSocket(avMimeTypes),
+          socket: new ShadowOutputSocket(avMimeTypes)
         });
 
-        Object.keys(data.programMapTable["timed-metadata"]).forEach((pid: string) => {
-          const streamType: number = data.programMapTable["timed-metadata"][pid];
+        Object.keys(data.programMapTable['timed-metadata']).forEach((pid: string) => {
+          const streamType: number = data.programMapTable['timed-metadata'][pid];
           // TODO: extract stream-descriptors from PMT data
           this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
-            socket: new ShadowOutputSocket([MimetypePrefix.APPLICATION], Number(pid)),
+            socket: new ShadowOutputSocket([MimetypePrefix.APPLICATION], Number(pid))
           });
         });
-
       }
     });
 
     pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
       if (!this._pmtCache) return;
       const appDataStreamType =
-        this._pmtCache.programMapTable["timed-metadata"][data.trackId]
+        this._pmtCache.programMapTable['timed-metadata'][data.trackId];
       if (!appDataStreamType) {
         return;
       }
@@ -173,7 +170,7 @@ export class MP2TSDemuxProcessor extends Processor {
       if (!this._metadataSocketMap[data.trackId]) {
         this._metadataSocketMap[data.trackId] =
           this.createOutput(SocketDescriptor.fromPayloads(
-              [packet.defaultPayloadInfo]
+            [packet.defaultPayloadInfo]
           ));
       }
       this._metadataSocketMap[data.trackId].transfer(packet);
@@ -187,7 +184,7 @@ export class MP2TSDemuxProcessor extends Processor {
       .pipe(pipeline.aacOrAdtsStream);
 
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
-      log('h264Stream:', data)
+      log('h264Stream:', data);
 
       // Video FPS not determined yet
       if (this._videoFramerate === null) {
@@ -195,26 +192,25 @@ export class MP2TSDemuxProcessor extends Processor {
       } else {
         this._handleVideoNalu(data);
       }
-    })
+    });
 
     pipeline.aacOrAdtsStream.on('data', (data: M2tADTSStreamEvent) => {
-      log('aacOrAdtsStream:', data)
+      log('aacOrAdtsStream:', data);
       this._handleAudioNalu(data);
-    })
+    });
 
     this._demuxPipeline = pipeline as M2tDemuxPipeline;
-
   }
 
-  private _enqueueVideoTimingNalu(data: M2tH264StreamEvent) {
+  private _enqueueVideoTimingNalu (data: M2tH264StreamEvent) {
     this._videoTimingQueueIn.push(data);
     for (let i = this._videoTimingQueueIn.length - 1; i > 0; i--) { // -> will only run when queue length > 1
       const frameDuration = (data.dts - this._videoTimingQueueIn[i - 1].dts);
-      if (frameDuration <= 0 || ! Number.isFinite(frameDuration)) {
+      if (frameDuration <= 0 || !Number.isFinite(frameDuration)) {
         continue;
       }
       this._videoFramerate = Math.round(MPEG_TS_TIMESCALE_HZ / frameDuration);
-      info('got frame-duration / fps:', frameDuration, '/ 90kHz ;', this._videoFramerate, '[f/s]')
+      info('got frame-duration / fps:', frameDuration, '/ 90kHz ;', this._videoFramerate, '[f/s]');
       break;
     }
     if (this._videoFramerate) {
@@ -225,8 +221,7 @@ export class MP2TSDemuxProcessor extends Processor {
     }
   }
 
-  private _handleAudioNalu(adtsEvent: M2tADTSStreamEvent) {
-
+  private _handleAudioNalu (adtsEvent: M2tADTSStreamEvent) {
     const dts = adtsEvent.dts - this._audioDtsOffset;
     const cto = adtsEvent.pts - adtsEvent.dts;
 
@@ -242,7 +237,6 @@ export class MP2TSDemuxProcessor extends Processor {
       cto
     );
 
-
     const mimeType = CommonMimeTypes.AUDIO_AAC;
 
     // NOTE: buffer-props is per-se not cloned on packet transfer,
@@ -257,25 +251,24 @@ export class MP2TSDemuxProcessor extends Processor {
     bufferSlice.props.details.numChannels = adtsEvent.channelcount;
 
     // TODO: compute bitrate
-    //bufferSlice.props.details.constantBitrate =
+    // bufferSlice.props.details.constantBitrate =
 
     if (this._audioDtsOffset === null) {
-      //this._audioDtsOffset = adtsEvent.dts
-      this._audioDtsOffset = 0
+      // this._audioDtsOffset = adtsEvent.dts
+      this._audioDtsOffset = 0;
     }
 
-    //packet.setTimestampOffset(this._audioDtsOffset);
-    packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+    // packet.setTimestampOffset(this._audioDtsOffset);
+    packet.setTimescale(MPEG_TS_TIMESCALE_HZ);
 
     this._outPackets.push(packet);
   }
 
-  private _handleVideoNalu(h264Event: M2tH264StreamEvent) {
-
+  private _handleVideoNalu (h264Event: M2tH264StreamEvent) {
     if (h264Event.config) {
       this._videoConfig = h264Event;
       info('Got video codec config slice:', this._videoConfig);
-      info('Parsed SPS:', H264ParameterSetParser.parseSPS(this._videoConfig.data.subarray(1)))
+      info('Parsed SPS:', H264ParameterSetParser.parseSPS(this._videoConfig.data.subarray(1)));
     }
 
     if (!this._videoConfig) {
@@ -283,7 +276,7 @@ export class MP2TSDemuxProcessor extends Processor {
       return;
     }
 
-     const naluParsed = parseNALU(BufferSlice.fromTypedArray(h264Event.data));
+    const naluParsed = parseNALU(BufferSlice.fromTypedArray(h264Event.data));
 
     // drop "filler data" nal-units (used by some encoders on CBR channels)
     if (naluParsed.nalType === H264NaluType.FIL) {
@@ -308,8 +301,8 @@ export class MP2TSDemuxProcessor extends Processor {
       }
     }
 
-    const isHeader: boolean = h264Event.nalUnitType === M2tNaluType.SPS
-                              || h264Event.nalUnitType === M2tNaluType.PPS;
+    const isHeader: boolean = h264Event.nalUnitType === M2tNaluType.SPS ||
+                              h264Event.nalUnitType === M2tNaluType.PPS;
 
     if (this._videoFramerate === null) {
       warn('No video-fps/samplerate detectable yet');
@@ -318,36 +311,37 @@ export class MP2TSDemuxProcessor extends Processor {
     const dts = h264Event.dts;
     const cto = h264Event.pts - h264Event.dts;
 
-    this._pushVideoNalu({nalu: h264Event, dts, cto, isKeyframe, isHeader})
-
+    this._pushVideoNalu({ nalu: h264Event, dts, cto, isKeyframe, isHeader });
   }
 
-  private _pushVideoNalu(nalInfo: VideoNALUInfo) {
-
-    const {dts: nextDts, cto: nextCto, isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame} = nalInfo;
+  private _pushVideoNalu (nalInfo: VideoNALUInfo) {
+    const { dts: nextDts, cto: nextCto, isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame } = nalInfo;
     const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
     const firstIsAuDelimiter =
-      this._videoNaluQueueOut.length ?
-        this._videoNaluQueueOut[0]
-          .nalu.nalUnitType === M2tNaluType.AUD : false;
+      this._videoNaluQueueOut.length
+        ? this._videoNaluQueueOut[0]
+          .nalu.nalUnitType === M2tNaluType.AUD
+        : false;
     const lastIsAuDelimiter =
-      this._videoNaluQueueOut.length ?
-        this._videoNaluQueueOut[this._videoNaluQueueOut.length - 1]
-          .nalu.nalUnitType === M2tNaluType.AUD : false;
-    const hasIncrPts = this._videoNaluQueueOut.length ?
-       nalInfo.nalu.pts - this._videoNaluQueueOut[0].nalu.pts > 0 : false;
+      this._videoNaluQueueOut.length
+        ? this._videoNaluQueueOut[this._videoNaluQueueOut.length - 1]
+          .nalu.nalUnitType === M2tNaluType.AUD
+        : false;
+    const hasIncrPts = this._videoNaluQueueOut.length
+      ? nalInfo.nalu.pts - this._videoNaluQueueOut[0].nalu.pts > 0
+      : false;
 
-    const needQueueFlushNoAud = (hasIncrPts && !nextIsKeyFrame
-      && !(firstIsAuDelimiter || lastIsAuDelimiter || nextIsAuDelimiter));
+    const needQueueFlushNoAud = (hasIncrPts && !nextIsKeyFrame &&
+      !(firstIsAuDelimiter || lastIsAuDelimiter || nextIsAuDelimiter));
 
-    const needQueueFlush = this._videoNaluQueueOut.length
-                          && (
+    const needQueueFlush = this._videoNaluQueueOut.length &&
+                          (
                             needQueueFlushNoAud ||
                             // seperate by AUD always
                             nextIsAuDelimiter ||
-                            (!lastIsAuDelimiter
-                              && ((this._videoNaluQueueOut[0].isHeader && !nextIsHeader)
-                                || (!this._videoNaluQueueOut[0].isHeader && nextIsHeader))));
+                            (!lastIsAuDelimiter &&
+                              ((this._videoNaluQueueOut[0].isHeader && !nextIsHeader) ||
+                                (!this._videoNaluQueueOut[0].isHeader && nextIsHeader))));
 
     if (needQueueFlush) {
       this._flushVideoNaluQueueOut();
@@ -355,8 +349,8 @@ export class MP2TSDemuxProcessor extends Processor {
     this._videoNaluQueueOut.push(nalInfo);
   }
 
-  private _flushVideoNaluQueueOut() {
-    const {dts, cto, nalu, isKeyframe, isHeader} = this._videoNaluQueueOut[0];
+  private _flushVideoNaluQueueOut () {
+    const { dts, cto, nalu, isKeyframe, isHeader } = this._videoNaluQueueOut[0];
 
     const props = new BufferProperties(
       CommonMimeTypes.VIDEO_H264,
@@ -367,12 +361,12 @@ export class MP2TSDemuxProcessor extends Processor {
     );
 
     props.codec = CommonCodecFourCCs.avc1;
-    props.elementaryStreamId = nalu.trackId
+    props.elementaryStreamId = nalu.trackId;
 
     props.isKeyframe = isKeyframe;
     props.isBitstreamHeader = isHeader;
 
-    props.details.width = this._videoConfig.config.width
+    props.details.width = this._videoConfig.config.width;
     props.details.height = this._videoConfig.config.height;
     props.details.codecProfile = this._videoConfig.config.profileIdc;
 
@@ -380,7 +374,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     props.tags.add('nalu');
     // add NALU type tags for all slices
-    this._videoNaluQueueOut.forEach(({nalu, isHeader, isKeyframe}) => {
+    this._videoNaluQueueOut.forEach(({ nalu, isHeader, isKeyframe }) => {
       if (isHeader) {
         props.isBitstreamHeader = true;
       }
@@ -392,10 +386,10 @@ export class MP2TSDemuxProcessor extends Processor {
       if (naluTag) {
         props.tags.add(naluTag);
       }
-    })
+    });
 
     // create multi-slice packet
-    const slices = this._videoNaluQueueOut.map(({nalu}) => {
+    const slices = this._videoNaluQueueOut.map(({ nalu }) => {
       const bs = new BufferSlice(
         nalu.data.buffer,
         nalu.data.byteOffset,
@@ -404,30 +398,29 @@ export class MP2TSDemuxProcessor extends Processor {
       );
       debugNALU(bs, debug);
       return bs;
-    })
+    });
 
     const packet = Packet.fromSlices(
       dts,
       cto,
-      ... slices
+      ...slices
     );
 
-    //packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
-    packet.setTimescale(MPEG_TS_TIMESCALE_HZ)
+    // packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
+    packet.setTimescale(MPEG_TS_TIMESCALE_HZ);
     debug('created/pushed packet:', packet.toString(), `(${packet.getTotalBytes()} bytes in ${packet.dataSlicesLength} buffer-slices)`);
     this._outPackets.push(packet);
 
     this._videoNaluQueueOut.length = 0;
   }
 
-  private _onOutPacketsPushed() {
+  private _onOutPacketsPushed () {
     const outputPackets: Packet[] = this._outPackets;
 
     let audioSocket: OutputSocket = this._audioSocket;
     let videoSocket: OutputSocket = this._videoSocket;
 
     outputPackets.forEach((p: Packet) => {
-
       if (p.isSymbolic()) {
         log('got symbolic packet:', p.getSymbolName(), '(noop/ignoring)');
         return;
@@ -442,53 +435,49 @@ export class MP2TSDemuxProcessor extends Processor {
 
       // FIXME: make two queues (audio/video) and optimize away this check here
       if (p.defaultPayloadInfo.isVideo()) {
-
-        debug('got video packet:', p.toString())
+        debug('got video packet:', p.toString());
 
         if (!videoSocket) {
-          log('creating video output socket:', p.defaultPayloadInfo)
+          log('creating video output socket:', p.defaultPayloadInfo);
           this._videoSocket = videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
-        //p.forEachBufferSlice((bs) => debugNALU(bs));
+        // p.forEachBufferSlice((bs) => debugNALU(bs));
 
         debug('transferring video packet to default out');
 
         if (p.defaultPayloadInfo.isBitstreamHeader) {
-          log('found bitstream header part in packet:', p.defaultPayloadInfo.tags, p.data)
+          log('found bitstream header part in packet:', p.defaultPayloadInfo.tags, p.data);
         }
 
         videoSocket.transfer(p);
 
       // FIXME: make two queues (audio/video) and optimize away this check here
       } else if (p.defaultPayloadInfo.isAudio()) {
-
-        debug('got audio packet:', p.toString())
+        debug('got audio packet:', p.toString());
 
         if (!audioSocket) {
-          log('creating audio output socket:', p.defaultPayloadInfo)
+          log('creating audio output socket:', p.defaultPayloadInfo);
           this._audioSocket = audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
 
         debug('transferring audio packet to default out');
 
         audioSocket.transfer(p);
-
       } else {
         throw new Error('Unsupported payload: ' + p.defaultMimeType);
       }
     });
 
     this._outPackets.length = 0; // clear queue
-
   }
 
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
-    log(`feeding demuxer with chunk of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 3)} Kbytes`)
+    log(`feeding demuxer with chunk of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 3)} Kbytes`);
     const startDemuxingMs = perf.now();
     this._demuxPipeline.headOfPipeline.push(inPacket.data[0].getUint8Array());
     const demuxingRunTimeMs = perf.now() - startDemuxingMs;
-    log(`got ${this._outPackets.length} output packets from running demuxer (perf-stats: this took ${demuxingRunTimeMs.toFixed(3)} millis doing)`)
+    log(`got ${this._outPackets.length} output packets from running demuxer (perf-stats: this took ${demuxingRunTimeMs.toFixed(3)} millis doing)`);
     this._onOutPacketsPushed();
     return true;
   }

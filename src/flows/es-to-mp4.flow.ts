@@ -11,7 +11,6 @@ import { VoidCallback } from '../common-types';
 const { log } = getLogger('ChunkToMediaSourceFlow', LoggerLevel.ON, true);
 
 export class ElementaryStreamToMp4 extends Flow {
-
   constructor (private _url: string) {
     super(
       FlowConfigFlag.NONE | FlowConfigFlag.WITH_DOWNLOAD_SOCKET | FlowConfigFlag.WITH_APP_SOCKET,
@@ -26,7 +25,6 @@ export class ElementaryStreamToMp4 extends Flow {
   }
 
   protected onWaitingToFlowing_ (done: VoidCallback) {
-
     const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
 
     const mp4MuxOptions: Partial<MP4MuxProcessorOptions> = {
@@ -42,7 +40,7 @@ export class ElementaryStreamToMp4 extends Flow {
     mp3ParseProc.out[0].connect(mp4MuxIn);
 
     this.addProc(mp3ParseProc, mp4MuxProc);
-    this.connectWithAllExternalSockets(mp4MuxProc.out[0])
+    this.connectWithAllExternalSockets(mp4MuxProc.out[0]);
 
     done();
   }

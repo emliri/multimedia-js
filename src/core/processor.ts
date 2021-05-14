@@ -67,9 +67,9 @@ export function createProcessorConfigParamsFromArguments (args: any[]): Processo
 }
 
 export abstract class Processor extends EventEmitter<ProcessorEvent> implements SocketOwner, SignalReceiver {
-    static getName (): string {
-      return null;
-    }
+  static getName (): string {
+    return null;
+  }
 
     private inputs_: InputSocket[] = [];
     private outputs_: OutputSocket[] = [];
@@ -166,7 +166,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return super.emit(event, data);
     }
 
-    emitEvent(event: ProcessorEvent, props: ProcessorEventDataProps) {
+    emitEvent (event: ProcessorEvent, props: ProcessorEventDataProps) {
       this.emit(event, this.createEvent(event, props));
     }
 

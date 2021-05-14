@@ -34,11 +34,11 @@ export interface FactorizableProcessorImpl extends FactorizableProcessor {
 */
 
 let Processors: {[factoryName: string]: typeof Processor} = Procs as unknown as {[factoryName: string]: typeof Processor};
-export function setProcessors(ProcessorsLib: {[factoryName: string]: typeof Processor} ) {
+export function setProcessors (ProcessorsLib: {[factoryName: string]: typeof Processor}) {
   Processors = ProcessorsLib;
 }
 
-export function getProcessors() {
+export function getProcessors () {
   return Processors;
 }
 

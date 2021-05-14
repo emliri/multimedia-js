@@ -28,14 +28,14 @@ export { Flow, FlowError, FlowErrorType, FlowEvent, FlowState, FlowConfigFlag, D
 
 export { ErrorCode, ErrorCodeSpace, getErrorNameByCode, cloneErrorInfo, cloneErrorInfoSafe, assignErrorInfo } from './src/core/error';
 
-export { VoidCallback } from "./src/common-types"
+export { VoidCallback } from './src/common-types';
 
 export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
-export * as IoSockets from './src/io-sockets/index'
-export * as Flows from './src/flows/index'
+export * as IoSockets from './src/io-sockets/index';
+export * as Flows from './src/flows/index';
 
-export * as Procs from './src/processors/index'
+export * as Procs from './src/processors/index';
 export * as ProcFactory from './src/core/processor-factory';
 
 export {
@@ -44,5 +44,4 @@ export {
   removeLocalLoggerConfig
 } from './src/logger';
 
-export * as Inspector from './src/ext-mod/inspector.js/src/index'
-
+export * as Inspector from './src/ext-mod/inspector.js/src/index';

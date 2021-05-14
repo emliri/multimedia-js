@@ -18,14 +18,14 @@ import { VoidCallback } from '../../common-types';
 
 // module RtmpJs.MP3 {
 
-let BitratesMap = [
+const BitratesMap = [
   32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448,
   32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384,
   32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320,
   32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256,
   8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
 
-let SamplingRateMap = [44100, 48000, 32000, 22050, 24000, 16000, 11025, 12000, 8000];
+const SamplingRateMap = [44100, 48000, 32000, 22050, 24000, 16000, 11025, 12000, 8000];
 
 export class MP3Parser {
     private buffer: Uint8Array;
@@ -43,9 +43,9 @@ export class MP3Parser {
     public push (data: Uint8Array) {
       let length;
       if (this.bufferSize > 0) {
-        let needBuffer = data.length + this.bufferSize;
+        const needBuffer = data.length + this.bufferSize;
         if (!this.buffer || this.buffer.length < needBuffer) {
-          let newBuffer = new Uint8Array(needBuffer);
+          const newBuffer = new Uint8Array(needBuffer);
           if (this.bufferSize > 0) {
             newBuffer.set(this.buffer.subarray(0, this.bufferSize));
           }
@@ -66,7 +66,7 @@ export class MP3Parser {
         offset += parsed;
       }
 
-      let tail = length - offset;
+      const tail = length - offset;
       if (tail > 0) {
         if (!this.buffer || this.buffer.length < tail) {
           this.buffer = new Uint8Array(data.subarray(offset, length));
@@ -87,18 +87,18 @@ export class MP3Parser {
         if (start + 24 > end) { // we need at least 24 bytes for full frame
           return -1;
         }
-        let headerB = (data[start + 1] >> 3) & 3;
-        let headerC = (data[start + 1] >> 1) & 3;
-        let headerE = (data[start + 2] >> 4) & 15;
-        let headerF = (data[start + 2] >> 2) & 3;
-        let headerG = !!(data[start + 2] & 2);
+        const headerB = (data[start + 1] >> 3) & 3;
+        const headerC = (data[start + 1] >> 1) & 3;
+        const headerE = (data[start + 2] >> 4) & 15;
+        const headerF = (data[start + 2] >> 2) & 3;
+        const headerG = !!(data[start + 2] & 2);
         if (headerB !== 1 && headerE !== 0 && headerE !== 15 && headerF !== 3) {
-          let columnInBitrates = headerB === 3 ? (3 - headerC) : (headerC === 3 ? 3 : 4);
-          let bitRate = BitratesMap[columnInBitrates * 14 + headerE - 1] * 1000;
-          let columnInSampleRates = headerB === 3 ? 0 : headerB === 2 ? 1 : 2;
-          let sampleRate = SamplingRateMap[columnInSampleRates * 3 + headerF];
-          let padding = headerG ? 1 : 0;
-          let frameLength = headerC === 3
+          const columnInBitrates = headerB === 3 ? (3 - headerC) : (headerC === 3 ? 3 : 4);
+          const bitRate = BitratesMap[columnInBitrates * 14 + headerE - 1] * 1000;
+          const columnInSampleRates = headerB === 3 ? 0 : headerB === 2 ? 1 : 2;
+          const sampleRate = SamplingRateMap[columnInSampleRates * 3 + headerF];
+          const padding = headerG ? 1 : 0;
+          const frameLength = headerC === 3
             ? ((headerB === 3 ? 12 : 6) * bitRate / sampleRate + padding) << 2
             : ((headerB === 3 ? 144 : 72) * bitRate / sampleRate + padding) | 0;
           if (start + frameLength > end) {
