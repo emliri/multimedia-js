@@ -14,12 +14,13 @@
   "include": [
     "index.ts",
     "src/**/*",
-    "test-cases/**/*"
+    "test-cases/web/**/*"
   ],
   "exclude": [
     "vendors/**/*",
     "node_modules/**/*",
     "test-data/**/*",
+    "test-cases/**/*",
     "**/*.spec.ts",
     "src/ext-mod/mux.js/test/**/*"
   ]
