@@ -14,10 +14,24 @@
     "start": "DEBUG=1 webpack serve --progress",
     "test": "jest"
   },
-  "keywords": [],
+  "keywords": [
+    "multimedia",
+    "streaming",
+    "pipeline",
+    "framework",
+    "mux",
+    "demux",
+    "transcode",
+    "video",
+    "audio",
+    "media",
+    "container",
+    "mp4",
+    "mov"
+  ],
   "repository": "github.com/tchakabam/multimedia.js.git",
   "author": "Stephan Hesse <stephan@emliri.com>, <stephan_hesse@yahoo.com>",
-  "license": "LGPL, Copyright (c) 2016, 2017, 2018, 2019, 2020 Stephan Hesse, EMLIRI Consultancy Berlin",
+  "license": "LGPL, Copyright (c) 2016, 2017, 2018, 2019, 2020, 2021 Stephan Hesse, EMLIRI Consultancy Berlin",
   "public": true,
   "publishConfig": {
     "access": "public"
