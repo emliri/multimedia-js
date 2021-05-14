@@ -10,7 +10,7 @@ import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/proces
 import { getLogger } from '../logger';
 import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
 import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
-import { EnvironmentVars } from '../core/env';
+import { EnvVars } from '../core/env';
 import { VoidCallback } from '../common-types';
 
 const { log } = getLogger('CombineMp4sToMovFlow');
@@ -54,12 +54,12 @@ export class CombineMp4sToMovFlow extends Flow {
         targetFiletypeExt: 'mp4'
       };
 
-      log('using ffmpeg.js bin path:', EnvironmentVars.FFMPEG_BIN_PATH);
+      log('using ffmpeg.js bin path:', EnvVars.FFMPEG_BIN_PATH);
 
       ffmpegAacTranscodeProc = newProcessorWorkerShell(
         unsafeCastProcessorType(FFmpegConvertProcessor),
         [audioConfig, null],
-        [EnvironmentVars.FFMPEG_BIN_PATH]
+        [EnvVars.FFMPEG_BIN_PATH]
       );
     }
 

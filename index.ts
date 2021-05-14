@@ -30,7 +30,7 @@ export { ErrorCode, ErrorCodeSpace, getErrorNameByCode, cloneErrorInfo, cloneErr
 
 export { VoidCallback } from './src/common-types';
 
-export { EnvironmentVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
+export { EnvVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
 export * as IoSockets from './src/io-sockets/index';
 export * as Flows from './src/flows/index';

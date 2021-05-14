@@ -4,7 +4,7 @@ import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collec
 import { EventEmitter } from 'eventemitter3';
 import { ProcessorTask } from './processor-task';
 import { getLogger } from '../logger';
-import { EnvironmentVars } from './env';
+import { EnvVars } from './env';
 import { ErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 
 const { debug, log, error } = getLogger('Processor');
@@ -245,7 +245,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       const inputIndex: number = this.inputs_.length;
       const s = new InputSocket((p: Packet) => {
         return this.onReceiveFromInput_(s, p, inputIndex);
-      }, sd || this.wrapTemplateSocketDescriptor_(SocketType.INPUT));
+      }, sd || this.wrapTemplateSocketDescriptor_(SocketType.INPUT));
       this.inputs_.push(s);
       this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
         processor: this,
@@ -265,7 +265,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
      * {SocketDescriptor} sd optional
      */
     createOutput (sd?: SocketDescriptor): OutputSocket {
-      const s = new OutputSocket(sd || this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
+      const s = new OutputSocket(sd || this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
       this.outputs_.push(s);
       this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
         processor: this,
@@ -282,7 +282,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
 
     private getTaskWorker (): Worker {
       if (!this.taskWorker_) {
-        this.taskWorker_ = new Worker(EnvironmentVars.TASK_WORKER_PATH);
+        this.taskWorker_ = new Worker(EnvVars.TASK_WORKER_PATH);
         this.taskWorker_.addEventListener('message', (event) => {
           this.onTaskWorkerMessage(event);
         });

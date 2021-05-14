@@ -15,19 +15,19 @@ export type EnvironmentVars = {
   [name: string]: string
 }
 
-export const EnvironmentVars: EnvironmentVars = {
+export const EnvVars: EnvironmentVars = {
   TASK_WORKER_PATH,
   PROXY_WORKER_PATH,
   FFMPEG_BIN_PATH
-};
+} as const;
 
 export function setEnvironmentVar (name: EnvironmentVar, value: string) {
-  EnvironmentVars[name] = value;
+  EnvVars[name] = value;
 }
 
 export function getEnvironmentVar (name: EnvironmentVar): string {
-  if (!EnvironmentVars[name]) {
+  if (!EnvVars[name]) {
     throw new Error('No such environment variable exists: ' + name);
   }
-  return EnvironmentVars[name];
+  return EnvVars[name];
 }

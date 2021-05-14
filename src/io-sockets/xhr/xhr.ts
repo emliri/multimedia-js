@@ -47,11 +47,11 @@ export enum XHRMethod {
 }
 
 export enum XHRResponseType {
-  VOID = '', //	DOMString (this is the default value)
+  VOID = '', // DOMString (this is the default value)
   ARRAY_BUFFER = 'arraybuffer', // ArrayBuffer
   BLOB = 'blob', // Blob
   DOCUMENT = 'document', // Document
-  JSON = 'json', //	JSON
+  JSON = 'json', // JSON
   TEXT = 'text' // DOMString
 }
 

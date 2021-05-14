@@ -49,18 +49,18 @@ export enum XHRMethod {
 }
 
 export enum XHRResponseType {
-  VOID = '', //	DOMString (this is the default value)
-  ARRAY_BUFFER = 'arraybuffer', //	ArrayBuffer
-  BLOB = 'blob', //	Blob
-  DOCUMENT = 'document', //	Document
-  JSON = 'json', //	JSON
-  TEXT = 'text' //	DOMString
+  VOID = '', // DOMString (this is the default value)
+  ARRAY_BUFFER = 'arraybuffer', // ArrayBuffer
+  BLOB = 'blob', // Blob
+  DOCUMENT = 'document', // Document
+  JSON = 'json', // JSON
+  TEXT = 'text' // DOMString
 }
 
 export enum XHRState {
   UNSENT = XMLHttpRequest.UNSENT || 0,
   OPENED = XMLHttpRequest.OPENED || 1,
-  HEADERS_RECEIVED = XMLHttpRequest.HEADERS_RECEIVED || 2,
+  HEADERS_RECEIVED = XMLHttpRequest.HEADERS_RECEIVED || 2,
   LOADING = XMLHttpRequest.LOADING || 3,
   DONE = XMLHttpRequest.DONE || 4
 }
