@@ -1,10 +1,10 @@
+import { EnvVars } from '../..';
 import { Flow } from '../core/flow';
 import { VoidCallback } from '../common-types';
 import { FFmpegConversionTargetInfo } from '../processors/ffmpeg/ffmpeg-tool';
 import { FFmpegConvertProcessor } from '../processors/ffmpeg-convert.processor';
 import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/processor-factory';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
-import { EnvironmentVars } from '../..';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { OutputSocket, InputSocket, SocketDescriptor } from '../core/socket';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
@@ -37,7 +37,7 @@ export class AacTranscodeFlow extends Flow {
     const aacTranscoder = newProcessorWorkerShell(
       unsafeCastProcessorType(FFmpegConvertProcessor),
       [audioConfigOut, null],
-      [EnvironmentVars.FFMPEG_BIN_PATH]
+      [EnvVars.FFMPEG_BIN_PATH]
     );
 
     this.addProc(aacTranscoderMp4Demux, aacTranscoderMp4Mux, aacTranscoder);
@@ -47,7 +47,7 @@ export class AacTranscodeFlow extends Flow {
       aacRetranscode = newProcessorWorkerShell(
         unsafeCastProcessorType(FFmpegConvertProcessor),
         [audioConfigRetranscode, null],
-        [EnvironmentVars.FFMPEG_BIN_PATH]
+        [EnvVars.FFMPEG_BIN_PATH]
       );
       this.addProc(aacRetranscode);
     }
