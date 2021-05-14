@@ -21,6 +21,10 @@ module.exports = {
   },
   'rules': {
 
+    // basics
+
+    'no-global-assign': 2,
+
     'no-undef': 0,
 
     // our basic style rules
@@ -73,7 +77,6 @@ module.exports = {
       'never'
     ],
 
-    'standard/no-callback-literal': 1,
     'import/first': 1,
     'no-var': 1,
     'no-empty': 1,
@@ -94,6 +97,11 @@ module.exports = {
 
     'no-console': 1,
 
-    'no-global-assign': 2
+    'prefer-const': 1,
+
+    'no-useless-constructor': 1,
+    'no-unused-expressions': 1,
+    'no-template-curly-in-string': 1,
+    'prefer-promise-reject-errors': 1
   }
 };
