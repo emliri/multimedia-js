@@ -1,30 +1,30 @@
 import path from 'path';
 
-import {createWebpackConfig} from './webpack-config-factory'
+import { createWebpackConfig } from './webpack-config-factory';
 
-const configs = []
-const debug = process.env.DEBUG === '1'
-const noFrills = process.env.NO_FRILLS === '1'
-const noTypes = process.env.NO_TYPES === '1'
+const configs = [];
+const debug = process.env.DEBUG === '1';
+const noFrills = process.env.NO_FRILLS === '1';
+const noTypes = process.env.NO_TYPES === '1';
 
 const exec = require('child_process').exec;
 
-function onAfterEmit(compilation) {
+function onAfterEmit (compilation) {
   setTimeout(() => {
-    process.stdout.write('\n\n ---> Building exported type declarations now...\n\n')
+    process.stdout.write('\n\n ---> Building exported type declarations now...\n\n');
     exec('npm run build-decls \n npm run build-decls-post', (err, stdout, stderr) => {
       if (stdout) process.stdout.write(stdout);
       if (stderr) process.stderr.write(stderr);
     });
-  }, 0)
+  }, 0);
 }
 
-function AfterEmitHookPlugin(onAfterEmit) {
-  this.apply = function AfterEmitHook(compiler) {
+function AfterEmitHookPlugin (onAfterEmit) {
+  this.apply = function AfterEmitHook (compiler) {
     compiler.hooks.afterEmit.tap('AfterEmitHook', (compilation) => {
-      onAfterEmit(compilation)
+      onAfterEmit(compilation);
     });
-  }
+  };
 }
 
 const plugins = [];
@@ -35,10 +35,10 @@ if (!noTypes) {
 
 // All Library
 {
-  const entrySrc = './index.ts'
-  const libName = 'mmjs'
-  const buildPath = 'dist'
-  const libraryTarget = 'umd'
+  const entrySrc = './index.ts';
+  const libName = 'mmjs';
+  const buildPath = 'dist';
+  const libraryTarget = 'umd';
 
   configs.push(
     createWebpackConfig({
@@ -49,17 +49,16 @@ if (!noTypes) {
       buildPath,
       plugins
     })
-  )
+  );
 }
 
 if (!noFrills) {
-
   // Processor-proxy worker
   {
-    const entrySrc = './src/core/processor-proxy.worker.ts'
-    const libName = 'mmjs-procs-worker'
-    const buildPath = 'dist'
-    const libraryTarget = 'umd'
+    const entrySrc = './src/core/processor-proxy.worker.ts';
+    const libName = 'mmjs-procs-worker';
+    const buildPath = 'dist';
+    const libraryTarget = 'umd';
 
     configs.push(
       createWebpackConfig({
@@ -69,16 +68,15 @@ if (!noFrills) {
         libraryTarget,
         buildPath
       })
-    )
+    );
   }
-
 
   // TestCasesWeb
   {
-    const entrySrc = './test-cases/web/index.ts'
-    const libName = 'mmjs-test-cases'
-    const buildPath = 'dist'
-    const libraryTarget = 'umd'
+    const entrySrc = './test-cases/web/index.ts';
+    const libName = 'mmjs-test-cases';
+    const buildPath = 'dist';
+    const libraryTarget = 'umd';
 
     configs.push(
       createWebpackConfig({
@@ -88,7 +86,7 @@ if (!noFrills) {
         libraryTarget,
         buildPath
       })
-    )
+    );
   }
 
   /*
@@ -151,7 +149,6 @@ if (!noFrills) {
   }
   */
 
-
   // Task worker
   /*
   {
@@ -174,5 +171,4 @@ if (!noFrills) {
   */
 }
 
-export default configs
-
+export default configs;

@@ -1,4 +1,4 @@
-const path = require('path')
+const path = require('path');
 
 export type WebpackConfigFactoryOptions = {
   entrySrc: string
@@ -10,17 +10,16 @@ export type WebpackConfigFactoryOptions = {
   plugins?: unknown[]
 }
 
-export function createWebpackConfig(options: WebpackConfigFactoryOptions, excludePaths: string[] = []) {
+export function createWebpackConfig (options: WebpackConfigFactoryOptions, excludePaths: string[] = []) {
+  const libName = options.libName;
 
-  const libName = options.libName
+  const buildPath = path.resolve(options.buildPath);
 
-  const buildPath = path.resolve(options.buildPath)
-
-  console.log('Generating config for library:', libName, 'with options:\n', options, '\n')
-  console.log('Resolved build path:', buildPath)
+  console.log('Generating config for library:', libName, 'with options:\n', options, '\n');
+  console.log('Resolved build path:', buildPath);
 
   const baseConfig = {
-    mode: options.debug ? "development" : "production",
+    mode: options.debug ? 'development' : 'production',
     entry: options.entrySrc,
     externals: options.externals,
     output: {
@@ -46,17 +45,16 @@ export function createWebpackConfig(options: WebpackConfigFactoryOptions, exclud
         }
       ]
     },
-    devtool: "source-map", //options.debug ? "inline-source-map" : "source-map",
+    devtool: 'source-map', // options.debug ? "inline-source-map" : "source-map",
     optimization: {
-      minimize: ! options.debug
+      minimize: !options.debug
     },
     plugins: options.plugins || [],
     watchOptions: {
       poll: 1000 // Check for changes every second
-    },
+    }
 
-  }
+  };
 
-  return baseConfig
+  return baseConfig;
 }
-
