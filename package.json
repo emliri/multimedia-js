@@ -8,7 +8,7 @@
     "build-decls": "tsc --build ./tsconfig-decl-only.json",
     "build-decls-post": "mv dist/index.d.ts dist/mmjs.umd.d.ts",
     "build-watch": "DEBUG=1 npm run build -- --watch",
-    "lint": "eslint index.ts src test-cases --ext .ts --ext .js",
+    "lint": "eslint *.js *.ts bin src test-cases tools --ext .ts --ext .js",
     "lint-fix": "npm run lint -- --fix",
     "prepublishOnly": "npm test && make",
     "start": "DEBUG=1 webpack serve --progress",
