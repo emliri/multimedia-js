@@ -4,7 +4,7 @@ import { FlowCompletionResult, FlowState } from '../../src/core/flow';
 
 const VIDEO_FILE =
   '/test-data/mp4/180312_unicorn_hütte2_s.mp4';
-  //'/test-data/mp4/PartyPoker_SFX_Only.mov';
+  // '/test-data/mp4/PartyPoker_SFX_Only.mov';
 
 const AUDIO_FILE =
   //= '/test-data/mp3/shalafon.mp3';

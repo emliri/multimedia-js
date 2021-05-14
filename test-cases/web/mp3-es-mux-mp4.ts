@@ -1,7 +1,7 @@
-import { MmjsTestCase } from "../mmjs-test-case";
-import { VoidCallback } from "../../src/common-types";
-import { Flow, FlowState, FlowCompletionResult } from "../../src/core/flow";
-import { ElementaryStreamToMp4 } from "../../src/flows";
+import { MmjsTestCase } from '../mmjs-test-case';
+import { VoidCallback } from '../../src/common-types';
+import { Flow, FlowState, FlowCompletionResult } from '../../src/core/flow';
+import { ElementaryStreamToMp4 } from '../../src/flows';
 
 const URLs = [
   '/test-data/mp3/shalafon.mp3',
@@ -9,12 +9,10 @@ const URLs = [
 ];
 
 export class Mp3EsMuxMp4 extends MmjsTestCase {
-
   private _flow: Flow = null;
   private _videoEl: HTMLVideoElement;
 
   setup (done: VoidCallback) {
-
     const video = document.createElement('video');
 
     this._videoEl = video;
@@ -43,5 +41,4 @@ export class Mp3EsMuxMp4 extends MmjsTestCase {
     this._flow.state = FlowState.WAITING;
     this._flow.state = FlowState.FLOWING;
   }
-
 }

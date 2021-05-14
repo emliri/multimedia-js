@@ -1,9 +1,9 @@
-let rootEl = document.getElementById('root');
-let runButtonEl = document.getElementById('runButton');
-let runButtonLabelEl = document.getElementById('runButtonLabel');
-let testCaseIndex = MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0;
+const rootEl = document.getElementById('root');
+const runButtonEl = document.getElementById('runButton');
+const runButtonLabelEl = document.getElementById('runButtonLabel');
+const testCaseIndex = MMTestCasesWeb.mmjs.Common.Utils.parseOptionsFromQueryString().case || 0;
 
-let testCases = [];
+const testCases = [];
 
 // fill up test-case array
 {
@@ -12,7 +12,7 @@ let testCases = [];
     if (caseName === 'mmjs') {
       continue;
     }
-    let TestCase = MMTestCasesWeb[caseName];
+    const TestCase = MMTestCasesWeb[caseName];
     console.log(`Initializing test-case #${i++}:`, caseName);
     testCases.push([new TestCase(rootEl), caseName]);
   }

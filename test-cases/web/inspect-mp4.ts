@@ -28,7 +28,7 @@ export class InspectMp4 extends MmjsTestCase {
     const mp4Demux = newProcessorWorkerShell(MP4DemuxProcessor);
     mp4Demux.on(ProcessorEvent.OUTPUT_SOCKET_CREATED, (data: ProcessorEventData) => {
       if (data.socket.payload().isVideo()) {
-        let videoTrackNo = videoTrackCnt++;
+        const videoTrackNo = videoTrackCnt++;
 
         log(`video track #${videoTrackNo} found`);
 
@@ -41,7 +41,7 @@ export class InspectMp4 extends MmjsTestCase {
           log(`video EOS for track #${videoTrackNo} transferred`);
         });
       } else if (data.socket.payload().isAudio()) {
-        let audioTrackNo = audioTrackCnt++;
+        const audioTrackNo = audioTrackCnt++;
 
         log(`audio track #${audioTrackNo} found`);
 
