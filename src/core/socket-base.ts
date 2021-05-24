@@ -1,13 +1,15 @@
 import { EventEmitter } from 'eventemitter3';
+
 import { SocketEvent, SocketState, SocketDescriptor, SocketOwner, SocketEventHandler, SocketType } from './socket';
 import { SignalReceiver, SignalHandler, Signal, SignalReceiverCastResult } from './signal';
 import { PayloadDescriptor } from './payload-description';
 import { Packet } from './packet';
+import { PacketSymbol } from './packet-symbol';
+import { SocketTap } from './socket-tap';
+
 import { dispatchAsyncTask } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
-import { SocketTap } from './socket-tap';
 import { Nullable } from '../common-types';
-import { PacketSymbol } from './packet-model';
 
 const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
 
@@ -120,7 +122,10 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       if (!_p) throw new Error('SocketTap implementation failure: popPacket expected to return non-null since isClear was false');
       this.transferAsync_(_p);
     }
-    if (this.tap_ && !this.tap_.pushPacket(p)) {
+    if (this.tap_
+      // if the Tap returns false,
+      // it "keeps" the packet on its stack
+      && !this.tap_.pushPacket(p)) {
       return null;
     }
     return p;
@@ -163,7 +168,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   transfer (p: Packet): Promise<boolean> {
     if (this.tap_) {
       p = this.handleWithTap_(this.tap_, p);
-      if (!p) return Promise.resolve(false);
+      if (!p) return Promise.resolve(true);
     }
     return this.transferAsync_(p);
   }
