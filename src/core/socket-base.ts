@@ -2,9 +2,12 @@ import { EventEmitter } from 'eventemitter3';
 import { SocketEvent, SocketState, SocketDescriptor, SocketOwner, SocketEventHandler, SocketType } from './socket';
 import { SignalReceiver, SignalHandler, Signal, SignalReceiverCastResult } from './signal';
 import { PayloadDescriptor } from './payload-description';
-import { Packet, PacketSymbol } from './packet';
+import { Packet } from './packet';
 import { dispatchAsyncTask } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
+import { SocketTap } from './socket-tap';
+import { Nullable } from '../common-types';
+import { PacketSymbol } from './packet-model';
 
 const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
 
@@ -12,7 +15,9 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   private type_: SocketType;
   private state_: SocketState;
   private descriptor_: SocketDescriptor;
-  private signalHandler_: SignalHandler = null;
+  private signalHandler_: Nullable<SignalHandler> = null;
+  private tap_: Nullable<SocketTap> = null;
+
   private isReady_: boolean = false;
   private isReadyArmed_: boolean = false;
   private resolveDisposed_;
@@ -26,7 +31,9 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     this.state_ = new SocketState();
   }
 
-  close () {}
+  close () {
+    this.state_.closed = true;
+  }
 
   type (): SocketType {
     return this.type_;
@@ -107,6 +114,18 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   }
   */
 
+  protected handleWithTap_ (tap: SocketTap, p: Packet): Nullable<Packet> {
+    while(!tap.isClear()) {
+      const _p = tap.popPacket();
+      if (!_p) throw new Error('SocketTap implementation failure: popPacket expected to return non-null since isClear was false');
+      this.transferAsync_(_p);
+    }
+    if (this.tap_ && !this.tap_.pushPacket(p)) {
+      return null;
+    }
+    return p;
+  }
+
   /**
    * For subclasses only. Set the transfering flag of the socket state.
    */
@@ -114,11 +133,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     this.state_.transferring = b;
   }
 
-  /**
-   * Wraps transferSync in an async call and returns a promise
-   * @param p
-   */
-  transfer (p: Packet): Promise<boolean> {
+  private transferAsync_ (p: Packet): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dispatchAsyncTask(() => {
         try {
@@ -139,6 +154,18 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
         }
       });
     });
+  }
+
+  /**
+   * Wraps transferSync in an async call and returns a promise
+   * @param p
+   */
+  transfer (p: Packet): Promise<boolean> {
+    if (this.tap_) {
+      p = this.handleWithTap_(this.tap_, p);
+      if (!p) return Promise.resolve(false);
+    }
+    return this.transferAsync_(p);
   }
 
   /**
@@ -180,6 +207,10 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
 
   setSignalHandler (signalHandler: SignalHandler) {
     this.signalHandler_ = signalHandler;
+  }
+
+  setTap (tap: SocketTap) {
+    this.tap_ = tap;
   }
 
   setOwner (owner: SocketOwner) {

@@ -1,8 +1,9 @@
-import { Packet } from './packet';
+import { Packet, PacketFilter } from './packet';
 import { InputSocket, SocketDescriptor, OutputSocket } from './socket';
 import { VoidCallback } from '../common-types';
+import { noop } from '../common-utils';
 
-export class FifoQueue extends InputSocket {
+export class SocketFifoQueue extends InputSocket {
   private _packets: Packet[] = [];
 
   constructor (
@@ -33,7 +34,7 @@ export class FifoQueue extends InputSocket {
   }
 
   drop () {
-    this._packets = [];
+    this._packets = [];
   }
 
   get length (): number {
@@ -51,11 +52,11 @@ export class FifoQueue extends InputSocket {
   }
 }
 
-export class FifoValve extends OutputSocket {
-  private _filters: FifoPacketFilter[] = [];
+export class SocketFifoValve extends OutputSocket {
+  private _filters: PacketFilter[] = [];
 
   constructor (
-    private _queue: FifoQueue,
+    private _queue: SocketFifoQueue,
     sd: SocketDescriptor
   ) {
     super(sd);
@@ -69,7 +70,7 @@ export class FifoValve extends OutputSocket {
     return this._filters;
   }
 
-  addPacketFilterPass (filter: FifoPacketFilter): FifoValve {
+  addPacketFilterPass (filter: PacketFilter): SocketFifoValve {
     this._filters.push(filter);
     return this;
   }
@@ -96,13 +97,11 @@ export class FifoValve extends OutputSocket {
   }
 }
 
-export type FifoPacketFilter = (p: Packet) => Packet;
-
 export function wrapOutputSocketWithValve (
   output: OutputSocket,
-  onPacketWasQueued: VoidCallback = () => {}): FifoValve {
-  const q = new FifoQueue(onPacketWasQueued);
+  onPacketWasQueued: VoidCallback = noop): SocketFifoValve {
+  const q = new SocketFifoQueue(onPacketWasQueued);
   output.connect(q);
 
-  return new FifoValve(q, output.descriptor());
+  return new SocketFifoValve(q, output.descriptor());
 }

@@ -153,7 +153,7 @@ export class MP4MuxProcessor extends Processor {
           p.defaultPayloadInfo.details.numChannels,
           p.defaultPayloadInfo.details.codecProfile,
           p.defaultPayloadInfo.details.sequenceDurationInSeconds,
-          p.getTimescale()
+          p.timeScale
         );
       }
 
@@ -189,7 +189,7 @@ export class MP4MuxProcessor extends Processor {
           p.defaultPayloadInfo.details.width,
           p.defaultPayloadInfo.details.height,
           p.defaultPayloadInfo.details.sequenceDurationInSeconds, // CAN be 0
-          p.getTimescale()
+          p.timeScale
         );
       }
 
@@ -310,10 +310,10 @@ export class MP4MuxProcessor extends Processor {
         MP4MuxFrameType.VIDEO,
         AVC_VIDEO_CODEC_ID,
         data,
-        p.dts,
+        p.timestamp,
         bufferSlice.props.isBitstreamHeader, // FIXME: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header, see H264-parse-proc
         bufferSlice.props.isKeyframe,
-        p.cto
+        p.presentationTimeOffset
       );
     });
   }
@@ -340,10 +340,10 @@ export class MP4MuxProcessor extends Processor {
         // FIXME: get rid of FORCE_MP3 flag
         this.options_.forceMp3 ? MP3_SOUND_CODEC_ID : AAC_SOUND_CODEC_ID,
         data,
-        p.dts,
+        p.timestamp,
         false,
         bufferSlice.props.isKeyframe,
-        p.cto,
+        p.presentationTimeOffset,
         audioDetails
       );
     });
@@ -387,7 +387,8 @@ export class MP4MuxProcessor extends Processor {
   }
 
   private _processQueues () {
-    this._resetMuxer(this.audioPacketQueue_[0]?.dts, this.videoPacketQueue_[0]?.dts);
+    this._resetMuxer(this.audioPacketQueue_[0]?.timestamp,
+      this.videoPacketQueue_[0]?.timestamp);
 
     if (this.videoPacketQueue_.length) {
       debug('processing video packet queue of length', this.videoPacketQueue_.length);
@@ -429,7 +430,7 @@ export class MP4MuxProcessor extends Processor {
     }
 
     const audioTrack: MP4Track = {
-      duration: (durationSeconds || 0) * timescale,
+      duration: (durationSeconds || 0) * timescale,
       codecDescription: audioCodec,
       codecId: getCodecId(audioCodec),
       language,
@@ -461,7 +462,7 @@ export class MP4MuxProcessor extends Processor {
     }
 
     const videoTrack: MP4Track = {
-      duration: (durationSeconds || 0) * timescale,
+      duration: (durationSeconds || 0) * timescale,
       codecDescription: videoCodec,
       codecId: getCodecId(videoCodec),
       timescale,

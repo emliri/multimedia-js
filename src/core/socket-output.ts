@@ -11,11 +11,15 @@ export class OutputSocket extends Socket {
     return (<OutputSocket> s);
   }
 
-  private peers_: Socket[];
+  private peers_: Socket[] = [];
 
   constructor (descriptor: SocketDescriptor) {
     super(SocketType.OUTPUT, descriptor);
-    this.peers_ = [];
+  }
+
+  close() {
+    super.close();
+    this.disconnect();
   }
 
   transferSync (p: Packet): boolean {

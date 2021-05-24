@@ -3,6 +3,7 @@ import { PacketReceiveCallback, Packet, PacketSymbol } from './packet';
 import { Signal, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
 import { Socket } from './socket-base';
 import { LoggerLevel, getLogger } from '../logger';
+import { Nullable } from '../common-types';
 
 const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
 export class InputSocket extends Socket {
@@ -14,14 +15,20 @@ export class InputSocket extends Socket {
     return new InputSocket(func, new SocketDescriptor());
   }
 
-  private onReceive_: PacketReceiveCallback;
+  private onReceive_: Nullable<PacketReceiveCallback>;
 
   constructor (onReceive: PacketReceiveCallback, descriptor: SocketDescriptor) {
     super(SocketType.INPUT, descriptor);
     this.onReceive_ = onReceive;
   }
 
+  close() {
+    super.close();
+    this.onReceive_ = null;
+  }
+
   transferSync (p: Packet): boolean {
+    if (!this.onReceive_) return false;
     this.setTransferring_(true);
     const b = this.onReceive_(p);
     this._onTransferred(p);

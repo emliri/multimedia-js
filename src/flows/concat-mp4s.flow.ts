@@ -5,7 +5,7 @@ import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/proces
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { OutputSocket, SocketEvent, InputSocket, Socket } from '../core/socket';
-import { FifoValve, wrapOutputSocketWithValve } from '../core/fifo';
+import { SocketFifoValve, wrapOutputSocketWithValve } from '../core/socket-fifo';
 import { getLogger, LoggerLevel } from '../logger';
 import { PayloadDescriptor } from '../core/payload-description';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
@@ -40,11 +40,11 @@ export class ConcatMp4sFlow extends Flow {
   }
 
   private _setup () {
-    let fifoVideoA: FifoValve = null;
-    let fifoAudioA: FifoValve = null;
+    let fifoVideoA: SocketFifoValve = null;
+    let fifoAudioA: SocketFifoValve = null;
 
-    let fifoVideoB: FifoValve = null;
-    let fifoAudioB: FifoValve = null;
+    let fifoVideoB: SocketFifoValve = null;
+    let fifoAudioB: SocketFifoValve = null;
 
     let mp4MuxerVideoIn: InputSocket = null;
     let mp4MuxerAudioIn: InputSocket = null;
@@ -202,7 +202,7 @@ export class ConcatMp4sFlow extends Flow {
           }
 
           p.timestamp = p.timestamp +
-              (p.getTimescale() * videoDurationA);
+              (p.timeScale * videoDurationA);
 
           return p;
         });
@@ -241,7 +241,7 @@ export class ConcatMp4sFlow extends Flow {
             }
 
             p.timestamp = p.timestamp +
-                (p.getTimescale() * audioDurationA);
+                (p.timeScale * audioDurationA);
 
             return p;
           });

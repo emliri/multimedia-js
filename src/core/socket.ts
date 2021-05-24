@@ -26,8 +26,10 @@ export type SocketEventHandler = (event: SocketEvent) => void
 
 export class SocketState {
   transferring: boolean;
+  closed: boolean;
 
   constructor () {
+    this.closed = false;
     this.transferring = false;
   }
 }
