@@ -126,7 +126,7 @@ export class ConcatMp4sFlow extends Flow {
         // this is to replace the eos sym packets by sync ones (otherwise muxer will flush early)
         fifoVideoA.addPacketFilterPass((p) => {
           if (p.symbol === PacketSymbol.EOS) {
-            p.symbol = PacketSymbol.SYNC;
+            p.setSymbol(PacketSymbol.SYNC);
           }
           return p;
         });
@@ -165,7 +165,7 @@ export class ConcatMp4sFlow extends Flow {
           // this is to replace the eos sym packets by sync ones (otherwise muxer will flush early)
           fifoAudioA.addPacketFilterPass((p) => {
             if (p.symbol === PacketSymbol.EOS) {
-              p.symbol = PacketSymbol.SYNC;
+              p.setSymbol(PacketSymbol.SYNC);
             }
             return p;
           });
