@@ -1,6 +1,6 @@
 import { VoidCallback, OneDeepNestedArray } from './common-types';
 
-export const noop = () => {};
+export const noop = () => void 0;
 
 export function prntprtty (val: any, indent: number = 4): string {
   return JSON.stringify(val, null, indent);
