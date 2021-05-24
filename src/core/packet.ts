@@ -1,9 +1,10 @@
 import { BufferSlices, BufferSlice } from './buffer';
 import { BufferProperties } from './buffer-props';
-import { PacketDataModel, PacketSymbol } from './packet-model';
+import { PacketDataModel } from './packet-model';
+import { PacketSymbol } from './packet-symbol';
 import { UNKNOWN_MIMETYPE } from './payload-description';
 
-export { PacketSymbol } from './packet-model';
+export { PacketSymbol } from './packet-symbol';
 
 export type PacketReceiveCallback = ((p: Packet) => boolean);
 
