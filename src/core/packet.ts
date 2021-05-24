@@ -1,27 +1,15 @@
 import { BufferSlices, BufferSlice } from './buffer';
-import { UNKNOWN_MIMETYPE } from './payload-description';
 import { BufferProperties } from './buffer-props';
+import { PacketDataModel, PacketSymbol } from './packet-model';
+import { UNKNOWN_MIMETYPE } from './payload-description';
 
-/**
- * Symbols are passed into sockets and thus processors to convey in-band
- * information on the stream of packets.
- */
-export enum PacketSymbol {
-  VOID = 0, // void: a placeholder
-  WAIT = 1, // further data received should not be processed (or transferred)
-  WAIT_BUT_Q = 2, // further data received may be processed but must be queued until transferred (wait for resume)
-  RESUME = 3, // further data received should be processed now and pipelined
-  FLUSH = 4, // data received before should now be flushed (meaning it should be transferred when already processed)
-  GAP = 5, // a time-plane discontinuity in this sync-id domain will arrive after this (this may also mean a lack of data for present processing)
-  EOS = 6, // no more data will be transferred after this
-  DROP = 7, // data received before (already processed or not) should be dropped (and thus not transferred)
-  DROP_Q = 8, // data received before that was queued (not yet processed) should be dropped
-  SYNC = 9 // after this, a new packet sync-id may appear (the symbolic packet SHOULD carry its value already)
-}
+export { PacketSymbol } from './packet-model';
 
 export type PacketReceiveCallback = ((p: Packet) => boolean);
 
-export class Packet {
+export type PacketFilter = (p: Packet) => Packet;
+
+export class Packet implements PacketDataModel {
   /**
    * used to recover a packet that was transferred from a another thread (worker) context (passed via a message-event).
    * the object is then a "dead" structure of metadata and needs to be reconstructed so it has "methods"
@@ -62,7 +50,7 @@ export class Packet {
       // and methods are not present when the prototype wasn't called
       // same for the methods below
       // note: if we would apply the constructor on `p` it would also reset the values
-      newPacket.symbol = p._symbol;
+      newPacket.setSymbol(p._symbol);
     }
     newPacket.setTimestampOffset(p._timestampOffset);
     newPacket.setTimescale(p._timescale);
@@ -97,7 +85,7 @@ export class Packet {
 
   static fromSymbol (symbol: PacketSymbol) {
     const p = new Packet();
-    p.symbol = symbol;
+    p.setSymbol(symbol);
     return p;
   }
 
@@ -134,56 +122,24 @@ export class Packet {
     }
   }
 
-  mapArrayBuffers (): ArrayBuffer[] {
-    return BufferSlice.mapArrayBuffers(this.data);
-  }
-
-  forEachBufferSlice (
-    method: (bs: BufferSlice) => void,
-    errorHandler: (bs: BufferSlice, err: Error) => boolean = null,
-    context: any = null) {
-    let abort = false;
-    // we use an on-stack shallow copy of the array to prevent any
-    // side-effects on other manipulation of the puacket itself from within
-    // the loop we will run here.
-    this.data.slice().forEach((bufferSlice) => {
-      if (abort) {
-        return;
-      }
-      if (context) {
-        method = method.bind(context);
-        if (errorHandler) {
-          errorHandler = errorHandler.bind(context);
-        }
-      }
-      try {
-        method(bufferSlice);
-      } catch (err) {
-        if (errorHandler) {
-          if (!errorHandler(bufferSlice, err)) {
-            abort = true;
-            console.error('Packet-buffers loop aborted: ', err);
-          }
-        } else {
-          throw err;
-        }
-      }
-    });
-  }
-
   get dataSlicesLength () {
     return this.data ? this.data.length : 0;
   }
 
-  get symbol (): PacketSymbol {
-    return this._symbol;
+  get dataSlicesBytes(): number {
+    return this.getTotalBytes();
   }
 
-  set symbol (symbol: PacketSymbol) {
-    if (this.data.length > 0) {
-      throw new Error('Symbolic packets should not carry data');
-    }
-    this._symbol = symbol;
+  get timeScale () {
+    return this._timescale;
+  }
+
+  get timestampOffset () {
+    return this._timestampOffset;
+  }
+
+  get symbol (): PacketSymbol {
+    return this._symbol;
   }
 
   // TODO: allow to inject default payload as well from the packet
@@ -203,33 +159,29 @@ export class Packet {
     return this._hasDefaultBufferProps;
   }
 
+  get synchronizationId (): number {
+    return this._synchronizationId;
+  }
+
   /**
    * alias for presentationTimeOffset
    */
-  get cto () {
+  getCto () {
     return this.presentationTimeOffset;
   }
 
   /**
    * alias for presentationTimeOffset
    */
-  get pto () {
+  getPto () {
     return this.presentationTimeOffset;
   }
 
   /**
    * alias for timestamp (caution: not including timestamp-offset)
    */
-  get dts () {
+  getDts () {
     return this.timestamp;
-  }
-
-  get synchronizationId (): number {
-    return this._synchronizationId;
-  }
-
-  setSynchronizationId (id: number) {
-    this._synchronizationId = id;
   }
 
   /**
@@ -253,16 +205,8 @@ export class Packet {
     this._timescale = timescale;
   }
 
-  getTimescale (): number {
-    return this._timescale;
-  }
-
   setTimestampOffset (tOffset: number) {
     this._timestampOffset = tOffset;
-  }
-
-  getTimestampOffset (): number {
-    return this._timestampOffset;
   }
 
   /**
@@ -305,6 +249,17 @@ export class Packet {
     }, 0);
   }
 
+  setSynchronizationId (id: number) {
+    this._synchronizationId = id;
+  }
+
+  setSymbol (symbol: PacketSymbol) {
+    if (this.data.length > 0) {
+      throw new Error('Symbolic packets should not carry data');
+    }
+    this._symbol = symbol;
+  }
+
   isSymbolic (): boolean {
     return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
@@ -317,9 +272,48 @@ export class Packet {
     const p = this;
     const description =
       `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>` +
-      ` #{(@${p.getTimestampOffset()} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.getTimescale()}` +
+      ` #{(@${p.timestampOffset} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.timeScale}` +
       ` -> ${p.getNormalizedDts()} + ∂${p.getNormalizedCto()} [s]}` +
       `k(${p.defaultPayloadInfo.isKeyframe ? '1' : '0'})|b(${p.defaultPayloadInfo.isBitstreamHeader ? '1' : '0'})`;
     return description;
   }
+
+
+  mapArrayBuffers (): ArrayBuffer[] {
+    return BufferSlice.mapArrayBuffers(this.data);
+  }
+
+  forEachBufferSlice (
+    method: (bs: BufferSlice) => void,
+    errorHandler: (bs: BufferSlice, err: Error) => boolean = null,
+    context: any = null) {
+    let abort = false;
+    // we use an on-stack shallow copy of the array to prevent any
+    // side-effects on other manipulation of the puacket itself from within
+    // the loop we will run here.
+    this.data.slice().forEach((bufferSlice) => {
+      if (abort) {
+        return;
+      }
+      if (context) {
+        method = method.bind(context);
+        if (errorHandler) {
+          errorHandler = errorHandler.bind(context);
+        }
+      }
+      try {
+        method(bufferSlice);
+      } catch (err) {
+        if (errorHandler) {
+          if (!errorHandler(bufferSlice, err)) {
+            abort = true;
+            console.error('Packet-buffers loop aborted: ', err);
+          }
+        } else {
+          throw err;
+        }
+      }
+    });
+  }
+
 }
