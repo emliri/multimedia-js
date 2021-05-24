@@ -220,11 +220,11 @@ export class MP4Mux {
 
     private _state: MP4MuxState = null; // TODO: have proper init state in enum
 
-    oncodecinfo: (codecs: string[]) => void = (codecs: string[]) => {
+    oncodecinfo: (codecs: string[]) => void = () => {
       throw new Error('MP4Mux.oncodecinfo is not set');
     };
 
-    ondata: (data: Uint8Array) => void = (data) => {
+    ondata: (data: Uint8Array, baseMediaDts: number) => void = () => {
       throw new Error('MP4Mux.ondata is not set');
     };
 
@@ -380,6 +380,13 @@ export class MP4Mux {
       this._cachedFrames.length = 0;
     }
 
+    private _getMovTracksMinCachedDurationSeconds(): number {
+      return this._trackStates
+        .map(s => s.cachedDuration / s.trackInfo.timescale)
+        // sorts ascending (smallest first)
+        .sort()[0] || 0;
+    }
+
     private _initNeedHeaderDataState () {
       if (this._trackStates.some((ts) =>
         ts.trackInfo.codecId === AVC_VIDEO_CODEC_ID)) {
@@ -413,7 +420,7 @@ export class MP4Mux {
       }
 
       this.oncodecinfo(this._trackStates.map((ts) => ts.mimeTypeCodec));
-      this.ondata(header);
+      this.ondata(header, this._getMovTracksMinCachedDurationSeconds());
     }
 
     // TODO: make static (is stateless) and/or move to iso-boxes module
@@ -824,7 +831,7 @@ export class MP4Mux {
       this._state = MP4MuxState.MAIN_PACKETS;
 
       this.oncodecinfo(this._trackStates.map((ts) => ts.mimeTypeCodec));
-      this.ondata(header);
+      this.ondata(header, this._getMovTracksMinCachedDurationSeconds());
     }
 
     private _generateMovieFragment () {
@@ -987,7 +994,7 @@ export class MP4Mux {
       moof.write(chunk);
       mdat.write(chunk);
 
-      this.ondata(chunk);
+      this.ondata(chunk, this._getMovTracksMinCachedDurationSeconds());
 
       this._filePos += chunk.length;
     }

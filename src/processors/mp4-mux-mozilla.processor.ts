@@ -486,7 +486,7 @@ export class MP4MuxProcessor extends Processor {
     return videoTrack;
   }
 
-  private onMp4MuxerData_ (data: Uint8Array) {
+  private onMp4MuxerData_ (data: Uint8Array, minBaseDtsSeconds: number) {
     let mimeType: string;
 
     if (this.codecInfo_.length === 0) {
@@ -499,7 +499,6 @@ export class MP4MuxProcessor extends Processor {
       const hasVideo = this.codecInfo_.some((val) => val.startsWith('avc1.'));
       const hasBothAAndV = hasAudio && hasVideo;
 
-      // let baseMediaDts =
       let mediaType: string;
       if (hasAudio && !hasVideo) {
         mediaType = CommonMimeTypes.AUDIO_MP4;
@@ -514,7 +513,9 @@ export class MP4MuxProcessor extends Processor {
       mimeType = `${mediaType}; codecs="${codecs}"`;
     }
 
-    const p: Packet = Packet.fromArrayBuffer(data.buffer, mimeType);
+    const p: Packet = Packet
+      .fromArrayBuffer(data.buffer, mimeType);
+    p.setTimingInfo(minBaseDtsSeconds, 0, 1);
 
     log('transferring new mp4 bytes:', p.getTotalBytes(), p);
 
