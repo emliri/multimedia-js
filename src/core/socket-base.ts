@@ -214,12 +214,18 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     this.signalHandler_ = signalHandler;
   }
 
-  setTap (tap: SocketTap) {
+  setTap (tap: SocketTap): Socket {
     this.tap_ = tap;
+    return this;
   }
 
-  setOwner (owner: SocketOwner) {
+  getTap(): SocketTap {
+    return this.tap_;
+  }
+
+  setOwner (owner: SocketOwner): Socket {
     this.owner = owner;
+    return this;
   }
 
   getOwner (): SocketOwner {
