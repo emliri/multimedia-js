@@ -49,7 +49,7 @@
 
 - Remove all the "hard-coded" litteral strings and use codec string enums
 
-- Remove all the litteral numbers (especially duplicated values) and replace by const vars
+- Remove all the litteral numbers (especialy duplicated values) and replace by const vars
 
 # Architecture
 
