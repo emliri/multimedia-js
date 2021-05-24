@@ -164,105 +164,45 @@ export class Packet implements PacketDataModel {
     return this._synchronizationId;
   }
 
-  /**
-   * alias for presentationTimeOffset
-   */
-  getCto () {
-    return this.presentationTimeOffset;
+  setTimingInfo(dts, pts = 0, timeScale = 1, timeOffset = 0): Packet {
+    this.setTimescale(timeScale);
+    this.setTimestampOffset(timeOffset);
+    this.timestamp = dts;
+    this.presentationTimeOffset = pts;
+    return this;
   }
 
-  /**
-   * alias for presentationTimeOffset
-   */
-  getPto () {
-    return this.presentationTimeOffset;
-  }
-
-  /**
-   * alias for timestamp (caution: not including timestamp-offset)
-   */
-  getDts () {
-    return this.timestamp;
-  }
-
-  /**
-   * CTS <==> PTS
-   *
-   * CT(n) = DT(n) + CTO(n)
-   */
-  getPresentationTimestamp (): number {
-    return this._timestampOffset + this.timestamp + this.presentationTimeOffset;
-  }
-
-  getDecodingTimestamp (): number {
-    return this._timestampOffset + this.timestamp;
-  }
-
-  getCompositionTimeOffset () {
-    return this.presentationTimeOffset;
-  }
-
-  setTimescale (timescale: number) {
+  setTimescale (timescale: number): Packet {
     this._timescale = timescale;
+    return this;
   }
 
-  setTimestampOffset (tOffset: number) {
+  setTimestampOffset (tOffset: number): Packet {
     this._timestampOffset = tOffset;
+    return this;
   }
 
-  /**
-   * CTO == PTO == presentationTimeOffset
-   */
-  getNormalizedCto (): number {
-    return this.presentationTimeOffset / this._timescale;
+  setSynchronizationId (id: number): Packet {
+    this._synchronizationId = id;
+    return this;
   }
 
-  getNormalizedTimestampOffset (): number {
-    return this._timestampOffset / this._timescale;
+  setSymbol (symbol: PacketSymbol): Packet {
+    if (this.data.length > 0) {
+      throw new Error('Symbolic packets should not carry data');
+    }
+    this._symbol = symbol;
+    return this;
   }
 
-  getNormalizedPts (): number {
-    return this.getPresentationTimestamp() / this._timescale;
-  }
-
-  getNormalizedDts () {
-    return this.getDecodingTimestamp() / this._timescale;
-  }
-
-  getScaledPts (timescale: number): number {
-    return this.getNormalizedPts() * timescale;
-  }
-
-  getScaledDts (timescale: number): number {
-    return this.getNormalizedDts() * timescale;
-  }
-
-  /**
-   * CTO == PTO == presentationTimeOffset
-   */
-  getScaledCto (timescale): number {
-    return this.getNormalizedCto() * timescale;
+  isSymbolic (): boolean {
+    return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
 
   getTotalBytes () {
     return this.data.reduce((accu, buf: BufferSlice) => {
       return accu + buf.length;
     }, 0);
-  }
-
-  setSynchronizationId (id: number) {
-    this._synchronizationId = id;
-  }
-
-  setSymbol (symbol: PacketSymbol) {
-    if (this.data.length > 0) {
-      throw new Error('Symbolic packets should not carry data');
-    }
-    this._symbol = symbol;
-  }
-
-  isSymbolic (): boolean {
-    return this._symbol !== PacketSymbol.VOID && this.data.length === 0;
   }
 
   getSymbolName (): string {
@@ -317,4 +257,65 @@ export class Packet implements PacketDataModel {
     });
   }
 
+  /**
+   * alias for timestamp
+   */
+  getDts () {
+    return this.timestamp;
+  }
+
+  /**
+   * alias for presentationTimeOffset
+   */
+  getCto () {
+    return this.presentationTimeOffset;
+  }
+
+  /**
+   * CTS <==> PTS
+   *
+   * CT(n) = DT(n) + CTO(n)
+   */
+  getPresentationTimestamp (): number {
+    return this._timestampOffset + this.timestamp + this.presentationTimeOffset;
+  }
+
+  getDecodingTimestamp (): number {
+    return this._timestampOffset + this.timestamp;
+  }
+
+  getCompositionTimeOffset () {
+    return this.presentationTimeOffset;
+  }
+
+  /**
+   * CTO == PTO == presentationTimeOffset
+   */
+  getNormalizedCto (): number {
+    return this.presentationTimeOffset / this._timescale;
+  }
+
+  getNormalizedTimestampOffset (): number {
+    return this._timestampOffset / this._timescale;
+  }
+
+  getNormalizedPts (): number {
+    return this.getPresentationTimestamp() / this._timescale;
+  }
+
+  getNormalizedDts () {
+    return this.getDecodingTimestamp() / this._timescale;
+  }
+
+  getScaledPts (timescale: number): number {
+    return this.getNormalizedPts() * timescale;
+  }
+
+  getScaledDts (timescale: number): number {
+    return this.getNormalizedDts() * timescale;
+  }
+
+  getScaledCto (timescale): number {
+    return this.getNormalizedCto() * timescale;
+  }
 }
