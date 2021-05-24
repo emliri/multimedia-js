@@ -16,6 +16,7 @@ export interface SocketTap {
 }
 
 export class SocketTapDefault implements SocketTap {
+
   pushPacket(p: Packet): boolean {
     return true;
   }
@@ -47,3 +48,4 @@ export class SocketTapPacketCapture extends SocketTapDefault {
     this.dataList.length = 0;
   }
 }
+

@@ -5,7 +5,7 @@ import { SignalReceiver, SignalHandler, Signal, SignalReceiverCastResult } from 
 import { PayloadDescriptor } from './payload-description';
 import { Packet } from './packet';
 import { PacketSymbol } from './packet-symbol';
-import { SocketTap } from './socket-tap';
+import { SocketTap, SocketTapDefault } from './socket-tap';
 
 import { dispatchAsyncTask } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
@@ -212,6 +212,10 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
 
   setSignalHandler (signalHandler: SignalHandler) {
     this.signalHandler_ = signalHandler;
+  }
+
+  setAndGetTap<T extends SocketTap>(socketTap: T): T {
+    return <T> this.setTap(socketTap).getTap();
   }
 
   setTap (tap: SocketTap): Socket {
