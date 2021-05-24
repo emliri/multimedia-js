@@ -1,23 +1,7 @@
-import path from 'path';
+
+import { exec } from 'child_process';
 
 import { createWebpackConfig } from './webpack-config-factory';
-
-const configs = [];
-const debug = process.env.DEBUG === '1';
-const noFrills = process.env.NO_FRILLS === '1';
-const noTypes = process.env.NO_TYPES === '1';
-
-const exec = require('child_process').exec;
-
-function onAfterEmit (compilation) {
-  setTimeout(() => {
-    process.stdout.write('\n\n ---> Building exported type declarations now...\n\n');
-    exec('npm run build-decls \n npm run build-decls-post', (err, stdout, stderr) => {
-      if (stdout) process.stdout.write(stdout);
-      if (stderr) process.stderr.write(stderr);
-    });
-  }, 0);
-}
 
 function AfterEmitHookPlugin (onAfterEmit) {
   this.apply = function AfterEmitHook (compiler) {
@@ -27,10 +11,25 @@ function AfterEmitHookPlugin (onAfterEmit) {
   };
 }
 
+const configs = [];
+const debug = process.env.DEBUG === '1';
+const noFrills = process.env.NO_FRILLS === '1';
+const noTypes = process.env.NO_TYPES === '1';
+
+function execCompilerTypesOnly (compilation) {
+  setTimeout(() => {
+    process.stdout.write('\n\n ---> Building exported type declarations now...\n\n');
+    exec('npm run build-decls', (err, stdout, stderr) => {
+      if (stdout) process.stdout.write(stdout);
+      if (stderr) process.stderr.write(stderr);
+    });
+  }, 0);
+}
+
 const plugins = [];
 
 if (!noTypes) {
-  plugins.push(new AfterEmitHookPlugin(onAfterEmit));
+  plugins.push(new AfterEmitHookPlugin(execCompilerTypesOnly));
 }
 
 // All Library
