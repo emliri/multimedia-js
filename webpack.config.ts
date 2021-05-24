@@ -1,5 +1,5 @@
 
-import { exec } from 'child_process';
+import { spawnSync } from 'child_process';
 
 import { createWebpackConfig } from './webpack-config-factory';
 
@@ -18,11 +18,14 @@ const noTypes = process.env.NO_TYPES === '1';
 
 function execCompilerTypesOnly (compilation) {
   setTimeout(() => {
-    process.stdout.write('\n\n ---> Building exported type declarations now...\n\n');
+    /*
     exec('npm run build-decls', (err, stdout, stderr) => {
       if (stdout) process.stdout.write(stdout);
       if (stderr) process.stderr.write(stderr);
     });
+    */
+    console.log('Building type-declarations ...');
+    spawnSync('npm run build-decls', { shell: true, stdio: 'inherit' });
   }, 0);
 }
 
