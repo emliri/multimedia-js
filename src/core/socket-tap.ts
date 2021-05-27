@@ -1,6 +1,6 @@
-import { Nullable } from "../common-types";
-import { Packet } from "./packet";
-import { PacketDataModel } from "./packet-model";
+import { Nullable } from '../common-types';
+import { Packet } from './packet';
+import { PacketDataModel } from './packet-model';
 
 /**
  * pushPacket: when return false, packet vanishes, when true, get transferred
@@ -16,36 +16,34 @@ export interface SocketTap {
 }
 
 export class SocketTapDefault implements SocketTap {
-
-  pushPacket(p: Packet): boolean {
+  pushPacket (p: Packet): boolean {
     return true;
   }
 
-  popPacket(): Nullable<Packet> {
+  popPacket (): Nullable<Packet> {
     return null;
   }
 
-  isClear(): boolean {
+  isClear (): boolean {
     return true;
   }
 
-  flush() {}
+  flush () {}
 }
 
 export class SocketTapPacketCapture extends SocketTapDefault {
   readonly dataList: PacketDataModel[] = [];
 
-  pushPacket(p: Packet): boolean {
+  pushPacket (p: Packet): boolean {
     this.dataList.push(PacketDataModel.createFromPacket(p));
     return true;
   }
 
-  isClear() {
+  isClear () {
     return true;
   }
 
-  flush() {
+  flush () {
     this.dataList.length = 0;
   }
 }
-

@@ -22,7 +22,7 @@ export class InputSocket extends Socket {
     this.onReceive_ = onReceive;
   }
 
-  close() {
+  close () {
     super.close();
     this.onReceive_ = null;
   }

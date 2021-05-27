@@ -2,7 +2,7 @@
  * Symbols are passed into sockets and thus processors to convey in-band
  * information on the stream of packets.
  */
- export enum PacketSymbol {
+export enum PacketSymbol {
   VOID = 0, // void: a placeholder
   WAIT = 1, // further data received should not be processed (or transferred)
   WAIT_BUT_Q = 2, // further data received may be processed but must be queued until transferred (wait for resume)

@@ -127,7 +127,7 @@ export class Packet implements PacketDataModel {
     return this.data ? this.data.length : 0;
   }
 
-  get dataSlicesBytes(): number {
+  get dataSlicesBytes (): number {
     return this.getTotalBytes();
   }
 
@@ -164,7 +164,7 @@ export class Packet implements PacketDataModel {
     return this._synchronizationId;
   }
 
-  setTimingInfo(dts, pts = 0, timeScale = 1, timeOffset = 0): Packet {
+  setTimingInfo (dts, pts = 0, timeScale = 1, timeOffset = 0): Packet {
     this.setTimescale(timeScale);
     this.setTimestampOffset(timeOffset);
     this.timestamp = dts;
@@ -218,7 +218,6 @@ export class Packet implements PacketDataModel {
       `k(${p.defaultPayloadInfo.isKeyframe ? '1' : '0'})|b(${p.defaultPayloadInfo.isBitstreamHeader ? '1' : '0'})`;
     return description;
   }
-
 
   mapArrayBuffers (): ArrayBuffer[] {
     return BufferSlice.mapArrayBuffers(this.data);

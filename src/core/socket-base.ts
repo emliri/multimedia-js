@@ -118,15 +118,15 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   */
 
   protected handleWithTap_ (tap: SocketTap, p: Packet): Nullable<Packet> {
-    while(!tap.isClear()) {
+    while (!tap.isClear()) {
       const _p = tap.popPacket();
       if (!_p) throw new Error('SocketTap implementation failure: popPacket expected to return non-null since isClear was false');
       this.transferAsync_(_p);
     }
-    if (this.tap_
+    if (this.tap_ &&
       // if the Tap returns false,
       // it "keeps" the packet on its stack
-      && !this.tap_.pushPacket(p)) {
+      !this.tap_.pushPacket(p)) {
       return null;
     }
     return p;
@@ -216,7 +216,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     this.signalHandler_ = signalHandler;
   }
 
-  setAndGetTap<T extends SocketTap>(socketTap: T): T {
+  setAndGetTap<T extends SocketTap> (socketTap: T): T {
     return <T> this.setTap(socketTap).getTap();
   }
 
@@ -225,7 +225,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this;
   }
 
-  getTap(): SocketTap {
+  getTap (): SocketTap {
     return this.tap_;
   }
 
@@ -261,5 +261,3 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     super.emit(event, event);
   }
 }
-
-

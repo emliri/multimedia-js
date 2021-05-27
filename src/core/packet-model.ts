@@ -1,14 +1,13 @@
-import { Nullable } from "../common-types";
-import { BufferProperties } from "./buffer-props";
-import { Packet } from "./packet";
-import { PacketSymbol } from "./packet-symbol";
+import { Nullable } from '../common-types';
+import { BufferProperties } from './buffer-props';
+import { Packet } from './packet';
+import { PacketSymbol } from './packet-symbol';
 
 /**
  * Data-model used for metadata serialization (MUST be JSON-stringify-able)
  */
 export class PacketDataModel {
-
-  static createDefault(): PacketDataModel {
+  static createDefault (): PacketDataModel {
     return new PacketDataModel(
       0, 0, 0, 0, 0, 0, 0, 0,
       null,
@@ -17,7 +16,7 @@ export class PacketDataModel {
     );
   }
 
-  static createFromPacket(p: Packet): PacketDataModel {
+  static createFromPacket (p: Packet): PacketDataModel {
     const pdm = new PacketDataModel(
       p.timestamp,
       p.presentationTimeOffset,
@@ -34,7 +33,7 @@ export class PacketDataModel {
     return pdm;
   }
 
-  constructor(
+  constructor (
     readonly timestamp: number,
     readonly presentationTimeOffset: number,
     readonly timeScale: number,
@@ -45,8 +44,6 @@ export class PacketDataModel {
     readonly symbol: PacketSymbol = PacketSymbol.VOID,
     readonly defaultPayloadInfo: Nullable<BufferProperties> = null,
     readonly defaultMimeType: string,
-    readonly hasDefaultPayloadInfo: boolean,
+    readonly hasDefaultPayloadInfo: boolean
   ) {}
 }
-
-

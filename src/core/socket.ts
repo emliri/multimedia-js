@@ -37,7 +37,6 @@ export class SocketState {
 
 export type SocketTemplateGenerator = (st: SocketType) => SocketDescriptor;
 
-
 export interface SocketOwner extends SignlReceiver {
   getOwnSockets(): Set<Socket>;
   cast(signal: Signal): SignalReceiverCastResult;
@@ -52,7 +51,7 @@ export interface URLLoadingOutputSocket extends OutputSocket {
 }
 
 export class VoidSocket extends Socket {
-  transferSync(p: Packet): boolean {
+  transferSync (p: Packet): boolean {
     return true;
   }
 }

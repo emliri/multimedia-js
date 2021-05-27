@@ -1,25 +1,25 @@
 module.exports = {
-  'root': true,
-  'env': {
-    'commonjs': true,
-    'es6': true
+  root: true,
+  env: {
+    commonjs: true,
+    es6: true
   },
-  'globals': {},
+  globals: {},
   // see https://standardjs.com/
   // see https://github.com/standard/eslint-config-standard
-  'extends': [
+  extends: [
     'eslint:recommended',
     'standard'
   ],
-  'parser': '@typescript-eslint/parser',
-  'plugins': [
+  parser: '@typescript-eslint/parser',
+  plugins: [
     '@typescript-eslint'
   ],
-  'parserOptions': {
-    'ecmaVersion': 2018,
-    'sourceType': 'module'
+  parserOptions: {
+    ecmaVersion: 2018,
+    sourceType: 'module'
   },
-  'rules': {
+  rules: {
 
     // basics
 
@@ -28,15 +28,15 @@ module.exports = {
     'no-undef': 0,
 
     // our basic style rules
-    'semi': [
+    semi: [
       'error',
       'always'
     ],
-    'indent': [
+    indent: [
       'error',
       2
     ],
-    'quotes': [
+    quotes: [
       'error',
       'single'
     ],
@@ -47,15 +47,15 @@ module.exports = {
 
     // spacing
     'space-infix-ops': 2,
-    'space-unary-ops': [2, { 'words': true, 'nonwords': false }],
+    'space-unary-ops': [2, { words: true, nonwords: false }],
     'space-in-parens': ['error', 'never'],
-    'keyword-spacing': [2, { 'before': true, 'after': true }],
+    'keyword-spacing': [2, { before: true, after: true }],
 
     // enforce litteral objects on multiple lines
     'block-spacing': 'error',
-    'curly': 2,
+    curly: 2,
     'object-curly-spacing': ['error', 'always'],
-    'brace-style': ['error', '1tbs', { 'allowSingleLine': false }],
+    'brace-style': ['error', '1tbs', { allowSingleLine: false }],
 
     // limit code block and line length
     /*
@@ -89,11 +89,11 @@ module.exports = {
     'new-cap': 1,
     'no-undefined': 1,
 
-    "import/export": 0,
-    "no-use-before-define": 0,
-    "no-console": 0,
-    "camelcase": 1,
-    "no-use-before-define": 0,
+    'import/export': 0,
+    'no-use-before-define': 0,
+    'no-console': 0,
+    camelcase: 1,
+    'no-use-before-define': 0,
 
     'no-console': 1,
 

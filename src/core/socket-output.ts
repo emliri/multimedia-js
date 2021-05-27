@@ -17,7 +17,7 @@ export class OutputSocket extends Socket {
     super(SocketType.OUTPUT, descriptor);
   }
 
-  close() {
+  close () {
     super.close();
     this.disconnect();
   }

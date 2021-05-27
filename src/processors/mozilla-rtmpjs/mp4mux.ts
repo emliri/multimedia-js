@@ -380,7 +380,7 @@ export class MP4Mux {
       this._cachedFrames.length = 0;
     }
 
-    private _getMovTracksMinCachedDurationSeconds(): number {
+    private _getMovTracksMinCachedDurationSeconds (): number {
       return this._trackStates
         .map(s => s.cachedDuration / s.trackInfo.timescale)
         // sorts ascending (smallest first)

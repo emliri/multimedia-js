@@ -1,5 +1,5 @@
-import { PayloadDescriptor } from "./payload-description";
-import { SocketTemplateGenerator, SocketType } from "./socket";
+import { PayloadDescriptor } from './payload-description';
+import { SocketTemplateGenerator, SocketType } from './socket';
 
 export class SocketDescriptor {
   static fromMimeType (mimeType: string): SocketDescriptor {
