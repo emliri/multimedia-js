@@ -2,7 +2,7 @@ import 'should';
 
 import { MP4DemuxProcessor } from './mp4-demux.processor';
 
-import { H264ParseProcessor } from './h264-parse.processor';
+import { AVCNetworkAbstractionProcessor } from './avc-network-abstraction.proc';
 import { Packet } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { OutputSocket } from '../core/socket';
@@ -10,7 +10,7 @@ import { OutputSocket } from '../core/socket';
 const fs = require('fs');
 const path = require('path');
 
-describe('H264ParseProcessor', () => {
+describe('AVCNetworkAbstractionProcessor', () => {
   const testData: ArrayBuffer[] = [];
   const files = [
     './src/processors/mp4/fixtures/KickOutTheJams.mp4',
@@ -32,13 +32,13 @@ describe('H264ParseProcessor', () => {
   });
 
   it('should parse single NALUs and output them', (done) => {
-    const h264parse = new H264ParseProcessor();
+    const h264parse = new AVCNetworkAbstractionProcessor();
 
     const onMp4DemuxCreateOutput = (out: OutputSocket) => {
       out.connect(h264parse.in[0]);
     };
 
-    const mp4Demux = new MP4DemuxProcessor(onMp4DemuxCreateOutput);
+    const mp4Demux = new MP4DemuxProcessor();
 
     const p: Packet = Packet.fromArrayBuffer(testData[0]);
 

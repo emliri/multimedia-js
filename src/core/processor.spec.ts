@@ -1,6 +1,6 @@
 import 'should';
 
-import { Processor } from './processor';
+import { VoidProcessor } from './processor';
 import { SocketDescriptor } from './socket';
 
 let sd;
@@ -15,16 +15,16 @@ const newProc = (proc) => {
 
 beforeEach(() => {
   sd = new SocketDescriptor();
-  proc = new Processor();
+  proc = new VoidProcessor();
 });
 
 describe('Processor', () => {
   it('should be constructable', () => {
-    const proc = new Processor();
+    const proc = new VoidProcessor();
   });
 
   it('should be abstract and not implement `templateSocketDescriptor` method', () => {
-    const proc = new Processor();
+    const proc = new VoidProcessor();
 
     (proc.templateSocketDescriptor === undefined).should.be.true;
   });

@@ -64,9 +64,9 @@ describe('Socket', () => {
 
   it('should set/get its owner', () => {
     const socket = new VoidSocket(SocketType.INPUT, new SocketDescriptor());
-    const owner = {
-      getOwnSockets: () => {},
-      cast: () => {}
+    const owner: SocketOwner = {
+      getOwnSockets: () => new Set(),
+      cast: () => Promise.resolve(true)
     };
 
     socket.setOwner(owner);
@@ -169,11 +169,9 @@ describe('InputSocket', () => {
       return Promise.resolve(true);
     });
 
-    const owner = {
-      getOwnSockets: () => {},
-      cast: (s: Signal) => {
-        return Promise.resolve(false);
-      }
+    const owner: SocketOwner = {
+      getOwnSockets: () => new Set(),
+      cast: () => Promise.resolve(true)
     };
 
     socket.setOwner(owner);

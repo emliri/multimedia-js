@@ -412,3 +412,9 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       this.socketTemplate_ = st;
     }
 }
+
+export class VoidProcessor extends Processor {
+  protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
+    return true;
+  }
+}
