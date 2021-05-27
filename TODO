@@ -2,9 +2,17 @@
 
 - Hard-fork/clone our inspector.js dev branch into source-tree
 
-# Bugs
+# Build
 
-- Fix MP3 ES -> fMP4 case
+- Check why webpack watch mode doesn't always bail on TS errors
+
+- Move to multi-package "monorepo" build (Rush/Lerna like)
+
+- Rename src to lib
+
+- Compile worker-lib without procs-index
+
+- Analyze package size
 
 # Use-Cases
 
@@ -21,6 +29,8 @@
 - Inspect files and their bitsreams (mp4, ...). Tool for "online" mp4 / TS / web analysis and diff :)
 
 - Inspect AAC (like for h264)
+
+- Fix MP3 ES -> fMP4 case
 
 # Use-case: MP4 Concatenation
 
@@ -74,13 +84,7 @@
 
 - Automate running web test-cases
 
-# Build
 
-- Compile worker-lib without procs-index
-
-- Analyze package size
-
-- Rename src to lib
 
 
 
