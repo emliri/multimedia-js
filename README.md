@@ -1,5 +1,3 @@
-#### Travis CI status: https://travis-ci.org/emliri/multimedia-js
-
 #### NPM published as `@emliri/mmjs`: https://www.npmjs.com/package/@emliri/mmjs
 
 #### Netlify deployed [here](https://multimedia-js-nightly.netlify.com/).
