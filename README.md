@@ -1,3 +1,5 @@
+![Node.JS CI](https://github.com/emliri/multimedia-js/actions/workflows/node.js.yml/badge.svg)
+
 #### NPM published as `@emliri/mmjs`: https://www.npmjs.com/package/@emliri/mmjs
 
 #### Netlify deployed [here](https://multimedia-js-nightly.netlify.com/).
