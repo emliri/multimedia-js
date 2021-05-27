@@ -90,11 +90,10 @@ module.exports = {
     'no-undefined': 1,
 
     'import/export': 0,
-    'no-use-before-define': 0,
-    'no-console': 0,
-    camelcase: 1,
-    'no-use-before-define': 0,
 
+    camelcase: 1,
+
+    'no-use-before-define': 0,
     'no-console': 1,
 
     'prefer-const': 1,
