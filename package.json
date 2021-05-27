@@ -64,7 +64,6 @@
     "webpack-cli": "4.7.0",
     "worker-loader": "3.0.8"
   },
-
   "scripts": {
     "build": "webpack --progress",
     "build-decls": "tsc --build ./tsconfig-decl-only.json && rm -rf dist/mmjs.umd.d.ts && mv dist/index.d.ts dist/mmjs.umd.d.ts",
