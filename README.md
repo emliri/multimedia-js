@@ -1,6 +1,6 @@
-#### Travis CI status: <a href="https://travis-ci.org/emliri/multimedia-js"><img src="https://api.travis-ci.org/emliri/multimedia-js.svg?branch=master"></a>
+#### Travis CI status: https://travis-ci.org/emliri/multimedia-js
 
-#### NPM published as `multimedia`: <a href="https://travis-ci.org/tchakabam/multimedia-js"><img src="https://img.shields.io/npm/v/multimedia.svg?style=flat"></a>
+#### NPM published as `@emliri/mmjs`: https://www.npmjs.com/package/@emliri/mmjs
 
 #### Netlify deployed [here](https://multimedia-js-nightly.netlify.com/).
 
