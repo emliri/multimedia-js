@@ -1,6 +1,6 @@
 {
-  "name": "multimedia",
-  "version": "1.2.0",
+  "name": "mmjs",
+  "version": "3.0.0-pre.0",
   "description": "Multimedia streaming framework for browser and node",
   "main": "index.ts",
   "scripts": {
