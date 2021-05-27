@@ -414,7 +414,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
 }
 
 export class VoidProcessor extends Processor {
-  protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
+  protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
     return true;
   }
 }
