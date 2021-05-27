@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "noEmitOnError": true,
     "allowJs": true,
     "esModuleInterop": true,
     "sourceMap": true,
