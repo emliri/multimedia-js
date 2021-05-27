@@ -1,15 +1,16 @@
 import { EventEmitter } from 'eventemitter3';
 
-import { SocketEvent, SocketState, SocketDescriptor, SocketOwner, SocketEventHandler, SocketType } from './socket';
+import { SocketEvent, SocketState, SocketOwner, SocketEventHandler, SocketType } from './socket';
 import { SignalReceiver, SignalHandler, Signal, SignalReceiverCastResult } from './signal';
 import { PayloadDescriptor } from './payload-description';
 import { Packet } from './packet';
 import { PacketSymbol } from './packet-symbol';
-import { SocketTap, SocketTapDefault } from './socket-tap';
+import { SocketTap } from './socket-tap';
 
 import { dispatchAsyncTask } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { Nullable } from '../common-types';
+import { SocketDescriptor } from './socket-descriptor';
 
 const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
 
@@ -174,6 +175,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   }
 
   /**
+   * @abstract
    * Transfer the partial ownership of a Packet to this Socket.
    *
    * Implemented by the subclass in a "sync" manner.
@@ -259,3 +261,5 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     super.emit(event, event);
   }
 }
+
+

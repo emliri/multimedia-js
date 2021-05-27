@@ -1,11 +1,12 @@
-import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketOwner, Socket, SocketTemplateGenerator } from './socket';
+import { SocketType, InputSocket, OutputSocket, SocketOwner, Socket, SocketTemplateGenerator } from './socket';
 import { PacketSymbol, Packet } from './packet';
-import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult, collectSignalReceiverCastResults } from './signal';
+import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult } from './signal';
 import { EventEmitter } from 'eventemitter3';
 import { ProcessorTask } from './processor-task';
 import { getLogger } from '../logger';
 import { EnvVars } from './env';
 import { ErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
+import { SocketDescriptor } from './socket-descriptor';
 
 const { debug, log, error } = getLogger('Processor');
 

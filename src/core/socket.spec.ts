@@ -1,6 +1,6 @@
 import 'should';
 
-import { Socket, SocketType, SocketDescriptor, InputSocket, OutputSocket } from './socket';
+import { VoidSocket, SocketType, SocketDescriptor, InputSocket, OutputSocket, SocketOwner } from './socket';
 import { Packet, PacketReceiveCallback } from './packet';
 import { PayloadDescriptor } from './payload-description';
 import { Signal, SignalDirection } from './signal';
@@ -22,7 +22,7 @@ describe('Socket', () => {
     // but in Jest, it does!
     // is it a feature in order to test abstract things still?
     sd = new SocketDescriptor();
-    s = new Socket(SocketType.INPUT, sd);
+    s = new VoidSocket(SocketType.INPUT, sd);
 
     s.type().should.be.equal(SocketType.INPUT);
     s.payloads().should.be.equal(sd.payloads);
@@ -33,7 +33,7 @@ describe('Socket', () => {
     let s; let sd;
 
     sd = new SocketDescriptor();
-    s = new Socket(SocketType.OUTPUT, sd);
+    s = new VoidSocket(SocketType.OUTPUT, sd);
 
     s.type().should.be.equal(SocketType.OUTPUT);
     s.payloads().should.be.equal(sd.payloads);
@@ -44,7 +44,7 @@ describe('Socket', () => {
     let s; let sd;
 
     sd = new SocketDescriptor();
-    s = new Socket(SocketType.INPUT, sd);
+    s = new VoidSocket(SocketType.INPUT, sd);
 
     s.payloads().should.be.equal(sd.payloads);
 
@@ -57,13 +57,13 @@ describe('Socket', () => {
     let s; let sd;
 
     sd = new SocketDescriptor();
-    s = new Socket(SocketType.INPUT, sd);
+    s = new VoidSocket(SocketType.INPUT, sd);
 
     (s.transfer === undefined).should.be.true;
   });
 
   it('should set/get its owner', () => {
-    const socket = new Socket(SocketType.INPUT, new SocketDescriptor());
+    const socket = new VoidSocket(SocketType.INPUT, new SocketDescriptor());
     const owner = {
       getOwnSockets: () => {},
       cast: () => {}
@@ -74,7 +74,7 @@ describe('Socket', () => {
   });
 
   it('should on calling cast method pass signals to its signal-handler and return the result', (done) => {
-    const socket = new Socket(SocketType.INPUT, new SocketDescriptor());
+    const socket = new VoidSocket(SocketType.INPUT, new SocketDescriptor());
 
     socket.setSignalHandler((s: Signal) => {
       return Promise.resolve(true);
@@ -141,14 +141,14 @@ describe('InputSocket', () => {
   });
 
   it('should on calling cast method pass signals to its signal-handler and to the owner of the socket and return the result - case 1', (done) => {
-    const socket = new Socket(SocketType.INPUT, new SocketDescriptor());
+    const socket = new VoidSocket(SocketType.INPUT, new SocketDescriptor());
 
     socket.setSignalHandler((s: Signal) => {
-      return Promise.resolve(false);
+      return Promise.resolve(false);socket
     });
 
-    const owner = {
-      getOwnSockets: () => {},
+    const owner: SocketOwner = {
+      getOwnSockets: () => new Set(),
       cast: (s: Signal) => {
         return Promise.resolve(false);
       }
@@ -163,7 +163,7 @@ describe('InputSocket', () => {
   });
 
   it('should on calling cast method pass signals to its signal-handler and to the owner of the socket and return the result - case 2', (done) => {
-    const socket = new Socket(SocketType.INPUT, new SocketDescriptor());
+    const socket = new VoidSocket(SocketType.INPUT, new SocketDescriptor());
 
     socket.setSignalHandler((s: Signal) => {
       return Promise.resolve(true);
