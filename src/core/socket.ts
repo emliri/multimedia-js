@@ -37,7 +37,7 @@ export class SocketState {
 
 export type SocketTemplateGenerator = (st: SocketType) => SocketDescriptor;
 
-export interface SocketOwner extends SignlReceiver {
+export interface SocketOwner extends SignalReceiver {
   getOwnSockets(): Set<Socket>;
   cast(signal: Signal): SignalReceiverCastResult;
 }
