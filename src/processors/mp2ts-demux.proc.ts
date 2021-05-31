@@ -18,13 +18,10 @@ import {
   M2tADTSStreamEvent,
   M2tPacketStreamProgramTableEvent,
   M2tNaluType,
-  M2tStreamEventData,
   M2tElementaryStreamEvent
 } from './muxjs-m2t/muxjs-m2t-types';
 
 import {
-  CaptionStream,
-  MetadataStream,
   TransportPacketStream,
   TransportParseStream,
   ElementaryStream,
