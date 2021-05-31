@@ -11,8 +11,7 @@ export class PacketDataModel {
     return new PacketDataModel(
       0, 0, 0, 0, 0, 0, 0, 0,
       null,
-      '',
-      false
+      ''
     );
   }
 
@@ -27,8 +26,7 @@ export class PacketDataModel {
       p.dataSlicesBytes,
       p.symbol,
       p.defaultPayloadInfo,
-      p.defaultMimeType,
-      p.hasDefaultPayloadInfo
+      p.defaultMimeType
     );
     return pdm;
   }
@@ -43,7 +41,6 @@ export class PacketDataModel {
     readonly dataSlicesBytes: number = 0,
     readonly symbol: PacketSymbol = PacketSymbol.VOID,
     readonly defaultPayloadInfo: Nullable<BufferProperties> = null,
-    readonly defaultMimeType: string,
-    readonly hasDefaultPayloadInfo: boolean
+    readonly defaultMimeType: string
   ) {}
 }
