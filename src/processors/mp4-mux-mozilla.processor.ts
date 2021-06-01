@@ -10,11 +10,7 @@ import { getLogger, LoggerLevel } from '../logger';
 import {
   MP4Mux
 } from './mozilla-rtmpjs/mp4mux';
-import { AAC_SAMPLES_PER_FRAME,
-  AAC_SOUND_CODEC_ID,
-  MP3_SOUND_CODEC_ID,
-  AVC_VIDEO_CODEC_ID,
-  VP6_VIDEO_CODEC_ID,
+import {
   MP4MovieMetadata,
   MP4Track,
   MP4MuxFrameType,
@@ -27,6 +23,13 @@ import {
 import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
+import {
+  AAC_SOUND_CODEC_ID,
+  MP3_SOUND_CODEC_ID,
+  AVC_VIDEO_CODEC_ID,
+  VP6_VIDEO_CODEC_ID } from './mozilla-rtmpjs/mp4mux-codecs';
+
+import { AAC_SAMPLES_PER_FRAME } from './mp4-demux.processor';
 
 const { warn, info, log, debug } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
 
@@ -359,7 +362,6 @@ export class MP4MuxProcessor extends Processor {
   private _initMovieMetadata () {
     this.mp4MovieMetadata_ = {
       tracks: [],
-      duration: 0,
       audioTrackId: NaN,
       videoTrackId: NaN,
       audioBaseDts: 0,
@@ -458,7 +460,7 @@ export class MP4MuxProcessor extends Processor {
     width: number,
     height: number,
     durationSeconds: number,
-    timescale: number = framerate
+    timescale: number
   ): MP4Track {
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec);
@@ -480,11 +482,6 @@ export class MP4MuxProcessor extends Processor {
 
     this.mp4MovieMetadata_.videoTrackId = this._getNextTrackId();
     this.mp4MovieMetadata_.tracks.push(videoTrack);
-
-    if (!isNumber(this.mp4MovieMetadata_.duration) && isNumber(videoTrack.duration)) {
-      this.mp4MovieMetadata_.duration = videoTrack.duration;
-      log('set top-level metadata duration based on video-track:', this.mp4MovieMetadata_.duration);
-    }
 
     return videoTrack;
   }
