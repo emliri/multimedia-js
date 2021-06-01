@@ -1,28 +1,32 @@
 import { Processor, ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { Packet, PacketSymbol } from '../core/packet';
+import { BufferSlice } from '../core/buffer';
 import { InputSocket, SocketDescriptor, SocketType, SocketTemplateGenerator } from '../core/socket';
 import { prntprtty, isNumber } from '../common-utils';
-
-// This version of our mp4-mux processor is based on the mozilla rtmpjs code
-import {
-  MP4Mux,
-  MP4Track,
-  MP4MovieMetadata,
-  MP4MuxFrameType,
-  MP3_SOUND_CODEC_ID,
-  AAC_SOUND_CODEC_ID,
-  AVC_VIDEO_CODEC_ID,
-  VP6_VIDEO_CODEC_ID,
-  AAC_SAMPLES_PER_FRAME
-} from './mozilla-rtmpjs/mp4mux';
+import { CommonMimeTypes } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { BufferSlice } from '../core/buffer';
-import { makeNALUFromH264RbspData, makeAccessUnitFromNALUs, debugAccessUnit } from './h264/h264-tools';
+
+import {
+  MP4Mux
+} from './mozilla-rtmpjs/mp4mux';
+import { AAC_SAMPLES_PER_FRAME,
+  AAC_SOUND_CODEC_ID,
+  MP3_SOUND_CODEC_ID,
+  AVC_VIDEO_CODEC_ID,
+  VP6_VIDEO_CODEC_ID,
+  MP4MovieMetadata,
+  MP4Track,
+  MP4MuxFrameType,
+  AudioDetails } from './mozilla-rtmpjs/mp4mux-types';
+
+import {
+  makeNALUFromH264RbspData,
+  makeAccessUnitFromNALUs,
+  debugAccessUnit } from './h264/h264-tools';
 import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
-import { CommonMimeTypes } from '../core/payload-description';
 
 const { warn, info, log, debug } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
 
@@ -197,7 +201,7 @@ export class MP4MuxProcessor extends Processor {
         if (this.options_.flushOnKeyFrame &&
           p.defaultPayloadInfo.isKeyframe &&
           this._queuedVideoBitstreamHeader &&
-          this.videoPacketQueue_.length > 1 + 1) { // Q: why ?
+          this.videoPacketQueue_.length > 1 + 1) {
           this._flush();
         } else if (!this.options_.flushOnKeyFrame &&
           this._queuedVideoBitstreamHeader &&
@@ -321,8 +325,7 @@ export class MP4MuxProcessor extends Processor {
   private _processAudioPacket (p: Packet) {
     const audioTrackMetadata = this.mp4MovieMetadata_.tracks[this.audioTrackIndex_];
 
-    // NOTE: Object-type is inherently defined by mp4mux.ts
-    const audioDetails = {
+    const audioDetails: AudioDetails = {
       sampleDepth: audioTrackMetadata.samplesize,
       sampleRate: audioTrackMetadata.samplerate,
       samplesPerFrame: AAC_SAMPLES_PER_FRAME,
