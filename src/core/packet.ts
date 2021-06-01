@@ -143,7 +143,6 @@ export class Packet implements PacketDataModel {
     return this._symbol;
   }
 
-  // TODO: allow to inject default payload as well from the packet
   get defaultPayloadInfo (): BufferProperties {
     if (!this.hasDefaultPayloadInfo) {
       throw new Error('packet has no default payload description');
