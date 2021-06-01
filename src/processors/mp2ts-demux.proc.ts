@@ -85,7 +85,6 @@ export class MP2TSDemuxProcessor extends Processor {
   private _gotVideoPictureParamSet: boolean = false;
   private _videoTimingQueueIn: M2tH264StreamEvent[] = [];
   private _videoNaluQueueOut: VideoNALUInfo[] = [];
-  private _videoFramerate: number = null;
 
   private _metadataSocketMap: {[pid: number]: OutputSocket} = {};
 
@@ -183,12 +182,7 @@ export class MP2TSDemuxProcessor extends Processor {
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       log('h264Stream:', data);
 
-      // Video FPS not determined yet
-      if (this._videoFramerate === null) {
-        this._enqueueVideoTimingNalu(data);
-      } else {
-        this._handleVideoNalu(data);
-      }
+      this._handleVideoNalu(data);
     });
 
     pipeline.aacOrAdtsStream.on('data', (data: M2tADTSStreamEvent) => {
@@ -197,25 +191,6 @@ export class MP2TSDemuxProcessor extends Processor {
     });
 
     this._demuxPipeline = pipeline as M2tDemuxPipeline;
-  }
-
-  private _enqueueVideoTimingNalu (data: M2tH264StreamEvent) {
-    this._videoTimingQueueIn.push(data);
-    for (let i = this._videoTimingQueueIn.length - 1; i > 0; i--) { // -> will only run when queue length > 1
-      const frameDuration = (data.dts - this._videoTimingQueueIn[i - 1].dts);
-      if (frameDuration <= 0 || !Number.isFinite(frameDuration)) {
-        continue;
-      }
-      this._videoFramerate = Math.round(MPEG_TS_TIMESCALE_HZ / frameDuration);
-      info('got frame-duration / fps:', frameDuration, '/ 90kHz ;', this._videoFramerate, '[f/s]');
-      break;
-    }
-    if (this._videoFramerate) {
-      this._videoTimingQueueIn.forEach((data) => {
-        this._handleVideoNalu(data);
-      });
-      this._videoTimingQueueIn.length = 0;
-    }
   }
 
   private _handleAudioNalu (adtsEvent: M2tADTSStreamEvent) {
@@ -301,10 +276,6 @@ export class MP2TSDemuxProcessor extends Processor {
     const isHeader: boolean = h264Event.nalUnitType === M2tNaluType.SPS ||
                               h264Event.nalUnitType === M2tNaluType.PPS;
 
-    if (this._videoFramerate === null) {
-      warn('No video-fps/samplerate detectable yet');
-    }
-
     const dts = h264Event.dts;
     const cto = h264Event.pts - h264Event.dts;
 
@@ -351,7 +322,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     const props = new BufferProperties(
       CommonMimeTypes.VIDEO_H264,
-      this._videoFramerate || 0, // sample-rate (Hz)
+      0, // sample-rate (Hz)
       8, // sampleDepth
       1, // sample-duration num
       1 // samples-per-frame
