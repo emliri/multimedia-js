@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+import { BoxContainerBox, Box, RawTag } from './mp4iso-base';
+import { SampleTablePackager } from './mp4iso-sample-table';
+
 import {
   TrackBox,
   SampleEntry,
@@ -53,32 +56,31 @@ import {
   SELF_CONTAINED_DATA_REFERENCE_FLAG
 } from './mp4iso-boxes';
 
-import { BoxContainerBox, Box, RawTag } from './mp4iso-base';
-import { SampleTablePackager } from './mp4iso-sample-table';
-
 import {
   MP4Track,
-  AudioFrame,
-  VideoFrame,
   MP4MovieMetadata,
   MP4MuxFrameType,
-  AudioDetails,
-  SOUND_CODECS,
+  AudioFrame,
   AudioFrameType,
+  AudioDetails,
+  VideoFrame,
   VideoFrameFlag,
-  AVC_VIDEO_CODEC_ID,
-  VIDEOCODECS,
-  VideoFrameType,
-  VP6_VIDEO_CODEC_ID,
+  VideoFrameType
+} from './mp4mux-types';
+
+import {
+  SOUND_CODECS,
   AAC_SOUND_CODEC_ID,
   MP3_SOUND_CODEC_ID,
-  AAC_SAMPLING_FREQUENCIES
-} from './mp4mux-types';
+  VIDEOCODECS,
+  AVC_VIDEO_CODEC_ID,
+  VP6_VIDEO_CODEC_ID,
+} from './mp4mux-codecs';
 
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
 import { getLogger, LoggerLevel } from '../../logger';
 
-const { warn, debug } = getLogger('Mp4Mux', LoggerLevel.ON, true);
+const { warn, debug } = getLogger('Mp4Mux', LoggerLevel.OFF, true);
 
 enum MP4MuxState {
   CAN_GENERATE_HEADER = 0,
@@ -94,18 +96,34 @@ type MP4TrackState = {
   cachedDecodingTime: number;
 }
 
-type CachedFrame = {
+type MP4FrameInfo = {
   frame: AudioFrame | VideoFrame;
   timestamp: number;
   trackId: number;
 }
+
+export const AAC_SAMPLING_FREQUENCIES = [
+  96000,
+  88200,
+  64000,
+  48000,
+  44100,
+  32000,
+  24000,
+  22050,
+  16000,
+  12000,
+  11025,
+  8000,
+  7350
+];
 
 export class MP4Mux {
     private _trackStates: MP4TrackState[] = null;
     private _audioTrackState: MP4TrackState = null;
     private _videoTrackState: MP4TrackState = null;
 
-    private _cachedFrames: CachedFrame[] = [];
+    private _inputFramesQ: MP4FrameInfo[] = [];
 
     private _filePos: number = 0;
     private _fragmentCount: number = 0;
@@ -205,7 +223,7 @@ export class MP4Mux {
           channels: numChannels,
           samples: samplesPerFrame,
           type: isInitData ? AudioFrameType.HEADER : AudioFrameType.RAW,
-          sampleDescriptionIndex: 1 // FIXME: hard-coding to 1 breaks previous support
+          sampleDescriptionIndex: 1 // TODO: hard-coding to 1 breaks previous support
           // for AAC codec config in-stream discontinuities (used rather in MOV mode)
           // -> should use audioDetails as sortof high-level init-data here
         };
@@ -214,7 +232,7 @@ export class MP4Mux {
           throw new Error('Unexpected audio packet codec: ' + frame.codecDescription);
         }
 
-        this._cachedFrames.push({ frame, timestamp, trackId });
+        this._inputFramesQ.push({ frame, timestamp, trackId });
 
         break;
       }
@@ -238,7 +256,7 @@ export class MP4Mux {
         }
 
         if (frame.type === VideoFrameType.NALU) { // store frame
-          this._cachedFrames.push({ frame, timestamp, trackId });
+          this._inputFramesQ.push({ frame, timestamp, trackId });
         } else if (frame.type === VideoFrameType.HEADER) { // store init data
           this._insertCodecInitData(videoTrack, frame);
         }
@@ -256,7 +274,7 @@ export class MP4Mux {
     }
 
     public flush () {
-      if (this._cachedFrames.length > 0) {
+      if (this._inputFramesQ.length > 0) {
         if (this._fragmentedMode) {
           this._generateMovieFragment();
         } else {
@@ -268,7 +286,7 @@ export class MP4Mux {
     public reset () {
       this._filePos = 0;
       this._fragmentCount = 0;
-      this._cachedFrames.length = 0;
+      this._inputFramesQ.length = 0;
     }
 
     private _getMovTracksMinCachedDurationSeconds (): number {
@@ -316,14 +334,15 @@ export class MP4Mux {
 
     // TODO: make static (is stateless) and/or move to iso-boxes module
     private _createTrackBox (
-
       trakFlags: number,
       trackState: MP4TrackState,
       trackInfo: MP4Track,
       handlerType: string,
       handlerName: string,
       sampleTable: SampleTableBox,
-      ordinalIndex: number): TrackBox {
+      ordinalIndex: number
+      ): TrackBox {
+
       let specificMediaHandlerBox: SoundMediaHeaderBox | VideoMediaHeaderBox = null;
       let volume = 0;
       let width = 0;
@@ -340,31 +359,30 @@ export class MP4Mux {
         throw new Error('Unknown handler-type: ' + handlerType);
       }
 
-      // TODO: make these constants
-
       const trak = new TrackBox(
-        new TrackHeaderBox(trakFlags,
+        new TrackHeaderBox(
+          trakFlags,
           trackState.trackId,
-          trackInfo.duration / trackInfo.timescale, // FIXME: use unscaled duration values on external interface
+          trackInfo.duration,
           width, height,
           volume,
           ordinalIndex),
-        new MediaBox(
-          new MediaHeaderBox(trackInfo.timescale, trackInfo.duration, trackInfo.language),
-          new HandlerBox(handlerType, handlerName),
-          new MediaInformationBox(
-            specificMediaHandlerBox,
-            new DataInformationBox(
-              new DataReferenceBox([new DataEntryUrlBox(SELF_CONTAINED_DATA_REFERENCE_FLAG)])),
-            sampleTable
+          new MediaBox(
+            new MediaHeaderBox(trackInfo.timescale, trackInfo.duration, trackInfo.language),
+            new HandlerBox(handlerType, handlerName),
+            new MediaInformationBox(
+              specificMediaHandlerBox,
+              new DataInformationBox(
+                new DataReferenceBox([new DataEntryUrlBox(SELF_CONTAINED_DATA_REFERENCE_FLAG)])),
+              sampleTable
+            )
           )
-        )
       );
       return trak;
     }
 
     private _createPlainMovMediaData (): [MediaDataBox, StblSample[][]] {
-      const cachedPackets = this._cachedFrames;
+      const cachedPackets = this._inputFramesQ;
       const sampleTablesData: StblSample[][] = [];
       const chunks: Uint8Array[][] = [];
 
@@ -401,6 +419,7 @@ export class MP4Mux {
             };
 
             samples.push(s);
+
             chunks[i].push(audioPacket.data);
           }
 
@@ -529,7 +548,7 @@ export class MP4Mux {
 
           // mp4a.40.objectType
 
-          // FIXME: we are overriding previous writes here with the last entry of init datas.
+          // TODO: we are overriding previous writes here with the last entry of init datas.
           //        the problem with that is that we are only making one call to oncodecinfo callback
           //        so this could be changed to making several calls or passing an array of strings instead
           //        and making mimeTypeCodec field an array then.
@@ -551,7 +570,7 @@ export class MP4Mux {
 
           // For AVC, support multiple video codec data entries
           trackState.initializationData.forEach((codecInitData) => {
-            const avcC = codecInitData; // FIXME: synthesize avcC here from SPS/PPS duple
+            const avcC = codecInitData; // TODO: synthesize avcC here from SPS/PPS duple
 
             sampleEntry = new VideoSampleEntry('avc1',
               videoDataReferenceIndex,
@@ -565,7 +584,7 @@ export class MP4Mux {
 
             sampleDescEntry.push(sampleEntry);
 
-            // FIXME: we are overriding previous writes here with the last entry of init datas.
+            // TODO: we are overriding previous writes here with the last entry of init datas.
             //        the problem with that is that we are only making one call to oncodecinfo callback
             //        so this could be changed to making several calls or passing an array of strings instead
             //        and making mimeTypeCodec field an array then.
@@ -586,7 +605,8 @@ export class MP4Mux {
 
           sampleDescEntry.push(sampleEntry);
 
-          // TODO to lie about codec to get it playing in MSE?
+          // NOTE: lying about codec to get it playing in MSE :)
+          // TODO: should be optional?
           trackState.mimeTypeCodec = 'avc1.42001E';
           break;
 
@@ -621,16 +641,18 @@ export class MP4Mux {
       }
 
       /**
-       * We are using the smallest of all track durations to set the movie header duration field and timescale
+       * We are using the smallest of all track durations to
+       * set the movie header duration field and timescale
        */
-      const minDurationTrackInfo = this._trackStates
-        .sort((a, b) => (a.trackInfo.duration / a.trackInfo.timescale) -
-                      (b.trackInfo.duration / b.trackInfo.timescale))
-        [0].trackInfo;
+      const minDurationTrack: MP4Track = this._trackStates
+        // sort a *copy* of the track-states array by normalized duration prop
+        .slice().sort((a, b) => (a.trackInfo.duration / a.trackInfo.timescale) -
+                                  (b.trackInfo.duration / b.trackInfo.timescale))
+                          [0].trackInfo;
 
       const mvhd = new MovieHeaderBox(
-        1, // HACK
-        minDurationTrackInfo.duration / minDurationTrackInfo.timescale,
+        minDurationTrack.timescale,
+        minDurationTrack.duration,
         this._trackStates.length + 1
       );
 
@@ -723,14 +745,14 @@ export class MP4Mux {
         throw new Error('_generateMovieFragment can only be called in fragmented mode');
       }
 
-      const cachedFrames = this._cachedFrames;
+      const cachedFrames = this._inputFramesQ;
       if (cachedFrames.length === 0) {
         warn('_generateMovieFragment but no packets cached');
         return; // No data to produce.
       }
 
-      const tdatParts: Uint8Array[] = [];
       let tdatPosition: number = 0;
+      const tdatParts: Uint8Array[] = [];
       const trafs: TrackFragmentBox[] = [];
       const trafDataStarts: number[] = [];
 
@@ -794,7 +816,7 @@ export class MP4Mux {
             const {decodingTime, compositionTime} = videoPacket;
             const compositionTimeOffset = compositionTime - decodingTime;
 
-            let frameDuration: number = 0;
+            let frameDuration: number = Number.MAX_SAFE_INTEGER;
             if (j !== (trackPackets.length - 1)) {
               frameDuration =
                 trackPackets[j+1].frame.compositionTime - compositionTime;
@@ -805,7 +827,10 @@ export class MP4Mux {
 
             const frameFlags = (videoPacket.frameFlag === VideoFrameFlag.KEY)
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
-              : (SampleFlags.SAMPLE_DEPENDS_ON_OTHER | SampleFlags.SAMPLE_IS_NOT_SYNC);
+              : (
+                SampleFlags.SAMPLE_DEPENDS_ON_OTHER
+                | SampleFlags.SAMPLE_IS_NOT_SYNC
+                );
 
             debug('Frame flags at',
               videoPacket.decodingTime,
@@ -836,9 +861,12 @@ export class MP4Mux {
             0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
             SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
-          const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT | TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT |
-                            TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT |
-                            TrackRunFlags.SAMPLE_FLAGS_PRESENT | TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET;
+          const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT
+                            | TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT
+                            | TrackRunFlags.SAMPLE_SIZE_PRESENT
+                            | TrackRunFlags.SAMPLE_DURATION_PRESENT
+                            | TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET
+                            | TrackRunFlags.SAMPLE_FLAGS_PRESENT;
 
           trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
@@ -853,7 +881,7 @@ export class MP4Mux {
         trafs.push(traf);
       }
 
-      this._cachedFrames.length = 0;
+      this._inputFramesQ.length = 0;
 
       const moofHeader = new MovieFragmentHeaderBox(++this._fragmentCount);
       const moof = new MovieFragmentBox(moofHeader, trafs);
