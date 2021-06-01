@@ -14,12 +14,14 @@ import {
   MP4MovieMetadata,
   MP4Track,
   MP4MuxFrameType,
-  AudioDetails } from './mozilla-rtmpjs/mp4mux-types';
+  AudioDetails
+} from './mozilla-rtmpjs/mp4mux-types';
 
 import {
   makeNALUFromH264RbspData,
   makeAccessUnitFromNALUs,
-  debugAccessUnit } from './h264/h264-tools';
+  debugAccessUnit
+} from './h264/h264-tools';
 import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
@@ -27,7 +29,8 @@ import {
   AAC_SOUND_CODEC_ID,
   MP3_SOUND_CODEC_ID,
   AVC_VIDEO_CODEC_ID,
-  VP6_VIDEO_CODEC_ID } from './mozilla-rtmpjs/mp4mux-codecs';
+  VP6_VIDEO_CODEC_ID
+} from './mozilla-rtmpjs/mp4mux-codecs';
 
 import { AAC_SAMPLES_PER_FRAME } from './mp4-demux.processor';
 

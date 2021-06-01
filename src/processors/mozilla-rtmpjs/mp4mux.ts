@@ -74,7 +74,7 @@ import {
   MP3_SOUND_CODEC_ID,
   VIDEOCODECS,
   AVC_VIDEO_CODEC_ID,
-  VP6_VIDEO_CODEC_ID,
+  VP6_VIDEO_CODEC_ID
 } from './mp4mux-codecs';
 
 import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
@@ -341,8 +341,7 @@ export class MP4Mux {
       handlerName: string,
       sampleTable: SampleTableBox,
       ordinalIndex: number
-      ): TrackBox {
-
+    ): TrackBox {
       let specificMediaHandlerBox: SoundMediaHeaderBox | VideoMediaHeaderBox = null;
       let volume = 0;
       let width = 0;
@@ -367,16 +366,16 @@ export class MP4Mux {
           width, height,
           volume,
           ordinalIndex),
-          new MediaBox(
-            new MediaHeaderBox(trackInfo.timescale, trackInfo.duration, trackInfo.language),
-            new HandlerBox(handlerType, handlerName),
-            new MediaInformationBox(
-              specificMediaHandlerBox,
-              new DataInformationBox(
-                new DataReferenceBox([new DataEntryUrlBox(SELF_CONTAINED_DATA_REFERENCE_FLAG)])),
-              sampleTable
-            )
+        new MediaBox(
+          new MediaHeaderBox(trackInfo.timescale, trackInfo.duration, trackInfo.language),
+          new HandlerBox(handlerType, handlerName),
+          new MediaInformationBox(
+            specificMediaHandlerBox,
+            new DataInformationBox(
+              new DataReferenceBox([new DataEntryUrlBox(SELF_CONTAINED_DATA_REFERENCE_FLAG)])),
+            sampleTable
           )
+        )
       );
       return trak;
     }
@@ -648,7 +647,7 @@ export class MP4Mux {
         // sort a *copy* of the track-states array by normalized duration prop
         .slice().sort((a, b) => (a.trackInfo.duration / a.trackInfo.timescale) -
                                   (b.trackInfo.duration / b.trackInfo.timescale))
-                          [0].trackInfo;
+        [0].trackInfo;
 
       const mvhd = new MovieHeaderBox(
         minDurationTrack.timescale,
@@ -758,7 +757,7 @@ export class MP4Mux {
 
       for (let i = 0; i < this._trackStates.length; i++) {
         const trackState = this._trackStates[i];
-        const {trackInfo, trackId} = trackState;
+        const { trackInfo, trackId } = trackState;
 
         // Finding all packets for this track.
         const trackPackets = cachedFrames.filter((cachedPacket) => cachedPacket.trackId === trackId);
@@ -780,8 +779,8 @@ export class MP4Mux {
           for (let j = 0; j < trackPackets.length; j++) {
             const audioPacket: AudioFrame = trackPackets[j].frame as AudioFrame;
             const audioFrameDuration =
-              Math.round((trackInfo.timescale * audioPacket.samples)
-                / trackInfo.samplerate);
+              Math.round((trackInfo.timescale * audioPacket.samples) /
+                trackInfo.samplerate);
 
             tdatParts.push(audioPacket.data);
             tdatPosition += audioPacket.data.length;
@@ -810,16 +809,15 @@ export class MP4Mux {
 
         case AVC_VIDEO_CODEC_ID:
         case VP6_VIDEO_CODEC_ID: {
-
           for (let j = 0; j < trackPackets.length; j++) {
             const videoPacket: VideoFrame = trackPackets[j].frame as VideoFrame;
-            const {decodingTime, compositionTime} = videoPacket;
+            const { decodingTime, compositionTime } = videoPacket;
             const compositionTimeOffset = compositionTime - decodingTime;
 
             let frameDuration: number = Number.MAX_SAFE_INTEGER;
             if (j !== (trackPackets.length - 1)) {
               frameDuration =
-                trackPackets[j+1].frame.compositionTime - compositionTime;
+                trackPackets[j + 1].frame.compositionTime - compositionTime;
             }
 
             tdatParts.push(videoPacket.data);
@@ -828,9 +826,9 @@ export class MP4Mux {
             const frameFlags = (videoPacket.frameFlag === VideoFrameFlag.KEY)
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
               : (
-                SampleFlags.SAMPLE_DEPENDS_ON_OTHER
-                | SampleFlags.SAMPLE_IS_NOT_SYNC
-                );
+                SampleFlags.SAMPLE_DEPENDS_ON_OTHER |
+                SampleFlags.SAMPLE_IS_NOT_SYNC
+              );
 
             debug('Frame flags at',
               videoPacket.decodingTime,
@@ -847,7 +845,7 @@ export class MP4Mux {
               flags: frameFlags
             };
             if (Number.isFinite(frameDuration)) {
-              trunSample.duration = frameDuration
+              trunSample.duration = frameDuration;
             }
 
             trunSamples.push(trunSample);
@@ -861,12 +859,12 @@ export class MP4Mux {
             0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
             SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
-          const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT
-                            | TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT
-                            | TrackRunFlags.SAMPLE_SIZE_PRESENT
-                            | TrackRunFlags.SAMPLE_DURATION_PRESENT
-                            | TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET
-                            | TrackRunFlags.SAMPLE_FLAGS_PRESENT;
+          const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT |
+                            TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT |
+                            TrackRunFlags.SAMPLE_SIZE_PRESENT |
+                            TrackRunFlags.SAMPLE_DURATION_PRESENT |
+                            TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET |
+                            TrackRunFlags.SAMPLE_FLAGS_PRESENT;
 
           trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 

@@ -45,7 +45,7 @@ export class PacketDataModel {
     readonly defaultMimeType: string
   ) {}
 
-  toString() {
+  toString () {
     return prntprtty(this);
   }
 }

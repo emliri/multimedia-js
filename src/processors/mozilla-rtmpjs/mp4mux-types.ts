@@ -33,7 +33,6 @@ export type MP4MovieMetadata = {
   videoBaseDts: number;
 }
 
-
 export type AudioFrame = {
   decodingTime: number,
   compositionTime: number,
