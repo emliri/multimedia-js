@@ -128,7 +128,33 @@ export class MP4Mux {
     private _filePos: number = 0;
     private _fragmentCount: number = 0;
 
-    private _state: MP4MuxState = null; // TODO: have proper init state in enum
+    private _state: MP4MuxState = null;
+
+    public constructor (
+      movMetadata: MP4MovieMetadata,
+      private _fragmentedMode: boolean = true,
+      private _generateHeader: boolean = true
+    ) {
+      this._trackStates = movMetadata.tracks.map((trackInfo: MP4Track, index) => {
+        const state: MP4TrackState = {
+          trackId: index + 1,
+          trackInfo,
+          baseMediaDecodeTime: 0,
+          initializationData: []
+        };
+        if (movMetadata.audioTrackId === state.trackId) {
+          state.baseMediaDecodeTime = movMetadata.audioBaseDts;
+          this._audioTrackState = state;
+        }
+        if (movMetadata.videoTrackId === state.trackId) {
+          state.baseMediaDecodeTime = movMetadata.videoBaseDts;
+          this._videoTrackState = state;
+        }
+        return state;
+      }, this);
+
+      this._initNeedHeaderDataState();
+    }
 
     oncodecinfo: (codecs: string[]) => void = () => {
       throw new Error('MP4Mux.oncodecinfo is not set');
@@ -138,36 +164,10 @@ export class MP4Mux {
       throw new Error('MP4Mux.ondata is not set');
     };
 
-    public constructor (
-      private _movMetadata: MP4MovieMetadata,
-      private _fragmentedMode: boolean = true,
-      private _generateHeader: boolean = true
-    ) {
-      this._trackStates = this._movMetadata.tracks.map((trackInfo: MP4Track, index) => {
-        const state: MP4TrackState = {
-          trackId: index + 1,
-          trackInfo,
-          baseMediaDecodeTime: 0,
-          initializationData: []
-        };
-        if (this._movMetadata.audioTrackId === state.trackId) {
-          state.baseMediaDecodeTime = this._movMetadata.audioBaseDts;
-          this._audioTrackState = state;
-        }
-        if (this._movMetadata.videoTrackId === state.trackId) {
-          state.baseMediaDecodeTime = this._movMetadata.videoBaseDts;
-          this._videoTrackState = state;
-        }
-        return state;
-      }, this);
-
-      this._initNeedHeaderDataState();
-    }
-
     /**
      * @returns Number of fragments/chunks written (only fragmented mode)
      */
-    public getFragmnentCount (): number {
+    public getFragmentCount (): number {
       return this._fragmentCount; // will be pre-incremented on each fragment
     }
 
@@ -184,10 +184,6 @@ export class MP4Mux {
 
     public getVideoTrackState (): MP4TrackState {
       return this._videoTrackState;
-    }
-
-    getMovieMetadata (): MP4MovieMetadata {
-      return this._movMetadata;
     }
 
     public pushFrame (

@@ -195,7 +195,6 @@ export class MP4MuxProcessor extends Processor {
 
         this._addVideoTrack(
           MP4MuxProcessorSupportedCodecs.AVC,
-          p.defaultPayloadInfo.getSamplingRate(), // SHOULD be fps (but MAY be 0)
           p.defaultPayloadInfo.details.width,
           p.defaultPayloadInfo.details.height,
           p.defaultPayloadInfo.details.sequenceDurationInSeconds, // CAN be 0
@@ -400,7 +399,6 @@ export class MP4MuxProcessor extends Processor {
 
     if (this.videoPacketQueue_.length) {
       debug('processing video packet queue of length', this.videoPacketQueue_.length);
-      // console.log('first video data', this.videoPacketQueue_[0].toString())
       this.videoPacketQueue_.forEach((packet: Packet) => {
         this._processVideoPacket(packet);
       });
@@ -409,7 +407,6 @@ export class MP4MuxProcessor extends Processor {
 
     if (this.audioPacketQueue_.length) {
       debug('processing audio packet queue of length', this.audioPacketQueue_.length);
-      // console.log('first audio data', this.audioPacketQueue_[0].toString())
       this.audioPacketQueue_.forEach((packet: Packet) => {
         this._processAudioPacket(packet);
       });
@@ -459,7 +456,6 @@ export class MP4MuxProcessor extends Processor {
 
   private _addVideoTrack (
     videoCodec: MP4MuxProcessorSupportedCodecs,
-    framerate: number,
     width: number,
     height: number,
     durationSeconds: number,
@@ -474,7 +470,6 @@ export class MP4MuxProcessor extends Processor {
       codecDescription: videoCodec,
       codecId: getCodecId(videoCodec),
       timescale,
-      framerate,
       width,
       height,
       language: 'und'
@@ -482,7 +477,7 @@ export class MP4MuxProcessor extends Processor {
 
     log('creating video track:', videoCodec,
       'duration:', videoTrack.duration / timescale, 'secs',
-      'sequence timescale:', timescale, 'fps:', framerate);
+      'sequence timescale:', timescale);
 
     this.mp4MovieMetadata_.videoTrackId = this._getNextTrackId();
     this.mp4MovieMetadata_.tracks.push(videoTrack);

@@ -11,7 +11,6 @@ export type MP4Track = {
   duration: number, // -1 for unknown
 
   // video
-  framerate?: number;
   width?: number;
   height?: number;
 
