@@ -85,19 +85,9 @@ export class PayloadDescriptor {
   readonly mimeType: MimeType = null;
 
   /**
-   * unit-less factor to deal with arbitrary integer sample-rates without loosing precision
-   */
-  readonly sampleDurationNumerator: number;
-
-  /**
    * integer bit-depth of one sample
    */
   readonly sampleDepth: SampleBitDepth = SampleBitDepth.UNSPECIFIED;
-
-  /**
-   * Hertz [Hz]
-   */
-  readonly sampleRateInteger: number;
 
   /**
    * data format/layout applicable for raw signal packets
@@ -110,7 +100,17 @@ export class PayloadDescriptor {
    */
   details: PayloadDetails = new PayloadDetails();
 
-  elementaryStreamId: number = NaN; // FIXME: make this a string
+  elementaryStreamId: number = NaN;
+
+  /**
+   * unit-less factor to deal with arbitrary integer sample-rates without loosing precision
+   */
+  sampleDurationNumerator: number;
+
+  /**
+   * Hertz [Hz]
+   */
+  sampleRateInteger: number;
 
   /**
    * codec (if applicable)
@@ -120,7 +120,7 @@ export class PayloadDescriptor {
   constructor (mimeType: string,
     sampleRateInteger: number = 0,
     sampleDepth: number = 0,
-    sampleDurationNumerator: number = 1) {
+    sampleDurationNumerator: number = 0) {
     if (!isIntegerIEEE754(sampleRateInteger) || !isInteger(sampleDurationNumerator)) {
       throw new Error(`sample-rate has to be safe-int (=${sampleRateInteger}) and duration-numerator has to be int too (=${sampleDurationNumerator}).`);
     }
@@ -193,6 +193,11 @@ export class PayloadDescriptor {
    */
   getSampleDuration () {
     return this.sampleDurationNumerator / this.sampleRateInteger;
+  }
+
+  setSampleDuration (ptsDiff, timescale) {
+    this.sampleDurationNumerator = ptsDiff;
+    this.sampleRateInteger = timescale;
   }
 
   /**
@@ -285,7 +290,7 @@ export class PayloadCodec {
   }
 
   static isAac (codec: string) {
-    return codec.startsWith('mp4a') || codec.startsWith('aac');
+    return codec.startsWith('mp4a') || codec.startsWith('aac');
   }
 
   static isMp3 (codec: string) {
