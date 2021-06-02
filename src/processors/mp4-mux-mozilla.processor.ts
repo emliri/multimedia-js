@@ -320,9 +320,12 @@ export class MP4MuxProcessor extends Processor {
         AVC_VIDEO_CODEC_ID,
         data,
         p.timestamp,
-        bufferSlice.props.isBitstreamHeader, // FIXME: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header, see H264-parse-proc
+        // NOTE: we are expecting MPEG4 `AvcC` data as bitstream header
+        // see AVC-NAL-payloader-proc (ffmpeg muxer does this too)
+        bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.presentationTimeOffset
+        p.presentationTimeOffset,
+        p.defaultPayloadInfo.sampleDurationNumerator
       );
     });
   }
@@ -352,6 +355,7 @@ export class MP4MuxProcessor extends Processor {
         false,
         bufferSlice.props.isKeyframe,
         p.presentationTimeOffset,
+        0,
         audioDetails
       );
     });

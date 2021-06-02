@@ -194,6 +194,7 @@ export class MP4Mux {
       isInitData: boolean = false,
       isKeyframe: boolean = false,
       cto: number = 0,
+      sampleDuration: number,
       audioDetails: AudioDetails = null
     ) {
       switch (type) {
@@ -244,6 +245,7 @@ export class MP4Mux {
           type: isInitData ? VideoFrameType.HEADER : VideoFrameType.NALU,
           decodingTime: timestamp,
           compositionTime: timestamp + cto,
+          frameDuration: sampleDuration,
           sampleDescriptionIndex: videoTrack.initializationData.length
         };
 
@@ -810,39 +812,40 @@ export class MP4Mux {
             const { decodingTime, compositionTime } = videoPacket;
             const compositionTimeOffset = compositionTime - decodingTime;
 
-            let frameDuration: number = Number.MAX_SAFE_INTEGER;
-            if (j !== (trackPackets.length - 1)) {
-              frameDuration =
-                trackPackets[j + 1].frame.compositionTime - compositionTime;
+            let sampleDuration: number = 0;
+            if (Number.isFinite(videoPacket.frameDuration)
+              && videoPacket.frameDuration > 0) {
+              sampleDuration = videoPacket.frameDuration;
+            } else if (j < (trackPackets.length - 1)) {
+              sampleDuration = trackPackets[j + 1].frame.compositionTime - compositionTime;
+              sampleDuration = Math.max(0, sampleDuration);
             }
 
             tdatParts.push(videoPacket.data);
             tdatPosition += videoPacket.data.length;
 
-            const frameFlags = (videoPacket.frameFlag === VideoFrameFlag.KEY)
+            const sampleFlags = (videoPacket.frameFlag === VideoFrameFlag.KEY)
               ? SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS
               : (
                 SampleFlags.SAMPLE_DEPENDS_ON_OTHER |
                 SampleFlags.SAMPLE_IS_NOT_SYNC
               );
 
-            debug('Frame flags at',
+            debug('Sample flags at',
               videoPacket.decodingTime,
               videoPacket.compositionTime,
               '(DTS/PTS):',
-              videoPacket.frameFlag,
-              'Frame-duration:',
-              frameDuration
+              videoPacket.frameFlag, sampleFlags,
+              'Sample-duration:',
+              sampleDuration
             );
 
             const trunSample: TrackRunSample = {
               compositionTimeOffset,
               size: videoPacket.data.length,
-              flags: frameFlags
+              flags: sampleFlags,
+              duration: sampleDuration
             };
-            if (Number.isFinite(frameDuration)) {
-              trunSample.duration = frameDuration;
-            }
 
             trunSamples.push(trunSample);
 

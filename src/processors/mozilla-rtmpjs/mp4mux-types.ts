@@ -60,12 +60,16 @@ export type AudioDetails = {
 
 export type VideoFrame = {
   frameFlag: VideoFrameFlag;
+
   codecId: number;
   codecDescription: string;
   data: Uint8Array;
   type: VideoFrameType;
+
   decodingTime: number,
   compositionTime: number;
+  frameDuration: number;
+
   horizontalOffset?: number;
   verticalOffset?: number;
   sampleDescriptionIndex: number;
