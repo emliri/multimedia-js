@@ -813,8 +813,8 @@ export class MP4Mux {
             const compositionTimeOffset = compositionTime - decodingTime;
 
             let sampleDuration: number = 0;
-            if (Number.isFinite(videoPacket.frameDuration)
-              && videoPacket.frameDuration > 0) {
+            if (Number.isFinite(videoPacket.frameDuration) &&
+              videoPacket.frameDuration > 0) {
               sampleDuration = videoPacket.frameDuration;
             } else if (j < (trackPackets.length - 1)) {
               sampleDuration = trackPackets[j + 1].frame.compositionTime - compositionTime;
