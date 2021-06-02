@@ -1,6 +1,6 @@
 export enum MP4MuxFrameType {
   AUDIO = 8,
-  VIDEO = 9 // legacy support numbers (for FLV package! :D), not sure if can be replaced
+  VIDEO = 9
 }
 
 export type MP4Track = {
@@ -64,7 +64,7 @@ export type VideoFrame = {
   codecId: number;
   codecDescription: string;
   data: Uint8Array;
-  type: VideoFrameType; // TODO: get rid of this
+  type: VideoFrameType;
   decodingTime: number,
   compositionTime: number;
   horizontalOffset?: number;

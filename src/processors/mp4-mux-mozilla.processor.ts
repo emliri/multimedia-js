@@ -480,7 +480,8 @@ export class MP4MuxProcessor extends Processor {
       language: 'und'
     };
 
-    log('creating video track:', videoCodec, 'duration:', videoTrack.duration / timescale, 'secs',
+    log('creating video track:', videoCodec,
+      'duration:', videoTrack.duration / timescale, 'secs',
       'sequence timescale:', timescale, 'fps:', framerate);
 
     this.mp4MovieMetadata_.videoTrackId = this._getNextTrackId();

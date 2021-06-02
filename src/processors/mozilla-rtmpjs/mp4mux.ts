@@ -93,7 +93,7 @@ type MP4TrackState = {
   trackInfo: MP4Track;
   initializationData: Uint8Array[];
   mimeTypeCodec?: string;
-  cachedDecodingTime: number;
+  baseMediaDecodeTime: number;
 }
 
 type MP4FrameInfo = {
@@ -147,15 +147,15 @@ export class MP4Mux {
         const state: MP4TrackState = {
           trackId: index + 1,
           trackInfo,
-          cachedDecodingTime: 0,
+          baseMediaDecodeTime: 0,
           initializationData: []
         };
         if (this._movMetadata.audioTrackId === state.trackId) {
-          state.cachedDecodingTime = this._movMetadata.audioBaseDts;
+          state.baseMediaDecodeTime = this._movMetadata.audioBaseDts;
           this._audioTrackState = state;
         }
         if (this._movMetadata.videoTrackId === state.trackId) {
-          state.cachedDecodingTime = this._movMetadata.videoBaseDts;
+          state.baseMediaDecodeTime = this._movMetadata.videoBaseDts;
           this._videoTrackState = state;
         }
         return state;
@@ -291,7 +291,7 @@ export class MP4Mux {
 
     private _getMovTracksMinCachedDurationSeconds (): number {
       return this._trackStates
-        .map(s => s.cachedDecodingTime / s.trackInfo.timescale)
+        .map(s => s.baseMediaDecodeTime / s.trackInfo.timescale)
         // sorts ascending (smallest first)
         .sort()[0] || 0;
     }
@@ -422,7 +422,7 @@ export class MP4Mux {
             chunks[i].push(audioPacket.data);
           }
 
-          trackState.cachedDecodingTime = dts;
+          trackState.baseMediaDecodeTime = dts;
 
           break;
         }
@@ -444,7 +444,7 @@ export class MP4Mux {
             chunks[i].push(videoPacket.data);
           }
 
-          trackState.cachedDecodingTime = dts;
+          trackState.baseMediaDecodeTime = dts;
 
           break;
         }
@@ -765,7 +765,7 @@ export class MP4Mux {
           continue;
         }
 
-        const tfdt = new TrackFragmentBaseMediaDecodeTimeBox(trackState.cachedDecodingTime);
+        const tfdt = new TrackFragmentBaseMediaDecodeTimeBox(trackState.baseMediaDecodeTime);
         const trunSamples: TrackRunSample[] = [];
 
         let trun: TrackRunBox;
@@ -790,7 +790,7 @@ export class MP4Mux {
               size: audioPacket.data.length
             });
 
-            trackState.cachedDecodingTime = audioPacket.decodingTime;
+            trackState.baseMediaDecodeTime = audioPacket.decodingTime;
           }
 
           const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
@@ -850,7 +850,7 @@ export class MP4Mux {
 
             trunSamples.push(trunSample);
 
-            trackState.cachedDecodingTime = decodingTime;
+            trackState.baseMediaDecodeTime = decodingTime;
           }
 
           const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
