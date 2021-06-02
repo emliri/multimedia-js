@@ -37,7 +37,7 @@ export class ChunkToMediaSourceFlow extends Flow {
   protected onWaitingToFlowing_ (done: VoidCallback) {
     const mp4DemuxProc = newProcessorWorkerShell(MP4DemuxProcessor);
     const tsDemuxProc = newProcessorWorkerShell(MP2TSDemuxProcessor);
-    const h264ParseProc = newProcessorWorkerShell(AVCNetworkAbstractionProcessor);
+    const h264ParseProc = newProcessorWorkerShell(unsafeCastProcessorType(AVCNetworkAbstractionProcessor));
     const mp4MuxProc = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor));
 
     const xhrSocket = this._xhrSocket = new XhrSocket(this._url);

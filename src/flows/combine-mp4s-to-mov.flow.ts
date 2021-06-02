@@ -64,7 +64,7 @@ export class CombineMp4sToMovFlow extends Flow {
     }
 
     const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor);
-    const h264ParseProc = newProcessorWorkerShell(AVCNetworkAbstractionProcessor);
+    const h264ParseProc = newProcessorWorkerShell(unsafeCastProcessorType(AVCNetworkAbstractionProcessor));
     const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
 
     const mp4MuxProc = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor));
