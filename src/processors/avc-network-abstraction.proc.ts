@@ -8,7 +8,7 @@ import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType, makeNALUFromH264RbspData } from './h264/h264-tools';
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
-import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
+import { Sps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.OFF, true);

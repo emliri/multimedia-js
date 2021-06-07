@@ -77,7 +77,7 @@ import {
   VP6_VIDEO_CODEC_ID
 } from './mp4mux-codecs';
 
-import { hexToBytes, flattenOneDeepNestedArray } from '../../common-utils';
+import { hexToBytes, flattenOneDeepNestedArray, isNumber } from '../../common-utils';
 import { getLogger, LoggerLevel } from '../../logger';
 
 const { warn, debug } = getLogger('Mp4Mux', LoggerLevel.OFF, true);
@@ -404,7 +404,7 @@ export class MP4Mux {
         switch (trackInfo.codecId) {
         case AAC_SOUND_CODEC_ID:
         case MP3_SOUND_CODEC_ID: {
-          for (var j = 0; j < trackPackets.length; j++) {
+          for (let j = 0; j < trackPackets.length; j++) {
             const audioPacket: AudioFrame = trackPackets[j].frame as AudioFrame;
 
             const s: StblSample = {
@@ -426,7 +426,7 @@ export class MP4Mux {
         }
         case AVC_VIDEO_CODEC_ID:
         case VP6_VIDEO_CODEC_ID: {
-          for (var j = 0; j < trackPackets.length; j++) {
+          for (let j = 0; j < trackPackets.length; j++) {
             const videoPacket: VideoFrame = trackPackets[j].frame as VideoFrame;
 
             const s: StblSample = {
@@ -498,8 +498,7 @@ export class MP4Mux {
         let sampleEntry;
 
         switch (trackInfo.codecId) {
-        case AAC_SOUND_CODEC_ID:
-
+        case AAC_SOUND_CODEC_ID: {
           const samplingFrequencyIndex = AAC_SAMPLING_FREQUENCIES.indexOf(trackInfo.samplerate);
           if (samplingFrequencyIndex < 0) {
             throw new Error('Sample-rate not supported for AAC (mp4a): ' + trackInfo.samplerate);
@@ -552,7 +551,7 @@ export class MP4Mux {
           trackState.mimeTypeCodec = 'mp4a.40.' + trackInfo.audioObjectType; // 'mp4a.40.2'
 
           break;
-
+        }
         case MP3_SOUND_CODEC_ID:
 
           sampleEntry = new AudioSampleEntry('.mp3', audioDataReferenceIndex,
@@ -643,9 +642,9 @@ export class MP4Mux {
        */
       const minDurationTrack: MP4Track = this._trackStates
         // sort a *copy* of the track-states array by normalized duration prop
-        .slice().sort((a, b) => (a.trackInfo.duration / a.trackInfo.timescale) -
-                                  (b.trackInfo.duration / b.trackInfo.timescale))
-        [0].trackInfo;
+        .slice().sort((a, b) =>
+          (a.trackInfo.duration / a.trackInfo.timescale) -
+            (b.trackInfo.duration / b.trackInfo.timescale))[0].trackInfo;
 
       const mvhd = new MovieHeaderBox(
         minDurationTrack.timescale,
@@ -813,7 +812,7 @@ export class MP4Mux {
             const compositionTimeOffset = compositionTime - decodingTime;
 
             let sampleDuration: number = 0;
-            if (Number.isFinite(videoPacket.frameDuration) &&
+            if (isNumber(videoPacket.frameDuration) &&
               videoPacket.frameDuration > 0) {
               sampleDuration = videoPacket.frameDuration;
             } else if (j < (trackPackets.length - 1)) {
