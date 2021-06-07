@@ -283,7 +283,7 @@ export class MP2TSDemuxProcessor extends Processor {
   }
 
   private _pushVideoNalu (nalInfo: VideoNALUInfo) {
-    const { dts: nextDts, cto: nextCto, isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame } = nalInfo;
+    const { isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame } = nalInfo;
     const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
     const firstIsAuDelimiter =
       this._videoNaluQueueOut.length

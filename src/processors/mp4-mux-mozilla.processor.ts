@@ -2,7 +2,7 @@ import { Processor, ProcessorEvent, ProcessorEventData } from '../core/processor
 import { Packet, PacketSymbol } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { InputSocket, SocketDescriptor, SocketType, SocketTemplateGenerator } from '../core/socket';
-import { prntprtty, isNumber } from '../common-utils';
+import { prntprtty } from '../common-utils';
 import { CommonMimeTypes } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
@@ -233,6 +233,7 @@ export class MP4MuxProcessor extends Processor {
       log('received EOS symbols count equal to inputs width, flushing');
       this.flushCounter_ = 0;
       this._flush();
+      break;
     default:
       break;
     }
