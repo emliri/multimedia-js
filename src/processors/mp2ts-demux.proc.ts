@@ -6,7 +6,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugNALU, H264NaluType, NALU, parseNALU } from './h264/h264-tools';
+import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
