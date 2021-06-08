@@ -27,20 +27,10 @@ import {
   ElementaryStream,
   TimestampRolloverStream,
   AdtsStream,
-  H264Codec
+  H264Codec,
+  mapNaluTypeToTag
 } from './muxjs-m2t/muxjs-m2t';
 import { ShadowOutputSocket } from '../core/socket-output';
-
-function mapNaluTypeToTag (m2tNaluType: M2tNaluType): string {
-  switch (m2tNaluType) {
-  case M2tNaluType.AUD: return 'aud'; // TODO: make this stuff enums -> symbols or numbers (use actual NALU type ids)
-  case M2tNaluType.SPS: return 'sps';
-  case M2tNaluType.PPS: return 'pps';
-  case M2tNaluType.SEI: return 'sei';
-  case M2tNaluType.IDR: return 'idr';
-  default: return null;
-  }
-}
 
 const MPEG_TS_TIMESCALE_HZ = 90000;
 
@@ -110,6 +100,7 @@ export class MP2TSDemuxProcessor extends Processor {
     pipeline.elementaryStream = new ElementaryStream() as unknown as M2tStream;
     pipeline.timestampRolloverStream = new TimestampRolloverStream(null) as unknown as M2tStream;
     // payload demuxers
+    // eslint-disable-next-line new-cap
     pipeline.aacOrAdtsStream = new AdtsStream.default() as unknown as M2tStream;
     pipeline.h264Stream = new H264Codec.H264Stream() as unknown as M2tStream;
     // easy handle to headend of pipeline
