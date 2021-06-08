@@ -133,7 +133,8 @@ export class MP4Mux {
     public constructor (
       movMetadata: MP4MovieMetadata,
       private _fragmentedMode: boolean = true,
-      private _generateHeader: boolean = true
+      private _generateHeader: boolean = true,
+      private _trafSampleDurationOneFill: boolean = false
     ) {
       this._trackStates = movMetadata.tracks.map((trackInfo: MP4Track, index) => {
         const state: MP4TrackState = {
@@ -797,7 +798,8 @@ export class MP4Mux {
             SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
 
           const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT |
-                            TrackRunFlags.SAMPLE_DURATION_PRESENT | TrackRunFlags.SAMPLE_SIZE_PRESENT;
+                             TrackRunFlags.SAMPLE_DURATION_PRESENT |
+                             TrackRunFlags.SAMPLE_SIZE_PRESENT;
 
           trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, 0 /* first flags */);
 
@@ -812,7 +814,9 @@ export class MP4Mux {
             const compositionTimeOffset = compositionTime - decodingTime;
 
             let sampleDuration: number = 0;
-            if (isNumber(videoPacket.frameDuration) &&
+            if (this._trafSampleDurationOneFill) {
+              sampleDuration = Number.MAX_SAFE_INTEGER;
+            } else if (isNumber(videoPacket.frameDuration) &&
               videoPacket.frameDuration > 0) {
               sampleDuration = videoPacket.frameDuration;
             } else if (j < (trackPackets.length - 1)) {

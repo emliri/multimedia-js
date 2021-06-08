@@ -78,13 +78,14 @@ export enum MP4MuxProcessorSupportedCodecs {
 }
 
 export type MP4MuxProcessorOptions = {
-  fragmentedMode: boolean,
-  fragmentMinDurationSeconds: number,
-  embedCodecDataOnKeyFrames: boolean,
-  forceMp3: boolean
+  fragmentedMode: boolean
+  fragmentMinDurationSeconds: number
   maxAudioFramesPerChunk: number
   maxVideoFramesPerChunk: number
   flushOnKeyFrame: boolean
+  trafSampleDurationOneFill: boolean
+  embedCodecDataOnKeyFrames: boolean
+  forceMp3: boolean
 }
 
 export class MP4MuxProcessor extends Processor {
@@ -106,11 +107,12 @@ export class MP4MuxProcessor extends Processor {
   private options_: MP4MuxProcessorOptions = {
     fragmentedMode: OUTPUT_FRAGMENTED_MODE,
     fragmentMinDurationSeconds: 0,
-    embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
-    forceMp3: FORCE_MP3,
     maxAudioFramesPerChunk: 16, // 1 frame = ~24ms @44.1khz (with AAC 1024 samples/frame)
     maxVideoFramesPerChunk: 8, // 1 frame = ~42ms @24fps
-    flushOnKeyFrame: false
+    flushOnKeyFrame: false,
+    trafSampleDurationOneFill: false,
+    embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
+    forceMp3: FORCE_MP3
   }
 
   private socketToTrackIndexHash_: {[i: number]: number} = {};
@@ -387,8 +389,12 @@ export class MP4MuxProcessor extends Processor {
       'options:', prntprtty(this.options_),
       'generate-moov:', enableGenerateMoov);
 
-    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4MovieMetadata_,
-      this.options_.fragmentedMode, enableGenerateMoov);
+    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(
+      this.mp4MovieMetadata_,
+      this.options_.fragmentedMode,
+      enableGenerateMoov,
+      this.options_.trafSampleDurationOneFill
+    );
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
