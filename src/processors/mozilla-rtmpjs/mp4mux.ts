@@ -621,7 +621,12 @@ export class MP4Mux {
           trakFlags, trackState, trackInfo, sampleDescEntry
         });
 
-        const trex = new TrackExtendsBox(trackState.trackId, 1, 0, 0, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
+        const trex = new TrackExtendsBox(trackState.trackId,
+          1, // default sample-description idx
+          0, // default sample-duration
+          0, // default sample-size
+          0
+        );
         trexs.push(trex);
       }
 
@@ -792,7 +797,6 @@ export class MP4Mux {
           }
 
           const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
-
           tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId,
             0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
             SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
@@ -801,7 +805,10 @@ export class MP4Mux {
                              TrackRunFlags.SAMPLE_DURATION_PRESENT |
                              TrackRunFlags.SAMPLE_SIZE_PRESENT;
 
-          trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, 0 /* first flags */);
+          trun = new TrackRunBox(trunFlags, trunSamples,
+            0 /* data offset */,
+            0 /* first flags */
+          );
 
           break;
         }
@@ -814,8 +821,8 @@ export class MP4Mux {
             const compositionTimeOffset = compositionTime - decodingTime;
 
             let sampleDuration: number = 0;
-            if (this._trafSampleDurationOneFill) {
-              sampleDuration = Number.MAX_SAFE_INTEGER;
+            if (false && this._trafSampleDurationOneFill) {
+              sampleDuration = 3000; // Number.MAX_SAFE_INTEGER;
             } else if (isNumber(videoPacket.frameDuration) &&
               videoPacket.frameDuration > 0) {
               sampleDuration = videoPacket.frameDuration;
@@ -823,6 +830,8 @@ export class MP4Mux {
               sampleDuration = trackPackets[j + 1].frame.compositionTime - compositionTime;
               sampleDuration = Math.max(0, sampleDuration);
             }
+
+            console.debug(sampleDuration);
 
             tdatParts.push(videoPacket.data);
             tdatPosition += videoPacket.data.length;
@@ -855,20 +864,25 @@ export class MP4Mux {
             trackState.baseMediaDecodeTime = decodingTime;
           }
 
-          const tfhdFlags = TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
+          const tfhdFlags = 0; // TrackFragmentFlags.DEFAULT_SAMPLE_FLAGS_PRESENT;
 
           tfhd = new TrackFragmentHeaderBox(tfhdFlags, trackId,
             0 /* offset */, 0 /* index */, 0 /* duration */, 0 /* size */,
-            SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
+            0 // default sample-flags (we are setting them for each sample instead)
+          );
 
           const trunFlags = TrackRunFlags.DATA_OFFSET_PRESENT |
-                            TrackRunFlags.FIRST_SAMPLE_FLAGS_PRESENT |
                             TrackRunFlags.SAMPLE_SIZE_PRESENT |
                             TrackRunFlags.SAMPLE_DURATION_PRESENT |
                             TrackRunFlags.SAMPLE_COMPOSITION_TIME_OFFSET |
                             TrackRunFlags.SAMPLE_FLAGS_PRESENT;
 
-          trun = new TrackRunBox(trunFlags, trunSamples, 0 /* data offset */, SampleFlags.SAMPLE_DEPENDS_ON_NO_OTHERS);
+          trun = new TrackRunBox(
+            trunFlags,
+            trunSamples,
+            0 /* data offset */,
+            0
+          );
 
           break;
         }
