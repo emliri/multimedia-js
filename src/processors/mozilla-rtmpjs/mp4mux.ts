@@ -202,7 +202,6 @@ export class MP4Mux {
       case MP4MuxFrameType.AUDIO: {
         const audioTrack = this._audioTrackState;
         const { trackId } = audioTrack;
-        let frame: AudioFrame;
 
         if (!audioDetails) {
           throw new Error('We need audio-details');
@@ -210,7 +209,7 @@ export class MP4Mux {
 
         const { sampleRate, sampleDepth, samplesPerFrame, numChannels } = audioDetails;
 
-        frame = {
+        const frame: AudioFrame = {
           data,
           decodingTime: timestamp,
           compositionTime: timestamp + cto,
@@ -827,11 +826,11 @@ export class MP4Mux {
               videoPacket.frameDuration > 0) {
               sampleDuration = videoPacket.frameDuration;
             } else if (j < (trackPackets.length - 1)) {
-              sampleDuration = trackPackets[j + 1].frame.compositionTime - compositionTime;
+              sampleDuration = trackPackets[j + 1].frame.decodingTime - decodingTime;
               sampleDuration = Math.max(0, sampleDuration);
+            } else {
+              // ?
             }
-
-            console.debug(sampleDuration);
 
             tdatParts.push(videoPacket.data);
             tdatPosition += videoPacket.data.length;
