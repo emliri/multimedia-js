@@ -195,8 +195,8 @@ export class PayloadDescriptor {
     return this.sampleDurationNumerator / this.sampleRateInteger;
   }
 
-  setSampleDuration (ptsDiff, timescale) {
-    this.sampleDurationNumerator = ptsDiff;
+  setSampleDuration (dtsDiff, timescale) {
+    this.sampleDurationNumerator = dtsDiff;
     this.sampleRateInteger = timescale;
   }
 
