@@ -204,7 +204,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     // NOTE: buffer-props is per-se not cloned on packet transfer,
     // so we must create/ref a single prop-object per packet (full-ownership).
-    bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16); // Q: is it always 16 bit ?
+    bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16, 1); // Q: is it always 16 bit ?
     bufferSlice.props.samplesCount = adtsEvent.sampleCount;
     bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
     bufferSlice.props.isKeyframe = true;
@@ -312,12 +312,9 @@ export class MP2TSDemuxProcessor extends Processor {
     const { dts, cto, nalu, isKeyframe, isHeader } = this._videoNaluQueueOut[0];
 
     const props = new BufferProperties(
-      CommonMimeTypes.VIDEO_H264,
-      0, // sample-rate (Hz)
-      8, // sampleDepth
-      1, // sample-duration num
-      1 // samples-per-frame
+      CommonMimeTypes.VIDEO_H264
     );
+    props.samplesCount = 1;
 
     props.codec = CommonCodecFourCCs.avc1;
     props.elementaryStreamId = nalu.trackId;
