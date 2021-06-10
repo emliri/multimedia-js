@@ -77,9 +77,10 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         if (this._options.enableSampleDurationPacketDelay) {
           if (this._packetDelayStore) {
             if (p.timeScale === this._packetDelayStore.timeScale) {
-              const frameTimeDiff = p.getDts() - this._packetDelayStore.getDts();
-              if (frameTimeDiff > 0) {
-                console.debug(frameTimeDiff, p.timeScale);
+              const prevDts = this._packetDelayStore.getDts();
+              const nextDts = p.getDts();
+              const frameTimeDiff = nextDts - prevDts;
+              if (frameTimeDiff >= 0) {
                 this._packetDelayStore
                   .defaultPayloadInfo.setSampleDuration(frameTimeDiff, p.timeScale);
               }
