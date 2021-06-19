@@ -28,7 +28,13 @@ export function mapNaluTypeToTag (m2tNaluType: M2tNaluType): string {
   }
 }
 
+export type InspectMpegTsPmtInfo = {
+  pid: null | number
+  table: {[esPid: number]: number}
+}
+
 export type InspectMpegTsPacketsResult = {
+  pmt: InspectMpegTsPmtInfo
   video?: {pts: number, dts: number}[]
   audio?: {pts: number, dts: number}[]
   firstKeyFrame?: {pts: number, dts: number, type: 'video'}
@@ -36,6 +42,6 @@ export type InspectMpegTsPacketsResult = {
 
 export function inspectMpegTsPackets (bytes: Uint8Array,
   baseTimestamp?: number,
-  expectAacEs: boolean = false) {
-  return inspect(bytes, baseTimestamp, expectAacEs);
+  expectAacEs: boolean = false, persistedPmt: InspectMpegTsPmtInfo = null) {
+  return inspect(bytes, baseTimestamp, expectAacEs, persistedPmt);
 }

@@ -1,17 +1,29 @@
-import { BufferSlice, InputSocket, Packet, Processor } from '../..';
-import { orInfinity, orMax } from '../common-utils';
+import { BufferSlice, InputSocket, Packet, Processor, SocketDescriptor, SocketTemplateGenerator, SocketType } from '../..';
+import { orInfinity, orZero } from '../common-utils';
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
 import { MPEG2TS_PACKET_SIZE, MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
-import { inspectMpegTsPackets, InspectMpegTsPacketsResult } from './muxjs-m2t/muxjs-m2t';
+import { inspectMpegTsPackets, InspectMpegTsPacketsResult, InspectMpegTsPmtInfo } from './muxjs-m2t/muxjs-m2t';
+
+const getSocketDescriptor: SocketTemplateGenerator =
+  SocketDescriptor.createTemplateGenerator(
+    SocketDescriptor.fromMimeTypes('video/mp2t'), // valid input
+    SocketDescriptor.fromMimeTypes('video/mp2t') // expected output
+  );
 
 export class Mp2TsAnalyzerProc extends Processor {
   private _mptsSyncAdapter: Mpeg2TsSyncAdapter = new Mpeg2TsSyncAdapter();
   private _analyzePsiPesBuffer: BufferSlice = null;
+  private _analyzePmtCache: InspectMpegTsPmtInfo = null;
 
   constructor () {
     super();
     this.createInput();
     this.createOutput();
+
+  }
+
+  templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
+    return getSocketDescriptor(socketType);
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
@@ -27,8 +39,24 @@ export class Mp2TsAnalyzerProc extends Processor {
         this._analyzePsiPesBuffer = this._analyzePsiPesBuffer.append(BufferSlice.fromTypedArray(nextPktBuf));
       }
 
+      console.log(this._analyzePsiPesBuffer.length);
+
       const tsInspectRes: InspectMpegTsPacketsResult =
-        inspectMpegTsPackets(this._analyzePsiPesBuffer.getUint8Array());
+        inspectMpegTsPackets(
+          this._analyzePsiPesBuffer.getUint8Array(),
+          NaN,
+          false,
+          this._analyzePmtCache);
+      // no result so far, go to take 1 more packet from adapter
+      if (!tsInspectRes) continue;
+
+      //console.log(tsInspectRes);
+
+      const pmtInfoRes = tsInspectRes.pmt || this._analyzePmtCache;
+      if (!pmtInfoRes) break;
+      else {
+        this._analyzePmtCache = pmtInfoRes;
+      }
 
       // we need to inspect PES analyze-buffer *until*
       // any second frame found to make sure what we push will
@@ -43,8 +71,11 @@ export class Mp2TsAnalyzerProc extends Processor {
       // one type of PES, it is ensured this progressive inspecting
       // is "atomic" in the sense that the number of frames
       // can only possibly increase by 0 or 1 on each iteration.
-      if (tsInspectRes?.video.length > 1 ||
-        tsInspectRes?.audio.length > 1) {
+      //
+      // the condition as-is ensures that there are more than 1 frame
+      // of any kind in the PES analysis buffer.
+      if ((orZero(tsInspectRes?.video.length)
+          + orZero(tsInspectRes?.audio.length)) > 1) {
         runLoop = false;
 
         // remove the last packet from the pes-buffer
@@ -55,9 +86,13 @@ export class Mp2TsAnalyzerProc extends Processor {
 
         let firstVideoTimestamp = NaN;
         let firstAudioTimestamp = NaN;
+        let firstVideoFrameIsIframe = false;
 
         if (tsInspectRes?.video.length) {
           firstVideoTimestamp = tsInspectRes?.video[0].dts;
+          if (tsInspectRes.firstKeyFrame.dts === firstVideoTimestamp) {
+            firstVideoFrameIsIframe = true;
+          }
         }
         if (tsInspectRes?.audio.length) {
           firstAudioTimestamp = tsInspectRes?.video[0].dts;
@@ -69,7 +104,10 @@ export class Mp2TsAnalyzerProc extends Processor {
 
         const outPkt = Packet.fromSlice(this._analyzePsiPesBuffer);
         outPkt.setTimingInfo(minTimestamp, 0, MPEG_TS_TIMESCALE_HZ);
+        outPkt.defaultPayloadInfo.isKeyframe = firstVideoFrameIsIframe;
+
         this.out[0].transfer(outPkt);
+
         this._analyzePsiPesBuffer = BufferSlice.fromTypedArray(nextPktBuf);
       }
     }
