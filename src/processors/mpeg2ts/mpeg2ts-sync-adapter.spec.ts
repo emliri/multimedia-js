@@ -9,7 +9,6 @@ import { MPEG2TS_PACKET_SIZE } from './mpeg2ts-utils';
 global.window = null;
 
 const TEST_FILES_VECTOR = [
-  // 'data/CLK2.ts'
 ];
 
 describeSpecTopLevel(__filename, () => {
