@@ -2,6 +2,7 @@
 export const MPEG2TS_PACKET_SIZE: number = 188;
 export const MPEG2TS_SYNC_CHAR = 0x47;
 export const MPEG2TS_MAX_SCAN_WINDOW = 4096;
+export const MPEG_TS_TIMESCALE_HZ = 90000;
 
 export function findSyncOffsetInMpegTsChunk (data: Uint8Array): number | null {
   // scan 4096 first bytes

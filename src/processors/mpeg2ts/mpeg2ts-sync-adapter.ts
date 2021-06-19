@@ -1,4 +1,5 @@
 
+import { Nullable } from '../../common-types';
 import { findSyncOffsetInMpegTsChunk, MPEG2TS_PACKET_SIZE } from './mpeg2ts-utils';
 
 export class Mpeg2TsSyncAdapter {
@@ -33,7 +34,7 @@ export class Mpeg2TsSyncAdapter {
    * @param maxNumPackets Defaults to Infinity, may read less packets (as much as available)
    * @returns Complete packets buffer
    */
-  take (minNumPackets: number = 1, maxNumPackets: number = Infinity): Uint8Array | null {
+  take (minNumPackets: number = 1, maxNumPackets: number = Infinity): Nullable<Uint8Array> {
     if (minNumPackets > maxNumPackets) {
       throw new Error('minNumPackets larger than maxNumPackets');
     }
