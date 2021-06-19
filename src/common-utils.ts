@@ -3,6 +3,22 @@ import { VoidCallback, TwoDimArray } from './common-types';
 // eslint-disable-next-line no-void
 export const noop = () => void 0;
 
+export function orZero (val: any): number {
+  return val || 0;
+}
+
+export function orMax (val: any): number {
+  return val || Number.MAX_VALUE;
+}
+
+export function orMin (val: any): number {
+  return val || Number.MIN_VALUE;
+}
+
+export function orInfinity (val: any, neg: boolean = false): number {
+  return val || !neg ? Infinity : -Infinity;
+}
+
 export function prntprtty (val: any, indent: number = 4): string {
   return JSON.stringify(val, null, indent);
 }
