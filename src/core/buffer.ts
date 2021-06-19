@@ -168,7 +168,7 @@ export class BufferSlice {
 
     /**
      * offsetIncrement Amount of bytes to move front of window forward
-     * @see unwrap called internally, same limitations apply
+     * @see `unwrap` method (called internally, same limitations apply)
      * @returns new BufferSlice
      */
     shrinkFront (offsetIncrement: number) {
@@ -177,6 +177,7 @@ export class BufferSlice {
 
     /**
      * lengthReduction Amount of bytes to move back of window in retreat
+     * @see `unwrap` method (called internally, same limitations apply)
      * @returns new BufferSlice
      */
     shrinkBack (lengthReduction: number) {

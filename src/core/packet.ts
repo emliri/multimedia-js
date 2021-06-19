@@ -163,11 +163,11 @@ export class Packet implements PacketDataModel {
     return this._synchronizationId;
   }
 
-  setTimingInfo (dts, pts = 0, timeScale = 1, timeOffset = 0): Packet {
+  setTimingInfo (dts: number, cto: number = 0, timeScale = 1, timeOffset = 0): Packet {
     this.setTimescale(timeScale);
     this.setTimestampOffset(timeOffset);
     this.timestamp = dts;
-    this.presentationTimeOffset = pts;
+    this.presentationTimeOffset = cto;
     return this;
   }
 
