@@ -15,12 +15,6 @@
 
 # Use-Cases
 
-- Accu-buffer
-
-- Method to create "grow" new BufferSlice from original data and (list of) additional slices
-
-- Abstract away read/write of binary data (byte-parser/writer) for using DataView implementations transparently
-
 - Inside flow: Proc/Proxy UID (like a PID for each to identify them across proxy vs worker instances)
 
 - Read from file or HTTP (or other URI-based source) transparently
@@ -30,6 +24,7 @@
 - Inspect AAC (like for h264)
 
 - Fix MP3 ES -> fMP4 case
+
 
 
 
@@ -72,16 +67,22 @@
 
 - "Seal" processor (no more sockets added/removed)
 
-- "Block" sockets data flow / Socket "probes" / "filters"
-
-- FIFO buffering on sockets (also for when not connected yet)
-
 - RAII all the things
 
 - Handle async proc initialization
   -> Handle case like: where MP4-muxer releases codec-info after
      parsing first bits and MediaSource can only be initialized async
   -> Socket has now `whenReady` promise to handle the async-io-socket case in a non-blocking-RAII-like way
+
+
+
+
+
+# Memory/Buffer handling
+
+- Accu-buffer / Method to create "grow" new BufferSlice from original data and (list of) additional slices
+
+- Abstract away read/write of binary data (byte-parser/writer) for using DataView implementations transparently
 
 
 
