@@ -6,7 +6,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { debugNALU, H264NaluType, NALU, parseNALU } from './h264/h264-tools';
+import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
@@ -27,20 +27,10 @@ import {
   ElementaryStream,
   TimestampRolloverStream,
   AdtsStream,
-  H264Codec
+  H264Codec,
+  mapNaluTypeToTag
 } from './muxjs-m2t/muxjs-m2t';
 import { ShadowOutputSocket } from '../core/socket-output';
-
-function mapNaluTypeToTag (m2tNaluType: M2tNaluType): string {
-  switch (m2tNaluType) {
-  case M2tNaluType.AUD: return 'aud'; // TODO: make this stuff enums -> symbols or numbers (use actual NALU type ids)
-  case M2tNaluType.SPS: return 'sps';
-  case M2tNaluType.PPS: return 'pps';
-  case M2tNaluType.SEI: return 'sei';
-  case M2tNaluType.IDR: return 'idr';
-  default: return null;
-  }
-}
 
 const MPEG_TS_TIMESCALE_HZ = 90000;
 
@@ -85,7 +75,6 @@ export class MP2TSDemuxProcessor extends Processor {
   private _gotVideoPictureParamSet: boolean = false;
   private _videoTimingQueueIn: M2tH264StreamEvent[] = [];
   private _videoNaluQueueOut: VideoNALUInfo[] = [];
-  private _videoFramerate: number = null;
 
   private _metadataSocketMap: {[pid: number]: OutputSocket} = {};
 
@@ -111,6 +100,7 @@ export class MP2TSDemuxProcessor extends Processor {
     pipeline.elementaryStream = new ElementaryStream() as unknown as M2tStream;
     pipeline.timestampRolloverStream = new TimestampRolloverStream(null) as unknown as M2tStream;
     // payload demuxers
+    // eslint-disable-next-line new-cap
     pipeline.aacOrAdtsStream = new AdtsStream.default() as unknown as M2tStream;
     pipeline.h264Stream = new H264Codec.H264Stream() as unknown as M2tStream;
     // easy handle to headend of pipeline
@@ -183,12 +173,7 @@ export class MP2TSDemuxProcessor extends Processor {
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       log('h264Stream:', data);
 
-      // Video FPS not determined yet
-      if (this._videoFramerate === null) {
-        this._enqueueVideoTimingNalu(data);
-      } else {
-        this._handleVideoNalu(data);
-      }
+      this._handleVideoNalu(data);
     });
 
     pipeline.aacOrAdtsStream.on('data', (data: M2tADTSStreamEvent) => {
@@ -197,25 +182,6 @@ export class MP2TSDemuxProcessor extends Processor {
     });
 
     this._demuxPipeline = pipeline as M2tDemuxPipeline;
-  }
-
-  private _enqueueVideoTimingNalu (data: M2tH264StreamEvent) {
-    this._videoTimingQueueIn.push(data);
-    for (let i = this._videoTimingQueueIn.length - 1; i > 0; i--) { // -> will only run when queue length > 1
-      const frameDuration = (data.dts - this._videoTimingQueueIn[i - 1].dts);
-      if (frameDuration <= 0 || !Number.isFinite(frameDuration)) {
-        continue;
-      }
-      this._videoFramerate = Math.round(MPEG_TS_TIMESCALE_HZ / frameDuration);
-      info('got frame-duration / fps:', frameDuration, '/ 90kHz ;', this._videoFramerate, '[f/s]');
-      break;
-    }
-    if (this._videoFramerate) {
-      this._videoTimingQueueIn.forEach((data) => {
-        this._handleVideoNalu(data);
-      });
-      this._videoTimingQueueIn.length = 0;
-    }
   }
 
   private _handleAudioNalu (adtsEvent: M2tADTSStreamEvent) {
@@ -238,7 +204,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     // NOTE: buffer-props is per-se not cloned on packet transfer,
     // so we must create/ref a single prop-object per packet (full-ownership).
-    bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16); // Q: is it always 16 bit ?
+    bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16, 1); // Q: is it always 16 bit ?
     bufferSlice.props.samplesCount = adtsEvent.sampleCount;
     bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
     bufferSlice.props.isKeyframe = true;
@@ -301,10 +267,6 @@ export class MP2TSDemuxProcessor extends Processor {
     const isHeader: boolean = h264Event.nalUnitType === M2tNaluType.SPS ||
                               h264Event.nalUnitType === M2tNaluType.PPS;
 
-    if (this._videoFramerate === null) {
-      warn('No video-fps/samplerate detectable yet');
-    }
-
     const dts = h264Event.dts;
     const cto = h264Event.pts - h264Event.dts;
 
@@ -312,7 +274,7 @@ export class MP2TSDemuxProcessor extends Processor {
   }
 
   private _pushVideoNalu (nalInfo: VideoNALUInfo) {
-    const { dts: nextDts, cto: nextCto, isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame } = nalInfo;
+    const { isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame } = nalInfo;
     const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
     const firstIsAuDelimiter =
       this._videoNaluQueueOut.length
@@ -350,12 +312,9 @@ export class MP2TSDemuxProcessor extends Processor {
     const { dts, cto, nalu, isKeyframe, isHeader } = this._videoNaluQueueOut[0];
 
     const props = new BufferProperties(
-      CommonMimeTypes.VIDEO_H264,
-      this._videoFramerate || 0, // sample-rate (Hz)
-      8, // sampleDepth
-      1, // sample-duration num
-      1 // samples-per-frame
+      CommonMimeTypes.VIDEO_H264
     );
+    props.samplesCount = 1;
 
     props.codec = CommonCodecFourCCs.avc1;
     props.elementaryStreamId = nalu.trackId;

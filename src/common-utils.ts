@@ -1,5 +1,6 @@
 import { VoidCallback, OneDeepNestedArray } from './common-types';
 
+// eslint-disable-next-line no-void
 export const noop = () => void 0;
 
 export function prntprtty (val: any, indent: number = 4): string {

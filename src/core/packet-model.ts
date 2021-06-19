@@ -1,4 +1,5 @@
 import { Nullable } from '../common-types';
+import { prntprtty } from '../common-utils';
 import { BufferProperties } from './buffer-props';
 import { Packet } from './packet';
 import { PacketSymbol } from './packet-symbol';
@@ -43,4 +44,8 @@ export class PacketDataModel {
     readonly defaultPayloadInfo: Nullable<BufferProperties> = null,
     readonly defaultMimeType: string
   ) {}
+
+  toString () {
+    return prntprtty(this);
+  }
 }

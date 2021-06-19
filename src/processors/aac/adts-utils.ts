@@ -18,7 +18,7 @@ export const ADTS_SAMPLING_RATES_TABLE = [
   11025,
   8000,
   7350
-];
+] as const;
 
 export function isAacADTSHeaderPattern (data: Uint8Array, offset: number): boolean {
   // Look for ADTS header | 1111 1111 | 1111 X00X | where X can be either 0 or 1

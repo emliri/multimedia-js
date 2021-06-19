@@ -99,7 +99,7 @@ export class HlsToMediaSourceFlow extends Flow {
 
     const mp4DemuxProc = this.mp4DemuxProc_ = newProcessorWorkerShell(MP4DemuxProcessor);
     const tsDemuxProc = this.tsDemuxProc_ = newProcessorWorkerShell(MP2TSDemuxProcessor);
-    const h264ParseProc = this.h264ParseProc_ = newProcessorWorkerShell(AVCNetworkAbstractionProcessor);
+    const h264ParseProc = this.h264ParseProc_ = newProcessorWorkerShell(unsafeCastProcessorType(AVCNetworkAbstractionProcessor));
     const mp4MuxOptions: Partial<MP4MuxProcessorOptions> = {
       fragmentedMode: true
     };

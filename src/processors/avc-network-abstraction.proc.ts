@@ -8,25 +8,34 @@ import { getLogger, LoggerLevel } from '../logger';
 import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType, makeNALUFromH264RbspData } from './h264/h264-tools';
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
-import { Sps, Pps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
+import { Sps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { debug, log, warn, error } = getLogger('AVCNetworkAbstractionProcessor', LoggerLevel.OFF, true);
 
-const ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX = true; // TODO: make this runtime option
-
 const DEBUG_H264 = false;
 
 const auDelimiterNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), H264NaluType.AUD, 3);
+
+const defaultOptions: AVCNaluProcOptions = {
+  enablePackageSpsPpsToAvcc: true,
+  enableSampleDurationPacketDelay: true
+};
+
+export type AVCNaluProcOptions = {
+  enablePackageSpsPpsToAvcc: boolean
+  enableSampleDurationPacketDelay: boolean
+};
 export class AVCNetworkAbstractionProcessor extends Processor {
   private _spsSliceCache: BufferSlice = null;
   private _ppsSliceCache: BufferSlice = null;
+  private _packetDelayStore: Packet = null;
 
   static getName (): string {
     return 'H264ParseProcessor';
   }
 
-  constructor () {
+  constructor (private _options: AVCNaluProcOptions = defaultOptions) {
     super();
 
     this.createInput();
@@ -64,10 +73,29 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         log('wrote multi-slice AU for packet:', p.toString());
         DEBUG_H264 && debugAccessUnit(bufferSlice, true, log);
 
-        // just pass on the packet as is to only output
-        this.out[0].transfer(
-          p
-        );
+        // cache packet for sample-timing
+        if (this._options.enableSampleDurationPacketDelay) {
+          if (this._packetDelayStore) {
+            if (p.timeScale === this._packetDelayStore.timeScale) {
+              const prevDts = this._packetDelayStore.getDts();
+              const nextDts = p.getDts();
+              const frameTimeDiff = nextDts - prevDts;
+              if (frameTimeDiff >= 0) {
+                this._packetDelayStore
+                  .defaultPayloadInfo.setSampleDuration(frameTimeDiff, p.timeScale);
+              }
+            }
+            this.out[0].transfer(
+              this._packetDelayStore
+            );
+          }
+          this._packetDelayStore = p;
+        } else {
+          // just pass on the packet as is to only output
+          this.out[0].transfer(
+            p
+          );
+        }
       }
     } else {
       error('Got packet not tagged NALU');
@@ -85,7 +113,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
     const naluType = nalu.nalType;
 
     if (naluType === H264NaluType.SPS) {
-      if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX) {
+      if (this._options.enablePackageSpsPpsToAvcc) {
         if (this._spsSliceCache) {
           bufferSlice = null;
         } else {
@@ -100,7 +128,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         }
       }
     } else if (naluType === H264NaluType.PPS) {
-      if (ENABLE_PACKAGE_SPS_PPS_NALUS_TO_AVCC_BOX) {
+      if (this._options.enablePackageSpsPpsToAvcc) {
         if (this._ppsSliceCache) {
           bufferSlice = null;
         } else {

@@ -1,28 +1,38 @@
 import { Processor, ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { Packet, PacketSymbol } from '../core/packet';
+import { BufferSlice } from '../core/buffer';
 import { InputSocket, SocketDescriptor, SocketType, SocketTemplateGenerator } from '../core/socket';
-import { prntprtty, isNumber } from '../common-utils';
-
-// This version of our mp4-mux processor is based on the mozilla rtmpjs code
-import {
-  MP4Mux,
-  MP4Track,
-  MP4MovieMetadata,
-  MP4MuxFrameType,
-  MP3_SOUND_CODEC_ID,
-  AAC_SOUND_CODEC_ID,
-  AVC_VIDEO_CODEC_ID,
-  VP6_VIDEO_CODEC_ID,
-  AAC_SAMPLES_PER_FRAME
-} from './mozilla-rtmpjs/mp4mux';
+import { prntprtty } from '../common-utils';
+import { CommonMimeTypes } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
-import { BufferSlice } from '../core/buffer';
-import { makeNALUFromH264RbspData, makeAccessUnitFromNALUs, debugAccessUnit } from './h264/h264-tools';
+
+import {
+  MP4Mux
+} from './mozilla-rtmpjs/mp4mux';
+import {
+  MP4MovieMetadata,
+  MP4Track,
+  MP4MuxFrameType,
+  AudioDetails
+} from './mozilla-rtmpjs/mp4mux-types';
+
+import {
+  makeNALUFromH264RbspData,
+  makeAccessUnitFromNALUs,
+  debugAccessUnit
+} from './h264/h264-tools';
 import { NALU } from './h264/nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
-import { CommonMimeTypes } from '../core/payload-description';
+import {
+  AAC_SOUND_CODEC_ID,
+  MP3_SOUND_CODEC_ID,
+  AVC_VIDEO_CODEC_ID,
+  VP6_VIDEO_CODEC_ID
+} from './mozilla-rtmpjs/mp4mux-codecs';
+
+import { AAC_SAMPLES_PER_FRAME } from './mp4-demux.processor';
 
 const { warn, info, log, debug } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
 
@@ -68,13 +78,14 @@ export enum MP4MuxProcessorSupportedCodecs {
 }
 
 export type MP4MuxProcessorOptions = {
-  fragmentedMode: boolean,
-  fragmentMinDurationSeconds: number,
-  embedCodecDataOnKeyFrames: boolean,
-  forceMp3: boolean
+  fragmentedMode: boolean
+  fragmentMinDurationSeconds: number
   maxAudioFramesPerChunk: number
   maxVideoFramesPerChunk: number
   flushOnKeyFrame: boolean
+  trafSampleDurationOneFill: boolean
+  embedCodecDataOnKeyFrames: boolean
+  forceMp3: boolean
 }
 
 export class MP4MuxProcessor extends Processor {
@@ -96,11 +107,12 @@ export class MP4MuxProcessor extends Processor {
   private options_: MP4MuxProcessorOptions = {
     fragmentedMode: OUTPUT_FRAGMENTED_MODE,
     fragmentMinDurationSeconds: 0,
-    embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
-    forceMp3: FORCE_MP3,
     maxAudioFramesPerChunk: 16, // 1 frame = ~24ms @44.1khz (with AAC 1024 samples/frame)
     maxVideoFramesPerChunk: 8, // 1 frame = ~42ms @24fps
-    flushOnKeyFrame: false
+    flushOnKeyFrame: false,
+    trafSampleDurationOneFill: false,
+    embedCodecDataOnKeyFrames: EMBED_CODEC_DATA_ON_KEYFRAME,
+    forceMp3: FORCE_MP3
   }
 
   private socketToTrackIndexHash_: {[i: number]: number} = {};
@@ -185,7 +197,6 @@ export class MP4MuxProcessor extends Processor {
 
         this._addVideoTrack(
           MP4MuxProcessorSupportedCodecs.AVC,
-          p.defaultPayloadInfo.getSamplingRate(), // SHOULD be fps (but MAY be 0)
           p.defaultPayloadInfo.details.width,
           p.defaultPayloadInfo.details.height,
           p.defaultPayloadInfo.details.sequenceDurationInSeconds, // CAN be 0
@@ -197,7 +208,7 @@ export class MP4MuxProcessor extends Processor {
         if (this.options_.flushOnKeyFrame &&
           p.defaultPayloadInfo.isKeyframe &&
           this._queuedVideoBitstreamHeader &&
-          this.videoPacketQueue_.length > 1 + 1) { // Q: why ?
+          this.videoPacketQueue_.length > 1 + 1) {
           this._flush();
         } else if (!this.options_.flushOnKeyFrame &&
           this._queuedVideoBitstreamHeader &&
@@ -224,6 +235,7 @@ export class MP4MuxProcessor extends Processor {
       log('received EOS symbols count equal to inputs width, flushing');
       this.flushCounter_ = 0;
       this._flush();
+      break;
     default:
       break;
     }
@@ -311,9 +323,12 @@ export class MP4MuxProcessor extends Processor {
         AVC_VIDEO_CODEC_ID,
         data,
         p.timestamp,
-        bufferSlice.props.isBitstreamHeader, // FIXME: we are expecting an actual MP4 `avcc` ISOBMFF data atom as bitstream header, see H264-parse-proc
+        // NOTE: we are expecting MPEG4 `AvcC` data as bitstream header
+        // see AVC-NAL-payloader-proc (ffmpeg muxer does this too)
+        bufferSlice.props.isBitstreamHeader,
         bufferSlice.props.isKeyframe,
-        p.presentationTimeOffset
+        p.presentationTimeOffset,
+        p.defaultPayloadInfo.sampleDurationNumerator
       );
     });
   }
@@ -321,8 +336,7 @@ export class MP4MuxProcessor extends Processor {
   private _processAudioPacket (p: Packet) {
     const audioTrackMetadata = this.mp4MovieMetadata_.tracks[this.audioTrackIndex_];
 
-    // NOTE: Object-type is inherently defined by mp4mux.ts
-    const audioDetails = {
+    const audioDetails: AudioDetails = {
       sampleDepth: audioTrackMetadata.samplesize,
       sampleRate: audioTrackMetadata.samplerate,
       samplesPerFrame: AAC_SAMPLES_PER_FRAME,
@@ -344,6 +358,7 @@ export class MP4MuxProcessor extends Processor {
         false,
         bufferSlice.props.isKeyframe,
         p.presentationTimeOffset,
+        0,
         audioDetails
       );
     });
@@ -356,7 +371,6 @@ export class MP4MuxProcessor extends Processor {
   private _initMovieMetadata () {
     this.mp4MovieMetadata_ = {
       tracks: [],
-      duration: 0,
       audioTrackId: NaN,
       videoTrackId: NaN,
       audioBaseDts: 0,
@@ -375,8 +389,12 @@ export class MP4MuxProcessor extends Processor {
       'options:', prntprtty(this.options_),
       'generate-moov:', enableGenerateMoov);
 
-    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(this.mp4MovieMetadata_,
-      this.options_.fragmentedMode, enableGenerateMoov);
+    const mp4Muxer = this.mp4Muxer_ = new MP4Mux(
+      this.mp4MovieMetadata_,
+      this.options_.fragmentedMode,
+      enableGenerateMoov,
+      this.options_.trafSampleDurationOneFill
+    );
 
     mp4Muxer.ondata = this.onMp4MuxerData_.bind(this);
     mp4Muxer.oncodecinfo = this.onMp4MuxerCodecInfo_.bind(this);
@@ -392,7 +410,6 @@ export class MP4MuxProcessor extends Processor {
 
     if (this.videoPacketQueue_.length) {
       debug('processing video packet queue of length', this.videoPacketQueue_.length);
-      // console.log('first video data', this.videoPacketQueue_[0].toString())
       this.videoPacketQueue_.forEach((packet: Packet) => {
         this._processVideoPacket(packet);
       });
@@ -401,7 +418,6 @@ export class MP4MuxProcessor extends Processor {
 
     if (this.audioPacketQueue_.length) {
       debug('processing audio packet queue of length', this.audioPacketQueue_.length);
-      // console.log('first audio data', this.audioPacketQueue_[0].toString())
       this.audioPacketQueue_.forEach((packet: Packet) => {
         this._processAudioPacket(packet);
       });
@@ -451,11 +467,10 @@ export class MP4MuxProcessor extends Processor {
 
   private _addVideoTrack (
     videoCodec: MP4MuxProcessorSupportedCodecs,
-    framerate: number,
     width: number,
     height: number,
     durationSeconds: number,
-    timescale: number = framerate
+    timescale: number
   ): MP4Track {
     if (!isVideoCodec(videoCodec)) {
       throw new Error('Not a video codec: ' + videoCodec);
@@ -466,22 +481,17 @@ export class MP4MuxProcessor extends Processor {
       codecDescription: videoCodec,
       codecId: getCodecId(videoCodec),
       timescale,
-      framerate,
       width,
       height,
       language: 'und'
     };
 
-    log('creating video track:', videoCodec, 'duration:', videoTrack.duration / timescale, 'secs',
-      'sequence timescale:', timescale, 'fps:', framerate);
+    log('creating video track:', videoCodec,
+      'duration:', videoTrack.duration / timescale, 'secs',
+      'sequence timescale:', timescale);
 
     this.mp4MovieMetadata_.videoTrackId = this._getNextTrackId();
     this.mp4MovieMetadata_.tracks.push(videoTrack);
-
-    if (!isNumber(this.mp4MovieMetadata_.duration) && isNumber(videoTrack.duration)) {
-      this.mp4MovieMetadata_.duration = videoTrack.duration;
-      log('set top-level metadata duration based on video-track:', this.mp4MovieMetadata_.duration);
-    }
 
     return videoTrack;
   }

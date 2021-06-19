@@ -42,7 +42,7 @@ export class BufferProperties extends PayloadDescriptor {
     mimeType = UNKNOWN_MIMETYPE,
     sampleRateInteger = 0,
     sampleDepth = 0,
-    sampleDurationNumerator = 1,
+    sampleDurationNumerator = 0,
       public samplesCount: number = 0,
       public isBitstreamHeader: boolean = false,
       public isKeyframe: boolean = false,
@@ -51,7 +51,6 @@ export class BufferProperties extends PayloadDescriptor {
       public tags: Set<string> = new Set()
   ) {
     super(mimeType, sampleRateInteger, sampleDepth, sampleDurationNumerator);
-    this.samplesCount = samplesCount;
   }
 
   clone (): BufferProperties {
