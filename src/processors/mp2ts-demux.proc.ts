@@ -4,9 +4,12 @@ import { Packet } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
+import { ShadowOutputSocket } from '../core/socket-output';
 
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
+
+import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 
 import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
 
@@ -31,10 +34,6 @@ import {
   H264Codec,
   mapNaluTypeToTag
 } from './muxjs-m2t/muxjs-m2t';
-
-import { ShadowOutputSocket } from '../core/socket-output';
-
-const MPEG_TS_TIMESCALE_HZ = 90000;
 
 /*
 import * as AacStream from '../ext-mod/mux.js/lib/aac';
