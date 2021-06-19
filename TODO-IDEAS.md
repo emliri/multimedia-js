@@ -1,3 +1,9 @@
+
+# General
+
+- Rename proc impl to be nice CamelCase
+- in filenames: Rename all "processor" occurence to "proc" 
+
 # Testing
 
 - Generalize test-case for flows that take URL as entry point
@@ -98,8 +104,6 @@
 
 
 # Build
-
-- Rename proc impl to be nice CamelCase
 
 - Move to multi-package "monorepo" build (Rush/Lerna like)
 
