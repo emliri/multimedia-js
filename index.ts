@@ -18,7 +18,7 @@ export * as Utils from './src/common-utils';
 export * as Crypto from './src/common-crypto';
 
 export { Processor, ProcessorEvent, ProcessorEventData } from './src/core/processor';
-export { InputSocket, Socket, OutputSocket, SocketDescriptor, SocketEvent } from './src/core/socket';
+export { InputSocket, Socket, SocketType, OutputSocket, SocketDescriptor, SocketEvent, SocketTemplateGenerator } from './src/core/socket';
 export { Packet, PacketSymbol } from './src/core/packet';
 export { BufferSlice } from './src/core/buffer';
 export { BufferProperties } from './src/core/buffer-props';
