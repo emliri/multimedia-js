@@ -5,5 +5,3 @@ export type Nullable<T> = T | null;
 export type LambdaFunc = (...args: any[]) => void;
 
 export type TwoDimArray<T> = T[][];
-
-

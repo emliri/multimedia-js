@@ -6,14 +6,13 @@ import { readFile } from '../../utils-fs';
 import { Mpeg2TsSyncAdapter } from './mpeg2ts-sync-adapter';
 import { MPEG2TS_PACKET_SIZE } from './mpeg2ts-utils';
 
-global['window'] = null;
+global.window = null;
 
 const TEST_FILES_VECTOR = [
   // 'data/CLK2.ts'
 ];
 
 describeSpecTopLevel(__filename, () => {
-
   if (TEST_FILES_VECTOR.length === 0) {
     it('should dummmy', () => void 0);
     return;
@@ -40,7 +39,6 @@ describeSpecTopLevel(__filename, () => {
   });
 
   it('should find sync and count nb of packet bytes on a plain simple dump', () => {
-
     mp2tSyncAdapter.feed(testBuffers[0]);
 
     expect(mp2tSyncAdapter.getSyncOffset()).toBe(0);
@@ -50,11 +48,9 @@ describeSpecTopLevel(__filename, () => {
     expect(mp2tSyncAdapter.getTotalBufferSize()).toBe(1200192);
     expect(mp2tSyncAdapter.getPacketBufferSize()).toBe(1200192);
     expect(mp2tSyncAdapter.getPacketBufferRemainderBytes()).toBe(0);
-
   });
 
   it('should skip any garbage upfront (partial packet) and find sync, and compute correct bytes/offset values', () => {
-
     const initialOffset = 14;
 
     mp2tSyncAdapter.feed(new Uint8Array(testBuffers[0].buffer, initialOffset));
@@ -67,11 +63,9 @@ describeSpecTopLevel(__filename, () => {
     expect(mp2tSyncAdapter.getTotalBufferSize()).toBe(1200178);
     expect(mp2tSyncAdapter.getPacketBufferSize()).toBe(mp2tSyncAdapter.getEstimatedPacketBytesSize());
     expect(mp2tSyncAdapter.getPacketBufferRemainderBytes()).toBe(0);
-
   });
 
   it('should - with truncated packet end - skip any garbage upfront (partial packet) and find sync, and compute correct bytes/offset values', () => {
-
     const initialOffset = 14;
     const cutSize = 1200192 - initialOffset - 1200105;
 
@@ -85,11 +79,9 @@ describeSpecTopLevel(__filename, () => {
     expect(mp2tSyncAdapter.getTotalBufferSize()).toBe(1200105);
     expect(mp2tSyncAdapter.getPacketBufferSize()).toBe(1200105 - mp2tSyncAdapter.getSyncOffset());
     expect(mp2tSyncAdapter.getPacketBufferRemainderBytes()).toBe(MPEG2TS_PACKET_SIZE - cutSize);
-
   });
 
   it('should allow to take() the desired nb of packets from the buffer', () => {
-
     const initialOffset = MPEG2TS_PACKET_SIZE + 56;
     const buf = new Uint8Array(testBuffers[0].buffer, initialOffset, 1200192 - initialOffset - 24);
     const initialBufTotalSize = buf.byteLength;
@@ -130,7 +122,6 @@ describeSpecTopLevel(__filename, () => {
   });
 
   it('should allow to feed() subsequently and grow the buffer accordingly', () => {
-
     const initialOffset = MPEG2TS_PACKET_SIZE + 56;
     const syncOffsetShould = (MPEG2TS_PACKET_SIZE - 56);
 
@@ -157,5 +148,4 @@ describeSpecTopLevel(__filename, () => {
   it('should return null on take() when not enough packets are available', () => {
 
   });
-
 });

@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-export function readFile(path: string): Promise<Uint8Array> {
+export function readFile (path: string): Promise<Uint8Array> {
   return new Promise((res, rej) => {
     fs.readFile(path, (err, buf) => {
       if (err) {

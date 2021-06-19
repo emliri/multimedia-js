@@ -34,7 +34,7 @@ export type InspectMpegTsPacketsResult = {
   firstKeyFrame?: {pts: number, dts: number, type: 'video'}
 };
 
-export function inspectMpegTsPackets(bytes: Uint8Array,
+export function inspectMpegTsPackets (bytes: Uint8Array,
   baseTimestamp?: number,
   expectAacEs: boolean = false) {
   return inspect(bytes, baseTimestamp, expectAacEs);
