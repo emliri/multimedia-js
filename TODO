@@ -1,18 +1,17 @@
+# Testing
+
+- Generalize test-case for flows that take URL as entry point
+
+- Automate running web test-cases
+
+
+
+
 # Dependencies
 
-- Hard-fork/clone our inspector.js dev branch into source-tree
+- Copy our inspector.js & mux.js dev branches into source-tree
 
-# Build
 
-- Check why webpack watch mode doesn't always bail on TS errors
-
-- Move to multi-package "monorepo" build (Rush/Lerna like)
-
-- Rename src to lib
-
-- Compile worker-lib without procs-index
-
-- Analyze package size
 
 # Use-Cases
 
@@ -32,17 +31,17 @@
 
 - Fix MP3 ES -> fMP4 case
 
+
+
+
 # Use-case: MP4 Concatenation
 
 - Enable AAC codec data embedding / sample-description-indexing
 
 - Insert silent AAC soundtrack to movie file (special case of "remix")
 
-# CI
 
-- Document NO_FRILLS & NO_TYPES env vars
 
-- Setup strict compiler mode
 
 # Performance
 
@@ -50,6 +49,9 @@
   * Worker message event handler in processor-proxy
   * Socket.transfer => dispatchAsync => Socket.transferSync
   * XHR-socket readystatechange event handler
+
+
+
 
 # Model design
 
@@ -60,6 +62,9 @@
 - Remove all the "hard-coded" litteral strings and use codec string enums
 
 - Remove all the litteral numbers (especialy duplicated values) and replace by const vars
+
+
+
 
 # Architecture
 
@@ -78,13 +83,30 @@
      parsing first bits and MediaSource can only be initialized async
   -> Socket has now `whenReady` promise to handle the async-io-socket case in a non-blocking-RAII-like way
 
-# Testing
-
-- Generalize test-case for flows that take URL as entry point
-
-- Automate running web test-cases
 
 
+
+# CI
+
+- Document NO_FRILLS & NO_TYPES env vars
+
+- Setup strict compiler mode
+
+
+
+
+
+# Build
+
+- Rename proc impl to be nice CamelCase
+
+- Move to multi-package "monorepo" build (Rush/Lerna like)
+
+- Rename src to lib
+
+- Compile worker-lib without procs-index
+
+- Analyze package size
 
 
 
