@@ -1,5 +1,8 @@
 import * as AdtsStream from '../../ext-mod/mux.js/lib/codecs/adts.js';
 import * as H264Codec from '../../ext-mod/mux.js/lib/codecs/h264';
+
+import { inspect } from '../../ext-mod/mux.js/lib/tools/ts-inspector';
+
 import { M2tNaluType } from './muxjs-m2t-types';
 
 export { AdtsStream };
@@ -23,4 +26,16 @@ export function mapNaluTypeToTag (m2tNaluType: M2tNaluType): string {
   case M2tNaluType.IDR: return 'idr';
   default: return null;
   }
+}
+
+export type InspectMpegTsPacketsResult = {
+  video?: {pts: number, dts: number}[]
+  audio?: {pts: number, dts: number}[]
+  firstKeyFrame?: {pts: number, dts: number, type: 'video'}
+};
+
+export function inspectMpegTsPackets(bytes: Uint8Array,
+  baseTimestamp?: number,
+  expectAacEs: boolean = false) {
+  return inspect(bytes, baseTimestamp, expectAacEs);
 }
