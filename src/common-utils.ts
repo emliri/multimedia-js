@@ -1,4 +1,4 @@
-import { VoidCallback, OneDeepNestedArray } from './common-types';
+import { VoidCallback, TwoDimArray } from './common-types';
 
 // eslint-disable-next-line no-void
 export const noop = () => void 0;
@@ -65,7 +65,7 @@ export function toNumber (n: any): number {
   throw new Error('Value does not convert to number: ' + n);
 }
 
-export function flattenOneDeepNestedArray<T> (a: OneDeepNestedArray<T>): T[] {
+export function flattenOneDeepNestedArray<T> (a: TwoDimArray<T>): T[] {
   return [].concat(...a);
 }
 
