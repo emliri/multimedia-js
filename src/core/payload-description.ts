@@ -82,28 +82,24 @@ export class PayloadDescriptor {
   /**
    * mime-type if defined
    */
-  readonly mimeType: MimeType = null;
-
-  /**
-   * integer bit-depth of one sample
-   */
-  readonly sampleDepth: SampleBitDepth = SampleBitDepth.UNSPECIFIED;
-
-  /**
-   * data format/layout applicable for raw signal packets
-   */
-  readonly dataFormat: PayloadDataFormat = PayloadDataFormat.UNSPECIFIED;
-  readonly dataLayout: PayloadDataLayout = PayloadDataLayout.UNSPECIFIED;
-
-  /**
-   * payload specific details (applicable to audio/video/text etc only e.g or codec-data related)
-   */
-  details: PayloadDetails = new PayloadDetails();
+  mimeType: MimeType = null;
 
   elementaryStreamId: number = NaN;
 
   /**
-   * unit-less factor to deal with arbitrary integer sample-rates without loosing precision
+   * codec (if applicable)
+   */
+  codec: string = null;
+
+  /**
+   * payload specific details (applicable to audio/video/text etc
+   * only e.g or codec-data related)
+   */
+  details: PayloadDetails = new PayloadDetails();
+
+  /**
+   * unit-less factor to deal with arbitrary integer
+   * sample-rates without loosing precision
    */
   sampleDurationNumerator: number;
 
@@ -113,9 +109,15 @@ export class PayloadDescriptor {
   sampleRateInteger: number;
 
   /**
-   * codec (if applicable)
+   * integer bit-depth of one sample
    */
-  codec: string = null;
+  sampleDepth: SampleBitDepth = SampleBitDepth.UNSPECIFIED;
+
+  /**
+   * data format/layout applicable for raw signal packets
+   */
+  dataFormat: PayloadDataFormat = PayloadDataFormat.UNSPECIFIED;
+  dataLayout: PayloadDataLayout = PayloadDataLayout.UNSPECIFIED;
 
   constructor (mimeType: string,
     sampleRateInteger: number = 0,
