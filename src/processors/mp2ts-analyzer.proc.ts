@@ -1,13 +1,16 @@
 import { BufferSlice, InputSocket, Packet, Processor, SocketDescriptor, SocketTemplateGenerator, SocketType } from '../..';
 import { orInfinity, orZero } from '../common-utils';
+import { CommonCodecFourCCs, CommonMimeTypes } from '../core/payload-description';
+
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
 import { MPEG2TS_PACKET_SIZE, MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
+
 import { inspectMpegTsPackets, InspectMpegTsPacketsResult, InspectMpegTsPmtInfo } from './muxjs-m2t/muxjs-m2t';
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
-    SocketDescriptor.fromMimeTypes('video/mp2t'), // valid input
-    SocketDescriptor.fromMimeTypes('video/mp2t') // expected output
+    SocketDescriptor.fromMimeTypes(CommonMimeTypes.VIDEO_MPEGTS), // valid input
+    SocketDescriptor.fromMimeTypes(CommonMimeTypes.VIDEO_MPEGTS) // expected output
   );
 
 export class Mp2TsAnalyzerProc extends Processor {
@@ -29,8 +32,7 @@ export class Mp2TsAnalyzerProc extends Processor {
   protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
     this._mptsSyncAdapter.feed(p.data[0].getUint8Array());
 
-    let runLoop = true;
-    while (runLoop) {
+    while (true) {
       const nextPktBuf: Uint8Array = this._mptsSyncAdapter.take(1, 1);
       if (!nextPktBuf) break;
       if (!this._analyzePsiPesBuffer) {
@@ -38,8 +40,6 @@ export class Mp2TsAnalyzerProc extends Processor {
       } else {
         this._analyzePsiPesBuffer = this._analyzePsiPesBuffer.append(BufferSlice.fromTypedArray(nextPktBuf));
       }
-
-      console.log(this._analyzePsiPesBuffer.length);
 
       const tsInspectRes: InspectMpegTsPacketsResult =
         inspectMpegTsPackets(
@@ -50,7 +50,7 @@ export class Mp2TsAnalyzerProc extends Processor {
       // no result so far, go to take 1 more packet from adapter
       if (!tsInspectRes) continue;
 
-      //console.log(tsInspectRes);
+      console.log(tsInspectRes)
 
       const pmtInfoRes = tsInspectRes.pmt || this._analyzePmtCache;
       if (!pmtInfoRes) break;
@@ -74,9 +74,8 @@ export class Mp2TsAnalyzerProc extends Processor {
       //
       // the condition as-is ensures that there are more than 1 frame
       // of any kind in the PES analysis buffer.
-      if ((orZero(tsInspectRes?.video.length)
-          + orZero(tsInspectRes?.audio.length)) > 1) {
-        runLoop = false;
+      if ((orZero(tsInspectRes.video?.length)
+          + orZero(tsInspectRes.audio?.length)) > 1) {
 
         // remove the last packet from the pes-buffer
         // as it contains the next frame
@@ -88,22 +87,30 @@ export class Mp2TsAnalyzerProc extends Processor {
         let firstAudioTimestamp = NaN;
         let firstVideoFrameIsIframe = false;
 
-        if (tsInspectRes?.video.length) {
-          firstVideoTimestamp = tsInspectRes?.video[0].dts;
-          if (tsInspectRes.firstKeyFrame.dts === firstVideoTimestamp) {
+        if (tsInspectRes.video?.length) {
+          firstVideoTimestamp = tsInspectRes.video[0].dts;
+          if (tsInspectRes.firstKeyFrame &&
+            tsInspectRes.firstKeyFrame.dts === firstVideoTimestamp) {
             firstVideoFrameIsIframe = true;
           }
         }
-        if (tsInspectRes?.audio.length) {
-          firstAudioTimestamp = tsInspectRes?.video[0].dts;
+        if (tsInspectRes.audio?.length) {
+          firstAudioTimestamp = tsInspectRes.audio[0].dts;
         }
 
-        const minTimestamp = Math.min(
+        const firstTimestamp = Math.min(
           orInfinity(firstAudioTimestamp),
           orInfinity(firstVideoTimestamp));
 
+        const isVideoOrAudio = firstTimestamp === firstVideoTimestamp;
+
+        this._analyzePsiPesBuffer.props.mimeType
+          = isVideoOrAudio ? 'video/mp2t' : 'audio/mp2t';
+        this._analyzePsiPesBuffer.props.codec
+          = isVideoOrAudio ? CommonCodecFourCCs.avc1 : CommonCodecFourCCs.mp4a;
+
         const outPkt = Packet.fromSlice(this._analyzePsiPesBuffer);
-        outPkt.setTimingInfo(minTimestamp, 0, MPEG_TS_TIMESCALE_HZ);
+        outPkt.setTimingInfo(firstTimestamp, 0, MPEG_TS_TIMESCALE_HZ);
         outPkt.defaultPayloadInfo.isKeyframe = firstVideoFrameIsIframe;
 
         this.out[0].transfer(outPkt);
