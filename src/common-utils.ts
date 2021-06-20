@@ -16,7 +16,7 @@ export function orMin (val: any): number {
 }
 
 export function orInfinity (val: any, neg: boolean = false): number {
-  return val || !neg ? Infinity : -Infinity;
+  return val || (!neg ? Infinity : -Infinity);
 }
 
 export function prntprtty (val: any, indent: number = 4): string {
