@@ -22,7 +22,7 @@ type TokenBucketQDiscConfig = {
 export type TokenBucketPacketPopCb<T> = (packet: TokenBucketPacket, context: Nullable<T>) => void;
 
 export class TokenBucketPacketQueue<T> {
-  private _timer: NodeJS.Timeout;
+  private _timer: unknown;
   private _tokens: number;
   private _queue: [TokenBucketPacket, Nullable<T>][] = [];
 
@@ -146,7 +146,7 @@ export class TokenBucketPacketQueue<T> {
       throw new Error('Token rate has to be integer');
     }
 
-    clearInterval(this._timer);
+    clearInterval(this._timer as number);
     if (this._useCheapClock) {
       this._timer = setInterval(this._onTimer.bind(this), CHEAP_CLOCK_PERIOD_MS);
     } else {
