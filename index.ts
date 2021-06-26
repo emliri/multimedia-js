@@ -34,7 +34,10 @@ export { EnvVars, setEnvironmentVar, getEnvironmentVar } from './src/core/env';
 
 export * from './src/core/socket-tap';
 
+export * as SocketTaps from './src/socket-taps/index';
+
 export * as IoSockets from './src/io-sockets/index';
+
 export * as Flows from './src/flows/index';
 
 export * as Procs from './src/processors/index';
