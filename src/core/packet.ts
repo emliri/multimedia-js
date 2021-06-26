@@ -123,6 +123,10 @@ export class Packet implements PacketDataModel {
     }
   }
 
+  get byteLength () {
+    return this.getTotalBytes();
+  }
+
   get dataSlicesLength () {
     return this.data ? this.data.length : 0;
   }
