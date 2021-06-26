@@ -30,20 +30,3 @@ export class SocketTapDefault implements SocketTap {
 
   flush () {}
 }
-
-export class SocketTapPacketCapture extends SocketTapDefault {
-  readonly dataList: PacketDataModel[] = [];
-
-  pushPacket (p: Packet): boolean {
-    this.dataList.push(PacketDataModel.createFromPacket(p));
-    return true;
-  }
-
-  isClear () {
-    return true;
-  }
-
-  flush () {
-    this.dataList.length = 0;
-  }
-}
