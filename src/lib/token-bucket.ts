@@ -149,7 +149,6 @@ export class TokenBucketPacketQueue<T> {
   }
 
   private _scheduleTokenRate () {
-
     clearInterval(this._timer as number);
 
     if (this._tokenRate === Infinity) {
