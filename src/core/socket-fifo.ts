@@ -34,7 +34,7 @@ export class SocketFifoQueue extends InputSocket {
   }
 
   drop () {
-    this._packets = [];
+    this._packets.length = 0;
   }
 
   get length (): number {
