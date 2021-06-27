@@ -49,20 +49,20 @@ export class TokenBucketPacketQueue<T> {
   }
 
   /**
-   * @property {number} rate the rate at which "tokens" are added in bytes/second.
-   * Number MUST be integer (use `setAvgRateInBitsPerSec` as a rounding wrapper).
+   * @property {number} tokenRate rate at which "tokens" are added in 1/second.
+   * Number MUST be integer.
    * This exactly corresponds to the average byte-rate
    * at which the bucket will allow packets to conform with.
-   *
+   *s
    */
-  set tokenRate (byteRate: number) {
-    if (byteRate < 0) {
-      throw new Error('Token-rate set can not be negative: ' + byteRate);
+  set tokenRate (tokenRate: number) {
+    if (tokenRate < 0) {
+      throw new Error('Token-rate set can not be negative: ' + tokenRate);
     }
     if (!Number.isFinite(this._tokens)) {
       this._tokens = 0;
     }
-    this._tokenRate = byteRate;
+    this._tokenRate = tokenRate;
     this._scheduleTokenRate();
   }
 
@@ -105,46 +105,49 @@ export class TokenBucketPacketQueue<T> {
 
   /**
    * Sets the `tokenRate` property by calculating
-   * the correspondongh byte-rate and rounding to next integer number
+   * the corresponding byte-rate and rounding to next integer number
    * @param bps bits/second
    */
-  setAvgRateInBitsPerSec (bps: number) {
+  setAvgBitrate (bps: number) {
     this.tokenRate = Math.round(bps / 8);
   }
 
-  /**
-   *
-   * @param maxRate bytes/second
-   * @returns bytes
-   */
-  getMaxBurstTime (maxRate: number): number {
-    if (this._tokenRate < maxRate) {
-      return this._maxTokens / (maxRate - this._tokenRate);
-    } else {
-      return Infinity;
+  setMaxBurstRate (maxBurstRate: number, expectedBurstTSecs: number) {
+    if (this._tokenRate >= maxBurstRate) {
+      throw new Error('Desired max-burst-rate has to be greater than token-rate set');
     }
+    this._maxTokens = (maxBurstRate - this._tokenRate) * expectedBurstTSecs;
   }
 
   /**
    *
-   * @param maxRate bytes/second
+   * @param expectedMaxBurstRate bytes/second
    * @returns bytes
    */
-  getMaxBurstSize (maxRate: number): number {
-    return maxRate * this.getMaxBurstTime(maxRate);
+  getMaxBurstTime (expectedMaxBurstRate: number): number {
+    if (this._tokenRate >= expectedMaxBurstRate) {
+      throw new Error('Expected max-burst-rate has to be greater than token-rate set');
+    }
+    return this._maxTokens / (expectedMaxBurstRate - this._tokenRate);
+  }
+
+  /**
+   *
+   * @param expectedMaxBurstRate bytes/second
+   * @returns bytes
+   */
+  getMaxBurstSize (expectedMaxBurstRate: number): number {
+    return expectedMaxBurstRate * this.getMaxBurstTime(expectedMaxBurstRate);
   }
 
   private _onTimer () {
-    if (this._tokens >= this._maxTokens) {
-      return;
+    if (this._tokens < this._maxTokens) {
+      if (this._useCheapClock) {
+        this._tokens += Math.floor(this._tokenRate * CHEAP_CLOCK_PERIOD_MS / 1000);
+      } else {
+        this._tokens++;
+      }
     }
-
-    if (this._useCheapClock) {
-      this._tokens += Math.floor(this._tokenRate * CHEAP_CLOCK_PERIOD_MS / 1000);
-    } else {
-      this._tokens++;
-    }
-
     this._processQueue();
   }
 
@@ -163,8 +166,13 @@ export class TokenBucketPacketQueue<T> {
     if (this._useCheapClock) {
       this._timer = setInterval(this._onTimer.bind(this), CHEAP_CLOCK_PERIOD_MS);
     } else {
-      this._timer = setInterval(this._onTimer.bind(this), Math.round(1000 * (1 / this._tokenRate)));
+      this._timer = setInterval(this._onTimer.bind(this), Math.round(1000 / this._tokenRate));
     }
+
+    // we process queue after any reschedule immediately
+    // to resync rate as quickly as possible
+    // (and to effectively flush in case was set rate to infinity)
+    this._processQueue();
   }
 
   private _processQueue () {
@@ -178,6 +186,13 @@ export class TokenBucketPacketQueue<T> {
       this._queue.shift();
       this._tokens -= packet.byteLength;
       this.onPacketPop && this.onPacketPop(packet, context || null);
+      // if we have popped a packet we run another process call
+      // in case the next packet is conformant as well.
+      // otherwise the output rate would not be accurate,
+      // since queue is otherwise processed only
+      // on next token-increment scheduled tick
+      // or via pushing new packet.
+      this._processQueue();
     } else { // packet is non-conformant
       if (this._dropProbability > 0 && (Math.random() <= this._dropProbability)) { // drop packet
         this._queue.shift();
