@@ -1,7 +1,5 @@
 import { Nullable } from '../common-types';
 import { Packet } from './packet';
-import { PacketDataModel } from './packet-model';
-
 /**
  * pushPacket: when return false, packet vanishes, when true, get transferred
  * popPacket: will get called when isClear is false until tap is "cleared"

@@ -19,12 +19,11 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   private state_: SocketState;
   private descriptor_: SocketDescriptor;
   private signalHandler_: Nullable<SignalHandler> = null;
-  private tap_: Nullable<SocketTap> = null;
 
   private isReady_: boolean = false;
   private isReadyArmed_: boolean = false;
-  private resolveDisposed_;
 
+  protected tap_: Nullable<SocketTap> = null;
   protected owner: SocketOwner = null;
 
   constructor (type: SocketType, descriptor: SocketDescriptor) {
@@ -167,10 +166,6 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * @param p
    */
   transfer (p: Packet): Promise<boolean> {
-    if (this.tap_) {
-      p = this.handleWithTap_(this.tap_, p);
-      if (!p) return Promise.resolve(true);
-    }
     return this.transferAsync_(p);
   }
 
