@@ -8,7 +8,7 @@ export class AppOutputSocket extends OutputSocket {
   static createAsyncTransferFunc (
     descriptor: SocketDescriptor,
     inputSocket?: InputSocket
-    ): [AppOutputSocketAsyncFunc, OutputSocket] {
+  ): [AppOutputSocketAsyncFunc, OutputSocket] {
     const socket: AppOutputSocket = new AppOutputSocket(descriptor, inputSocket);
     const func: AppOutputSocketAsyncFunc = socket.transfer.bind(socket);
     return [func, socket];
