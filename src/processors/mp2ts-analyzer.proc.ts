@@ -22,7 +22,6 @@ export class Mp2TsAnalyzerProc extends Processor {
     super();
     this.createInput();
     this.createOutput();
-
   }
 
   templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
@@ -50,7 +49,7 @@ export class Mp2TsAnalyzerProc extends Processor {
       // no result so far, go to take 1 more packet from adapter
       if (!tsInspectRes) continue;
 
-      console.log(tsInspectRes)
+      console.log(tsInspectRes);
 
       const pmtInfoRes = tsInspectRes.pmt || this._analyzePmtCache;
       if (!pmtInfoRes) break;
@@ -74,9 +73,8 @@ export class Mp2TsAnalyzerProc extends Processor {
       //
       // the condition as-is ensures that there are more than 1 frame
       // of any kind in the PES analysis buffer.
-      if ((orZero(tsInspectRes.video?.length)
-          + orZero(tsInspectRes.audio?.length)) > 1) {
-
+      if ((orZero(tsInspectRes.video?.length) +
+          orZero(tsInspectRes.audio?.length)) > 1) {
         // remove the last packet from the pes-buffer
         // as it contains the next frame
         // so that each packet we push only contains the first frame found
@@ -104,10 +102,10 @@ export class Mp2TsAnalyzerProc extends Processor {
 
         const isVideoOrAudio = firstTimestamp === firstVideoTimestamp;
 
-        this._analyzePsiPesBuffer.props.mimeType
-          = isVideoOrAudio ? 'video/mp2t' : 'audio/mp2t';
-        this._analyzePsiPesBuffer.props.codec
-          = isVideoOrAudio ? CommonCodecFourCCs.avc1 : CommonCodecFourCCs.mp4a;
+        this._analyzePsiPesBuffer.props.mimeType =
+          isVideoOrAudio ? 'video/mp2t' : 'audio/mp2t';
+        this._analyzePsiPesBuffer.props.codec =
+          isVideoOrAudio ? CommonCodecFourCCs.avc1 : CommonCodecFourCCs.mp4a;
 
         const outPkt = Packet.fromSlice(this._analyzePsiPesBuffer);
         outPkt.setTimingInfo(firstTimestamp, 0, MPEG_TS_TIMESCALE_HZ);
