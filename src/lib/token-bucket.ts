@@ -36,7 +36,7 @@ export class TokenBucketPacketQueue<T> {
    */
   constructor (
     public onPacketPop: TokenBucketPacketPopCb<T> = noop,
-    private _tokenRate: number = 1,
+    private _tokenRate: number = Infinity,
     private _dropProbability: number = 0,
     private _maxTokens: number = Infinity,
     private _useCheapClock: boolean = true
@@ -51,10 +51,17 @@ export class TokenBucketPacketQueue<T> {
   /**
    * @property {number} rate the rate at which "tokens" are added in bytes/second.
    * Number MUST be integer (use `setAvgRateInBitsPerSec` as a rounding wrapper).
-   * This exactly corresponds to the average byte-rate at which the bucket will allow packets to conform with.
+   * This exactly corresponds to the average byte-rate
+   * at which the bucket will allow packets to conform with.
    *
    */
   set tokenRate (byteRate: number) {
+    if (byteRate < 0) {
+      throw new Error('Token-rate set can not be negative: ' + byteRate);
+    }
+    if (!Number.isFinite(this._tokens)) {
+      this._tokens = 0;
+    }
     this._tokenRate = byteRate;
     this._scheduleTokenRate();
   }
@@ -142,11 +149,18 @@ export class TokenBucketPacketQueue<T> {
   }
 
   private _scheduleTokenRate () {
+
+    clearInterval(this._timer as number);
+
+    if (this._tokenRate === Infinity) {
+      this._tokens = Infinity;
+      return;
+    }
+
     if (!Number.isInteger(this._tokenRate)) {
       throw new Error('Token rate has to be integer');
     }
 
-    clearInterval(this._timer as number);
     if (this._useCheapClock) {
       this._timer = setInterval(this._onTimer.bind(this), CHEAP_CLOCK_PERIOD_MS);
     } else {
