@@ -21,18 +21,25 @@ export class SocketTapTokenBucket extends SocketTapDefault {
     this._tokenBucket.tokenRate = rate;
   }
 
+  get byteRateLimit (): number {
+    return this._tokenBucket.tokenRate;
+  }
+
   get byteRateIn () {
     return this._tokenRateIn.value();
   }
 
   get byteRateOut () {
-    return this._tokenRateIn.value();
+    return this._tokenRateOut.value();
+  }
+
+  getTokenBucket (): TokenBucketPacketQueue<Packet> {
+    return this._tokenBucket;
   }
 
   pushPacket (p: Packet): boolean {
-    this._tokenRateIn.add(p.byteLength);
     this._tokenBucket.pushPacket(p, p);
-
+    this._tokenRateIn.add(p.byteLength);
     return false;
   }
 
