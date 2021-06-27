@@ -10,10 +10,12 @@ export class AppOutputSocket extends OutputSocket {
     return (socket = new AppOutputSocket(descriptor, inputSocket)).transfer.bind(socket);
   }
 
+  /*
   static createSyncTransferFunc (descriptor: SocketDescriptor, inputSocket?: InputSocket): (p: Packet) => boolean {
     let socket;
     return (socket = new AppOutputSocket(descriptor, inputSocket)).transferSync.bind(socket);
   }
+  */
 
   constructor (descriptor: SocketDescriptor, inputSocket?: InputSocket) {
     super(descriptor);

@@ -29,12 +29,6 @@ export class InputSocket extends Socket {
 
   transferSync (p: Packet): boolean {
     if (!this.onReceive_) return false;
-
-    if (this.tap_) {
-      p = this.handleWithTap_(this.tap_, p);
-      if (!p) return true;
-    }
-
     this.setTransferring_(true);
     const b = this.onReceive_(p);
     this._onTransferred(p);

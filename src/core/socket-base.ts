@@ -166,6 +166,10 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * @param p
    */
   transfer (p: Packet): Promise<boolean> {
+    if (this.tap_) {
+      p = this.handleWithTap_(this.tap_, p);
+      if (!p) return Promise.resolve(true);
+    }
     return this.transferAsync_(p);
   }
 

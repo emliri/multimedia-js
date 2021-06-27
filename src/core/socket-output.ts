@@ -25,11 +25,6 @@ export class OutputSocket extends Socket {
   transferSync (p: Packet): boolean {
     log(makeLogTimestamped('OutputSocket.transfer packet'));
 
-    if (this.tap_) {
-      p = this.handleWithTap_(this.tap_, p);
-      if (!p) return true;
-    }
-
     let b: boolean;
     this.setTransferring_(true);
     this.peers_.forEach((s) => {
