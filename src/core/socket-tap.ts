@@ -2,7 +2,7 @@ import { Nullable } from '../common-types';
 import { Packet } from './packet';
 /**
  * pushPacket: when return false, packet vanishes, when true, get transferred
- * popPacket: will get called when isClear is false until tap is "cleared"
+ * popPacket: will get called when `isClear()` is false - until tap is "cleared"
  * flush: should drop all internal state
  * @see SocketBase#handleWithTap_
  */

@@ -5,13 +5,13 @@ export type AppOutputSocketAsyncFunc = (p: Packet) => Promise<boolean>;
 export type AppOutputSocketSyncFunc = (p: Packet) => boolean;
 
 export class AppOutputSocket extends OutputSocket {
-  static createAsyncTransferFunc (descriptor: SocketDescriptor, inputSocket?: InputSocket): {func: (p: Packet) => Promise<boolean>, sock: OutputSocket} {
+  static createAsyncTransferFunc (
+    descriptor: SocketDescriptor,
+    inputSocket?: InputSocket
+    ): [AppOutputSocketAsyncFunc, OutputSocket] {
     const socket: AppOutputSocket = new AppOutputSocket(descriptor, inputSocket);
-    const func = socket.transfer.bind(socket);
-    return {
-      func,
-      sock: socket
-    }
+    const func: AppOutputSocketAsyncFunc = socket.transfer.bind(socket);
+    return [func, socket];
   }
 
   /*
@@ -23,7 +23,6 @@ export class AppOutputSocket extends OutputSocket {
 
   constructor (descriptor: SocketDescriptor, inputSocket?: InputSocket) {
     super(descriptor);
-
     inputSocket && this.connect(inputSocket);
   }
 }
