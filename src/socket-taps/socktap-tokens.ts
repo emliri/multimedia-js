@@ -10,22 +10,22 @@ export class SocketTapTokenBucket extends SocketTapDefault {
   private _tokenRateOut = new TokenRate(this._rateDeltaMs);
   private _packetQ: Packet[] = [];
 
-  constructor(private _rateDeltaMs: number = 1000) {
+  constructor (private _rateDeltaMs: number = 1000) {
     super();
     this._tokenBucket = new TokenBucketPacketQueue((p_, p) => {
       this._onPop(p);
     });
   }
 
-  set byteRateLimit(rate: number) {
+  set byteRateLimit (rate: number) {
     this._tokenBucket.tokenRate = rate;
   }
 
-  get byteRateIn() {
+  get byteRateIn () {
     return this._tokenRateIn.value();
   }
 
-  get byteRateOut() {
+  get byteRateOut () {
     return this._tokenRateIn.value();
   }
 
@@ -44,7 +44,7 @@ export class SocketTapTokenBucket extends SocketTapDefault {
     return p;
   }
 
-  isClear() {
+  isClear () {
     return this._packetQ.length === 0;
   }
 
@@ -54,8 +54,7 @@ export class SocketTapTokenBucket extends SocketTapDefault {
     this._tokenBucket.reset();
   }
 
-  private _onPop(p: Packet) {
+  private _onPop (p: Packet) {
     this._packetQ.push(p);
   }
-
 }
