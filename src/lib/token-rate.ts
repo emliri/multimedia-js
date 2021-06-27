@@ -6,6 +6,9 @@ export class TokenRate {
   private _value: number | null = null;
 
   constructor (public deltaMs: number = 1000) {
+    if (!Number.isFinite(deltaMs) || deltaMs <= 0) {
+      throw new Error('Invalid delta-time (ms) value: ' + deltaMs);
+    }
     this.reset();
   }
 
