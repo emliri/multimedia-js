@@ -10,7 +10,8 @@
     "lib": [
       "ES6",
       "DOM"
-    ]
+    ],
+    "downlevelIteration": true
   },
   "include": [
     "index.ts",
