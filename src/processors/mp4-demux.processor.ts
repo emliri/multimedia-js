@@ -126,7 +126,6 @@ export class MP4DemuxProcessor extends Processor {
           if (track.isVideo()) {
             log('video track found with id:', track.id);
 
-            const videoAtom = <VideoAtom> track.getMetadataAtom();
             // FIXME: support HEVC too
             const avcCList: AvcC[] = (<AvcC[]> track.getReferenceAtoms());
             if (!avcCList.length) {
