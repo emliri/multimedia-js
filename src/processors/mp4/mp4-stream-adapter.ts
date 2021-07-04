@@ -18,6 +18,7 @@ export class Mp4StreamAdapter {
       boxInfo?: Mp4AtomsScanResult,
       done?: boolean,
     ) => void,
+    private _closingAtoms: string[] = ['moov', 'mdat']
   ) {
     this._reader = reader;
     this._consume();
@@ -55,7 +56,7 @@ export class Mp4StreamAdapter {
           const buf = result.value;
           this._bytesRead += buf.byteLength;
           this._mp4Parser.append(buf);
-          const [data, boxes] = this._mp4Parser.parse(['moov', 'mdat']);
+          const [data, boxes] = this._mp4Parser.parse(this._closingAtoms);
           if (data) {
             this._bytesPushed += data.byteLength;
             this._onData(data, boxes);
