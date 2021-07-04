@@ -21,8 +21,10 @@ export class Mp4CmafNetStreamParseProc extends Processor {
   private _inputQueueReader: Nullable<ReadableStreamQueueReader<Uint8Array>>
     = new ReadableStreamQueueReader();
 
-  private _parser: Mp4StreamAdapter = new Mp4StreamAdapter(this._inputQueueReader,
-    this._onIsobmffData, this._opts.closingAtoms);
+  private _parser: Mp4StreamAdapter = new Mp4StreamAdapter(
+    this._inputQueueReader,
+    this._onIsoBoxData,
+    this._opts.closingAtoms);
 
   constructor (private _opts: Mp4CmafNetStreamParseOpts = {}) {
     super();
@@ -39,7 +41,7 @@ export class Mp4CmafNetStreamParseProc extends Processor {
     return true;
   }
 
-  private _onIsobmffData(boxData: Uint8Array | Error,
+  private _onIsoBoxData(boxData: Uint8Array | Error,
     boxInfo: [number[], string[]], done: boolean) {
       if (boxData instanceof Error) {
         throw boxData;
