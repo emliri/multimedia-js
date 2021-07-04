@@ -4,7 +4,7 @@ import { MP2TSDemuxProcessor } from '../processors/mp2ts-demux.proc';
 import { MP4MuxProcessor, MP4MuxProcessorOptions } from '../processors/mp4-mux-mozilla.processor';
 import { AVCNetworkAbstractionProcessor } from '../processors/avc-network-abstraction.proc';
 
-import { MediaSourceInputSocket } from '../io-sockets/mse-input.socket';
+import { MediaSourceInputSocket } from '../io-sockets/web-mse-render.sock';
 import { HlsOutputSocket } from '../io-sockets/hls/hls-output-socket';
 
 import { newProcessorWorkerShell, unsafeCastProcessorType } from '../core/processor-factory';
