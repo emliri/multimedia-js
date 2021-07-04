@@ -43,8 +43,6 @@ export class NodeFsReadSocket extends OutputSocket implements SeekableOutputSock
   }
 
   private _onReadable () {
-    console.log('data readable');
-
     // see https://nodejs.org/api/stream.html#stream_readable_readablelength
 
     this._drainPoll();
