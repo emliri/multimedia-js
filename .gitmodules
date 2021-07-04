@@ -4,3 +4,6 @@
 [submodule "src/ext-mod/mux.js"]
 	path = src/ext-mod/mux.js
 	url = https://github.com/emliri/mux.js.git
+[submodule "test-data"]
+	path = test-data
+	url = git@github.com:emliri/mmjs-test-data.git
