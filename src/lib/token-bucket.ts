@@ -50,7 +50,8 @@ export class TokenBucketPacketQueue<T> {
 
   /**
    * @property {number} tokenRate rate at which "tokens" are added in 1/second.
-   * Number MUST be integer.
+   * Number SHOULD be integer (or Infinity). Non-integer will lead to rounding either-way.
+   *
    * This exactly corresponds to the average byte-rate
    * at which the bucket will allow packets to conform with.
    *s
@@ -58,9 +59,6 @@ export class TokenBucketPacketQueue<T> {
   set tokenRate (tokenRate: number) {
     if (tokenRate < 0) {
       throw new Error('Token-rate set can not be negative: ' + tokenRate);
-    }
-    if (!Number.isFinite(this._tokens)) {
-      this._tokens = 0;
     }
     this._tokenRate = tokenRate;
     this._scheduleTokenRate();
@@ -71,7 +69,8 @@ export class TokenBucketPacketQueue<T> {
   }
 
   /**
-   * Number SHOULD be integer
+   * Number SHOULD be integer (otherwise doesn't make much sense) or Infinity.
+   * Has no effect if token-rate is set to Infinity (TODO: should it?).
    * @property {number}
    */
   set maxTokens (max: number) {
@@ -141,6 +140,7 @@ export class TokenBucketPacketQueue<T> {
   }
 
   private _onTimer () {
+    // TODO: use Math.min here with maxTokens (optional behavior) ?
     if (this._tokens < this._maxTokens) {
       if (this._useCheapClock) {
         this._tokens += Math.floor(this._tokenRate * CHEAP_CLOCK_PERIOD_MS / 1000);
@@ -157,10 +157,10 @@ export class TokenBucketPacketQueue<T> {
     if (this._tokenRate === Infinity) {
       this._tokens = Infinity;
       return;
-    }
-
-    if (!Number.isInteger(this._tokenRate)) {
-      throw new Error('Token rate has to be integer');
+    } else if (this._tokens === Infinity) {
+      // reset state to something incrementable
+      // if we come out unlimited mode
+      this._tokens = 0;
     }
 
     if (this._useCheapClock) {
