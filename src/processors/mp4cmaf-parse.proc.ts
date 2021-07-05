@@ -23,7 +23,7 @@ export class Mp4CmafNetStreamParseProc extends Processor {
 
   private _parser: Mp4StreamAdapter = new Mp4StreamAdapter(
     this._inputQueueReader,
-    this._onIsoBoxData,
+    this._onIsoBoxData.bind(this),
     this._opts.closingAtoms);
 
   constructor (private _opts: Mp4CmafNetStreamParseOpts = {}) {
