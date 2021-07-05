@@ -18,7 +18,7 @@ export class SocketTapTokenBucket extends SocketTapDefault {
   }
 
   set byteRateLimit (rate: number) {
-    this._tokenBucket.tokenRate = rate;
+    this._tokenBucket.tokenRate = Math.ceil(rate);
   }
 
   get byteRateLimit (): number {
