@@ -169,14 +169,18 @@ export function makeNALUFromH264RbspData (
  *
  * @param naluData list of NAL units to package in an access unit
  */
-export function makeAccessUnitFromNALUs (naluData: BufferSlice[]): BufferSlice {
+export function makeAccessUnitFromNALUs (naluData: BufferSlice[], annexB: boolean = false): BufferSlice {
   const totalSizeOfNalus = BufferSlice.getTotalSize(naluData);
   const accessUnitData: BufferSlice = BufferSlice.allocateNew((4 * naluData.length) + totalSizeOfNalus);
   const auDataView: DataView = accessUnitData.getDataView();
 
   let offset = 0;
   naluData.forEach((naluBuffer) => {
-    auDataView.setUint32(offset, naluBuffer.length);
+    if (annexB) {
+      auDataView.setUint32(offset, 0x00000001);
+    } else {
+      auDataView.setUint32(offset, naluBuffer.length);
+    }
     offset += 4;
     naluBuffer.write(accessUnitData.arrayBuffer, offset);
     offset += naluBuffer.length;
