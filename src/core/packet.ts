@@ -222,6 +222,14 @@ export class Packet implements PacketDataModel {
     return description;
   }
 
+  toJSON (): string {
+    return JSON.stringify(this.toDataModel());
+  }
+
+  toDataModel (): PacketDataModel {
+    return PacketDataModel.createFromPacket(this);
+  }
+
   mapArrayBuffers (): ArrayBuffer[] {
     return BufferSlice.mapArrayBuffers(this.data);
   }
