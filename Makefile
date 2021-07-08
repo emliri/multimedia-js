@@ -10,7 +10,7 @@ VENDOR_LIB_NAME_FFMPEG = ffmpeg.js
 
 # PHONYS
 
-all: dist vendor/$(VENDOR_LIB_NAME_FFMPEG)
+all: dist # vendor/$(VENDOR_LIB_NAME_FFMPEG)
 
 clean:
 	rm -f package-lock.json.alias
