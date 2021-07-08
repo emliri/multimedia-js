@@ -18,7 +18,7 @@ export class Mp4StreamAdapter {
       boxInfo?: Mp4AtomsScanResult,
       done?: boolean,
     ) => void,
-    private _closingAtoms: string[] = ['moov', 'mdat']
+    private _closingAtoms: string[] = ['moov', 'mdat', 'mfra']
   ) {
     this._reader = reader;
     this._consume();
