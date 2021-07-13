@@ -12,7 +12,7 @@ const { log, warn, error } = getLogger('H264Tools', LoggerLevel.ON, true);
 
 export { NALU, H264NaluType, H264SliceType } from './nalu';
 
-export function parseAvcCodecAtom(avccData: Uint8Array): AvcC {
+export function parseAvcCodecAtom (avccData: Uint8Array): AvcC {
   return AvcC.parse(avccData) as AvcC;
 }
 
@@ -97,7 +97,7 @@ export function parseAccessUnit (bufferSlice: BufferSlice, nalusOut?: NALU[]): N
     naluLength = avcView.getUint32(naluOffset);
 
     if (naluLength > avcStream.length) {
-      //warn('no NALUs found in this data! (not an access-unit)');
+      // warn('no NALUs found in this data! (not an access-unit)');
       return null;
     }
 
@@ -113,7 +113,7 @@ export function parseAccessUnit (bufferSlice: BufferSlice, nalusOut?: NALU[]): N
 
     nalus.push(nalu);
 
-    //log('In access-unit of size ', avcStream.byteLength, ' bytes, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
+    // log('In access-unit of size ', avcStream.byteLength, ' bytes, found NALU of type ', nalu.getTypeName(), ', of length ' + naluLength + ' bytes, #' + naluCount + ':', nalu);
   }
 
   return nalus;
@@ -188,5 +188,3 @@ export function makeAccessUnitFromNALUs (naluData: BufferSlice[], annexB: boolea
 
   return accessUnitData;
 }
-
-

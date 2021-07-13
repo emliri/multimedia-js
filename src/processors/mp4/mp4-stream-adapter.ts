@@ -11,7 +11,7 @@ export class Mp4StreamAdapter {
 
   private _readingDone = false;
 
-  constructor(
+  constructor (
     reader: ReadableStreamDefaultReader<Uint8Array>,
     private _onData: (
       boxData: Uint8Array | null | Error,
@@ -24,27 +24,27 @@ export class Mp4StreamAdapter {
     this._consume();
   }
 
-  close() {
+  close () {
     this._reader = null;
   }
 
-  get bytesRead(): number {
+  get bytesRead (): number {
     return this._bytesRead;
   }
 
-  get bytesPushed(): number {
+  get bytesPushed (): number {
     return this._bytesPushed;
   }
 
-  get closed(): boolean {
+  get closed (): boolean {
     return this._reader === null;
   }
 
-  get done(): boolean {
+  get done (): boolean {
     return this._readingDone;
   }
 
-  private _consume() {
+  private _consume () {
     if (!this._reader) {
       throw new Error('Stream adapter is already closed');
     }
@@ -65,7 +65,7 @@ export class Mp4StreamAdapter {
         if (result.done) {
           if (this._readingDone) {
             throw new Error(
-              'Failed assertion on stream-reading state (duplicate done-flag in result)',
+              'Failed assertion on stream-reading state (duplicate done-flag in result)'
             );
           }
           this._readingDone = true;

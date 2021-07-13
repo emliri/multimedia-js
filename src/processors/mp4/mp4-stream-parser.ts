@@ -19,7 +19,7 @@ export type Mp4AtomsScanResult = [number[], string[]] | null;
 export class Mp4StreamParser {
   private _buffers: Uint8Array[] = [];
 
-  append(buf: Uint8Array) {
+  append (buf: Uint8Array) {
     this._buffers.push(buf);
   }
 
@@ -28,9 +28,9 @@ export class Mp4StreamParser {
    * @param closingAtoms List of atom-types on which we finish parsing (deliver result)
    * @param numBoxes Number of boxes to scan (defaults to as many as needed to reach closing state)
    */
-  parse(
+  parse (
     closingAtoms: string[],
-    numBoxes = Infinity,
+    numBoxes = Infinity
   ): [Uint8Array | null, Mp4AtomsScanResult?] {
     const boxes: Mp4AtomsScanResult = this._scanTopLevelBoxes(numBoxes);
     if (boxes === null) {
@@ -59,7 +59,7 @@ export class Mp4StreamParser {
    *
    * @param boxSizes List of top-level scanned box sizes
    */
-  private _makeBufferFromBoxScan(boxSizes: number[]): Uint8Array {
+  private _makeBufferFromBoxScan (boxSizes: number[]): Uint8Array {
     // sum up all box-sizes to determine output buffer size
     // and allocate memory with this
     const writeBufSize = boxSizes.reduce((accu, next) => accu + next, 0);
@@ -83,10 +83,10 @@ export class Mp4StreamParser {
    * @param boxSize Size of box (from scan result)
    * @returns resulting offset in buffer (will be writeOffsetArg + boxSize)
    */
-  private _popBoxAndWrite(
+  private _popBoxAndWrite (
     writeBuf: Uint8Array,
     writeOffsetArg: number,
-    boxSize: number,
+    boxSize: number
   ): number {
     // number of bytes we will write (and need to read from input chunks)
     let remainingBytes = boxSize;
@@ -106,7 +106,7 @@ export class Mp4StreamParser {
         const wrapOverBuf = new Uint8Array(
           buf.buffer,
           buf.byteOffset + remainingBytes,
-          buf.byteLength - remainingBytes,
+          buf.byteLength - remainingBytes
         );
         // and we put the buffer back on the input list beginning
         this._buffers.unshift(wrapOverBuf);
@@ -133,9 +133,9 @@ export class Mp4StreamParser {
    * @param offset
    * @param numBytes
    */
-  private _readArrayBufferAt(
+  private _readArrayBufferAt (
     offset: number,
-    numBytes: number,
+    numBytes: number
   ): ArrayBuffer | null {
     const buf = new Uint8Array(numBytes);
     // eslint-disable-next-line no-plusplus
@@ -154,7 +154,7 @@ export class Mp4StreamParser {
    * Returns null when offset is out of bounds of input-chunks combined size.
    * @param offset
    */
-  private _readUByteAt(offset: number): number | null {
+  private _readUByteAt (offset: number): number | null {
     let remainingOffset = offset;
     // iterate over input-chunks list until we reached target offset
     // and return value.
@@ -174,7 +174,7 @@ export class Mp4StreamParser {
    * Scan top-level atoms of mp4 boxes
    * @param numBoxes
    */
-  private _scanTopLevelBoxes(numBoxes: number): Mp4AtomsScanResult {
+  private _scanTopLevelBoxes (numBoxes: number): Mp4AtomsScanResult {
     // scan read offset
     let offset = 0;
     // output data: arrays of box-sizes and box-types
@@ -205,7 +205,7 @@ export class Mp4StreamParser {
       }
       // convert box-type bytes to char-string
       const boxType: string = String.fromCharCode(
-        ...new Uint8Array(boxTypeBuf).values(),
+        ...new Uint8Array(boxTypeBuf).values()
       );
       // push results
       boxSizes.push(boxSize);

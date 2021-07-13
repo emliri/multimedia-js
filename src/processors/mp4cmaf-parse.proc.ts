@@ -1,13 +1,13 @@
-import { CommonMimeTypes, InputSocket, Packet, SocketDescriptor, SocketTemplateGenerator, SocketType } from "../..";
-import { Nullable } from "../common-types";
-import { BufferSlice } from "../core/buffer";
-import { BufferProperties } from "../core/buffer-props";
-import { Processor } from "../core/processor";
-import { ReadableStreamQueueReader } from "../lib/readable-stream";
-import { getLogger, LoggerLevel } from "../logger";
-import { Mp4StreamAdapter } from "./mp4/mp4-stream-adapter";
+import { CommonMimeTypes, InputSocket, Packet, SocketDescriptor, SocketTemplateGenerator, SocketType } from '../..';
+import { Nullable } from '../common-types';
+import { BufferSlice } from '../core/buffer';
+import { BufferProperties } from '../core/buffer-props';
+import { Processor } from '../core/processor';
+import { ReadableStreamQueueReader } from '../lib/readable-stream';
+import { getLogger, LoggerLevel } from '../logger';
+import { Mp4StreamAdapter } from './mp4/mp4-stream-adapter';
 
-const {debug, log, error} = getLogger('Mp4CmafNetStreamParseProc', LoggerLevel.OFF, true);
+const { debug, log, error } = getLogger('Mp4CmafNetStreamParseProc', LoggerLevel.OFF, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -20,7 +20,6 @@ export type Mp4CmafNetStreamParseOpts = {
 }
 
 export class Mp4CmafNetStreamParseProc extends Processor {
-
   private _inputQueueReader: Nullable<ReadableStreamQueueReader<Uint8Array>>
     = new ReadableStreamQueueReader();
 
@@ -39,22 +38,22 @@ export class Mp4CmafNetStreamParseProc extends Processor {
     return getSocketDescriptor(socketType);
   }
 
-  protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
+  protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
     debug(`Reading ${p.data[0].length} bytes`);
     this._inputQueueReader.enqueue(p.data[0].getUint8Array());
     return true;
   }
 
-  private _onIsoBoxData(boxData: Uint8Array | Error,
+  private _onIsoBoxData (boxData: Uint8Array | Error,
     boxInfo: [number[], string[]], done: boolean) {
-      if (boxData instanceof Error) {
-        error(boxData);
-        throw boxData;
-      }
-      debug('Boxes parsed result:', boxInfo);
-      const props = new BufferProperties(CommonMimeTypes.VIDEO_MP4);
-      boxInfo[1].forEach(boxType => props.tags.add(boxType));
-      const bs = BufferSlice.fromTypedArray(boxData, props);
-      this.out[0].transfer(Packet.fromSlice(bs));
+    if (boxData instanceof Error) {
+      error(boxData);
+      throw boxData;
+    }
+    debug('Boxes parsed result:', boxInfo);
+    const props = new BufferProperties(CommonMimeTypes.VIDEO_MP4);
+    boxInfo[1].forEach(boxType => props.tags.add(boxType));
+    const bs = BufferSlice.fromTypedArray(boxData, props);
+    this.out[0].transfer(Packet.fromSlice(bs));
   }
 }

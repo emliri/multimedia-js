@@ -4,8 +4,7 @@ import { Packet } from '../core/packet';
 import { arrayLast, prntprtty } from '../common-utils';
 
 export class SocketTapPacketCapture extends SocketTapDefault {
-
-  constructor(private _debugLog: boolean = false) {
+  constructor (private _debugLog: boolean = false) {
     super();
   }
 

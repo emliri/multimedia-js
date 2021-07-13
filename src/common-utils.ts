@@ -3,7 +3,7 @@ import { VoidCallback, TwoDimArray } from './common-types';
 // eslint-disable-next-line no-void
 export const noop = () => void 0;
 
-export function arrayLast<T>(arr: T[]): T | null {
+export function arrayLast<T> (arr: T[]): T | null {
   if (arr.length === 0) return null;
   return arr[arr.length - 1];
 }
