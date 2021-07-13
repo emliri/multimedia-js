@@ -54,7 +54,6 @@ export class TokenBucketPacketQueue<T> {
    *
    * This exactly corresponds to the average byte-rate
    * at which the bucket will allow packets to conform with.
-   *s
    */
   set tokenRate (tokenRate: number) {
     if (tokenRate < 0) {
@@ -182,7 +181,19 @@ export class TokenBucketPacketQueue<T> {
 
     const [packet, context] = this._queue[0];
 
-    if (this._tokens >= packet.byteLength) {
+    if (this._tokens >= packet.byteLength ||
+      // this second condition is handling a corner-case,
+      // as some packets/transports "MTU" themselves may be just larger
+      // then any window set (for example when reading from
+      // a local loopback HTTP/TCP connection, read-buffers can
+      // be potentially much larger than what we would like
+      // set here as burst max-window...).
+      // The token-counter will either-way be decremented (resulting negative obviously)
+      // with this packet being passed as compliant,
+      // and thus for any next packet it will require "refill"
+      // such that all-in-all there is no harm at the rate-limit compliance overall
+      // or in the validity of the solution generally.
+      this._maxTokens <= packet.byteLength) {
       this._queue.shift();
       this._tokens -= packet.byteLength;
       this.onPacketPop && this.onPacketPop(packet, context || null);
@@ -196,7 +207,7 @@ export class TokenBucketPacketQueue<T> {
     } else { // packet is non-conformant
       if (this._dropProbability > 0 && (Math.random() <= this._dropProbability)) { // drop packet
         this._queue.shift();
-      }
+      }spyOn;
     }
   }
 }
