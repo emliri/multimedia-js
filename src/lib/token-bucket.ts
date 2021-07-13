@@ -207,7 +207,7 @@ export class TokenBucketPacketQueue<T> {
     } else { // packet is non-conformant
       if (this._dropProbability > 0 && (Math.random() <= this._dropProbability)) { // drop packet
         this._queue.shift();
-      };
+      }
     }
   }
 }
