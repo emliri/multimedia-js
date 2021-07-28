@@ -8,6 +8,11 @@ export function arrayLast<T> (arr: T[]): T | null {
   return arr[arr.length - 1];
 }
 
+export function arrayFirst<T> (arr: T[]): T | null {
+  if (arr.length === 0) return null;
+  return arr[0];
+}
+
 export function orZero (val: any): number {
   return val || 0;
 }
@@ -26,6 +31,25 @@ export function orInfinity (val: any, neg: boolean = false): number {
 
 export function prntprtty (val: any, indent: number = 4): string {
   return JSON.stringify(val, null, indent);
+}
+
+/**
+ *
+ * @param epochMs optional number/NaN or null
+ * @returns First: Epoch ms diff (Date.now sourced). Results in 0 when epochMs is falsy.
+ * Second: current Date.now clock source value used
+ */
+export function timeMillisSince(epochMs?: number | typeof NaN | null): [number, number] {
+  const now = Date.now();
+  return [now - (epochMs || now), now];
+}
+
+export function secsToMillis(secs: number): number {
+  return secs * 1000;
+}
+
+export function millisToSecs(millis: number): number {
+  return millis / 1000;
 }
 
 /**
