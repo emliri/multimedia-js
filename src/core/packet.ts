@@ -1,3 +1,5 @@
+import { Nullable } from '../common-types';
+import { orZero } from '../common-utils';
 import { BufferSlices, BufferSlice } from './buffer';
 import { BufferProperties } from './buffer-props';
 import { PacketDataModel } from './packet-model';
@@ -70,9 +72,9 @@ export class Packet implements PacketDataModel {
     ));
   }
 
-  static fromSlice (bufferSlice: BufferSlice, timestamp?: number, pto?: number): Packet {
+  static fromSlice (bufferSlice: Nullable<BufferSlice>, timestamp?: number, pto?: number): Packet {
     const p = new Packet([], timestamp, pto);
-    p.data.push(
+    if (bufferSlice) p.data.push(
       bufferSlice
     );
     return p;
@@ -204,7 +206,7 @@ export class Packet implements PacketDataModel {
 
   getTotalBytes () {
     return this.data.reduce((accu, buf: BufferSlice) => {
-      return accu + buf.length;
+      return accu + orZero(buf?.length);
     }, 0);
   }
 
