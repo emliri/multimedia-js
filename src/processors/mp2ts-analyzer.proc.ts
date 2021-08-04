@@ -111,11 +111,11 @@ export class Mp2TsAnalyzerProc extends Processor {
       const playSeconds = millisToSecs(playOutToWallClockDiff);
       const playRate = this._opts.playoutRegulationSpeed;
       const playOutTicks = playRate * playSeconds * MPEG_TS_TIMESCALE_HZ;
-      //console.log(now, timeSinceLastQueueOut, playOutTicks);
+
       // pre: this._transferOutDts is positive integer
       const refDts = this._transferOutDts;
       const maxTransferOutDts = refDts + playOutTicks;
-      //console.log(this._transferOutDts, maxTransferOutDts)
+
       let dtsCycled = false;
       while (this._transferOutQueue.length
         && this._getQueueItemDts(this._transferOutQueue[0][0]) <= maxTransferOutDts) {
