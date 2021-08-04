@@ -74,7 +74,8 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
 
     private inputs_: InputSocket[] = [];
     private outputs_: OutputSocket[] = [];
-    private taskWorker_: Worker = null;
+
+    private _terminated: boolean = false;
 
     // TODO: internalize EE instance to avoid polluting interface (we should only expose on/once/off)
     // private eventEmitter_: typeof EventEmitter = new EventEmitter();
@@ -106,10 +107,17 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       throw new Error('Configure called but not implemented');
     }
 
-    terminate () {
-      if (this.taskWorker_) {
-        this.taskWorker_.terminate();
-      }
+    disconnect() {
+      this.outputs_.forEach(s => s.disconnect());
+    }
+
+    terminate (disconnect: boolean = true) {
+      if (disconnect) this.disconnect();
+      this._terminated = true;
+    }
+
+    isTerminated() {
+      return this._terminated;
     }
 
     // maybe better call protoSocketDescriptor as in prototype pattern?
@@ -191,6 +199,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     }
 
     cast (signal: Signal): SignalReceiverCastResult {
+      this.assertNotTerminated_();
       return this.onSignalCast_(signal).then((result) => {
         if (result) {
           return Promise.resolve(true);
@@ -243,6 +252,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
      * {SocketDescriptor} sd optional
      */
     createInput (sd?: SocketDescriptor): InputSocket {
+      this.assertNotTerminated_();
       const inputIndex: number = this.inputs_.length;
       const s = new InputSocket((p: Packet) => {
         return this.onReceiveFromInput_(s, p, inputIndex);
@@ -266,6 +276,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
      * {SocketDescriptor} sd optional
      */
     createOutput (sd?: SocketDescriptor): OutputSocket {
+      this.assertNotTerminated_();
       const s = new OutputSocket(sd || this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
       this.outputs_.push(s);
       this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
@@ -281,20 +292,19 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return s;
     }
 
-    private getTaskWorker (): Worker {
-      if (!this.taskWorker_) {
-        this.taskWorker_ = new Worker(EnvVars.TASK_WORKER_PATH);
-        this.taskWorker_.addEventListener('message', (event) => {
-          this.onTaskWorkerMessage(event);
-        });
+    private assertNotTerminated_() {
+      if (this._terminated) {
+        const msg = 'Processor is in terminated state';
+        this.emitErrorEvent(ErrorCode.PROC_TERMINATED, msg);
+        throw new Error(msg);
       }
-      return this.taskWorker_;
     }
 
     /**
      * @returns True when packet was forwarded
      */
     private onSymbolicPacketReceived_ (p: Packet): boolean {
+      this.assertNotTerminated_();
       this.emit(ProcessorEvent.SYMBOLIC_PACKET, {
         processor: this,
         event: ProcessorEvent.SYMBOLIC_PACKET,
@@ -313,12 +323,14 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
      * p packet to transfer to all outputs
      */
     private transferPacketToAllOutputs_ (p: Packet) {
+      this.assertNotTerminated_();
       this.out.forEach((socket) => {
         socket.transfer(p);
       });
     }
 
     private onReceiveFromInput_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
+      this.assertNotTerminated_();
       if (p.isSymbolic() &&
             this.onSymbolicPacketReceived_(p)) {
         return true; // when packet was forwarded we don't pass it on for processing
@@ -342,6 +354,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     }
 
     private onSignalCast_ (signal: Signal): SignalReceiverCastResult {
+      this.assertNotTerminated_();
       this.emit(ProcessorEvent.SIGNAL, {
         processor: this,
         event: ProcessorEvent.SIGNAL,
@@ -355,24 +368,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       }
     }
 
-    protected onTaskWorkerMessage (event: MessageEvent) {
-      console.warn('Processor should implement onWorkerMessage');
-      console.warn('Worker event not handled:', event);
-    }
-
-    protected dispatchTask (name: string, packet: Packet) {
-      const task: ProcessorTask = {
-        workerContext: null,
-        packet,
-        name
-      };
-      this.getTaskWorker()
-        .postMessage(task, task.packet.mapArrayBuffers());
-    }
-
     /**
-     * FIXME: explain this better
-     *
      * At the same time handler for symbols, as well as
      * arbiter function to determine if this proc proxies or not specific symbols.
      *
