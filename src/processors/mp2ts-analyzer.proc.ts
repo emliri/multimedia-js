@@ -170,7 +170,7 @@ export class Mp2TsAnalyzerProc extends Processor {
 
     this.out[0].transfer(outPkt);
 
-    console.log(new Date().toISOString(), nextLastDts / MPEG_TS_TIMESCALE_HZ);
+    // console.log(new Date().toISOString(), nextLastDts / MPEG_TS_TIMESCALE_HZ);
   }
 }
 
