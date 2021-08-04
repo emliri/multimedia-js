@@ -74,9 +74,11 @@ export class Packet implements PacketDataModel {
 
   static fromSlice (bufferSlice: Nullable<BufferSlice>, timestamp?: number, pto?: number): Packet {
     const p = new Packet([], timestamp, pto);
-    if (bufferSlice) p.data.push(
-      bufferSlice
-    );
+    if (bufferSlice) {
+      p.data.push(
+        bufferSlice
+      );
+    }
     return p;
   }
 

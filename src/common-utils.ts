@@ -39,16 +39,16 @@ export function prntprtty (val: any, indent: number = 4): string {
  * @returns First: Epoch ms diff (Date.now sourced). Results in 0 when epochMs is falsy.
  * Second: current Date.now clock source value used
  */
-export function timeMillisSince(epochMs?: number | typeof NaN | null): [number, number] {
+export function timeMillisSince (epochMs?: number | typeof NaN | null): [number, number] {
   const now = Date.now();
   return [now - (epochMs || now), now];
 }
 
-export function secsToMillis(secs: number): number {
+export function secsToMillis (secs: number): number {
   return secs * 1000;
 }
 
-export function millisToSecs(millis: number): number {
+export function millisToSecs (millis: number): number {
   return millis / 1000;
 }
 

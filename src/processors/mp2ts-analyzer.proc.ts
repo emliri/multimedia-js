@@ -38,12 +38,12 @@ export class Mp2TsAnalyzerProc extends Processor {
   private _transferOutDts: number = NaN;
   private _playOutTime: number = NaN;
 
-  static get DefaultOpts(): Mp2TsAnalyzerProcOpts {
+  static get DefaultOpts (): Mp2TsAnalyzerProcOpts {
     return {
       enablePlayoutRegulation: false,
       playoutRegulationSpeed: 1,
       playoutRegulationPollMs: DEFAULT_PLAYOUT_REGULATION_POLL_MS
-    }
+    };
   }
 
   constructor (opts: Partial<Mp2TsAnalyzerProcOpts> = Mp2TsAnalyzerProc.DefaultOpts) {
@@ -85,13 +85,12 @@ export class Mp2TsAnalyzerProc extends Processor {
       this._analyzePsiPesBuffer = null;
 
       this._onPollTransferOutQueue();
-
     }
 
     return true;
   }
 
-  private _onPollTransferOutQueue() {
+  private _onPollTransferOutQueue () {
     // optimized early return as we may poll periodically on empty queue
     // and avoids further checks in logic below
     if (!this._transferOutQueue.length) return;
@@ -117,22 +116,21 @@ export class Mp2TsAnalyzerProc extends Processor {
       const maxTransferOutDts = refDts + playOutTicks;
 
       let dtsCycled = false;
-      while (this._transferOutQueue.length
-        && this._getQueueItemDts(this._transferOutQueue[0][0]) <= maxTransferOutDts) {
-          // post: DTS counter change
-          this._transferOutQueueItem(this._transferOutQueue.shift());
-          if (this._transferOutDts < refDts) {
-            warn('Regulation-delay hit DTS rollover/discontinuity, resetting');
-            dtsCycled = true;
-            break;
-          }
+      while (this._transferOutQueue.length &&
+        this._getQueueItemDts(this._transferOutQueue[0][0]) <= maxTransferOutDts) {
+        // post: DTS counter change
+        this._transferOutQueueItem(this._transferOutQueue.shift());
+        if (this._transferOutDts < refDts) {
+          warn('Regulation-delay hit DTS rollover/discontinuity, resetting');
+          dtsCycled = true;
+          break;
+        }
       }
       if (!dtsCycled) {
         this._playOutTime += secsToMillis(((this._transferOutDts - refDts) / playRate) / MPEG_TS_TIMESCALE_HZ);
       } else {
         this._playOutTime = now;
       }
-
     }
     // reschedule if polling
     if (this._opts.playoutRegulationPollMs > 0) {
@@ -142,7 +140,7 @@ export class Mp2TsAnalyzerProc extends Processor {
     }
   }
 
-  private _getQueueItemDts(info: InspectMpegTsPacketsResult): number {
+  private _getQueueItemDts (info: InspectMpegTsPacketsResult): number {
     let videoDts: number;
     let audioDts: number;
     if (info.audio?.length) {
@@ -162,7 +160,7 @@ export class Mp2TsAnalyzerProc extends Processor {
     return nextLastDts;
   }
 
-  private _transferOutQueueItem([info, data]: AnalysisResultItem) {
+  private _transferOutQueueItem ([info, data]: AnalysisResultItem) {
     const nextLastDts = this._transferOutDts = this._getQueueItemDts(info);
 
     const outPkt = Packet.fromSlice(data);
@@ -174,8 +172,8 @@ export class Mp2TsAnalyzerProc extends Processor {
   }
 }
 
-      // TODO: put this stuff in another function and/or process after queue
-      /*
+// TODO: put this stuff in another function and/or process after queue
+/*
       const pmtInfoRes = tsInspectRes.pmt || this._analyzePmtCache;
       if (!pmtInfoRes) break;
       else {

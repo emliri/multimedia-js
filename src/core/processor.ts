@@ -107,7 +107,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       throw new Error('Configure called but not implemented');
     }
 
-    disconnect() {
+    disconnect () {
       this.outputs_.forEach(s => s.disconnect());
     }
 
@@ -116,7 +116,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       this._terminated = true;
     }
 
-    isTerminated() {
+    isTerminated () {
       return this._terminated;
     }
 
@@ -292,7 +292,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return s;
     }
 
-    private assertNotTerminated_() {
+    private assertNotTerminated_ () {
       if (this._terminated) {
         const msg = 'Processor is in terminated state';
         this.emitErrorEvent(ErrorCode.PROC_TERMINATED, msg);

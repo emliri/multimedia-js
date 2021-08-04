@@ -164,7 +164,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return this;
   }
 
-  cleanupProcs() {
+  cleanupProcs () {
     this.procList.forEach(proc => {
       proc.terminate();
     });
