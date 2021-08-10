@@ -10,7 +10,7 @@ export { PacketSymbol } from './packet-symbol';
 
 export type PacketReceiveCallback = ((p: Packet) => boolean);
 
-export type PacketFilter = (p: Packet) => Packet;
+export type PacketFilter = (p: Packet) => Nullable<Packet>;
 
 export class Packet implements PacketDataModel {
   /**
