@@ -85,6 +85,7 @@ export class SocketFifoValve extends OutputSocket {
     // apply filters
     for (let i = 0; i < this._filters.length; i++) {
       p = this._filters[i](p);
+      if (!p) break;
     }
 
     this.transfer(p);
