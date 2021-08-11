@@ -1,17 +1,25 @@
-import { Constructor } from "../common-types";
+import { Class, ObjectConstructor } from "../common-types";
 import { objectNewFromDefaultAndPartials } from "../common-utils";
 
-export interface IWithOptions {
+export interface IWithOptions<TOptions> {
+  get OptionsDefault(): TOptions;
 
+  get options_(): TOptions;
+
+  getOptions(): TOptions;
+
+  setOptions(opts?: Partial<TOptions>);
 }
 
+export type MixinWithOptions<TBase, TOptions> = TBase & Class<IWithOptions<TOptions>>;
+
 export function mixinWithOptions<
-  TBase extends Constructor,
-  TOptions extends Object>(Base: TBase, defaultOpts: TOptions) {
+  TBase extends ObjectConstructor,
+  TOptions extends Object>(Base: TBase, defaultOpts: TOptions): MixinWithOptions<TBase, TOptions> {
 
-  return class WithOptions extends Base {
+  return class WithOptions extends Base implements IWithOptions<TOptions> {
 
-    static get OptionsDefault(): TOptions {
+    get OptionsDefault(): TOptions {
       return defaultOpts;
     }
 
@@ -31,7 +39,7 @@ export function mixinWithOptions<
      * specific performance-scaling optimizations,
      * when you know how/why to do this.
      */
-    get options_() {
+    get options_(): TOptions {
       return this._options;
     }
 
