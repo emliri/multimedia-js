@@ -1,13 +1,15 @@
-import { VoidCallback, TwoDimArray } from './common-types';
+import { VoidCallback, TwoDimArray, Nullable } from './common-types';
 
 // eslint-disable-next-line no-void
 export const noop = () => void 0;
 
 /**
  *
- * Stolen from Lodash, mainly afaiu to handle `eq(NaN, NaN) => true`
+ * Credits & copyright: @see Lodash.eq
+ *
  * *Not* a "deep equal" function. See https://github.com/lodash/lodash/blob/master/eq.js
- * The MIT License
+ *
+ * sThe MIT License
  * Copyright JS Foundation and other contributors <https://js.foundation/>
  * Based on Underscore.js, copyright Jeremy Ashkenas,
  * DocumentCloud and Investigative Reporters & Editors <http://underscorejs.org/>
@@ -38,6 +40,76 @@ export const noop = () => void 0;
  */
 export function isSame(value: any, other: any) {
   return value === other || (value !== value && other !== other)
+}
+
+/**
+ * Credits & copyright: @see Lodash.defaults
+ *
+ * Assigns own and inherited enumerable string keyed properties of source
+ * objects to the destination object for all destination properties that
+ * resolve to `undefined`. Source objects are applied from left to right.
+ * Once a property is set, additional values of the same property are ignored.
+ *
+ * **Note:** This method mutates `object`.
+ *
+ * defaults({ 'a': 1 }, { 'b': 2 }, { 'a': 3 })
+ * // => { 'a': 1, 'b': 2 }
+ */
+
+export function objectApplyDefaults<T extends Object>(object: Partial<T>, ...sources: Nullable<T>[]): T {
+  /** Used for built-in method references. */
+  const objectProto: Partial<T> = <T> Object.prototype;
+  /** Used to check objects for own properties. */
+  const hasOwnProperty = objectProto.hasOwnProperty
+  object = Object(object);
+  sources.forEach((source) => {
+    if (source != null) {
+      source = Object(source);
+      for (const key in source) {
+        const value = object[key];
+        if (value === undefined ||
+            (isSame(value, objectProto[key]) && !hasOwnProperty.call(object, key))) {
+          object[key] = source[key];
+        }
+      }
+    }
+  })
+  return object as T
+}
+
+/**
+ * Slight variation on `defaults` above, just overriding any property
+ * very much like Object.assign, but with better type-declaration.
+ */
+export function objectAssign<T>(object: Partial<T>, ...sources: Nullable<Partial<T>>[]): Partial<T> {
+  return Object.assign(object, ...sources);
+  /*
+  const objectProto: Partial<T> = <T> Object.prototype;
+  object = Object(object);
+  sources.forEach((source) => {
+    if (source != null) {
+      source = Object(source);
+      for (const key in source) {
+        const value = object[key];
+        if (value === undefined || isSame(value, objectProto[key])) {
+          object[key] = source[key];
+        }
+      }
+    }
+  })
+  return object as T
+  */
+}
+
+/**
+ * Constructs a new instance (flat clone) of a T extends Object
+ * with a list of Partial<T> sources applied iteratively from left to right (like with
+ * `Object.assign`), and then applies the defaults object which
+ * guarantees the object to be of complete T type, without overwriting the
+ * given source properties (see `objectApplyDefaults`).
+ */
+export function objectNewFromDefaultAndPartials<T extends Object>(defaults: T, ...sources: Nullable<Partial<T>>[]): T {
+  return objectApplyDefaults(objectAssign({}, ...sources), defaults);
 }
 
 export function lastOfArray<T> (a: T[]): T | null {

@@ -1,4 +1,5 @@
 import { Constructor } from "../common-types";
+import { objectNewFromDefaultAndPartials } from "../common-utils";
 
 export interface IWithOptions {
 
@@ -30,7 +31,7 @@ export function mixinWithOptions<
      * specific performance-scaling optimizations,
      * when you know how/why to do this.
      */
-    protected get options_() {
+    get options_() {
       return this._options;
     }
 
@@ -54,11 +55,12 @@ export function mixinWithOptions<
      * @param opts
      */
     setOptions(opts: Partial<TOptions> = defaultOpts) {
-      this._options = Object.assign({}, this._options, opts);
-      this._onSetOptions(opts);
+      // preserves current state, then applies partial arg on top, then fills
+      // in any missing properties with defaultOpts props.
+      //debugger;
+      this._options = objectNewFromDefaultAndPartials(defaultOpts, this._options, opts);
+      console.log(opts, this._options);
     }
-
-    protected _onSetOptions(partialSetOpts: Partial<TOptions>) {}
   }
 }
 
