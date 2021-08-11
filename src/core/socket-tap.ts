@@ -1,6 +1,7 @@
 import { Nullable } from '../common-types';
 import { mixinWithOptions } from '../lib/options';
 import { Packet } from './packet';
+import { Socket } from './socket';
 /**
  * `pushPacket()`: when return true, gets transferred (directly) by parent socket,
  * when return false, packet ownership can be "kept" by tap (or "dropped" effectively),
@@ -8,16 +9,27 @@ import { Packet } from './packet';
  * `popPacket()`: will get called when `isClear()` is false - until tap is "cleared"
  * can return any packet in any order
  * `flush()`: should reset clear all internal state
+ * `pull()`: should signalize request pop`ing further packets,
+ *  returns false if cant notify any parent socket (or other) of calling popPacket() on the tap
  * @see SocketBase#handleWithTap_
  */
 export interface SocketTap {
   pushPacket(p: Packet): boolean;
   popPacket(): Nullable<Packet>;
   isClear(): boolean;
-  flush();
+  flush(): void;
+  pull(): boolean;
+  setSocket(s: Nullable<Socket>): void;
 }
 
 export class SocketTapDefault implements SocketTap {
+
+  private _parentSocket: Nullable<Socket> = null;
+
+  setSocket(s: Nullable<Socket>): void {
+    this._parentSocket = s;
+  }
+
   pushPacket (p: Packet): boolean {
     return true;
   }
@@ -27,6 +39,12 @@ export class SocketTapDefault implements SocketTap {
   }
 
   isClear (): boolean {
+    return true;
+  }
+
+  pull (): boolean {
+    if (!this._parentSocket) return false;
+    this._parentSocket.drainTap();
     return true;
   }
 

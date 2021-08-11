@@ -165,6 +165,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
 
   setTap (tap: SocketTap): Socket {
     this.tap_ = tap;
+    this.tap_.setSocket(this);
     return this;
   }
 
