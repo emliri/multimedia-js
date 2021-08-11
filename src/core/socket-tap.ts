@@ -60,12 +60,12 @@ export class SocketTapQueued extends SocketTapDefault {
   protected _onQueuePushed() {}
 }
 
-export function mixinSocketTapDefaultWithOpts<TOptions>(defaultOpts: TOptions){
+export function mixinSocketTapDefaultWithOpts<TOptions>(defaultOpts: TOptions) {
   return mixinWithOptions<
     typeof SocketTapDefault, TOptions>(SocketTapDefault, defaultOpts);
 }
 
-export function mixinSocketTapQueuedWithOpts<TOptions>(defaultOpts: TOptions){
+export function mixinSocketTapQueuedWithOpts<TOptions>(defaultOpts: TOptions) {
   return mixinWithOptions<
     typeof SocketTapQueued, TOptions>(SocketTapQueued, defaultOpts);
 }
