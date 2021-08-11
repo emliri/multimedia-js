@@ -116,51 +116,6 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   }
   */
 
-  protected handleWithTap_ (tap: SocketTap, p: Packet): Nullable<Packet> {
-    while (!tap.isClear()) {
-      const _p = tap.popPacket();
-      if (!_p) throw new Error('SocketTap implementation failure: popPacket expected to return non-null since isClear was false');
-      this.transferAsync_(_p);
-    }
-    if (this.tap_ &&
-      // if the Tap returns false,
-      // it "keeps" the packet on its stack
-      !this.tap_.pushPacket(p)) {
-      return null;
-    }
-    return p;
-  }
-
-  /**
-   * For subclasses only. Set the transfering flag of the socket state.
-   */
-  protected setTransferring_ (b: boolean) {
-    this.state_.transferring = b;
-  }
-
-  private transferAsync_ (p: Packet): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      dispatchAsyncTask(() => {
-        try {
-          resolve(this.transferSync(p));
-          this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
-          if (p.isSymbolic()) {
-            switch (p.symbol) {
-            case PacketSymbol.EOS:
-              this._emit(SocketEvent.EOS_PACKET_TRANSFERRED);
-              break;
-            default:
-              break;
-            }
-          }
-        } catch (e) {
-          error('Error upon packet-transfer execution:', e);
-          reject(e);
-        }
-      });
-    });
-  }
-
   /**
    * Wraps transferSync in an async call and returns a promise
    * @param p
@@ -168,7 +123,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   transfer (p: Nullable<Packet>): Promise<boolean> {
     if (p === null) return;
     if (this.tap_) {
-      p = this.handleWithTap_(this.tap_, p);
+      p = this.handleWithTap_(p);
       if (!p) return Promise.resolve(true);
     }
     return this.transferAsync_(p);
@@ -245,6 +200,14 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this;
   }
 
+  drainTap() {
+    while (this.tap_ && !this.tap_.isClear()) {
+      const _p = this.tap_.popPacket();
+      if (!_p) throw new Error('SocketTap implementation error: popPacket() expected to return non-null since isClear was false');
+      this.transferAsync_(_p);
+    }
+  }
+
   /**
    * @abstract
    * Transfer the partial ownership of a Packet to this Socket.
@@ -259,5 +222,46 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
 
   protected _emit (event: SocketEvent) {
     super.emit(event, event);
+  }
+
+  protected handleWithTap_ (p: Packet): Nullable<Packet> {
+    this.drainTap();
+    if (this.tap_ &&
+      // if the Tap returns false,
+      // it "keeps" the packet on its stack
+      !this.tap_.pushPacket(p)) {
+      return null;
+    }
+    return p;
+  }
+
+  /**
+   * For subclasses only. Set the transfering flag of the socket state.
+   */
+  protected setTransferring_ (b: boolean) {
+    this.state_.transferring = b;
+  }
+
+  private transferAsync_ (p: Packet): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      dispatchAsyncTask(() => {
+        try {
+          resolve(this.transferSync(p));
+          this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
+          if (p.isSymbolic()) {
+            switch (p.symbol) {
+            case PacketSymbol.EOS:
+              this._emit(SocketEvent.EOS_PACKET_TRANSFERRED);
+              break;
+            default:
+              break;
+            }
+          }
+        } catch (e) {
+          error('Error upon packet-transfer execution:', e);
+          reject(e);
+        }
+      });
+    });
   }
 }
