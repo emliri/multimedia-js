@@ -99,10 +99,10 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
 
       const tsInspectRes: InspectMpegTsPacketsResult =
         inspectMpegTsPackets(
-          this._analyzePsiPesBuffer.getUint8Array(),
-          NaN,
-          false,
-          this._analyzePmtCache);
+          this._analyzePsiPesBuffer.getUint8Array(), // PSI packets in
+          NaN, // base timestamp
+          false, // expect AAC/ADTS ?
+          this._analyzePmtCache); // PMT persistance cache
 
       // no result so far, go to take 1 more packet from adapter
       if (!tsInspectRes) continue;
