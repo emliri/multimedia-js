@@ -1,4 +1,3 @@
-import { number } from "yargs";
 import { millisToSecs, secsToMillis, timeMillisSince } from "../common-utils";
 import { Packet } from "../core/packet";
 import { mixinSocketTapQueuedWithOpts } from "../core/socket-tap";
@@ -31,7 +30,6 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
     super();
     this.setOptions(opts);
     this._onQueuePushed = this._pollQueue.bind(this);
-
   }
 
   pushPacket(p) {
@@ -42,9 +40,7 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
 
   popPacket() {
     const pkt = super.popPacket();
-    console.log('popPacket:', pkt);
     return pkt;
-
   }
 
   flush() {
@@ -70,7 +66,6 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
       if (!Number.isFinite(this._playOutDtsInSecs) || !Number.isFinite(this._playOutClockRef)) {
         this._enqueueOutPacket(this._sockTapPushQueue.shift());
         this._playOutClockRef = now;
-        console.log('first packet:', this._playOutDtsInSecs)
       }
 
       const playSeconds = millisToSecs(playOutToWallClockDiff);
@@ -86,7 +81,6 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
         this._sockTapPushQueue[0].getNormalizedDts() <= maxTransferOutDtsSecs) {
         // post: DTS counter change
         this._enqueueOutPacket(this._sockTapPushQueue.shift());
-        console.log('playout regulated:', this._playOutDtsInSecs)
         if (this._playOutDtsInSecs < refDts) {
           warn('Regulation-delay hit DTS rollover/discontinuity, resetting');
           dtsCycled = true;
@@ -111,7 +105,7 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
   private _enqueueOutPacket (pkt: Packet) {
     this._sockTapPopQueue.push(pkt);
     this._playOutDtsInSecs = pkt.getNormalizedDts();
-    console.log(pkt);
+    this.pull();
   }
 
 }
