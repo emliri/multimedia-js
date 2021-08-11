@@ -67,7 +67,6 @@ export function mixinWithOptions<
       // in any missing properties with defaultOpts props.
       //debugger;
       this._options = objectNewFromDefaultAndPartials(defaultOpts, this._options, opts);
-      console.log(opts, this._options);
     }
   }
 }
