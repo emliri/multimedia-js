@@ -9,7 +9,7 @@ export const noop = () => void 0;
  *
  * *Not* a "deep equal" function. See https://github.com/lodash/lodash/blob/master/eq.js
  *
- * sThe MIT License
+ * The MIT License
  * Copyright JS Foundation and other contributors <https://js.foundation/>
  * Based on Underscore.js, copyright Jeremy Ashkenas,
  * DocumentCloud and Investigative Reporters & Editors <http://underscorejs.org/>
@@ -67,6 +67,13 @@ export function objectApplyDefaults<T extends Object>(object: Partial<T>, ...sou
       source = Object(source);
       for (const key in source) {
         const value = object[key];
+        // write source property into target
+        // when 1) target value at property-key is undefined
+        // when 2) target value is equal to Object.prototype one at property-key
+        //          AND this key is not any of the targets own properties
+        // -> Defaults get only applied if not applied by prior source
+        // i.e already present in target object properties in some way
+        // or this property is one of the base Object class prototype
         if (value === undefined ||
             (isSame(value, objectProto[key]) && !hasOwnProperty.call(object, key))) {
           object[key] = source[key];
@@ -78,11 +85,12 @@ export function objectApplyDefaults<T extends Object>(object: Partial<T>, ...sou
 }
 
 /**
- * Slight variation on `defaults` above, just overriding any property
+ * Slight variation on `defaults` above, just overriding any property,
  * very much like Object.assign, but with better type-declaration.
  */
 export function objectAssign<T>(object: Partial<T>, ...sources: Nullable<Partial<T>>[]): Partial<T> {
   return Object.assign(object, ...sources);
+  // Lodash-like implementation (using Object.assign is likely more performant)
   /*
   const objectProto: Partial<T> = <T> Object.prototype;
   object = Object(object);
@@ -90,10 +98,7 @@ export function objectAssign<T>(object: Partial<T>, ...sources: Nullable<Partial
     if (source != null) {
       source = Object(source);
       for (const key in source) {
-        const value = object[key];
-        if (value === undefined || isSame(value, objectProto[key])) {
-          object[key] = source[key];
-        }
+        object[key] = source[key];
       }
     }
   })
@@ -110,13 +115,6 @@ export function objectAssign<T>(object: Partial<T>, ...sources: Nullable<Partial
  */
 export function objectNewFromDefaultAndPartials<T extends Object>(defaults: T, ...sources: Nullable<Partial<T>>[]): T {
   return objectApplyDefaults(objectAssign({}, ...sources), defaults);
-}
-
-export function lastOfArray<T> (a: T[]): T | null {
-  if (a.length === 0) {
-    return null;
-  }
-  return a[a.length - 1];
 }
 
 export function arrayLast<T> (arr: T[]): T | null {

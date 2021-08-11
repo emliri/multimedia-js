@@ -7,7 +7,7 @@ import ffmpegWebmToolchain from 'ffmpeg.js/ffmpeg-webm';
 // for now let's try to rely on a global install or some other delegation of the problem to the user by dependency injection
 
 import { getLogger, LoggerLevel } from '../../logger';
-import { noop, lastOfArray } from '../../common-utils';
+import { noop } from '../../common-utils';
 
 const { debug, log, warn, error } = getLogger('ffmpeg-tool', LoggerLevel.ON, true);
 
