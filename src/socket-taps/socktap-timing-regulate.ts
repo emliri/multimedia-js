@@ -6,7 +6,7 @@ import { getLogger } from "../logger";
 
 const { warn } = getLogger("socktap-timing-regulate");
 
-const SocketTapDefaultWithOpts
+const SocketTapQueuedWithOpts
   = mixinSocketTapQueuedWithOpts<SocketTapTimingRegulateOpts>({
   timingRegulationOn: false,
   timingRegulationSpeed: 1,
@@ -21,7 +21,7 @@ export interface SocketTapTimingRegulateOpts {
   timingRegulationPollMs: number
 }
 
-export class SocketTapTimingRegulate extends SocketTapDefaultWithOpts {
+export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
 
   private _playOutDtsInSecs: number = NaN;
   private _playOutClockRef: number = NaN;
@@ -30,10 +30,12 @@ export class SocketTapTimingRegulate extends SocketTapDefaultWithOpts {
   constructor(opts?: Partial<SocketTapTimingRegulateOpts>) {
     super();
     this.setOptions(opts);
+    this._onQueuePushed = this._pollQueue.bind(this);
   }
 
   pushPacket(p) {
     super.pushPacket(p);
+    this._pollQueue();
     return false;
   }
 
@@ -43,7 +45,7 @@ export class SocketTapTimingRegulate extends SocketTapDefaultWithOpts {
     super.flush();
   }
 
-  private _onPushQueuePoll () {
+  private _pollQueue () {
 
     // optimized early return as we may poll periodically on empty queue
     // and avoids further checks in logic below
@@ -66,7 +68,7 @@ export class SocketTapTimingRegulate extends SocketTapDefaultWithOpts {
       const playRate = this.options_.timingRegulationSpeed;
       const playOutTicks = playRate * playSeconds;
 
-      // pre: this._transferOutDts is positive integer
+      // pre: this._playOutDtsInSecs is positive integer
       const refDts = this._playOutDtsInSecs;
       const maxTransferOutDtsSecs = refDts + playOutTicks;
 
@@ -91,13 +93,15 @@ export class SocketTapTimingRegulate extends SocketTapDefaultWithOpts {
     if (this.options_.timingRegulationPollMs > 0) {
       clearTimeout(this._pollTimer);
       this._pollTimer = setTimeout(() => {
-        this._onPushQueuePoll();
+        this._pollQueue();
       }, this.options_.timingRegulationPollMs) as unknown as number;
     }
   }
 
   private _enqueueOutPacket (pkt: Packet) {
     this._sockTapPopQueue.push(pkt);
+    this._playOutDtsInSecs = pkt.getNormalizedDts();
+
   }
 
 }

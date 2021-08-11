@@ -39,6 +39,7 @@ export class SocketTapQueued extends SocketTapDefault {
 
   pushPacket (p: Packet): boolean {
     this._sockTapPushQueue.push(p);
+    this._onQueuePushed();
     return false;
   }
 
@@ -55,6 +56,8 @@ export class SocketTapQueued extends SocketTapDefault {
     this._sockTapPushQueue.length = 0;
     this._sockTapPopQueue.length = 0;
   }
+
+  protected _onQueuePushed() {}
 }
 
 export function mixinSocketTapDefaultWithOpts<TOptions>(defaultOpts: TOptions){
