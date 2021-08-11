@@ -1,17 +1,20 @@
-import { BufferSlice, InputSocket, Packet, Processor, SocketDescriptor, SocketTemplateGenerator, SocketType } from '../..';
-import { arrayLast, millisToSecs, orInfinity, orZero, secsToMillis, timeMillisSince } from '../common-utils';
-import { CommonCodecFourCCs, CommonMimeTypes } from '../core/payload-description';
+import { BufferSlice, InputSocket, Packet, Socket, OutputSocket, SocketDescriptor, SocketTemplateGenerator, SocketType, CommonMimeTypes } from '../..';
+import { arrayLast, orZero } from '../common-utils';
 
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
-import { MPEG2TS_PACKET_SIZE, MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
+import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 
 import { inspectMpegTsPackets, InspectMpegTsPacketsResult, InspectMpegTsPmtInfo } from './muxjs-m2t/muxjs-m2t';
+
+import { SocketTapTimingRegulate } from '../socket-taps';
+import { mixinProcessorWithOptions } from '../core/processor';
 
 import { getLogger, LoggerLevel } from '../logger';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.ON);
 
-const DEFAULT_PLAYOUT_REGULATION_POLL_MS = 900;
+const DEFAULT_PLAYOUT_REGULATION_POLL_MS = 200; // rougly the usual period
+                                                // of PCR packets
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -19,7 +22,31 @@ const getSocketDescriptor: SocketTemplateGenerator =
     SocketDescriptor.fromMimeTypes(CommonMimeTypes.VIDEO_MPEGTS) // expected output
   );
 
-type AnalysisResultItem = [InspectMpegTsPacketsResult, BufferSlice];
+function getPacketDts (info: InspectMpegTsPacketsResult): number {
+  let videoDts: number;
+  let audioDts: number;
+  if (info.audio?.length) {
+    audioDts = arrayLast(info.audio).dts;
+  }
+  if (info.video?.length) {
+    videoDts = arrayLast(info.video).dts;
+  }
+
+  if (!Number.isFinite(audioDts) && !Number.isFinite(videoDts)) {
+    throw new Error('Post-Analyzer last queue item has no A/V-samples timing info');
+  }
+
+  const nextLastDts = Math.max(
+    orZero(audioDts),
+    orZero(videoDts));
+  return nextLastDts;
+}
+
+const Mp2TsAnalyzerProc_ = mixinProcessorWithOptions<Mp2TsAnalyzerProcOpts>({
+  enablePlayoutRegulation: false,
+  playoutRegulationSpeed: 1,
+  playoutRegulationPollMs: DEFAULT_PLAYOUT_REGULATION_POLL_MS
+});
 
 export type Mp2TsAnalyzerProcOpts = {
   enablePlayoutRegulation: boolean
@@ -27,32 +54,31 @@ export type Mp2TsAnalyzerProcOpts = {
   playoutRegulationPollMs: number
 };
 
-export class Mp2TsAnalyzerProc extends Processor {
+export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
   private _opts: Mp2TsAnalyzerProcOpts;
 
   private _mptsSyncAdapter: Mpeg2TsSyncAdapter = new Mpeg2TsSyncAdapter();
   private _analyzePsiPesBuffer: BufferSlice = null;
   private _analyzePmtCache: InspectMpegTsPmtInfo = null;
+  private _timingRegulatorSock: OutputSocket;
 
-  private _transferOutQueue: AnalysisResultItem[] = [];
-  private _transferOutDts: number = NaN;
-  private _playOutTime: number = NaN;
-
-  static get DefaultOpts (): Mp2TsAnalyzerProcOpts {
-    return {
-      enablePlayoutRegulation: false,
-      playoutRegulationSpeed: 1,
-      playoutRegulationPollMs: DEFAULT_PLAYOUT_REGULATION_POLL_MS
-    };
-  }
-
-  constructor (opts: Partial<Mp2TsAnalyzerProcOpts> = Mp2TsAnalyzerProc.DefaultOpts) {
+  constructor (opts?: Partial<Mp2TsAnalyzerProcOpts>) {
     super();
+
+    this.setOptions(opts);
 
     this.createInput();
     this.createOutput();
 
-    this._opts = Object.assign({}, Mp2TsAnalyzerProc.DefaultOpts, opts);
+    this._timingRegulatorSock
+      = OutputSocket.fromUnsafe(
+        new OutputSocket(this.templateSocketDescriptor(SocketType.OUTPUT))
+        .setTap(new SocketTapTimingRegulate({
+          timingRegulationOn: opts.enablePlayoutRegulation,
+          timingRegulationSpeed: opts.playoutRegulationSpeed,
+          timingRegulationPollMs: opts.playoutRegulationPollMs
+        })))
+        .connect(this.out[0]);
   }
 
   templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
@@ -81,95 +107,23 @@ export class Mp2TsAnalyzerProc extends Processor {
       // no result so far, go to take 1 more packet from adapter
       if (!tsInspectRes) continue;
 
-      this._transferOutQueue.push([tsInspectRes, this._analyzePsiPesBuffer]);
+      const dts = getPacketDts(tsInspectRes);
+
+      const pkt = Packet.fromSlice(this._analyzePsiPesBuffer)
+                    .setTimingInfo(dts, 0, MPEG_TS_TIMESCALE_HZ);
+
+      this._timingRegulatorSock.transfer(pkt);
+
       this._analyzePsiPesBuffer = null;
 
-      this._onPollTransferOutQueue();
     }
 
     return true;
   }
 
-  private _onPollTransferOutQueue () {
-    // optimized early return as we may poll periodically on empty queue
-    // and avoids further checks in logic below
-    if (!this._transferOutQueue.length) return;
-    if (!this._opts.enablePlayoutRegulation) {
-      // transfer/flush whole queue
-      this._transferOutQueue.forEach(this._transferOutQueueItem.bind(this));
-      this._transferOutQueue.length = 0;
-      this._playOutTime = Date.now();
-    } else {
-      const [playOutToWallClockDiff, now] = timeMillisSince(this._playOutTime);
-      // initial condition setup
-      if (!Number.isFinite(this._transferOutDts) || !Number.isFinite(this._playOutTime)) {
-        this._transferOutQueueItem(this._transferOutQueue.shift());
-        this._playOutTime = now;
-      }
 
-      const playSeconds = millisToSecs(playOutToWallClockDiff);
-      const playRate = this._opts.playoutRegulationSpeed;
-      const playOutTicks = playRate * playSeconds * MPEG_TS_TIMESCALE_HZ;
 
-      // pre: this._transferOutDts is positive integer
-      const refDts = this._transferOutDts;
-      const maxTransferOutDts = refDts + playOutTicks;
 
-      let dtsCycled = false;
-      while (this._transferOutQueue.length &&
-        this._getQueueItemDts(this._transferOutQueue[0][0]) <= maxTransferOutDts) {
-        // post: DTS counter change
-        this._transferOutQueueItem(this._transferOutQueue.shift());
-        if (this._transferOutDts < refDts) {
-          warn('Regulation-delay hit DTS rollover/discontinuity, resetting');
-          dtsCycled = true;
-          break;
-        }
-      }
-      if (!dtsCycled) {
-        this._playOutTime += secsToMillis(((this._transferOutDts - refDts) / playRate) / MPEG_TS_TIMESCALE_HZ);
-      } else {
-        this._playOutTime = now;
-      }
-    }
-    // reschedule if polling
-    if (this._opts.playoutRegulationPollMs > 0) {
-      setTimeout(() => {
-        this._onPollTransferOutQueue();
-      }, this._opts.playoutRegulationPollMs);
-    }
-  }
-
-  private _getQueueItemDts (info: InspectMpegTsPacketsResult): number {
-    let videoDts: number;
-    let audioDts: number;
-    if (info.audio?.length) {
-      audioDts = arrayLast(info.audio).dts;
-    }
-    if (info.video?.length) {
-      videoDts = arrayLast(info.video).dts;
-    }
-
-    if (!Number.isFinite(audioDts) && !Number.isFinite(videoDts)) {
-      throw new Error('Post-Analyzer last queue item has no A/V-samples timing info');
-    }
-
-    const nextLastDts = Math.max(
-      orZero(audioDts),
-      orZero(videoDts));
-    return nextLastDts;
-  }
-
-  private _transferOutQueueItem ([info, data]: AnalysisResultItem) {
-    const nextLastDts = this._transferOutDts = this._getQueueItemDts(info);
-
-    const outPkt = Packet.fromSlice(data);
-    outPkt.setTimingInfo(nextLastDts, 0, MPEG_TS_TIMESCALE_HZ);
-
-    this.out[0].transfer(outPkt);
-
-    // console.log(new Date().toISOString(), nextLastDts / MPEG_TS_TIMESCALE_HZ);
-  }
 }
 
 // TODO: put this stuff in another function and/or process after queue
