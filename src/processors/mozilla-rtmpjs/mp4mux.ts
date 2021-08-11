@@ -77,7 +77,7 @@ import {
   VP6_VIDEO_CODEC_ID
 } from './mp4mux-codecs';
 
-import { hexToBytes, flattenOneDeepNestedArray, isNumber } from '../../common-utils';
+import { hexToBytes, flatten2DArray, isNumber } from '../../common-utils';
 import { getLogger, LoggerLevel } from '../../logger';
 
 const { warn, debug } = getLogger('Mp4Mux', LoggerLevel.OFF, true);
@@ -458,7 +458,7 @@ export class MP4Mux {
         sampleTablesData.push(samples);
       }
 
-      const chunkData = flattenOneDeepNestedArray<Uint8Array>(chunks);
+      const chunkData = flatten2DArray<Uint8Array>(chunks);
 
       return [new MediaDataBox(chunkData), sampleTablesData];
     }

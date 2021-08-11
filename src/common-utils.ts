@@ -3,6 +3,50 @@ import { VoidCallback, TwoDimArray } from './common-types';
 // eslint-disable-next-line no-void
 export const noop = () => void 0;
 
+/**
+ *
+ * Stolen from Lodash, mainly afaiu to handle `eq(NaN, NaN) => true`
+ * *Not* a "deep equal" function. See https://github.com/lodash/lodash/blob/master/eq.js
+ * The MIT License
+ * Copyright JS Foundation and other contributors <https://js.foundation/>
+ * Based on Underscore.js, copyright Jeremy Ashkenas,
+ * DocumentCloud and Investigative Reporters & Editors <http://underscorejs.org/>
+ *
+ * --
+ *
+ * Performs a
+ * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+ * comparison between two values to determine if they are equivalent.
+ *
+ * const object = { 'a': 1 }
+ * const other = { 'a': 1 }
+ *
+ * eq(object, object)
+ * // => true
+ *
+ * eq(object, other)
+ * // => false
+ *
+ * eq('a', 'a')
+ * // => true
+ *
+ * eq('a', Object('a'))
+ * // => false
+ *
+ * eq(NaN, NaN)
+ * // => true
+ */
+export function isSame(value: any, other: any) {
+  return value === other || (value !== value && other !== other)
+}
+
+export function lastOfArray<T> (a: T[]): T | null {
+  if (a.length === 0) {
+    return null;
+  }
+  return a[a.length - 1];
+}
+
 export function arrayLast<T> (arr: T[]): T | null {
   if (arr.length === 0) return null;
   return arr[arr.length - 1];
@@ -110,21 +154,14 @@ export function toNumber (n: any): number {
   throw new Error('Value does not convert to number: ' + n);
 }
 
-export function flattenOneDeepNestedArray<T> (a: TwoDimArray<T>): T[] {
+export function flatten2DArray<T> (a: TwoDimArray<T>): T[] {
   return [].concat(...a);
 }
 
-export function unsafeFlattenAnyNestedArray<T> (array: any[]): T[] {
+export function unsafeFlattenNDimArray<T> (array: any[]): T[] {
   return array.reduce(function (flat, toFlatten) {
-    return flat.concat(Array.isArray(toFlatten) ? unsafeFlattenAnyNestedArray(toFlatten) : toFlatten);
+    return flat.concat(Array.isArray(toFlatten) ? unsafeFlattenNDimArray(toFlatten) : toFlatten);
   }, []);
-}
-
-export function lastOfArray<T> (a: T[]): T | null {
-  if (a.length === 0) {
-    return null;
-  }
-  return a[a.length - 1];
 }
 
 // TODO: allocation methods
