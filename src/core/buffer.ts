@@ -93,12 +93,20 @@ export class BufferSlice {
       offset: number = 0,
       length: number = arrayBuffer.byteLength,
       props: BufferProperties = new BufferProperties()) {
-      this.arrayBuffer = arrayBuffer;
 
       if (offset < 0 || length < 0) {
         throw new Error('Illegal parameters for BufferSlice window');
       }
 
+      if (offset >= arrayBuffer.byteLength) {
+        throw new Error(`Slice offset exceeds array-buffer bounds by ${offset - arrayBuffer.byteLength + 1} bytes`);
+      }
+
+      if (length > arrayBuffer.byteLength - offset) {
+        throw new Error(`Slice length exceeds array-buffer bounds by ${length - (arrayBuffer.byteLength - offset)} bytes`);
+      }
+
+      this.arrayBuffer = arrayBuffer;
       this.offset = offset;
       this.length = length;
 
