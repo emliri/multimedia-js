@@ -219,7 +219,7 @@ export class MP4DemuxProcessor extends Processor {
             throw new Error('Unhandled mp4 track-type. Mime-type is: ' + track.mimeType);
           }
 
-          const sampleDuration = track.getDefaults() ? track.getDefaults().sampleDuration : 1;
+          const sampleDuration = track.getDefaults()[0] ? track.getDefaults()[0].sampleDuration : 1;
 
           log('sample-duration found:', sampleDuration, 'numerator:', sampleDurationNum, 'sample-rate:', sampleRate);
 
@@ -255,7 +255,7 @@ export class MP4DemuxProcessor extends Processor {
             output.transfer(initPacket);
           });
 
-          track.getFrames().forEach((frame: Frame) => {
+          track.getFrames().forEach((frame: Frame, index) => {
             let props = protoProps;
 
             if (frame.frameType === Frame.IDR_FRAME) {
@@ -282,7 +282,11 @@ export class MP4DemuxProcessor extends Processor {
             debug('pushing packet with:', frameSlice.toString());
 
             output.transfer(p);
+
           });
+          // flush will remove the frames from the demuxers internal track states
+          this._demuxer.flush();
+
         }
       });
 
