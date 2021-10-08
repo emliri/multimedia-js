@@ -8,7 +8,7 @@ export interface IWithOptions<TOptions> {
 
   getOptions(): TOptions;
 
-  setOptions(opts?: Partial<TOptions>);
+  setOptions(opts?: Partial<TOptions>): TOptions;
 }
 
 export type MixinWithOptions<TBase, TOptions> = TBase & Class<IWithOptions<TOptions>>;
@@ -67,6 +67,7 @@ export function mixinWithOptions<
       // in any missing properties with defaultOpts props.
       //debugger;
       this._options = objectNewFromDefaultAndPartials(defaultOpts, this._options, opts);
+      return this._options;
     }
   }
 }
