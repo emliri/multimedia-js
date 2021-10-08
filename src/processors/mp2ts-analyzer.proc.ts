@@ -65,7 +65,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
   constructor (opts?: Partial<Mp2TsAnalyzerProcOpts>) {
     super();
 
-    this.setOptions(opts);
+    opts = this.setOptions(opts);
 
     this.createInput();
     this.createOutput();
