@@ -105,17 +105,14 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
           this._analyzePmtCache); // PMT persistance cache
 
       // no result so far, go to take 1 more packet from adapter
-      if (!tsInspectRes) continue;
+      if (tsInspectRes) {
+        const dts = getPacketDts(tsInspectRes);
+        const pkt = Packet.fromSlice(this._analyzePsiPesBuffer)
+                      .setTimingInfo(dts, 0, MPEG_TS_TIMESCALE_HZ);
 
-      const dts = getPacketDts(tsInspectRes);
-
-      const pkt = Packet.fromSlice(this._analyzePsiPesBuffer)
-                    .setTimingInfo(dts, 0, MPEG_TS_TIMESCALE_HZ);
-
-      this._timingRegulatorSock.transfer(pkt);
-
-      this._analyzePsiPesBuffer = null;
-
+        this._timingRegulatorSock.transfer(pkt);
+        this._analyzePsiPesBuffer = null;
+      }
     }
 
     return true;
