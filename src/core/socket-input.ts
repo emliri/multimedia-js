@@ -27,8 +27,7 @@ export class InputSocket extends Socket {
     this.onReceive_ = null;
   }
 
-  transferSync (p: Packet): boolean {
-    super.transferSync(p);
+  protected transferSync (p: Packet): boolean {
     if (!this.onReceive_) return false;
     this.setTransferring_(true);
     const b = this.onReceive_(p);

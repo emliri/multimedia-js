@@ -22,14 +22,15 @@ export class OutputSocket extends Socket {
     this.disconnect();
   }
 
-  transferSync (p: Packet): boolean {
-    super.transferSync(p);
+  protected transferSync (p: Packet): boolean {
     let b: boolean;
     this.setTransferring_(true);
     this.peers_.forEach((s) => {
       log('call transfer on peer socket');
-      b = s.transferSync(p);
-      this.onPacketTransferred_(s, b);
+      s.transfer(p) // async yes/no?
+        .then(b => {
+          this.onPacketTransferred_(s, b);
+        });
     });
     this.setTransferring_(false);
     return b;

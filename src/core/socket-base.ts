@@ -124,27 +124,8 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     if (async) {
       return this.transferAsync_(p);
     } else {
-      return Promise.resolve(this.transferSync(p));
+      return Promise.resolve(this.transferSync_(p));
     }
-  }
-
-  /**
-   * @abstract
-   * Transfer the partial ownership of a Packet to this Socket.
-   *
-   * Implemented by the subclass in a "sync" manner.
-   *
-   * Return `false` value may indicate that the socket is not peered
-   * and thus no effective transfer took place, or that the data processing handler
-   * is not set in some other way, or an error was thrown when processing.
-   */
-  transferSync(p: Packet): boolean {
-    if (p === null) return;
-    if (this.tap_) {
-      p = this.handleWithTap_(p);
-      if (!p) return false;
-    }
-    return true;
   }
 
   /**
@@ -223,7 +204,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     while (this.tap_ && !this.tap_.isClear()) {
       const _p = this.tap_.popPacket();
       if (!_p) throw new Error('SocketTap implementation error: popPacket() expected to return non-null since isClear was false');
-      this.transferAsync_(_p);
+      this.transferSync(_p);
     }
   }
 
@@ -231,8 +212,16 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     super.emit(event, event);
   }
 
-  protected handleWithTap_ (p: Packet): Nullable<Packet> {
-    this.drainTap();
+  /**
+   * For subclasses only. Set the transfering flag of the socket state.
+   */
+  protected setTransferring_ (b: boolean) {
+    this.state_.transferring = b;
+  }
+
+  protected abstract transferSync(p: Packet): boolean;
+
+  private handleWithTap_ (p: Packet): Nullable<Packet> {
     if (this.tap_ &&
       // if the Tap returns false,
       // it "keeps" the packet on its stack
@@ -243,17 +232,29 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   }
 
   /**
-   * For subclasses only. Set the transfering flag of the socket state.
+   * Transfer the partial ownership of a Packet to this Socket.
+   *
+   * Implemented by the subclass in a "sync" manner.
+   *
+   * Return `false` value may indicate that the socket is not peered
+   * and thus no effective transfer took place, or that the data processing handler
+   * is not set in some other way, or an error was thrown when processing.
    */
-  protected setTransferring_ (b: boolean) {
-    this.state_.transferring = b;
+   private transferSync_(p: Packet): boolean {
+    if (p === null) return;
+    if (this.tap_) {
+      this.drainTap();
+      p = this.handleWithTap_(p);
+      if (!p) return false;
+    }
+    return this.transferSync(p);
   }
 
   private transferAsync_ (p: Packet): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dispatchAsyncTask(() => {
         try {
-          resolve(this.transferSync(p));
+          resolve(this.transferSync_(p));
           this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
           if (p.isSymbolic()) {
             switch (p.symbol) {

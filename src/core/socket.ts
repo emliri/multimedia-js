@@ -51,7 +51,7 @@ export interface URLLoadingOutputSocket extends OutputSocket {
 }
 
 export class VoidSocket extends Socket {
-  transferSync (p: Packet): boolean {
+  protected transferSync (p: Packet): boolean {
     return true;
   }
 }
