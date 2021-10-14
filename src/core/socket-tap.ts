@@ -55,6 +55,14 @@ export class SocketTapQueued extends SocketTapDefault {
   protected _sockTapPushQueue: Packet[] = [];
   protected _sockTapPopQueue: Packet[] = [];
 
+  protected get pushQueue() {
+    return this._sockTapPushQueue;
+  }
+
+  protected get popQueue() {
+    return this._sockTapPopQueue;
+  }
+
   pushPacket (p: Packet): boolean {
     this._sockTapPushQueue.push(p);
     this._onQueuePushed();
