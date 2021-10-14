@@ -32,17 +32,6 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
     this._onQueuePushed = this._pollQueue.bind(this);
   }
 
-  pushPacket(p) {
-    super.pushPacket(p);
-    this._pollQueue();
-    return false;
-  }
-
-  popPacket() {
-    const pkt = super.popPacket();
-    return pkt;
-  }
-
   flush() {
     this._playOutDtsInSecs =
       this._playOutClockRef = NaN;
