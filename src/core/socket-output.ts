@@ -23,8 +23,7 @@ export class OutputSocket extends Socket {
   }
 
   transferSync (p: Packet): boolean {
-    log(makeLogTimestamped('OutputSocket.transfer packet'));
-
+    super.transferSync(p);
     let b: boolean;
     this.setTransferring_(true);
     this.peers_.forEach((s) => {

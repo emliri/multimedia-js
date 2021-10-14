@@ -120,13 +120,31 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * Wraps transferSync in an async call and returns a promise
    * @param p
    */
-  transfer (p: Nullable<Packet>): Promise<boolean> {
+  transfer (p: Nullable<Packet>, async: boolean = true): Promise<boolean> {
+    if (async) {
+      return this.transferAsync_(p);
+    } else {
+      return Promise.resolve(this.transferSync(p));
+    }
+  }
+
+  /**
+   * @abstract
+   * Transfer the partial ownership of a Packet to this Socket.
+   *
+   * Implemented by the subclass in a "sync" manner.
+   *
+   * Return `false` value may indicate that the socket is not peered
+   * and thus no effective transfer took place, or that the data processing handler
+   * is not set in some other way, or an error was thrown when processing.
+   */
+  transferSync(p: Packet): boolean {
     if (p === null) return;
     if (this.tap_) {
       p = this.handleWithTap_(p);
-      if (!p) return Promise.resolve(true);
+      if (!p) return false;
     }
-    return this.transferAsync_(p);
+    return true;
   }
 
   /**
@@ -208,18 +226,6 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       this.transferAsync_(_p);
     }
   }
-
-  /**
-   * @abstract
-   * Transfer the partial ownership of a Packet to this Socket.
-   *
-   * Implemented by the subclass in a "sync" manner.
-   *
-   * Return `false` value may indicate that the socket is not peered
-   * and thus no effective transfer took place, or that the data processing handler
-   * is not set in some other way, or an error was thrown when processing.
-   */
-  abstract transferSync(p: Packet): boolean;
 
   protected _emit (event: SocketEvent) {
     super.emit(event, event);
