@@ -33,7 +33,7 @@ function getPacketDts (info: InspectMpegTsPacketsResult): number {
   }
 
   if (!Number.isFinite(audioDts) && !Number.isFinite(videoDts)) {
-    throw new Error('Post-Analyzer last queue item has no A/V-samples timing info');
+    throw new Error('MPTS PES inspection result is missing any frame timing info');
   }
 
   const nextLastDts = Math.max(
@@ -101,14 +101,22 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
         inspectMpegTsPackets(
           this._analyzePsiPesBuffer.getUint8Array(), // PSI packets in
           NaN, // base timestamp
-          false, // expect AAC/ADTS ?
+          false, // set true to enabled AAC/ADTS raw bitstream parsing
           this._analyzePmtCache); // PMT persistance cache
 
       // no result so far, go to take 1 more packet from adapter
       if (tsInspectRes) {
+
+        //console.log(tsInspectRes)
+
         const dts = getPacketDts(tsInspectRes);
+
         const pkt = Packet.fromSlice(this._analyzePsiPesBuffer)
                       .setTimingInfo(dts, 0, MPEG_TS_TIMESCALE_HZ);
+
+        if (tsInspectRes.firstKeyFrame) {
+          pkt.defaultPayloadInfo.isKeyframe = true;
+        }
 
         this._timingRegulatorSock.transfer(pkt);
         this._analyzePsiPesBuffer = null;
