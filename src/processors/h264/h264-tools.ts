@@ -8,7 +8,7 @@ import { H264ParameterSetParser } from '../../ext-mod/inspector.js/src/codecs/h2
 import { Sps, Pps } from '../../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
-const { log, warn, error } = getLogger('H264Tools', LoggerLevel.ON, true);
+const { log, warn, error } = getLogger('H264Tools', LoggerLevel.OFF, true);
 
 export { NALU, H264NaluType, H264SliceType } from './nalu';
 
