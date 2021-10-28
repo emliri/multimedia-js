@@ -63,7 +63,7 @@ export class OutputSocket extends Socket {
   disconnect (s: Socket = null): OutputSocket {
     if (!s) {
       if (this.hasPeers()) {
-        this.peers_.splice(0, this.peers_.length);
+        this.peers_.length = 0;
       }
       return;
     }
