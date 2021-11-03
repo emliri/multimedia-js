@@ -843,8 +843,8 @@ export class MP4Mux {
               );
 
             debug('Sample flags at',
-              videoPacket.decodingTime,
-              videoPacket.compositionTime,
+              decodingTime,
+              compositionTime,
               '(DTS/PTS):',
               videoPacket.frameFlag, sampleFlags,
               'Sample-duration:',
