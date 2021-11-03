@@ -221,7 +221,7 @@ export class Packet implements PacketDataModel {
     const description =
       `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>` +
       ` #{(@${p.timestampOffset} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.timeScale}` +
-      ` -> ${p.getNormalizedDts()} => ∂${p.getNormalizedPts()} [s]}` +
+      ` -> ${p.getNormalizedDts()} => ${p.getNormalizedPts()} [s]}` +
       `k(${p.defaultPayloadInfo.isKeyframe ? '1' : '0'})|b(${p.defaultPayloadInfo.isBitstreamHeader ? '1' : '0'})`;
     return description;
   }
