@@ -166,6 +166,11 @@ export function millisToSecs (millis: number): number {
   return millis / 1000;
 }
 
+export function microsToSecs (millis: number): number {
+  return millis / 1000000;
+}
+
+
 /**
  *
  * @param s template-able string value.
