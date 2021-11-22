@@ -1,15 +1,19 @@
 import { BufferSlice, InputSocket, Packet, Socket, OutputSocket, SocketDescriptor, SocketTemplateGenerator, SocketType, CommonMimeTypes } from '../..';
-import { arrayLast, orZero } from '../common-utils';
+import { arrayLast, microsToSecs, orInfinity, orZero } from '../common-utils';
+import { SocketTapTimingRegulate } from '../socket-taps';
+import { mixinProcessorWithOptions } from '../core/processor';
 
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
 import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 
+import { Frame, Track } from '../ext-mod/inspector.js/src';
+import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer'
+
 import { inspectMpegTsPackets, InspectMpegTsPacketsResult, InspectMpegTsPmtInfo } from './muxjs-m2t/muxjs-m2t';
 
-import { SocketTapTimingRegulate } from '../socket-taps';
-import { mixinProcessorWithOptions } from '../core/processor';
-
 import { getLogger, LoggerLevel } from '../logger';
+import { Nullable } from '../common-types';
+import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.ON);
 
@@ -22,27 +26,7 @@ const getSocketDescriptor: SocketTemplateGenerator =
     SocketDescriptor.fromMimeTypes(CommonMimeTypes.VIDEO_MPEGTS) // expected output
   );
 
-function getPacketDts (info: InspectMpegTsPacketsResult): number {
-  let videoDts: number;
-  let audioDts: number;
-  if (info.audio?.length) {
-    audioDts = arrayLast(info.audio).dts;
-  }
-  if (info.video?.length) {
-    videoDts = arrayLast(info.video).dts;
-  }
-
-  if (!Number.isFinite(audioDts) && !Number.isFinite(videoDts)) {
-    throw new Error('MPTS PES inspection result is missing any frame timing info');
-  }
-
-  const nextLastDts = Math.max(
-    orZero(audioDts),
-    orZero(videoDts));
-  return nextLastDts;
-}
-
-const Mp2TsAnalyzerProc_ = mixinProcessorWithOptions<Mp2TsAnalyzerProcOpts>({
+const Mp2TsAnalyzerProcOptsMixin = mixinProcessorWithOptions<Mp2TsAnalyzerProcOpts>({
   enablePlayoutRegulation: false,
   playoutRegulationSpeed: 1,
   playoutRegulationPollMs: DEFAULT_PLAYOUT_REGULATION_POLL_MS
@@ -54,22 +38,25 @@ export type Mp2TsAnalyzerProcOpts = {
   playoutRegulationPollMs: number
 };
 
-export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
+export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
   private _opts: Mp2TsAnalyzerProcOpts;
 
   private _mptsSyncAdapter: Mpeg2TsSyncAdapter = new Mpeg2TsSyncAdapter();
-  private _analyzePsiPesBuffer: BufferSlice = null;
+  private _analyzePesBuffer: BufferSlice = null;
   private _analyzePmtCache: InspectMpegTsPmtInfo = null;
   private _timingRegulatorSock: OutputSocket;
+
+  private _tsParser: MpegTSDemuxer = new MpegTSDemuxer();
 
   constructor (opts?: Partial<Mp2TsAnalyzerProcOpts>) {
     super();
 
     opts = this.setOptions(opts);
-
     this.createInput();
     this.createOutput();
 
+    // configure the PTS based output regulation internal socket
+    // and connect to proc out
     this._timingRegulatorSock
       = OutputSocket.fromUnsafe(
         new OutputSocket(this.templateSocketDescriptor(SocketType.OUTPUT))
@@ -79,6 +66,11 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
           timingRegulationPollMs: opts.playoutRegulationPollMs
         })))
         .connect(this.out[0]);
+
+    this._tsParser.onPmtParsed = () => {
+      //console.log('got PMT')
+    }
+
   }
 
   templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
@@ -91,35 +83,52 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
     while (true) {
       const nextPktBuf: Uint8Array = this._mptsSyncAdapter.take(1, 1);
       if (!nextPktBuf) break;
-      if (!this._analyzePsiPesBuffer) {
-        this._analyzePsiPesBuffer = BufferSlice.fromTypedArray(nextPktBuf);
+      if (!this._analyzePesBuffer) {
+        this._analyzePesBuffer = BufferSlice.fromTypedArray(nextPktBuf);
       } else {
-        this._analyzePsiPesBuffer = this._analyzePsiPesBuffer.append(BufferSlice.fromTypedArray(nextPktBuf));
+        this._analyzePesBuffer = this._analyzePesBuffer.append(BufferSlice.fromTypedArray(nextPktBuf));
       }
 
-      const tsInspectRes: InspectMpegTsPacketsResult =
-        inspectMpegTsPackets(
-          this._analyzePsiPesBuffer.getUint8Array(), // PSI packets in
-          NaN, // base timestamp
-          false, // set true to enabled AAC/ADTS raw bitstream parsing
-          this._analyzePmtCache); // PMT persistance cache
+      let aFrames: Frame[];
+      let vFrames: Frame[];
+      let gotVideoKeyframe = false;
 
-      // no result so far, go to take 1 more packet from adapter
-      if (tsInspectRes) {
+      this._tsParser.append(nextPktBuf);
 
-        //console.log(tsInspectRes)
-
-        const dts = getPacketDts(tsInspectRes);
-
-        const pkt = Packet.fromSlice(this._analyzePsiPesBuffer)
-                      .setTimingInfo(dts, 0, MPEG_TS_TIMESCALE_HZ);
-
-        if (tsInspectRes.firstKeyFrame) {
-          pkt.defaultPayloadInfo.isKeyframe = true;
+      Object.values(this._tsParser.tracks).forEach((track) => {
+        const frames = track.popFrames();
+        switch(track.type) {
+        case Track.TYPE_VIDEO:
+          frames.forEach((frame) => {
+            gotVideoKeyframe = frame.frameType === Frame.IDR_FRAME;
+          });
+          vFrames = frames;
+          break;
+        case Track.TYPE_AUDIO:
+          aFrames = frames;
+          break;
         }
+      });
 
-        this._timingRegulatorSock.transfer(pkt);
-        this._analyzePsiPesBuffer = null;
+      if (aFrames || vFrames) {
+
+        const dts = Math.min(
+          orInfinity(aFrames && aFrames.length && aFrames[0].timeUs),
+          orInfinity(vFrames && vFrames.length && vFrames[0].timeUs)
+        );
+        if (Number.isFinite(dts)) {
+          const pkt = Packet.fromSlice(this._analyzePesBuffer)
+          .setTimingInfo(dts, 0, MICROSECOND_TIMESCALE);
+
+          if (gotVideoKeyframe) {
+          pkt.defaultPayloadInfo.isKeyframe = true;
+          }
+
+          this._timingRegulatorSock.transfer(pkt);
+          this._analyzePesBuffer = null;
+        };
+
+
       }
     }
 
@@ -131,74 +140,3 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProc_ {
 
 }
 
-// TODO: put this stuff in another function and/or process after queue
-/*
-      const pmtInfoRes = tsInspectRes.pmt || this._analyzePmtCache;
-      if (!pmtInfoRes) break;
-      else {
-        this._analyzePmtCache = pmtInfoRes;
-      }
-
-      // we need to inspect PES analyze-buffer *until*
-      // any second frame found to make sure what we push will
-      // contain any full frame data.
-      // It is OK to have 1 audio *and* 1 video frame
-      // so far, as soon as any 2nd frame of any kind
-      // appears, we are sure that we have complete frames
-      // i.e new PUSIs in PES of either kind.
-      //
-      // since we are only taking exactly 1 packet ever
-      // from the adapter, and any packet only contains
-      // one type of PES, it is ensured this progressive inspecting
-      // is "atomic" in the sense that the number of frames
-      // can only possibly increase by 0 or 1 on each iteration.
-      //
-      // the condition as-is ensures that there are more than 1 frame
-      // of any kind in the PES analysis buffer.
-      if ((orZero(tsInspectRes.video?.length) >= 1
-          && orZero(tsInspectRes.audio?.length)) >= 1) {
-        // remove the last packet from the pes-buffer
-        // as it contains the next frame
-        // so that each packet we push only contains the first frame found
-        const nextBuf = this._analyzePsiPesBuffer
-          .shrinkFront(this._analyzePsiPesBuffer.length - MPEG2TS_PACKET_SIZE);
-        this._analyzePsiPesBuffer =
-          this._analyzePsiPesBuffer.shrinkBack(MPEG2TS_PACKET_SIZE);
-
-        let firstVideoTimestamp = NaN;
-        let firstAudioTimestamp = NaN;
-        let firstVideoFrameIsIframe = false;
-
-        if (tsInspectRes.video?.length) {
-          firstVideoTimestamp = tsInspectRes.video[0].dts;
-          if (tsInspectRes.firstKeyFrame) {
-            //console.log(tsInspectRes);
-            if (tsInspectRes.firstKeyFrame.dts === firstVideoTimestamp) {
-              firstVideoFrameIsIframe = true;
-            }
-          }
-        }
-        if (tsInspectRes.audio?.length) {
-          firstAudioTimestamp = tsInspectRes.audio[0].dts;
-        }
-
-        const firstTimestamp = Math.min(
-          orInfinity(firstAudioTimestamp),
-          orInfinity(firstVideoTimestamp));
-
-        const isVideoOrAudio = firstTimestamp === firstVideoTimestamp;
-
-        this._analyzePsiPesBuffer.props.mimeType =
-          isVideoOrAudio ? 'video/mp2t' : 'audio/mp2t';
-        this._analyzePsiPesBuffer.props.codec =
-          isVideoOrAudio ? CommonCodecFourCCs.avc1 : CommonCodecFourCCs.mp4a;
-
-        const outPkt = Packet.fromSlice(this._analyzePsiPesBuffer);
-        outPkt.setTimingInfo(firstTimestamp, 0, MPEG_TS_TIMESCALE_HZ);
-        outPkt.defaultPayloadInfo.isKeyframe = firstVideoFrameIsIframe;
-
-        this.out[0].transfer(outPkt);
-
-        this._analyzePsiPesBuffer = nextBuf;
-      }
-      */
