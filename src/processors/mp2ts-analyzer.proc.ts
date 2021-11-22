@@ -107,22 +107,28 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         }
       });
 
+      // pre-condition for code inside this if-block
+      // is that at least one of the tracks has >= 1 frames.
       if ((aFrames && aFrames.length) || (vFrames && vFrames.length)) {
-        const dts = Math.min(
+        let firstPtsUs = Math.min(
           orInfinity(aFrames && aFrames.length && aFrames[0].timeUs),
           orInfinity(vFrames && vFrames.length && vFrames[0].timeUs)
         );
-        if (Number.isFinite(dts)) {
-          const pkt = Packet.fromSlice(this._analyzePesBuffer)
-                            .setTimingInfo(dts, 0, MICROSECOND_TIMESCALE);
+        // this is needed to handle timeUs = 0.
+        // based on the preconditions here
+        // firstPtsUs = Infinity can only result
+        // when one or more of the tracks first frame PTS = 0.
+        if (firstPtsUs === Infinity) firstPtsUs = 0;
 
-          if (gotVideoKeyframe) {
-            pkt.defaultPayloadInfo.isKeyframe = true;
-          }
+        const pkt = Packet.fromSlice(this._analyzePesBuffer)
+                          .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
 
-          this._timingRegulatorSock.transfer(pkt);
-          this._analyzePesBuffer = null;
-        };
+        if (gotVideoKeyframe) {
+          pkt.defaultPayloadInfo.isKeyframe = true;
+        }
+
+        this._timingRegulatorSock.transfer(pkt);
+        this._analyzePesBuffer = null;
       }
     }
 
