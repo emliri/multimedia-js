@@ -1,5 +1,5 @@
-import { BufferSlice, InputSocket, Packet, Socket, OutputSocket, SocketDescriptor, SocketTemplateGenerator, SocketType, CommonMimeTypes } from '../..';
-import { arrayLast, microsToSecs, orInfinity, orZero } from '../common-utils';
+import { BufferSlice, InputSocket, Packet, OutputSocket, SocketDescriptor, SocketTemplateGenerator, SocketType, CommonMimeTypes } from '../..';
+import { orInfinity } from '../common-utils';
 import { SocketTapTimingRegulate } from '../socket-taps';
 import { mixinProcessorWithOptions } from '../core/processor';
 
@@ -9,10 +9,8 @@ import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 import { Frame, Track } from '../ext-mod/inspector.js/src';
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer'
 
-import { inspectMpegTsPackets, InspectMpegTsPacketsResult, InspectMpegTsPmtInfo } from './muxjs-m2t/muxjs-m2t';
-
 import { getLogger, LoggerLevel } from '../logger';
-import { Nullable } from '../common-types';
+
 import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.ON);
@@ -43,7 +41,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
 
   private _mptsSyncAdapter: Mpeg2TsSyncAdapter = new Mpeg2TsSyncAdapter();
   private _analyzePesBuffer: BufferSlice = null;
-  private _analyzePmtCache: InspectMpegTsPmtInfo = null;
   private _timingRegulatorSock: OutputSocket;
 
   private _tsParser: MpegTSDemuxer = new MpegTSDemuxer();
@@ -110,25 +107,22 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         }
       });
 
-      if (aFrames || vFrames) {
-
+      if ((aFrames && aFrames.length) || (vFrames && vFrames.length)) {
         const dts = Math.min(
           orInfinity(aFrames && aFrames.length && aFrames[0].timeUs),
           orInfinity(vFrames && vFrames.length && vFrames[0].timeUs)
         );
         if (Number.isFinite(dts)) {
           const pkt = Packet.fromSlice(this._analyzePesBuffer)
-          .setTimingInfo(dts, 0, MICROSECOND_TIMESCALE);
+                            .setTimingInfo(dts, 0, MICROSECOND_TIMESCALE);
 
           if (gotVideoKeyframe) {
-          pkt.defaultPayloadInfo.isKeyframe = true;
+            pkt.defaultPayloadInfo.isKeyframe = true;
           }
 
           this._timingRegulatorSock.transfer(pkt);
           this._analyzePesBuffer = null;
         };
-
-
       }
     }
 
