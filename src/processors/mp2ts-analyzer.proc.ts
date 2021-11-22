@@ -13,7 +13,7 @@ import { getLogger, LoggerLevel } from '../logger';
 
 import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 
-const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.ON);
+const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
 const DEFAULT_PLAYOUT_REGULATION_POLL_MS = 200; // rougly the usual period
                                                 // of PCR packets
