@@ -42,7 +42,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
   private _mptsSyncAdapter: Mpeg2TsSyncAdapter = new Mpeg2TsSyncAdapter();
   private _analyzePesBuffer: BufferSlice = null;
   private _timingRegulatorSock: OutputSocket;
-
   private _tsParser: MpegTSDemuxer = new MpegTSDemuxer();
 
   constructor (opts?: Partial<Mp2TsAnalyzerProcOpts>) {
@@ -96,10 +95,8 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         const frames = track.popFrames();
         switch(track.type) {
         case Track.TYPE_VIDEO:
-          frames.forEach((frame) => {
-            gotVideoKeyframe = frame.frameType === Frame.IDR_FRAME;
-          });
           vFrames = frames;
+          gotVideoKeyframe = frames.some(frame => frame.frameType === Frame.IDR_FRAME);
           break;
         case Track.TYPE_AUDIO:
           aFrames = frames;
@@ -109,6 +106,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
 
       // pre-condition for code inside this if-block
       // is that at least one of the tracks has >= 1 frames.
+      // either frames list can be undefined if there is no respective a/v track.
       if ((aFrames && aFrames.length) || (vFrames && vFrames.length)) {
         let firstPtsUs = Math.min(
           orInfinity(aFrames && aFrames.length && aFrames[0].timeUs),
