@@ -1,5 +1,5 @@
 import { BufferSlice, InputSocket, Packet, OutputSocket, SocketDescriptor, SocketTemplateGenerator, SocketType, CommonMimeTypes } from '../..';
-import { orInfinity } from '../common-utils';
+import { microsToSecs, orInfinity } from '../common-utils';
 import { SocketTapTimingRegulate } from '../socket-taps';
 import { mixinProcessorWithOptions } from '../core/processor';
 
@@ -89,7 +89,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       let vFrames: Frame[];
       let gotVideoKeyframe = false;
 
-      this._tsParser.append(nextPktBuf);
+      const parsedData: Uint8Array = this._tsParser.append(nextPktBuf);
 
       Object.values(this._tsParser.tracks).forEach((track) => {
         const frames = track.popFrames();
@@ -108,9 +108,11 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       // is that at least one of the tracks has >= 1 frames.
       // either frames list can be undefined if there is no respective a/v track.
       if ((aFrames && aFrames.length) || (vFrames && vFrames.length)) {
+        const firstPtsA = orInfinity(aFrames && aFrames.length && aFrames[0].timeUs);
+        const firstPtsV = orInfinity(vFrames && vFrames.length && vFrames[0].timeUs);
         let firstPtsUs = Math.min(
-          orInfinity(aFrames && aFrames.length && aFrames[0].timeUs),
-          orInfinity(vFrames && vFrames.length && vFrames[0].timeUs)
+          firstPtsA,
+          firstPtsV
         );
         // this is needed to handle timeUs = 0.
         // based on the preconditions here
