@@ -40,7 +40,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
   private _opts: Mp2TsAnalyzerProcOpts;
 
   private _mptsSyncAdapter: Mpeg2TsSyncAdapter = new Mpeg2TsSyncAdapter();
-  private _analyzePesBuffer: BufferSlice = null;
   private _timingRegulatorSock: OutputSocket;
   private _tsParser: MpegTSDemuxer = new MpegTSDemuxer();
 
@@ -79,17 +78,12 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     while (true) {
       const nextPktBuf: Uint8Array = this._mptsSyncAdapter.take(1, 1);
       if (!nextPktBuf) break;
-      if (!this._analyzePesBuffer) {
-        this._analyzePesBuffer = BufferSlice.fromTypedArray(nextPktBuf);
-      } else {
-        this._analyzePesBuffer = this._analyzePesBuffer.append(BufferSlice.fromTypedArray(nextPktBuf));
-      }
 
       let aFrames: Frame[];
       let vFrames: Frame[];
       let gotVideoKeyframe = false;
 
-      const parsedData: Uint8Array = this._tsParser.append(nextPktBuf);
+      this._tsParser.append(nextPktBuf);
 
       Object.values(this._tsParser.tracks).forEach((track) => {
         const frames = track.popFrames();
@@ -120,7 +114,12 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         // when one or more of the tracks first frame PTS = 0.
         if (firstPtsUs === Infinity) firstPtsUs = 0;
 
-        const pkt = Packet.fromSlice(this._analyzePesBuffer)
+        const parsedPktData = this._tsParser.prune();
+        if (!parsedPktData) {
+          throw new Error('Expected prune to return parsed data since new frames pop´d off before');
+        }
+
+        const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
                           .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
 
         if (gotVideoKeyframe) {
@@ -128,7 +127,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         }
 
         this._timingRegulatorSock.transfer(pkt);
-        this._analyzePesBuffer = null;
+
       }
     }
 
