@@ -1,17 +1,16 @@
 import { BufferSlice, InputSocket, Packet, OutputSocket, SocketDescriptor, SocketTemplateGenerator, SocketType, CommonMimeTypes } from '../..';
-import { microsToSecs, orInfinity } from '../common-utils';
+import { orInfinity } from '../common-utils';
 import { SocketTapTimingRegulate } from '../socket-taps';
 import { mixinProcessorWithOptions } from '../core/processor';
+import { CommonCodecFourCCs } from '../core/payload-description';
 
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
-import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 
 import { Frame, Track } from '../ext-mod/inspector.js/src';
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer'
+import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 
 import { getLogger, LoggerLevel } from '../logger';
-
-import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
@@ -114,6 +113,17 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         // when one or more of the tracks first frame PTS = 0.
         if (firstPtsUs === Infinity) firstPtsUs = 0;
 
+        let codec4cc: string;
+        if (aFrames.length > 0 && vFrames.length > 0) {
+          throw new Error('Expected to have only one type of frames in this PES segmentation mode');
+        } else if (aFrames.length) {
+          codec4cc = CommonCodecFourCCs.mp4a;
+        } else if (vFrames.length) {
+          codec4cc = CommonCodecFourCCs.avc1;
+        } else {
+          throw new Error('Expected either video or audio frames length > 0');
+        }
+
         const parsedPktData = this._tsParser.prune();
         if (!parsedPktData) {
           throw new Error('Expected prune to return parsed data since new frames pop´d off before');
@@ -121,6 +131,9 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
 
         const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
                           .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
+
+        pkt.defaultPayloadInfo.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
+        pkt.defaultPayloadInfo.codec = codec4cc;
 
         if (gotVideoKeyframe) {
           pkt.defaultPayloadInfo.isKeyframe = true;
