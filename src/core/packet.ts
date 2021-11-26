@@ -110,6 +110,10 @@ export class Packet implements PacketDataModel {
     return Packet.fromSymbol(PacketSymbol.RESUME);
   }
 
+  static newLatencyProbe () {
+    return Packet.fromSymbol(PacketSymbol.LATENCY_PROBE);
+  }
+
   private _symbol: PacketSymbol = PacketSymbol.VOID;
   private _timescale: number = 1; // maybe not have a default value?
   private _hasDefaultBufferProps: boolean = true;
