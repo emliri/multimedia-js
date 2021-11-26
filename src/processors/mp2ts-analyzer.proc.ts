@@ -86,6 +86,14 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
 
       Object.values(this._tsParser.tracks).forEach((track) => {
         const frames = track.popFrames();
+        // the fact that we pop all the tracks frames at this point
+        // is very germane to the PES type segmentation to which we default here below.
+        // if we would want to run time-range segmentation across all PES
+        // (for example for HLS output) we would need to collect the frames
+        // in the analyzer instance state or not pop them here but based on
+        // the segmentation criteria other than "1 frame of either PES".
+        // then again, the PES-AU atomic segmentation done here can be
+        // used as a canonical output to produce any other segmentation in principle.
         switch(track.type) {
         case Track.TYPE_VIDEO:
           vFrames = frames;
@@ -113,6 +121,13 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         // when one or more of the tracks first frame PTS = 0.
         if (firstPtsUs === Infinity) firstPtsUs = 0;
 
+        // we have this check here to assert in a specific mode
+        // of segmentation which is default now (see above on popFrames).
+        // but the above logic to gather first PTS
+        // of either composed lists of A/V frames is more generic
+        // and might thus be used for other future segmentation modes
+        // for example solely time-range based but not across PES / codecs.
+        // ATM we expect what the below assertions express only.
         let codec4cc: string;
         if (aFrames.length > 0 && vFrames.length > 0) {
           throw new Error('Expected to have only one type of frames in this PES segmentation mode');
