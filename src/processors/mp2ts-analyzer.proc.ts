@@ -87,7 +87,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       Object.values(this._tsParser.tracks).forEach((track) => {
         const frames = track.popFrames();
         // the fact that we pop all the tracks frames at this point
-        // is very germane to the PES type segmentation to which we default here below.
+        // is related to the PES-type segmentation to which we default here below.
         // if we would want to run time-range segmentation across all PES
         // (for example for HLS output) we would need to collect the frames
         // in the analyzer instance state or not pop them here but based on
