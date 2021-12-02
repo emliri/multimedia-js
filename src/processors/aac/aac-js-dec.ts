@@ -2,12 +2,12 @@
 import { EventEmitter } from "eventemitter3";
 
 const AacDecoder = require('../../ext-mod/aac.js/src/decoder');
-const Aurora = require('../../ext-mod/aurora.js/build/aurora');
+const AuroraAv = require('../../ext-mod/aurora.js/build/aurora');
 
 class AacJsAuroraDemuxerShim extends EventEmitter {
 
   pushBuffer(data: Uint8Array) {
-    const avBuffer = new Aurora.Buffer(data);
+    const avBuffer = new AuroraAv.Buffer(data);
     this.emit('data', avBuffer);
   }
 
@@ -38,10 +38,10 @@ export class AacJsDecoder {
       samplingIndex: 4,
       chanConfig: 2
     }
-    var cookie = new Uint8Array(2);
+    const cookie = new Uint8Array(2);
     cookie[0] = (header.profile << 3) | ((header.samplingIndex >> 1) & 7);
     cookie[1] = ((header.samplingIndex & 1) << 7) | (header.chanConfig << 3);
-    this._aacDec.setCookie(new Aurora.Buffer(cookie));
+    this._aacDec.setCookie(new AuroraAv.Buffer(cookie));
   }
 
   dispose() {
