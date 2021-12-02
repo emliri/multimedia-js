@@ -60,7 +60,7 @@ export class AacJsDecoder {
 
   }
 
-  onData(data) {
+  onData(data: Float32Array) {
     console.log(data);
   }
 
