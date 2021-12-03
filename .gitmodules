@@ -7,3 +7,6 @@
 [submodule "test-data"]
 	path = test-data
 	url = https://github.com/emliri/mmjs-test-data.git
+[submodule "src/ext-mod/aac.js"]
+	path = src/ext-mod/aac.js
+	url = git@github.com:emliri/aac.js.git
