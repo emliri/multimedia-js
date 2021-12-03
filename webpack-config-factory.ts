@@ -32,7 +32,11 @@ export function createWebpackConfig (options: WebpackConfigFactoryOptions, exclu
       globalObject: 'this'
     },
     resolve: {
-      extensions: ['*', '.ts', '.tsx', '.js', '.json', '.html', '.css']
+      extensions: ['.ts', '.tsx', '.js', '.json', '.html', '.css'],
+      fallback: {
+        "http": false,
+        "fs": false
+      }
     },
     module: {
       rules: [
