@@ -2,7 +2,7 @@
 import { EventEmitter } from "eventemitter3";
 
 const AacDecoder = require('../../ext-mod/aac.js/src/decoder');
-const AuroraAv = require('../../ext-mod/aurora.js/build/aurora');
+const AuroraAv = require('../../ext-mod/aac.js/src/av');
 
 class AacJsAuroraDemuxerShim extends EventEmitter {
 
