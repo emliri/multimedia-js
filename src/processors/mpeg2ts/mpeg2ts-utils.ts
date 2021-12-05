@@ -23,3 +23,11 @@ export function findSyncOffsetInMpegTsChunk (data: Uint8Array): number | null {
   }
   return null;
 }
+
+export function wrapMpeg2TimeInMp4BaseDts(time: number): number {
+  if (time > MP4_CMAF_MAX_TIME_SECS) {
+    return time % MP4_CMAF_MAX_TIME_SECS;
+  } else {
+    return time;
+  }
+}
