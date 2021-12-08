@@ -8,11 +8,10 @@ import { ShadowOutputSocket } from '../core/socket-output';
 
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
+import { getPerfNow } from '../perf-ctx';
 
 import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
-
 import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
-
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 
 import {
@@ -35,15 +34,7 @@ import {
   mapNaluTypeToTag
 } from './muxjs-m2t/muxjs-m2t';
 
-/*
-import * as AacStream from '../ext-mod/mux.js/lib/aac';
-import {isLikelyAacData} from '../ext-mod/mux.js/lib/aac/utils';
-import {ONE_SECOND_IN_TS} from '../ext-mod/mux.js/lib/utils/clock';
-*/
-
 const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
-
-const perf = performance;
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -431,9 +422,9 @@ export class MP2TSDemuxProcessor extends Processor {
 
   protected processTransfer_ (inS: InputSocket, inPacket: Packet) {
     log(`feeding demuxer with chunk of ${printNumberScaledAtDecimalOrder(inPacket.getTotalBytes(), 3)} Kbytes`);
-    const startDemuxingMs = perf.now();
+    const startDemuxingMs = getPerfNow();
     this._demuxPipeline.headOfPipeline.push(inPacket.data[0].getUint8Array());
-    const demuxingRunTimeMs = perf.now() - startDemuxingMs;
+    const demuxingRunTimeMs = getPerfNow() - startDemuxingMs;
     log(`got ${this._outPackets.length} output packets from running demuxer (perf-stats: this took ${demuxingRunTimeMs.toFixed(3)} millis doing)`);
     this._onOutPacketsPushed();
     return true;
