@@ -1,6 +1,6 @@
 import { EventEmitter } from 'eventemitter3';
 
-import { SocketType, InputSocket, OutputSocket, SocketOwner, Socket, SocketTemplateGenerator } from './socket';
+import { SocketType, InputSocket, OutputSocket, SocketOwner, Socket, SocketTemplateGenerator, SocketEvent } from './socket';
 import { PacketSymbol, Packet } from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult } from './signal';
 import { SocketDescriptor } from './socket-descriptor';
@@ -8,6 +8,9 @@ import { ErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
 
 import { getLogger } from '../logger';
 import { mixinWithOptions } from '../lib/options';
+
+import { getPerfNow, perf } from '../perf-ctx';
+import { isNotQNumber, isQNumber } from '../common-utils';
 
 const { debug, log, error } = getLogger('Processor');
 
@@ -52,12 +55,16 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
   private outputs_: OutputSocket[] = [];
 
   private _terminated: boolean = false;
+  private _transferLatencyMs: number = NaN;
+  private _transferLatencyRefTime: number = NaN;
+
+  public latencyProbe: Packet = null;
 
   // TODO: internalize EE instance to avoid polluting interface (we should only expose on/once/off)
   // private eventEmitter_: typeof EventEmitter = new EventEmitter();
 
-  public enableSymbolProxying: boolean = true;
-  public muteSymbolProcessing: boolean = false;
+  public enableSymbolProxying: boolean = false;
+  public muteSymbolProcessing: boolean = true;
 
   constructor (
     private onSignal_: SignalHandler = null,
@@ -66,7 +73,9 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     super();
 
     /**
-     * RPC-compatible wrapper for processTransfer_. Avoids to recover a Socket-type object on the remote
+     * RPC-compatible wrapper for processTransfer_.
+     *
+     * Avoids to recover a Socket-type object on the remote
      * for which we don't ensure tranferability i.e for which we don't have a proxy.
      *
      * Not supposed to be directly called but to be invoked remotely.
@@ -77,6 +86,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     this[PROCESSOR_RPC_INVOKE_PACKET_HANDLER] = (p: Packet, inputIndex: number) => {
       this.onReceiveFromInput_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
     };
+
   }
 
   disconnect () {
@@ -219,6 +229,10 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     return this.outputs_;
   }
 
+  get latencyMs(): number {
+    return this._transferLatencyMs;
+  }
+
   /**
    * Adds a new input socket with the given descriptor (or from default template)
    * {SocketDescriptor} sd optional
@@ -250,7 +264,13 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
   createOutput (sd?: SocketDescriptor): OutputSocket {
     this.assertNotTerminated_();
     const s = new OutputSocket(sd || this.wrapTemplateSocketDescriptor_(SocketType.OUTPUT));
+
+    s.on(SocketEvent.ANY_PACKET_TRANSFERRING, () => {
+      this.onAnyPacketTransferringOut_(s);
+    });
+
     this.outputs_.push(s);
+
     this.emit(ProcessorEvent.ANY_SOCKET_CREATED, {
       processor: this,
       event: ProcessorEvent.ANY_SOCKET_CREATED,
@@ -261,6 +281,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       event: ProcessorEvent.OUTPUT_SOCKET_CREATED,
       socket: s
     });
+
     return s;
   }
 
@@ -276,18 +297,38 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     }
   }
 
+  private onAnyPacketTransferringOut_(s: Socket) {
+    if (isQNumber(this._transferLatencyRefTime)) {
+      this._transferLatencyMs = getPerfNow() - this._transferLatencyRefTime;
+      this._transferLatencyRefTime = NaN;
+    }
+    if (this.latencyProbe) {
+      const latencyProbePkt = this.latencyProbe;
+      this.latencyProbe = null;
+      latencyProbePkt.putClockTag();
+      s.transfer(latencyProbePkt);
+    }
+  }
+
+
   /**
    * @returns True when packet was forwarded
    */
   private onSymbolicPacketReceived_ (p: Packet): boolean {
     this.assertNotTerminated_();
+
+    if (p.symbol === PacketSymbol.LATENCY_PROBE) {
+      this.onLatencyProbe_(p);
+      return true;
+    }
+
+    const proxy = this.handleSymbolicPacket_(p.symbol);
     this.emit(ProcessorEvent.SYMBOLIC_PACKET, {
       processor: this,
       event: ProcessorEvent.SYMBOLIC_PACKET,
       symbol: p.symbol,
       packet: p
     });
-    const proxy = this.handleSymbolicPacket_(p.symbol);
     if (proxy && this.enableSymbolProxying) {
       this.transferPacketToAllOutputs_(p);
       return true;
@@ -307,6 +348,14 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
 
   private onReceiveFromInput_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
     this.assertNotTerminated_();
+    // set latency metric ref when not set yet,
+    // in order to gather time from *first* packet received in
+    // (hence the check for it already being set),
+    // until any transfer out (see onAnyPacketTransferringOut_ handler).
+    // this is reset in the mentioned handler therefore.
+    if (isNotQNumber(this._transferLatencyRefTime)) {
+      this._transferLatencyRefTime = getPerfNow();
+    }
     if (p.isSymbolic() &&
           this.onSymbolicPacketReceived_(p)) {
       return true; // when packet was forwarded we don't pass it on for processing
@@ -341,6 +390,13 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return this.onSignal_(signal);
     } else {
       return Promise.resolve(false);
+    }
+  }
+
+  private onLatencyProbe_ (p: Packet) {
+    if (!this.latencyProbe) {
+      this.latencyProbe = p;
+      this.latencyProbe.putClockTag();
     }
   }
 
