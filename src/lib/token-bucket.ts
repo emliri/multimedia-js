@@ -17,7 +17,7 @@ type TokenBucketQDiscConfig = {
  *
  * Token-bucket algorithm implementation.
  *
- * Heavily based on litterature found via https://en.wikipedia.org/wiki/Token_bucket
+ * Heavily based on literature found via https://en.wikipedia.org/wiki/Token_bucket
  */
 export type TokenBucketPacketPopCb<T> = (packet: TokenBucketPacket, context: Nullable<T>) => void;
 
