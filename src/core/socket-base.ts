@@ -7,7 +7,7 @@ import { Packet } from './packet';
 import { PacketSymbol } from './packet-symbol';
 import { SocketTap } from './socket-tap';
 
-import { dispatchAsyncTask } from '../common-utils';
+import { dispatchAsyncTask, orInfinity } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { Nullable } from '../common-types';
 import { SocketDescriptor } from './socket-descriptor';
@@ -23,6 +23,8 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   private isReady_: boolean = false;
   private isReadyArmed_: boolean = false;
 
+  private latencyProbe_: Packet = null;
+
   protected tap_: Nullable<SocketTap> = null;
   protected owner: SocketOwner = null;
 
@@ -34,11 +36,16 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   }
 
   close () {
+    this.removeAllListeners();
     this.state_.closed = true;
   }
 
   type (): SocketType {
     return this.type_;
+  }
+
+  state (): SocketState {
+    return Object.assign({}, this.state_);
   }
 
   descriptor (): SocketDescriptor {
@@ -208,6 +215,10 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     }
   }
 
+  latencyProbe(): Packet {
+    return this.latencyProbe_;
+  }
+
   protected _emit (event: SocketEvent) {
     super.emit(event, event);
   }
@@ -225,7 +236,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     if (this.tap_ &&
       // if the Tap returns false,
       // it "keeps" the packet on its stack
-      !this.tap_.pushPacket(p)) {
+      ! this.tap_.pushPacket(p)) {
       return null;
     }
     return p;
@@ -247,6 +258,9 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       p = this.handleWithTap_(p);
       if (!p) return false;
     }
+    if (p.isSymbolic() && p.symbol === PacketSymbol.LATENCY_PROBE) {
+      this.latencyProbe_ = p;
+    }
     return this.transferSync(p);
   }
 
@@ -254,6 +268,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return new Promise((resolve, reject) => {
       dispatchAsyncTask(() => {
         try {
+          this._emit(SocketEvent.ANY_PACKET_TRANSFERRING);
           resolve(this.transferSync_(p));
           this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
           if (p.isSymbolic()) {
