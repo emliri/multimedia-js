@@ -1,7 +1,8 @@
 import { InputSocket, SocketDescriptor } from '../core/socket';
-import { Packet } from '../core/packet';
+import { Packet, PacketSymbol } from '../core/packet';
 
-export type AppInputCallback = (data: Blob | ArrayBuffer | Uint8Array, mimeType: string | null, timestamp: number) => void;
+export type AppInputCallback = (data: Blob | ArrayBuffer | Uint8Array,
+  mimeType: string | null, timestamp: number, socket: InputSocket) => void;
 
 export class AppInputSocket extends InputSocket {
   constructor (
@@ -13,6 +14,7 @@ export class AppInputSocket extends InputSocket {
   }
 
   private _onPacketReceived (p: Packet): boolean {
+
     p.forEachBufferSlice((bs) => {
       const buffer = this._copyMode ? bs.newArrayBuffer() : bs.arrayBuffer;
       const mimeType = this._mimeType || p.defaultMimeType || null;
@@ -23,9 +25,9 @@ export class AppInputSocket extends InputSocket {
         }
 
         const blob = new Blob([buffer], { type: mimeType });
-        this._appCallback(blob, null, p.timestamp);
+        this._appCallback(blob, null, p.timestamp, this);
       } else {
-        this._appCallback(buffer, mimeType, p.timestamp);
+        this._appCallback(buffer, mimeType, p.timestamp, this);
       }
     });
 
