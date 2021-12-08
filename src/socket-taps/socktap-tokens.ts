@@ -13,7 +13,7 @@ export class SocketTapTokenBucket extends SocketTapDefault {
   constructor (private _rateDeltaMs: number = 1000) {
     super();
     this._tokenBucket = new TokenBucketPacketQueue((p_, p) => {
-      this._onPop(p);
+      this._onTokBucketPop(p);
     });
   }
 
@@ -61,7 +61,7 @@ export class SocketTapTokenBucket extends SocketTapDefault {
     this._tokenBucket.reset();
   }
 
-  private _onPop (p: Packet) {
+  private _onTokBucketPop (p: Packet) {
     this._packetQ.push(p);
   }
 }
