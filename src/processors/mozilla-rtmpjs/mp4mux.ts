@@ -77,7 +77,7 @@ import {
   VP6_VIDEO_CODEC_ID
 } from './mp4mux-codecs';
 
-import { hexToBytes, flatten2DArray, isNumber } from '../../common-utils';
+import { hexToBytes, flatten2DArray, isQNumber } from '../../common-utils';
 import { getLogger, LoggerLevel } from '../../logger';
 
 const { warn, debug } = getLogger('Mp4Mux', LoggerLevel.OFF, true);
@@ -822,7 +822,7 @@ export class MP4Mux {
             let sampleDuration: number = 0;
             if (this._trafSampleDurationOneFill) {
               sampleDuration = Number.MAX_SAFE_INTEGER;
-            } else if (isNumber(videoPacket.frameDuration) &&
+            } else if (isQNumber(videoPacket.frameDuration) &&
               videoPacket.frameDuration > 0) {
               sampleDuration = videoPacket.frameDuration;
             } else if (j < (trackPackets.length - 1)) {
