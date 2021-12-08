@@ -1,5 +1,6 @@
 import { Nullable } from '../common-types';
 import { orZero } from '../common-utils';
+import { getPerfWallClockTime } from '../perf-ctx';
 import { BufferSlices, BufferSlice } from './buffer';
 import { BufferProperties } from './buffer-props';
 import { PacketDataModel } from './packet-model';
@@ -118,12 +119,13 @@ export class Packet implements PacketDataModel {
   private _timescale: number = 1; // maybe not have a default value?
   private _hasDefaultBufferProps: boolean = true;
   private _timestampOffset: number = 0;
+  private _clockTags: number[] = [];
 
   constructor (
     public data: BufferSlices = [],
     public timestamp: number = 0,
     public presentationTimeOffset: number = 0,
-    public createdAt: Date = new Date(),
+    public createdAt: number = getPerfWallClockTime(),
     private _synchronizationId: number = null
   ) {
     if (_synchronizationId !== null && !Number.isSafeInteger(_synchronizationId)) {
@@ -310,5 +312,34 @@ export class Packet implements PacketDataModel {
 
   getNormalizedPts () {
     return this.getPresentationTimeWithOffset() / this.timeScale;
+  }
+
+  putClockTag() {
+    this._clockTags.push(getPerfWallClockTime());
+  }
+
+  getClockTags(): number[] {
+    return this._clockTags.slice();
+  }
+
+  getClockTagsDiff(): number {
+    if (this._clockTags.length > 1) {
+      return this._clockTags[this._clockTags.length - 1] - this._clockTags[0];
+    } else if (this._clockTags.length === 1) {
+      return getPerfWallClockTime() - this._clockTags[0];
+    } else {
+      return NaN;
+    }
+  }
+
+  getClockTagsDeltas(): number[] {
+    const deltas = this._clockTags.map((val, i) => {
+      if (i === this._clockTags.length - 1) {
+        return getPerfWallClockTime() - val;
+      }
+      return this._clockTags[i + 1] - val;
+    });
+    deltas.unshift(this._clockTags[0] - this.createdAt);
+    return deltas;
   }
 }
