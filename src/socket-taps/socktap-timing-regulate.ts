@@ -92,7 +92,7 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
   }
 
   private _enqueueOutPacket (pkt: Packet) {
-    this._sockTapPopQueue.push(pkt);
+    this.popQueue.push(pkt);
     this._playOutDtsInSecs = pkt.getNormalizedDts();
     this.pull();
   }
