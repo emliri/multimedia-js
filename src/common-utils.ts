@@ -189,11 +189,15 @@ export function makeTemplate (s: string): string {
 
 /**
  *
- * @returns true on finite values, false on Infinity
+ * @returns true on finite i.e "rational" values (hence "Q"), false on Infinity and NaN (and any value that is not number-type of course)
  *          returns false on anything that is not convertible to a number (when not a number type), see isConvertibleToNumber
  */
-export function isNumber (n: number): boolean {
+export function isQNumber (n: number): boolean {
   return Number.isFinite(n);
+}
+
+export function isNotQNumber (n: number): boolean {
+  return ! Number.isFinite(n);
 }
 
 export function printNumberScaledAtDecimalOrder (value: number, order: number = 1): string {
@@ -201,12 +205,12 @@ export function printNumberScaledAtDecimalOrder (value: number, order: number = 
 }
 
 /**
- *
+ * Convertable to number as in `Number(x) -> ...`, see `toNumber`
  * @returns true on: empty string, booleans, null, finite number values and +/- Infinity
  *          false on: everything else -> objects, non-empty string, undefined, NaN (obviously)
  */
 export function isConvertibleToNumber (n: any): boolean {
-  return !isNaN(n);
+  return ! Number.isNaN(n);
 }
 
 export function isInteger (n: number): boolean {
