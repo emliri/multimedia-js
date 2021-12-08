@@ -18,8 +18,8 @@ export class OutputSocket extends Socket {
   }
 
   close () {
-    super.close();
     this.disconnect();
+    super.close();
   }
 
   protected transferSync (p: Packet): boolean {

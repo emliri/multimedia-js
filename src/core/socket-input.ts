@@ -23,8 +23,8 @@ export class InputSocket extends Socket {
   }
 
   close () {
-    super.close();
     this.onReceive_ = null;
+    super.close();
   }
 
   protected transferSync (p: Packet): boolean {
