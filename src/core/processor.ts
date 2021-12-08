@@ -301,15 +301,17 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     if (isQNumber(this._transferLatencyRefTime)) {
       this._transferLatencyMs = getPerfNow() - this._transferLatencyRefTime;
       this._transferLatencyRefTime = NaN;
-    }
-    if (this.latencyProbe) {
-      const latencyProbePkt = this.latencyProbe;
-      this.latencyProbe = null;
-      latencyProbePkt.putClockTag();
-      s.transfer(latencyProbePkt);
+      // above check for ref-time will ensure there
+      // was a transfer-in received after last latency-probe
+      // (otherwise we may be looking at a packet transferred
+      // async just after probe input).
+      if (this.latencyProbe) {
+        const latencyProbePkt = this.latencyProbe;
+        this.latencyProbe = null;
+        s.transfer(latencyProbePkt);
+      }
     }
   }
-
 
   /**
    * @returns True when packet was forwarded
@@ -348,6 +350,12 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
 
   private onReceiveFromInput_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
     this.assertNotTerminated_();
+
+    if (p.isSymbolic() &&
+          this.onSymbolicPacketReceived_(p)) {
+      return true; // when packet was forwarded we don't pass it on for processing
+    }
+
     // set latency metric ref when not set yet,
     // in order to gather time from *first* packet received in
     // (hence the check for it already being set),
@@ -355,10 +363,6 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     // this is reset in the mentioned handler therefore.
     if (isNotQNumber(this._transferLatencyRefTime)) {
       this._transferLatencyRefTime = getPerfNow();
-    }
-    if (p.isSymbolic() &&
-          this.onSymbolicPacketReceived_(p)) {
-      return true; // when packet was forwarded we don't pass it on for processing
     }
 
     let result = false;
@@ -396,7 +400,6 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
   private onLatencyProbe_ (p: Packet) {
     if (!this.latencyProbe) {
       this.latencyProbe = p;
-      this.latencyProbe.putClockTag();
     }
   }
 

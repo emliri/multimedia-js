@@ -128,6 +128,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * @param p
    */
   transfer (p: Nullable<Packet>, async: boolean = true): Promise<boolean> {
+    this._emit(SocketEvent.ANY_PACKET_TRANSFERRING);
     if (async) {
       return this.transferAsync_(p);
     } else {
@@ -253,33 +254,36 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    */
    private transferSync_(p: Packet): boolean {
     if (p === null) return;
+    if (p.isSymbolic() && p.symbol === PacketSymbol.LATENCY_PROBE) {
+      this.latencyProbe_ = p;
+      p.putClockTag();
+    }
     if (this.tap_) {
       this.drainTap();
       p = this.handleWithTap_(p);
       if (!p) return false;
     }
-    if (p.isSymbolic() && p.symbol === PacketSymbol.LATENCY_PROBE) {
-      this.latencyProbe_ = p;
+    const res = this.transferSync(p);
+
+    this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
+    if (p.isSymbolic()) {
+      switch (p.symbol) {
+      case PacketSymbol.EOS:
+        this._emit(SocketEvent.EOS_PACKET_TRANSFERRED);
+        break;
+      default:
+        break;
+      }
     }
-    return this.transferSync(p);
+
+    return res;
   }
 
   private transferAsync_ (p: Packet): Promise<boolean> {
     return new Promise((resolve, reject) => {
       dispatchAsyncTask(() => {
         try {
-          this._emit(SocketEvent.ANY_PACKET_TRANSFERRING);
           resolve(this.transferSync_(p));
-          this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
-          if (p.isSymbolic()) {
-            switch (p.symbol) {
-            case PacketSymbol.EOS:
-              this._emit(SocketEvent.EOS_PACKET_TRANSFERRED);
-              break;
-            default:
-              break;
-            }
-          }
         } catch (e) {
           error('Error upon packet-transfer execution:', e);
           reject(e);
