@@ -10,6 +10,7 @@ import { PacketSymbol } from './packet-symbol';
 export class PacketDataModel {
   static createDefault (): PacketDataModel {
     return new PacketDataModel(
+      Date.now(),
       0, 0, 0, 0, 0, 0, 0, 0,
       null,
       ''
@@ -18,6 +19,7 @@ export class PacketDataModel {
 
   static createFromPacket (p: Packet): PacketDataModel {
     const pdm = new PacketDataModel(
+      p.createdAt,
       p.timestamp,
       p.presentationTimeOffset,
       p.timeScale,
@@ -33,6 +35,7 @@ export class PacketDataModel {
   }
 
   constructor (
+    readonly createdAt: number,
     readonly timestamp: number,
     readonly presentationTimeOffset: number,
     readonly timeScale: number,
