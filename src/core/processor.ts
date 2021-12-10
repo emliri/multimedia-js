@@ -55,8 +55,13 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
   private outputs_: OutputSocket[] = [];
 
   private _terminated: boolean = false;
+
   private _transferLatencyMs: number = NaN;
   private _transferLatencyRefTime: number = NaN;
+  private _transferCurrentBytes: number = NaN;
+
+  private _bytesInCnt: number = 0;
+  private _bytesOutCnt: number = 0;
 
   public latencyProbe: Packet = null;
 
@@ -298,6 +303,14 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
   }
 
   private onAnyPacketTransferringOut_(s: Socket) {
+
+    this._bytesOutCnt += s.getCurrentTransferring().getTotalBytes();
+
+    const inOutDiff = this._bytesInCnt - this._bytesOutCnt;
+    if (inOutDiff >= this._transferCurrentBytes) {
+      return;
+    }
+
     if (isQNumber(this._transferLatencyRefTime)) {
       this._transferLatencyMs = getPerfNow() - this._transferLatencyRefTime;
       this._transferLatencyRefTime = NaN;
@@ -355,6 +368,9 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
           this.onSymbolicPacketReceived_(p)) {
       return true; // when packet was forwarded we don't pass it on for processing
     }
+
+    this._transferCurrentBytes = p.getTotalBytes();
+    this._bytesInCnt += this._transferCurrentBytes;
 
     // set latency metric ref when not set yet,
     // in order to gather time from *first* packet received in

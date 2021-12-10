@@ -24,6 +24,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   private isReadyArmed_: boolean = false;
 
   private latencyProbe_: Packet = null;
+  private transferringPkt_: Packet = null;
 
   protected tap_: Nullable<SocketTap> = null;
   protected owner: SocketOwner = null;
@@ -123,12 +124,18 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
   }
   */
 
+  getCurrentTransferring(): Packet {
+    return this.transferringPkt_;
+  }
+
   /**
    * Wraps transferSync in an async call and returns a promise
    * @param p
    */
   transfer (p: Nullable<Packet>, async: boolean = true): Promise<boolean> {
+    this.transferringPkt_ = p;
     this._emit(SocketEvent.ANY_PACKET_TRANSFERRING);
+    this.transferringPkt_ = null;
     if (async) {
       return this.transferAsync_(p);
     } else {
@@ -254,10 +261,12 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    */
    private transferSync_(p: Packet): boolean {
     if (p === null) return;
+
     if (p.isSymbolic() && p.symbol === PacketSymbol.LATENCY_PROBE) {
       this.latencyProbe_ = p;
       p.putClockTag();
     }
+
     if (this.tap_) {
       this.drainTap();
       p = this.handleWithTap_(p);
