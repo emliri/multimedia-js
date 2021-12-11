@@ -63,6 +63,8 @@ export class SocketTapTokenBucket extends SocketTapDefault {
 
   private _onTokBucketPop (p: Packet) {
     this._packetQ.push(p);
+    // fixes remainder packets not being pop'd out
+    // when nothing transferred on parent socket
     this.pull();
   }
 }
