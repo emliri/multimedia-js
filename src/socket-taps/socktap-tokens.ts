@@ -63,5 +63,6 @@ export class SocketTapTokenBucket extends SocketTapDefault {
 
   private _onTokBucketPop (p: Packet) {
     this._packetQ.push(p);
+    this.pull();
   }
 }
