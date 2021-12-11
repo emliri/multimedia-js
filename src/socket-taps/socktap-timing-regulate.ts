@@ -94,6 +94,9 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
   private _enqueueOutPacket (pkt: Packet) {
     this.popQueue.push(pkt);
     this._playOutDtsInSecs = pkt.getNormalizedDts();
+
+    // fixes remainder packets not being pop'd out
+    // when nothing transferred on parent socket
     this.pull();
   }
 
