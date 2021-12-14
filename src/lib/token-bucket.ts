@@ -1,5 +1,5 @@
 import { Nullable } from '../common-types';
-import { noop } from '../common-utils';
+import { millisToSecs, noop, secsToMillis } from '../common-utils';
 
 export interface TokenBucketPacket {
   byteLength: number
@@ -142,7 +142,7 @@ export class TokenBucketPacketQueue<T> {
     // TODO: use Math.min here with maxTokens (optional behavior) ?
     if (this._tokens < this._maxTokens) {
       if (this._useCheapClock) {
-        this._tokens += Math.floor(this._tokenRate * CHEAP_CLOCK_PERIOD_MS / 1000);
+        this._tokens += Math.floor(this._tokenRate * millisToSecs(CHEAP_CLOCK_PERIOD_MS));
       } else {
         this._tokens++;
       }
@@ -165,7 +165,7 @@ export class TokenBucketPacketQueue<T> {
     if (this._useCheapClock) {
       this._timer = setInterval(this._onTimer.bind(this), CHEAP_CLOCK_PERIOD_MS);
     } else {
-      this._timer = setInterval(this._onTimer.bind(this), Math.round(1000 / this._tokenRate));
+      this._timer = setInterval(this._onTimer.bind(this), Math.round(secsToMillis(1 / this._tokenRate)));
     }
 
     // we process queue after any reschedule immediately
