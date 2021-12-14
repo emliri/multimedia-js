@@ -233,6 +233,11 @@ export function toNumber (n: any): number {
   throw new Error('Value does not convert to number: ' + n);
 }
 
+export function sumOfNumbers(a: number[]): number {
+  if (a.length === 0) return NaN;
+  return a.reduce((sum, next) => sum + next, 0);
+}
+
 export function flatten2DArray<T> (a: TwoDimArray<T>): T[] {
   return [].concat(...a);
 }

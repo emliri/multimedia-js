@@ -25,15 +25,26 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
 
   private latencyProbe_: Packet = null;
   private transferringPkt_: Packet = null;
+  private transferBytesCnt: number = 0;
+  private transferPacketsCnt: number = 0;
 
   protected tap_: Nullable<SocketTap> = null;
   protected owner: SocketOwner = null;
 
-  constructor (type: SocketType, descriptor: SocketDescriptor) {
+  constructor (type: SocketType, descriptor: SocketDescriptor,
+    private _enableMetrics: boolean = false) {
     super();
     this.type_ = type;
     this.descriptor_ = descriptor;
     this.state_ = new SocketState();
+  }
+
+  get bytesCount(): number {
+    return this.transferBytesCnt;
+  }
+
+  get packetsCount(): number {
+    return this.transferPacketsCnt;
   }
 
   close () {
@@ -272,6 +283,13 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       p = this.handleWithTap_(p);
       if (!p) return false;
     }
+
+    if (this._enableMetrics) {
+      this.transferPacketsCnt++;
+      this.transferBytesCnt += p.getTotalBytes();
+      // add byte-rate
+    }
+
     const res = this.transferSync(p);
 
     this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);

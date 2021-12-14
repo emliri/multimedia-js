@@ -10,7 +10,7 @@ import { getLogger } from '../logger';
 import { mixinWithOptions } from '../lib/options';
 
 import { getPerfNow, perf } from '../perf-ctx';
-import { isNotQNumber, isQNumber } from '../common-utils';
+import { isNotQNumber, isQNumber, sumOfNumbers } from '../common-utils';
 
 const { debug, log, error } = getLogger('Processor');
 
@@ -47,27 +47,27 @@ export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
 export abstract class Processor extends EventEmitter<ProcessorEvent> implements SocketOwner, SignalReceiver {
 
+
   static getName (): string {
-    return null;
+    throw new Error('Processor.getName() should be implemented by subclass');
   }
+
+  // TODO: internalize EE instance to avoid polluting interface (we should only expose on/once/off)
+  // private eventEmitter_: typeof EventEmitter = new EventEmitter();
 
   private inputs_: InputSocket[] = [];
   private outputs_: OutputSocket[] = [];
 
   private _terminated: boolean = false;
+  private _isProcessing: boolean = false;
 
+  // todo: rename to process...
   private _transferLatencyMs: number = NaN;
   private _transferLatencyRefTime: number = NaN;
-  private _transferCurrentBytes: number = NaN;
-
-  private _bytesInCnt: number = 0;
-  private _bytesOutCnt: number = 0;
 
   public latencyProbe: Packet = null;
 
-  // TODO: internalize EE instance to avoid polluting interface (we should only expose on/once/off)
-  // private eventEmitter_: typeof EventEmitter = new EventEmitter();
-
+  public enableMetrics: boolean = true;
   public enableSymbolProxying: boolean = false;
   public muteSymbolProcessing: boolean = true;
 
@@ -94,6 +94,42 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
 
   }
 
+  /**
+   * Read-only internal array ref
+   * {InputSocket[]}
+   */
+  get in (): InputSocket[] {
+    return this.inputs_;
+  }
+
+  /**
+   * Read-only internal array ref
+   * {OutputSocket[]}
+   */
+  get out (): OutputSocket[] {
+    return this.outputs_;
+  }
+
+  get latencyMs(): number {
+    return this._transferLatencyMs;
+  }
+
+  get bytesInCount(): number {
+    return sumOfNumbers(this.inputs_.map(s => s.bytesCount));
+  }
+
+  get bytesOutCount(): number {
+    return sumOfNumbers(this.outputs_.map(s => s.bytesCount));
+  }
+
+  get packetsInCount(): number {
+    return sumOfNumbers(this.inputs_.map(s => s.packetsCount));
+  }
+
+  get packetsOutCount(): number {
+    return sumOfNumbers(this.outputs_.map(s => s.packetsCount));
+  }
+
   disconnect () {
     this.outputs_.forEach(s => s.disconnect());
   }
@@ -101,6 +137,10 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
   terminate (disconnect: boolean = true) {
     if (disconnect) this.disconnect();
     this._terminated = true;
+  }
+
+  isProcessing() {
+    return this._isProcessing;
   }
 
   isTerminated () {
@@ -219,26 +259,6 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
   }
 
   /**
-   * Read-only internal array ref
-   * {InputSocket[]}
-   */
-  get in (): InputSocket[] {
-    return this.inputs_;
-  }
-
-  /**
-   * Read-only internal array ref
-   * {OutputSocket[]}
-   */
-  get out (): OutputSocket[] {
-    return this.outputs_;
-  }
-
-  get latencyMs(): number {
-    return this._transferLatencyMs;
-  }
-
-  /**
    * Adds a new input socket with the given descriptor (or from default template)
    * {SocketDescriptor} sd optional
    */
@@ -304,11 +324,8 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
 
   private onAnyPacketTransferringOut_(s: Socket) {
 
-    this._bytesOutCnt += s.getCurrentTransferring().getTotalBytes();
-
-    const inOutDiff = this._bytesInCnt - this._bytesOutCnt;
-    if (inOutDiff >= this._transferCurrentBytes) {
-      return;
+    if (!this._isProcessing) {
+      //throw new Error('Packet transferred outside of processTransfer_ !');
     }
 
     if (isQNumber(this._transferLatencyRefTime)) {
@@ -369,9 +386,6 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
       return true; // when packet was forwarded we don't pass it on for processing
     }
 
-    this._transferCurrentBytes = p.getTotalBytes();
-    this._bytesInCnt += this._transferCurrentBytes;
-
     // set latency metric ref when not set yet,
     // in order to gather time from *first* packet received in
     // (hence the check for it already being set),
@@ -383,7 +397,9 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
 
     let result = false;
     try {
+      this._isProcessing = true;
       result = this.processTransfer_(inS, p, inputIndex);
+      this._isProcessing = false;
     } catch (err) {
       const msg = `There was an internal fatal error processing a packet: ${err.message}.`;
       error(msg, err);
@@ -441,6 +457,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
    *
    * @returns True if the symbolic packet should be proxied, false if we want to handle this manually in the processing scope (when symbol-proxying enabled)
    */
+  // todo: rename to on.. and rm underscore
   protected handleSymbolicPacket_ (symbol: PacketSymbol): boolean {
     return symbol !== PacketSymbol.VOID;
   }

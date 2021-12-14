@@ -6,7 +6,7 @@ import { EventEmitter } from 'eventemitter3';
 import { getLogger, LoggerLevel } from '../logger';
 import { AppInputSocket } from '../io-sockets/app-input-socket';
 import { WebFileDownloadSocket } from '../io-sockets/web-file-download.socket';
-import { makeTemplate } from '../common-utils';
+import { makeTemplate, sumOfNumbers } from '../common-utils';
 
 const { error } = getLogger('Flow', LoggerLevel.DEBUG);
 
@@ -131,7 +131,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   }
 
   get latenciesTotalMs(): number {
-    return this.latenciesMs.reduce((accu, val) => accu + val, 0);
+    return sumOfNumbers(this.latenciesMs);
   }
 
   getExternalSocketsByType (type: SocketType): Socket[] {
