@@ -1,23 +1,23 @@
 
 # General
 
-- Rename proc impl to be nice CamelCase
+- Rename all proc impls to be nice CamelCase
 - in filenames: Rename all "processor" occurence to "proc" 
+
+# Processor/Socket tooling
+
+
+- Per proc i/o Byte-counting (via taps?)
+
+- Per socket packet-delaying (as "socket tap")
+
+- Byte-rate measurement (per socket-tap or per proc?)
 
 # Testing
 
 - Generalize test-case for flows that take URL as entry point
 
 - Automate running web test-cases
-
-
-
-
-# Dependencies
-
-- Copy our inspector.js & mux.js dev branches into source-tree
-
-
 
 # Use-Cases
 
