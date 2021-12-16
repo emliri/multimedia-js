@@ -18,14 +18,16 @@ export class Mpeg2TsSyncAdapter {
       const newSize = existingBuf.byteLength + buffer.byteLength;
       if (newSize > this._maxBufferSize) throw new Error('New bytes allocation exceeds limit');
 
-      const newBufferView = new Uint8Array(new ArrayBuffer(newSize));
+      const newBufferView = new Uint8Array(newSize);
       newBufferView.set(existingBuf, 0);
       newBufferView.set(buffer, existingBuf.byteLength);
       this._buffer = newBufferView;
     }
 
-    this._syncOffset = findSyncOffsetInMpegTsChunk(this._buffer);
-    // debug('found sync-offset at:', this._syncOffset);
+    if (this._syncOffset === null) {
+      this._syncOffset = findSyncOffsetInMpegTsChunk(this._buffer);
+    }
+
   }
 
   /**
@@ -34,24 +36,26 @@ export class Mpeg2TsSyncAdapter {
    * @param maxNumPackets Defaults to Infinity, may read less packets (as much as available)
    * @returns Complete packets buffer
    */
-  take (minNumPackets: number = 1, maxNumPackets: number = Infinity): Nullable<Uint8Array> {
+  take (maxNumPackets: number = Infinity, minNumPackets: number = 1): Nullable<Uint8Array> {
     if (minNumPackets > maxNumPackets) {
       throw new Error('minNumPackets larger than maxNumPackets');
     }
+    if (minNumPackets < 1) throw new Error('minNumPackets must be greater-equal 1');
 
-    if (minNumPackets <= 0) throw new Error('minNumPackets must be larger than zero');
+    const packetCnt = this.getPacketsCount();
+    // packets we got not enough (note minNumPackets always >= 1)
+    // so this also handles packetCnt = 0
+    if (packetCnt < minNumPackets) return null;
 
-    const packetCnt = this.getEstimatedPacketsCount(); // packets we got
-    const numPacketsOut = Math.max(Math.min(maxNumPackets, packetCnt), minNumPackets);
+    // limit packets taken by max param
+    const packetsNeeded = Math.min(maxNumPackets, packetCnt);
+    const packetBytes = packetsNeeded * MPEG2TS_PACKET_SIZE;
 
-    if (packetCnt < numPacketsOut) return null;
-    if (packetCnt === 0 || numPacketsOut === 0) return null;
-
-    const packetBytes = numPacketsOut * MPEG2TS_PACKET_SIZE;
     const offsetStart = this._syncOffset;
     const offsetEnd = offsetStart + packetBytes;
 
-    const buffer = new Uint8Array(this._buffer.buffer,
+    const buffer = new Uint8Array(
+      this._buffer.buffer,
       this._buffer.byteOffset + offsetStart,
       packetBytes);
 
@@ -60,8 +64,14 @@ export class Mpeg2TsSyncAdapter {
     // if there is more data left in buffer,
     // then shift it, set offset to zero
     if (remainingBufSize > 0) {
-      this._syncOffset = 0;
       this._buffer = new Uint8Array(this._buffer.buffer, this._buffer.byteOffset + offsetEnd, remainingBufSize);
+      // re-sync at this point. we assumed for the currently taken data
+      // that it was fully packet-aligned although we only checked
+      // the first packet had a sync byte, instead of walking over
+      // the whole buffer. also, we don't check again once a first sync-byte
+      // was found on more data feed in.
+      // we check again on the remainder data here after data has been taken.
+      this._syncOffset = findSyncOffsetInMpegTsChunk(this._buffer);
     } else { // otherwise free up and reset to init state
       this.clear();
     }
@@ -93,17 +103,17 @@ export class Mpeg2TsSyncAdapter {
   }
 
   getPacketBufferRemainderBytes (): number {
-    return (this.getPacketBufferSize() - this.getEstimatedPacketBytesSize());
+    return (this.getPacketBufferSize() - this.getPacketsBytesSize());
   }
 
-  getEstimatedPacketsCount (): number {
+  getPacketsCount (): number {
     if (this._syncOffset === null) return 0;
     const pktBufSize = this.getPacketBufferSize();
     return Math.floor(pktBufSize / MPEG2TS_PACKET_SIZE);
   }
 
-  getEstimatedPacketBytesSize (): number {
+  getPacketsBytesSize (): number {
     if (this._syncOffset === null) return 0;
-    return MPEG2TS_PACKET_SIZE * this.getEstimatedPacketsCount();
+    return MPEG2TS_PACKET_SIZE * this.getPacketsCount();
   }
 }
