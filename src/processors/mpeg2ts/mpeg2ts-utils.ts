@@ -14,47 +14,62 @@ export function findSyncOffsetInMpegTsChunk (
 
   // early return when less data than one packet
   if (data.byteLength < MPEG2TS_PACKET_SIZE) return null;
+
   for (let i = 0; i < data.byteLength; i++) {
+
+    // see how much data ahead can be parsed
+    const packetBufferLen = data.byteLength - i;
+
     // early return when data remaining is less than one packet,
     // even if we found a sync-byte it would not allow to parse packets.
-    if (data.byteLength - i < MPEG2TS_PACKET_SIZE) return null;
+    if (packetBufferLen < MPEG2TS_PACKET_SIZE) return null;
+
     // check current byte
     if (data[i] === MPEG2TS_SYNC_CHAR) {
+
       // we are fine so far if we dont want to check last packet sync byte
       if (!checkLastPacket) return i;
 
-      // -> last-packet checking mode:
-
-      // see how much data ahead can be parsed
-      const packetBufferLen = data.byteLength - i;
-      // if there is more than one packet
-      // now check if the assumed last packet has a sync-byte,
-      // assuming that everything in between is fine.
-      // this is a lazy modus to validate the stream segmentation
-      // without walking over every packet.
-      if (packetBufferLen > MPEG2TS_PACKET_SIZE) {
-        const packetDataResidue = (packetBufferLen % MPEG2TS_PACKET_SIZE);
-
-        let lastSyncByteOffset;
-        // if there is a residue (partial packet)
-        // we check the sync-byte after the last assumed full packet last byte.
-        if (packetDataResidue > 0) {
-          lastSyncByteOffset = packetBufferLen - packetDataResidue;
-        // or if we assume entire packets (residue = 0)
-        // we rewinde 1 packet from buffer length to get last packet first byte.
-        } else {
-          packetBufferLen - MPEG2TS_PACKET_SIZE;
-        }
-
-        if (data[lastSyncByteOffset] === MPEG2TS_SYNC_CHAR) {
-          return i;
-        }
-        // if this isn't satisfied it means there is garbage
-        // after the packet we found. the sync-find loop will continue therefore.
-      } else {
-        // fast path for when there is no more than exactly one packet
+      // no last packet ->
+      // fast path for when there is no more than one packet:
+      // note that preconditions may not allow less than 1 packet
+      // (while we are flexible with this assumption),
+      // it may be exactly 1.
+      if (packetBufferLen <= MPEG2TS_PACKET_SIZE) {
         return i;
       }
+
+      // -> last-packet checking mode:
+
+      // this is a lazy modus to validate the stream segmentation
+      // without walking over every packet:
+      // as there is more bytes than one packet
+      // check if the assumed last (even partial) packet has a sync-byte.
+      // thus implicitly assuming that everything in between is fine.
+
+      // assumes there is more bytes than 1 packet,
+      // i.e some last packet (even partial) exists,
+      // we want to find the first/sync byte of that last packet.
+      let lastSyncByteOffset = i; // make sure to offset from current first packet
+      // we will have to case-diff on the last packet being partial,
+      // or having a buffer filled with entire packets.
+      const packetDataResidue = (packetBufferLen % MPEG2TS_PACKET_SIZE);
+      // if there is a residue (partial packet)
+      // we check the sync-byte after the last assumed full packet last byte.
+      if (packetDataResidue > 0) {
+        lastSyncByteOffset += packetBufferLen - packetDataResidue;
+      // else we should assume entire packets (residue = 0)
+      // we rewind 1 packet from buffer length to get last packet first byte.
+      } else {
+        lastSyncByteOffset += packetBufferLen - MPEG2TS_PACKET_SIZE;
+      }
+
+      if (data[lastSyncByteOffset] === MPEG2TS_SYNC_CHAR) {
+        return i;
+      }
+
+      // when above if isn't satisfied it means there is garbage
+      // after the packet we found. the sync-find loop will continue therefore.
 
     }
   }
