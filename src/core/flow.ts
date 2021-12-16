@@ -126,11 +126,11 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
     return Array.from(this.getExternalSockets());
   }
 
-  get latenciesMs(): number[] {
+  get latenciesMs (): number[] {
     return this.procList.map(p => p.latencyMs);
   }
 
-  get latenciesTotalMs(): number {
+  get latenciesTotalMs (): number {
     return this.latenciesMs.reduce((accu, val) => accu + val, 0);
   }
 

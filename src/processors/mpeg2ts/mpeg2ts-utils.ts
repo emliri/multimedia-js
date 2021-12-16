@@ -11,12 +11,10 @@ export function findSyncOffsetInMpegTsChunk (
   data: Uint8Array,
   checkLastPacket: boolean = false,
   maxScanBytes: number = MPEG2TS_MAX_SCAN_WINDOW): number | null {
-
   // early return when less data than one packet
   if (data.byteLength < MPEG2TS_PACKET_SIZE) return null;
 
   for (let i = 0; i < data.byteLength; i++) {
-
     // see how much data ahead can be parsed
     const packetBufferLen = data.byteLength - i;
 
@@ -26,7 +24,6 @@ export function findSyncOffsetInMpegTsChunk (
 
     // check current byte
     if (data[i] === MPEG2TS_SYNC_CHAR) {
-
       // we are fine so far if we dont want to check last packet sync byte
       if (!checkLastPacket) return i;
 
@@ -70,7 +67,6 @@ export function findSyncOffsetInMpegTsChunk (
 
       // when above if isn't satisfied it means there is garbage
       // after the packet we found. the sync-find loop will continue therefore.
-
     }
   }
   if (data.byteLength > maxScanBytes) {
@@ -79,7 +75,7 @@ export function findSyncOffsetInMpegTsChunk (
   return null;
 }
 
-export function wrapMpeg2TimeInMp4BaseDts(time: number): number {
+export function wrapMpeg2TimeInMp4BaseDts (time: number): number {
   if (time > MP4_CMAF_MAX_TIME_SECS) {
     return time % MP4_CMAF_MAX_TIME_SECS;
   } else {

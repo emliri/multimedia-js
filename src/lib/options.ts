@@ -1,5 +1,5 @@
-import { Class, ObjectConstructor } from "../common-types";
-import { objectNewFromDefaultAndPartials } from "../common-utils";
+import { Class, ObjectConstructor } from '../common-types';
+import { objectNewFromDefaultAndPartials } from '../common-utils';
 
 export interface IWithOptions<TOptions> {
   get OptionsDefault(): TOptions;
@@ -15,17 +15,15 @@ export type MixinWithOptions<TBase, TOptions> = TBase & Class<IWithOptions<TOpti
 
 export function mixinWithOptions<
   TBase extends ObjectConstructor,
-  TOptions extends Object>(Base: TBase, defaultOpts: TOptions): MixinWithOptions<TBase, TOptions> {
-
+  TOptions extends Object> (Base: TBase, defaultOpts: TOptions): MixinWithOptions<TBase, TOptions> {
   return class WithOptions extends Base implements IWithOptions<TOptions> {
-
-    get OptionsDefault(): TOptions {
+    get OptionsDefault (): TOptions {
       return defaultOpts;
     }
 
     private _options: TOptions;
 
-    constructor(...args: any[]) {
+    constructor (...args: any[]) {
       super(args);
       this.setOptions();
     }
@@ -39,7 +37,7 @@ export function mixinWithOptions<
      * specific performance-scaling optimizations,
      * when you know how/why to do this.
      */
-    get options_(): TOptions {
+    get options_ (): TOptions {
       return this._options;
     }
 
@@ -47,7 +45,7 @@ export function mixinWithOptions<
      *
      * @returns options (mutable/copy)
      */
-    getOptions(): TOptions {
+    getOptions (): TOptions {
       return Object.assign({}, this._options);
     }
 
@@ -62,13 +60,12 @@ export function mixinWithOptions<
      * the values of the param.
      * @param opts
      */
-    setOptions(opts: Partial<TOptions> = defaultOpts) {
+    setOptions (opts: Partial<TOptions> = defaultOpts) {
       // preserves current state, then applies partial arg on top, then fills
       // in any missing properties with defaultOpts props.
-      //debugger;
+      // debugger;
       this._options = objectNewFromDefaultAndPartials(defaultOpts, this._options, opts);
       return this._options;
     }
-  }
+  };
 }
-

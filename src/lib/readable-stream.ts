@@ -51,7 +51,7 @@ export class ReadableStreamQueueReader<T> implements ReadableStreamDefaultReader
           if (this._err) {
             reject(this._err);
           } else {
-            resolve(void 0);
+            resolve(undefined);
           }
         }
       })();

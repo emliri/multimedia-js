@@ -46,7 +46,6 @@ export type ProcessorEventData = {
 export type ProcessorEventHandler = (data: ProcessorEventData) => void;
 
 export abstract class Processor extends EventEmitter<ProcessorEvent> implements SocketOwner, SignalReceiver {
-
   static getName (): string {
     return null;
   }
@@ -86,7 +85,6 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     this[PROCESSOR_RPC_INVOKE_PACKET_HANDLER] = (p: Packet, inputIndex: number) => {
       this.onReceiveFromInput_(this.in[inputIndex], Packet.fromTransferable(p), inputIndex);
     };
-
   }
 
   disconnect () {
@@ -229,7 +227,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     return this.outputs_;
   }
 
-  get latencyMs(): number {
+  get latencyMs (): number {
     return this._transferLatencyMs;
   }
 
@@ -285,7 +283,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     return s;
   }
 
-  setSignalHandler(onSignal: SignalHandler) {
+  setSignalHandler (onSignal: SignalHandler) {
     this.onSignal_ = onSignal;
   }
 
@@ -297,7 +295,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     }
   }
 
-  private onAnyPacketTransferringOut_(s: Socket) {
+  private onAnyPacketTransferringOut_ (s: Socket) {
     if (isQNumber(this._transferLatencyRefTime)) {
       this._transferLatencyMs = getPerfNow() - this._transferLatencyRefTime;
       this._transferLatencyRefTime = NaN;
@@ -458,11 +456,11 @@ export class DefaultProcessor extends Processor {
     super(onSignal, socketTemplate);
   }
 
-  protected processTransfer_(inS: InputSocket, p: Packet, inputIndex: number): boolean {
+  protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
     return false;
   }
 }
 
-export function mixinProcessorWithOptions<TOptions>(defaultOpts: TOptions) {
+export function mixinProcessorWithOptions<TOptions> (defaultOpts: TOptions) {
   return mixinWithOptions<typeof DefaultProcessor, TOptions>(DefaultProcessor, defaultOpts);
 }

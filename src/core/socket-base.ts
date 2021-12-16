@@ -210,7 +210,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this;
   }
 
-  drainTap() {
+  drainTap () {
     while (this.tap_ && !this.tap_.isClear()) {
       const _p = this.tap_.popPacket();
       if (!_p) throw new Error('SocketTap implementation error: popPacket() expected to return non-null since isClear was false');
@@ -218,7 +218,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     }
   }
 
-  latencyProbe(): Packet {
+  latencyProbe (): Packet {
     return this.latencyProbe_;
   }
 
@@ -239,7 +239,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     if (this.tap_ &&
       // if the Tap returns false,
       // it "keeps" the packet on its stack
-      ! this.tap_.pushPacket(p)) {
+      !this.tap_.pushPacket(p)) {
       return null;
     }
     return p;
@@ -254,7 +254,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * and thus no effective transfer took place, or that the data processing handler
    * is not set in some other way, or an error was thrown when processing.
    */
-   private transferSync_(p: Packet): boolean {
+  private transferSync_ (p: Packet): boolean {
     if (p === null) return;
     if (p.isSymbolic() && p.symbol === PacketSymbol.LATENCY_PROBE) {
       this.latencyProbe_ = p;

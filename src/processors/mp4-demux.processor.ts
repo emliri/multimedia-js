@@ -282,11 +282,9 @@ export class MP4DemuxProcessor extends Processor {
             debug('pushing packet with:', frameSlice.toString());
 
             output.transfer(p);
-
           });
           // flush will remove the frames from the demuxers internal track states
           this._demuxer.flush();
-
         }
       });
 

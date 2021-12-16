@@ -17,5 +17,3 @@ export type ConstructorOf<T extends Object> = new (...args: any[]) => T;
 export type Class<T> = ConstructorOf<T>
 
 export type Mixin<T1, T2> = ConstructorOf<T1> & ConstructorOf<T2>
-
-

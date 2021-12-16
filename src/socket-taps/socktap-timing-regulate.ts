@@ -1,17 +1,17 @@
-import { millisToSecs, secsToMillis, timeMillisSince } from "../common-utils";
-import { Packet } from "../core/packet";
-import { mixinSocketTapQueuedWithOpts } from "../core/socket-tap";
-import { getLogger } from "../logger";
+import { millisToSecs, secsToMillis, timeMillisSince } from '../common-utils';
+import { Packet } from '../core/packet';
+import { mixinSocketTapQueuedWithOpts } from '../core/socket-tap';
+import { getLogger } from '../logger';
 
-const { warn } = getLogger("socktap-timing-regulate");
+const { warn } = getLogger('socktap-timing-regulate');
 
-const SocketTapQueuedWithOpts
-  = mixinSocketTapQueuedWithOpts<SocketTapTimingRegulateOpts>({
-  timingRegulationOn: false,
-  timingRegulationSpeed: 1,
-  timingRegulationSkipPrior: NaN,
-  timingRegulationPollMs: 1000
-});
+const SocketTapQueuedWithOpts =
+  mixinSocketTapQueuedWithOpts<SocketTapTimingRegulateOpts>({
+    timingRegulationOn: false,
+    timingRegulationSpeed: 1,
+    timingRegulationSkipPrior: NaN,
+    timingRegulationPollMs: 1000
+  });
 
 export interface SocketTapTimingRegulateOpts {
   timingRegulationOn: boolean
@@ -21,25 +21,23 @@ export interface SocketTapTimingRegulateOpts {
 }
 
 export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
-
   private _playOutDtsInSecs: number = NaN;
   private _playOutClockRef: number = NaN;
   private _pollTimer: number;
 
-  constructor(opts?: Partial<SocketTapTimingRegulateOpts>) {
+  constructor (opts?: Partial<SocketTapTimingRegulateOpts>) {
     super();
     this.setOptions(opts);
     this._onQueuePushed = this._pollQueue.bind(this);
   }
 
-  flush() {
+  flush () {
     this._playOutDtsInSecs =
       this._playOutClockRef = NaN;
     super.flush();
   }
 
   private _pollQueue () {
-
     // optimized early return as we may poll periodically on empty queue
     // and avoids further checks in logic below
     if (!this._sockTapPushQueue.length) return;
@@ -50,7 +48,6 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
       // q: have the for-each and flushing in one baseclass-sided callback?
       this._playOutClockRef = Date.now();
     } else {
-
       const [playOutToWallClockDiff, now] = timeMillisSince(this._playOutClockRef);
       // initial condition setup
       if (!Number.isFinite(this._playOutDtsInSecs) || !Number.isFinite(this._playOutClockRef)) {
@@ -102,5 +99,4 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
     // when nothing transferred on parent socket
     this.pull();
   }
-
 }

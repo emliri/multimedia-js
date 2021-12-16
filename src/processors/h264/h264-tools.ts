@@ -171,8 +171,9 @@ export function makeNALUFromH264RbspData (
  */
 export function makeAccessUnitFromNALUs (naluData: BufferSlice[], annexB: boolean = false): BufferSlice {
   const totalSizeOfNalus = BufferSlice.getTotalSize(naluData);
-  if (totalSizeOfNalus === 0)
+  if (totalSizeOfNalus === 0) {
     throw new Error('NALU buffer-slices can not be empty array or zero-sized');
+  }
 
   const accessUnitData: BufferSlice = BufferSlice.allocateNew((4 * naluData.length) + totalSizeOfNalus);
   const auDataView: DataView = accessUnitData.getDataView();

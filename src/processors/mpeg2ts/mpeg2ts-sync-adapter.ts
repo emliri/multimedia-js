@@ -27,7 +27,6 @@ export class Mpeg2TsSyncAdapter {
     if (this._syncOffset === null) {
       this._syncOffset = findSyncOffsetInMpegTsChunk(this._buffer);
     }
-
   }
 
   /**

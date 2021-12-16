@@ -14,7 +14,6 @@ export class AppInputSocket extends InputSocket {
   }
 
   private _onPacketReceived (p: Packet): boolean {
-
     p.forEachBufferSlice((bs) => {
       const buffer = this._copyMode ? bs.newArrayBuffer() : bs.arrayBuffer;
       const mimeType = this._mimeType || p.defaultMimeType || null;

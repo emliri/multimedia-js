@@ -38,8 +38,9 @@ export const noop = () => void 0;
  * eq(NaN, NaN)
  * // => true
  */
-export function isSame(value: any, other: any) {
-  return value === other || (value !== value && other !== other)
+export function isSame (value: any, other: any) {
+  // eslint-disable-next-line no-self-compare
+  return value === other || (value !== value && other !== other);
 }
 
 /**
@@ -56,11 +57,11 @@ export function isSame(value: any, other: any) {
  * // => { 'a': 1, 'b': 2 }
  */
 
-export function objectApplyDefaults<T extends Object>(object: Partial<T>, ...sources: Nullable<T>[]): T {
+export function objectApplyDefaults<T extends Object> (object: Partial<T>, ...sources: Nullable<T>[]): T {
   /** Used for built-in method references. */
   const objectProto: Partial<T> = <T> Object.prototype;
   /** Used to check objects for own properties. */
-  const hasOwnProperty = objectProto.hasOwnProperty
+  const hasOwnProperty = objectProto.hasOwnProperty;
   object = Object(object);
   sources.forEach((source) => {
     if (source != null) {
@@ -80,15 +81,15 @@ export function objectApplyDefaults<T extends Object>(object: Partial<T>, ...sou
         }
       }
     }
-  })
-  return object as T
+  });
+  return object as T;
 }
 
 /**
  * Slight variation on `defaults` above, just overriding any property,
  * very much like Object.assign, but with better type-declaration.
  */
-export function objectAssign<T>(object: Partial<T>, ...sources: Nullable<Partial<T>>[]): Partial<T> {
+export function objectAssign<T> (object: Partial<T>, ...sources: Nullable<Partial<T>>[]): Partial<T> {
   return Object.assign(object, ...sources);
   // Lodash-like implementation (using Object.assign is likely more performant)
   /*
@@ -113,7 +114,7 @@ export function objectAssign<T>(object: Partial<T>, ...sources: Nullable<Partial
  * guarantees the object to be of complete T type, without overwriting the
  * given source properties (see `objectApplyDefaults`).
  */
-export function objectNewFromDefaultAndPartials<T extends Object>(defaults: T, ...sources: Nullable<Partial<T>>[]): T {
+export function objectNewFromDefaultAndPartials<T extends Object> (defaults: T, ...sources: Nullable<Partial<T>>[]): T {
   return objectApplyDefaults(objectAssign({}, ...sources), defaults);
 }
 
@@ -170,7 +171,6 @@ export function microsToSecs (millis: number): number {
   return millis / 1000000;
 }
 
-
 /**
  *
  * @param s template-able string value.
@@ -197,7 +197,7 @@ export function isQNumber (n: number): boolean {
 }
 
 export function isNotQNumber (n: number): boolean {
-  return ! Number.isFinite(n);
+  return !Number.isFinite(n);
 }
 
 export function printNumberScaledAtDecimalOrder (value: number, order: number = 1): string {
@@ -210,7 +210,7 @@ export function printNumberScaledAtDecimalOrder (value: number, order: number = 
  *          false on: everything else -> objects, non-empty string, undefined, NaN (obviously)
  */
 export function isConvertibleToNumber (n: any): boolean {
-  return ! Number.isNaN(n);
+  return !Number.isNaN(n);
 }
 
 export function isInteger (n: number): boolean {

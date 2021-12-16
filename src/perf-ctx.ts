@@ -8,7 +8,7 @@ export const wallClkBaseTime = Date.now() - perf.now();
  *
  * @returns performance API timing precise clock value (not an epoch i.e wallclock value)
  */
-export function getPerfNow(): number {
+export function getPerfNow (): number {
   return perf.now();
 }
 
@@ -16,7 +16,6 @@ export function getPerfNow(): number {
  *
  * @returns wallclock time (epoch millis same as Date.now) in performance API precision
  */
-export function getPerfWallClockTime(): number {
+export function getPerfWallClockTime (): number {
   return wallClkBaseTime + perf.now();
 }
-

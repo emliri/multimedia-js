@@ -1,3 +1,5 @@
+import { isQNumber } from '../../common-utils';
+
 export class ByteRange {
     from: number;
     to: number;
@@ -24,7 +26,7 @@ export class ByteRange {
         throw new Error('Negative or zero byte-length range: ' + this.length);
       }
 
-      if (total !== NaN && this.to > this.total) {
+      if (isQNumber(total) && this.to > this.total) {
         throw new Error('Range end exceeds total bytes set: ' + this.to);
       }
     }

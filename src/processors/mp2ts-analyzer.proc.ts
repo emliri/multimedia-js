@@ -20,14 +20,13 @@ import { SocketTapTimingRegulate } from '../socket-taps';
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
 
 import { Frame, Track } from '../ext-mod/inspector.js/src';
-import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer'
+import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer';
 import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
-
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
 const DEFAULT_PLAYOUT_REGULATION_POLL_MS = 200; // rougly the usual period
-                                                // of PCR packets
+// of PCR packets
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -63,20 +62,19 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
 
     // configure the PTS based output regulation internal socket
     // and connect to proc out
-    this._timingRegulatorSock
-      = OutputSocket.fromUnsafe(
+    this._timingRegulatorSock =
+      OutputSocket.fromUnsafe(
         new OutputSocket(this.templateSocketDescriptor(SocketType.OUTPUT))
-        .setTap(new SocketTapTimingRegulate({
-          timingRegulationOn: opts.enablePlayoutRegulation,
-          timingRegulationSpeed: opts.playoutRegulationSpeed,
-          timingRegulationPollMs: opts.playoutRegulationPollMs
-        })))
+          .setTap(new SocketTapTimingRegulate({
+            timingRegulationOn: opts.enablePlayoutRegulation,
+            timingRegulationSpeed: opts.playoutRegulationSpeed,
+            timingRegulationPollMs: opts.playoutRegulationPollMs
+          })))
         .connect(this.out[0]);
 
     this._tsParser.onPmtParsed = () => {
-      //console.log('got PMT')
-    }
-
+      // console.log('got PMT')
+    };
   }
 
   templateSocketDescriptor (socketType: SocketType): SocketDescriptor {
@@ -84,10 +82,9 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
-
     const bufIn = p.data[0].getUint8Array();
 
-    //console.log('feeding bytes:', bufIn.byteLength)
+    // console.log('feeding bytes:', bufIn.byteLength)
 
     this._mptsSyncAdapter.feed(bufIn);
 
@@ -97,32 +94,30 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       const nextPktBuf: Uint8Array = this._mptsSyncAdapter.take(1);
 
       if (!nextPktBuf) {
-        //console.log('got no packet')
+        // console.log('got no packet')
         break;
-      };
-
-      if (nextPktBuf.byteLength > 188) {
-        throw new Error('Should not take more than 1 TS packet')
       }
 
-      //console.log('parsing packet bytes:', nextPktBuf.byteLength)
+      if (nextPktBuf.byteLength > 188) {
+        throw new Error('Should not take more than 1 TS packet');
+      }
+
+      // console.log('parsing packet bytes:', nextPktBuf.byteLength)
 
       this._parsePackets(nextPktBuf);
-
     }
 
     return true;
   }
 
-  private _parsePackets(mptsPktData: Uint8Array) {
-
+  private _parsePackets (mptsPktData: Uint8Array) {
     let aFrames: Frame[];
     let vFrames: Frame[];
     let gotVideoKeyframe = false;
 
     this._tsParser.append(mptsPktData);
 
-    //console.log('parse buffer size:', this._tsParser.currentBufferSize, this._tsParser.currentPacketCount)
+    // console.log('parse buffer size:', this._tsParser.currentBufferSize, this._tsParser.currentPacketCount)
 
     Object.values(this._tsParser.tracks).forEach((track) => {
       const frames = track.popFrames();
@@ -134,7 +129,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       // the segmentation criteria other than "1 frame of either PES".
       // then again, the PES-AU atomic segmentation done here can be
       // used as a canonical output to produce any other segmentation in principle.
-      switch(track.type) {
+      switch (track.type) {
       case Track.TYPE_VIDEO:
         vFrames = frames;
         gotVideoKeyframe = frames.some(frame => frame.frameType === Frame.IDR_FRAME);
@@ -144,10 +139,10 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         break;
       }
       if (frames.length > 1) {
-        //console.log(track.type, frames);
-        //throw new Error('Unexpected frame count > 1 in AU-segmentation mode');
+        // console.log(track.type, frames);
+        // throw new Error('Unexpected frame count > 1 in AU-segmentation mode');
       }
-      //console.log(track.type, frames[0])
+      // console.log(track.type, frames[0])
     });
 
     // pre-condition for code inside this if-block
@@ -185,13 +180,13 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       }
 
       const parsedPktData = this._tsParser.prune();
-      //console.log('Parse buffer size after prune:', this._tsParser.currentBufferSize);
+      // console.log('Parse buffer size after prune:', this._tsParser.currentBufferSize);
       if (!parsedPktData) {
         throw new Error('Expected prune to return parsed data since new frames pop´d off before');
       }
 
       const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
-                        .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
+        .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
 
       pkt.defaultPayloadInfo.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
       pkt.defaultPayloadInfo.codec = codec4cc;
@@ -201,11 +196,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       }
 
       this._timingRegulatorSock.transfer(pkt);
-
     }
   }
-
-
-
 }
-

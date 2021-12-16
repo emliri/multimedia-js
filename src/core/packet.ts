@@ -314,15 +314,15 @@ export class Packet implements PacketDataModel {
     return this.getPresentationTimeWithOffset() / this.timeScale;
   }
 
-  putClockTag() {
+  putClockTag () {
     this._clockTags.push(getPerfWallClockTime());
   }
 
-  getClockTags(): number[] {
+  getClockTags (): number[] {
     return this._clockTags.slice();
   }
 
-  getClockTagsDiff(): number {
+  getClockTagsDiff (): number {
     if (this._clockTags.length > 1) {
       return this._clockTags[this._clockTags.length - 1] - this._clockTags[0];
     } else if (this._clockTags.length === 1) {
@@ -332,7 +332,7 @@ export class Packet implements PacketDataModel {
     }
   }
 
-  getClockTagsDeltas(): number[] {
+  getClockTagsDeltas (): number[] {
     const deltas = this._clockTags.map((val, i) => {
       if (i === this._clockTags.length - 1) {
         return getPerfWallClockTime() - val;

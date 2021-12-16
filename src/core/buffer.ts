@@ -93,7 +93,6 @@ export class BufferSlice {
       offset: number = 0,
       length: number = arrayBuffer.byteLength,
       props: BufferProperties = new BufferProperties()) {
-
       if (offset < 0 || length < 0) {
         throw new Error('Illegal parameters for BufferSlice window');
       }
