@@ -62,7 +62,9 @@ export class SocketTapTokenBucket extends SocketTapDefault {
   }
 
   private _onTokBucketPop (p: Packet) {
+    // q: could use queued-tap here instead ?
     this._packetQ.push(p);
+    // todo: eventually run this on next tick?
     // fixes remainder packets not being pop'd out
     // when nothing transferred on parent socket
     this.pull();

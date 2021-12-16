@@ -47,6 +47,7 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
       // transfer/flush whole queue
       this._sockTapPushQueue.forEach(this._enqueueOutPacket.bind(this));
       this._sockTapPushQueue.length = 0;
+      // q: have the for-each and flushing in one baseclass-sided callback?
       this._playOutClockRef = Date.now();
     } else {
 
@@ -92,8 +93,10 @@ export class SocketTapTimingRegulate extends SocketTapQueuedWithOpts {
   }
 
   private _enqueueOutPacket (pkt: Packet) {
+    // include the pull on pop-queue pushes somehow?
     this.popQueue.push(pkt);
     this._playOutDtsInSecs = pkt.getNormalizedDts();
+    // q: run on next tick?
 
     // fixes remainder packets not being pop'd out
     // when nothing transferred on parent socket

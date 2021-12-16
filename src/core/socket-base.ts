@@ -40,6 +40,8 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     this.state_.closed = true;
   }
 
+  // todo: make prop getters?
+
   type (): SocketType {
     return this.type_;
   }

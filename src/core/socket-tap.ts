@@ -51,6 +51,8 @@ export class SocketTapDefault implements SocketTap {
   flush () {}
 }
 
+// Q: add push/pop byte counters?
+
 export class SocketTapQueued extends SocketTapDefault {
   protected _sockTapPushQueue: Packet[] = [];
   protected _sockTapPopQueue: Packet[] = [];
@@ -65,6 +67,7 @@ export class SocketTapQueued extends SocketTapDefault {
 
   pushPacket (p: Packet): boolean {
     this._sockTapPushQueue.push(p);
+    // todo: optionally run this on next tick to actually leverage push-queuing
     this._onQueuePushed();
     return false;
   }

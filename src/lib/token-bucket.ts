@@ -163,8 +163,14 @@ export class TokenBucketPacketQueue<T> {
     }
 
     if (this._useCheapClock) {
+      // todo: fallback to per-token increment timer when
+      // this._tokenRate * CHEAP_CLOCK_PERIOD_MS / 1000 < 1
+      // e.g rate < 50 B/s @ 20ms clock period
       this._timer = setInterval(this._onTimer.bind(this), CHEAP_CLOCK_PERIOD_MS);
     } else {
+      // todo: select cheap clock when getting to unrealistic timer scheduling
+      // high rates, i.e when 1000 / this._tokenRate < 1
+      // e.g rate > 1000 B/s
       this._timer = setInterval(this._onTimer.bind(this), Math.round(secsToMillis(1 / this._tokenRate)));
     }
 
