@@ -154,6 +154,7 @@ export default {
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   testPathIgnorePatterns: [
     '/node_modules/',
+    // eslint-disable-next-line no-useless-escape
     '/src\/ext-mod/'
   ]
 
