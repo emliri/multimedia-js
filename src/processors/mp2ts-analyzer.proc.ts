@@ -1,8 +1,21 @@
-import { BufferSlice, InputSocket, Packet, OutputSocket, SocketDescriptor, SocketTemplateGenerator, SocketType, CommonMimeTypes } from '../..';
+import {
+  BufferSlice,
+  InputSocket,
+  Packet,
+  OutputSocket,
+  SocketDescriptor,
+  SocketTemplateGenerator,
+  SocketType,
+  CommonMimeTypes
+} from '../..';
+
 import { orInfinity } from '../common-utils';
-import { SocketTapTimingRegulate } from '../socket-taps';
+import { getLogger, LoggerLevel } from '../logger';
+
 import { mixinProcessorWithOptions } from '../core/processor';
 import { CommonCodecFourCCs } from '../core/payload-description';
+
+import { SocketTapTimingRegulate } from '../socket-taps';
 
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
 
@@ -10,7 +23,6 @@ import { Frame, Track } from '../ext-mod/inspector.js/src';
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer'
 import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 
-import { getLogger, LoggerLevel } from '../logger';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
@@ -72,96 +84,126 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
-    this._mptsSyncAdapter.feed(p.data[0].getUint8Array());
+
+    const bufIn = p.data[0].getUint8Array();
+
+    //console.log('feeding bytes:', bufIn.byteLength)
+
+    this._mptsSyncAdapter.feed(bufIn);
 
     while (true) {
-      const nextPktBuf: Uint8Array = this._mptsSyncAdapter.take(1, 1);
-      if (!nextPktBuf) break;
+      // appending 1 packet at a time is required
+      // for the below segmentation logic
+      const nextPktBuf: Uint8Array = this._mptsSyncAdapter.take(1);
 
-      let aFrames: Frame[];
-      let vFrames: Frame[];
-      let gotVideoKeyframe = false;
+      if (!nextPktBuf) {
+        //console.log('got no packet')
+        break;
+      };
 
-      this._tsParser.append(nextPktBuf);
-
-      Object.values(this._tsParser.tracks).forEach((track) => {
-        const frames = track.popFrames();
-        // the fact that we pop all the tracks frames at this point
-        // is related to the PES-type segmentation to which we default here below.
-        // if we would want to run time-range segmentation across all PES
-        // (for example for HLS output) we would need to collect the frames
-        // in the analyzer instance state or not pop them here but based on
-        // the segmentation criteria other than "1 frame of either PES".
-        // then again, the PES-AU atomic segmentation done here can be
-        // used as a canonical output to produce any other segmentation in principle.
-        switch(track.type) {
-        case Track.TYPE_VIDEO:
-          vFrames = frames;
-          gotVideoKeyframe = frames.some(frame => frame.frameType === Frame.IDR_FRAME);
-          break;
-        case Track.TYPE_AUDIO:
-          aFrames = frames;
-          break;
-        }
-      });
-
-      // pre-condition for code inside this if-block
-      // is that at least one of the tracks has >= 1 frames.
-      // either frames list can be undefined if there is no respective a/v track.
-      if ((aFrames && aFrames.length) || (vFrames && vFrames.length)) {
-        const firstPtsA = orInfinity(aFrames && aFrames.length && aFrames[0].timeUs);
-        const firstPtsV = orInfinity(vFrames && vFrames.length && vFrames[0].timeUs);
-        let firstPtsUs = Math.min(
-          firstPtsA,
-          firstPtsV
-        );
-        // this is needed to handle timeUs = 0.
-        // based on the preconditions here
-        // firstPtsUs = Infinity can only result
-        // when one or more of the tracks first frame PTS = 0.
-        if (firstPtsUs === Infinity) firstPtsUs = 0;
-
-        // we have this check here to assert in a specific mode
-        // of segmentation which is default now (see above on popFrames).
-        // but the above logic to gather first PTS
-        // of either composed lists of A/V frames is more generic
-        // and might thus be used for other future segmentation modes
-        // for example solely time-range based but not across PES / codecs.
-        // ATM we expect what the below assertions express only.
-        let codec4cc: string;
-        if (aFrames.length > 0 && vFrames.length > 0) {
-          throw new Error('Expected to have only one type of frames in this PES segmentation mode');
-        } else if (aFrames.length) {
-          codec4cc = CommonCodecFourCCs.mp4a;
-        } else if (vFrames.length) {
-          codec4cc = CommonCodecFourCCs.avc1;
-        } else {
-          throw new Error('Expected either video or audio frames length > 0');
-        }
-
-        const parsedPktData = this._tsParser.prune();
-        if (!parsedPktData) {
-          throw new Error('Expected prune to return parsed data since new frames pop´d off before');
-        }
-
-        const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
-                          .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
-
-        pkt.defaultPayloadInfo.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
-        pkt.defaultPayloadInfo.codec = codec4cc;
-
-        if (gotVideoKeyframe) {
-          pkt.defaultPayloadInfo.isKeyframe = true;
-        }
-
-        this._timingRegulatorSock.transfer(pkt);
-
+      if (nextPktBuf.byteLength > 188) {
+        throw new Error('Should not take more than 1 TS packet')
       }
+
+      //console.log('parsing packet bytes:', nextPktBuf.byteLength)
+
+      this._parsePackets(nextPktBuf);
+
     }
 
     return true;
   }
 
+  private _parsePackets(mptsPktData: Uint8Array) {
+
+    let aFrames: Frame[];
+    let vFrames: Frame[];
+    let gotVideoKeyframe = false;
+
+    this._tsParser.append(mptsPktData);
+
+    //console.log('parse buffer size:', this._tsParser.currentBufferSize, this._tsParser.currentPacketCount)
+
+    Object.values(this._tsParser.tracks).forEach((track) => {
+      const frames = track.popFrames();
+      // the fact that we pop all the tracks frames at this point
+      // is related to the PES-type segmentation to which we default here below.
+      // if we would want to run time-range segmentation across all PES
+      // (for example for HLS output) we would need to collect the frames
+      // in the analyzer instance state or not pop them here but based on
+      // the segmentation criteria other than "1 frame of either PES".
+      // then again, the PES-AU atomic segmentation done here can be
+      // used as a canonical output to produce any other segmentation in principle.
+      switch(track.type) {
+      case Track.TYPE_VIDEO:
+        vFrames = frames;
+        gotVideoKeyframe = frames.some(frame => frame.frameType === Frame.IDR_FRAME);
+        break;
+      case Track.TYPE_AUDIO:
+        aFrames = frames;
+        break;
+      }
+      if (frames.length > 1) {
+        //console.log(track.type, frames);
+        //throw new Error('Unexpected frame count > 1 in AU-segmentation mode');
+      }
+      //console.log(track.type, frames[0])
+    });
+
+    // pre-condition for code inside this if-block
+    // is that at least one of the tracks has >= 1 frames.
+    // either frames list can be undefined if there is no respective a/v track.
+    if ((aFrames && aFrames.length) || (vFrames && vFrames.length)) {
+      const firstPtsA = orInfinity(aFrames && aFrames.length && aFrames[0].timeUs);
+      const firstPtsV = orInfinity(vFrames && vFrames.length && vFrames[0].timeUs);
+      let firstPtsUs = Math.min(
+        firstPtsA,
+        firstPtsV
+      );
+      // this is needed to handle timeUs = 0.
+      // based on the preconditions here
+      // firstPtsUs = Infinity can only result
+      // when one or more of the tracks first frame PTS = 0.
+      if (firstPtsUs === Infinity) firstPtsUs = 0;
+
+      // we have this check here to assert in a specific mode
+      // of segmentation which is default now (see above on popFrames).
+      // but the above logic to gather first PTS
+      // of either composed lists of A/V frames is more generic
+      // and might thus be used for other future segmentation modes
+      // for example solely time-range based but not across PES / codecs.
+      // ATM we expect what the below assertions express only.
+      let codec4cc: string;
+      if (aFrames.length > 0 && vFrames.length > 0) {
+        throw new Error('Expected to have only one type of frames in this PES segmentation mode');
+      } else if (aFrames.length) {
+        codec4cc = CommonCodecFourCCs.mp4a;
+      } else if (vFrames.length) {
+        codec4cc = CommonCodecFourCCs.avc1;
+      } else {
+        throw new Error('Expected either video or audio frames length > 0');
+      }
+
+      const parsedPktData = this._tsParser.prune();
+      //console.log('Parse buffer size after prune:', this._tsParser.currentBufferSize);
+      if (!parsedPktData) {
+        throw new Error('Expected prune to return parsed data since new frames pop´d off before');
+      }
+
+      const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
+                        .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
+
+      pkt.defaultPayloadInfo.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
+      pkt.defaultPayloadInfo.codec = codec4cc;
+
+      if (gotVideoKeyframe) {
+        pkt.defaultPayloadInfo.isKeyframe = true;
+      }
+
+      this._timingRegulatorSock.transfer(pkt);
+
+    }
+  }
 
 
 
