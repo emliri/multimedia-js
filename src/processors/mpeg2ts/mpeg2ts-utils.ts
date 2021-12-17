@@ -76,8 +76,8 @@ export function findSyncOffsetInMpegTsChunk (
 }
 
 export function wrapMpeg2TimeInMp4BaseDts (time: number): number {
-  if (time > MP4_CMAF_MAX_TIME_SECS) {
-    return time % MP4_CMAF_MAX_TIME_SECS;
+  if (time >= MPEG_TS_TIMESCALE_FMP4_MAX_SECS) {
+    return time % MPEG_TS_TIMESCALE_FMP4_MAX_SECS;
   } else {
     return time;
   }
