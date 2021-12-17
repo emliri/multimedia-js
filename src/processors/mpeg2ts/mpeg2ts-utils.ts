@@ -5,7 +5,7 @@ export const MPEG2TS_MAX_SCAN_WINDOW = 4096 as const;
 export const MPEG_TS_TIMESCALE_HZ = 90000 as const;
 export const MPEG_TS_MAX_TIMESTAMP = (Math.pow(2, 33) - 1);
 export const MPEG_TS_MAX_TIMESTAMP_SECS = MPEG_TS_MAX_TIMESTAMP / MPEG_TS_TIMESCALE_HZ;
-export const MP4_CMAF_MAX_TIME_SECS = MPEG_TS_MAX_TIMESTAMP_SECS / 2; // baseMediaDecodeTime uses 32 bits
+export const MPEG_TS_TIMESCALE_FMP4_MAX_SECS = (Math.pow(2, 32) - 1) / MPEG_TS_TIMESCALE_HZ; // baseMediaDecodeTime uses 32 bits
 
 export function findSyncOffsetInMpegTsChunk (
   data: Uint8Array,
