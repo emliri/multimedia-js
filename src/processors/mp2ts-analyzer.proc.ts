@@ -84,15 +84,12 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
   protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
     const bufIn = p.data[0].getUint8Array();
 
-    // console.log('feeding bytes:', bufIn.byteLength)
-
     this._mptsSyncAdapter.feed(bufIn);
 
     while (true) {
       // appending 1 packet at a time is required
       // for the below segmentation logic
       const nextPktBuf: Uint8Array = this._mptsSyncAdapter.take(1);
-
       if (!nextPktBuf) {
         break;
       }
@@ -109,8 +106,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     let gotVideoKeyframe = false;
 
     this._tsParser.append(mptsPktData);
-
-    // console.log('parse buffer size:', this._tsParser.currentBufferSize, this._tsParser.currentPacketCount)
 
     Object.values(this._tsParser.tracks).forEach((track) => {
       const frames = track.popFrames();
@@ -131,11 +126,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         aFrames = frames;
         break;
       }
-      if (frames.length > 1) {
-        // console.log(track.type, frames);
-        // throw new Error('Unexpected frame count > 1 in AU-segmentation mode');
-      }
-      // console.log(track.type, frames[0])
     });
 
     // pre-condition for code inside this if-block
@@ -173,7 +163,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       }
 
       const parsedPktData = this._tsParser.prune();
-      // console.log('Parse buffer size after prune:', this._tsParser.currentBufferSize);
       if (!parsedPktData) {
         throw new Error('Expected prune to return parsed data since new frames pop´d off before');
       }
