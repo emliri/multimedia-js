@@ -139,7 +139,6 @@ export class TokenBucketPacketQueue<T> {
   }
 
   private _onTimer () {
-    // TODO: use Math.min here with maxTokens (optional behavior) ?
     if (this._tokens < this._maxTokens) {
       if (this._useCheapClock) {
         this._tokens += Math.floor(this._tokenRate * millisToSecs(CHEAP_CLOCK_PERIOD_MS));
