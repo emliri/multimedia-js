@@ -94,15 +94,8 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       const nextPktBuf: Uint8Array = this._mptsSyncAdapter.take(1);
 
       if (!nextPktBuf) {
-        // console.log('got no packet')
         break;
       }
-
-      if (nextPktBuf.byteLength > 188) {
-        throw new Error('Should not take more than 1 TS packet');
-      }
-
-      // console.log('parsing packet bytes:', nextPktBuf.byteLength)
 
       this._parsePackets(nextPktBuf);
     }
