@@ -16,12 +16,22 @@ class AacJsAuroraDemuxerShim extends EventEmitter {
   }
 }
 
+export type AacJsDecoderConfig = {
+  profile: number
+  samplingIndex: number
+  channels: number
+}
+
 export class AacJsDecoder {
 
   private _aacDemux: AacJsAuroraDemuxerShim = new AacJsAuroraDemuxerShim();
   private _aacDec = new AacDecoder(this._aacDemux, {});
 
-  constructor() {
+  constructor(header: AacJsDecoderConfig = {
+    profile: 2,
+    samplingIndex: 4,
+    channels: 2
+  }) {
     this._aacDec.on('data', (data) => {
       this.onData(data);
     });
@@ -32,15 +42,9 @@ export class AacJsDecoder {
       this.onError(err);
     });
 
-    // generate a magic cookie from the ADTS header
-    const header = {
-      profile: 2,
-      samplingIndex: 4,
-      chanConfig: 2
-    }
     const cookie = new Uint8Array(2);
     cookie[0] = (header.profile << 3) | ((header.samplingIndex >> 1) & 7);
-    cookie[1] = ((header.samplingIndex & 1) << 7) | (header.chanConfig << 3);
+    cookie[1] = ((header.samplingIndex & 1) << 7) | (header.channels << 3);
     this._aacDec.setCookie(new AuroraAv.Buffer(cookie));
   }
 
@@ -68,7 +72,6 @@ export class AacJsDecoder {
     console.log('AAC.js "end" event (EOS)');
   }
 
-  onError(err) {
-    console.error(err);
+  onError(err: Error) {
   }
 }
