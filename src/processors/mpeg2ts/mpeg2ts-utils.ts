@@ -82,3 +82,7 @@ export function wrapMpeg2TimeInMp4BaseDts (time: number): number {
     return time;
   }
 }
+
+export function mpeg2TsClockToSecs (time90khz: number) {
+  return time90khz / MPEG_TS_TIMESCALE_HZ;
+}
