@@ -10,7 +10,7 @@ import { printNumberScaledAtDecimalOrder } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { getPerfNow } from '../perf-ctx';
 
-import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
+import { mpeg2TsClockToSecs, MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 
@@ -34,7 +34,7 @@ import {
   mapNaluTypeToTag
 } from './muxjs-m2t/muxjs-m2t';
 
-const { debug, log, info, warn } = getLogger('MP2TSDemuxProcessor', LoggerLevel.OFF, true);
+const { debug, log, info, warn } = getLogger('Mp2tsDemuxProc', LoggerLevel.OFF, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -51,7 +51,7 @@ type VideoNALUInfo = {
 
 export class MP2TSDemuxProcessor extends Processor {
   static getName (): string {
-    return 'MP2TSDemuxProcessor';
+    return 'Mp2tsDemuxProc';
   }
 
   private _demuxPipeline: M2tDemuxPipeline;
@@ -65,7 +65,6 @@ export class MP2TSDemuxProcessor extends Processor {
   private _videoFirstKeyFrameDts: number = null;
   private _videoConfig: M2tH264StreamEvent = null;
   private _gotVideoPictureParamSet: boolean = false;
-  private _videoTimingQueueIn: M2tH264StreamEvent[] = [];
   private _videoNaluQueueOut: VideoNALUInfo[] = [];
 
   private _metadataSocketMap: {[pid: number]: OutputSocket} = {};
@@ -91,6 +90,7 @@ export class MP2TSDemuxProcessor extends Processor {
     pipeline.parseStream = new TransportParseStream() as unknown as M2tStream;
     pipeline.elementaryStream = new ElementaryStream() as unknown as M2tStream;
     pipeline.timestampRolloverStream = new TimestampRolloverStream(null) as unknown as M2tStream;
+
     // payload demuxers
     // eslint-disable-next-line new-cap
     pipeline.aacOrAdtsStream = new AdtsStream.default() as unknown as M2tStream;
@@ -222,7 +222,9 @@ export class MP2TSDemuxProcessor extends Processor {
   private _handleVideoNalu (h264Event: M2tH264StreamEvent) {
     if (h264Event.config) {
       this._videoConfig = h264Event;
-      info('Got video codec config slice:', this._videoConfig);
+      info('Got video codec config slice:',
+        this._videoConfig,
+        mpeg2TsClockToSecs(this._videoConfig.dts), '[s]');
       info('Parsed SPS:', H264ParameterSetParser.parseSPS(this._videoConfig.data.subarray(1)));
     }
 
