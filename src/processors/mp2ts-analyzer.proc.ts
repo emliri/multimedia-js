@@ -9,7 +9,7 @@ import {
   CommonMimeTypes
 } from '../..';
 
-import { orInfinity } from '../common-utils';
+import { isQNumber, orInfinity } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 
 import { mixinProcessorWithOptions } from '../core/processor';
@@ -22,6 +22,7 @@ import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
 import { Frame, Track } from '../ext-mod/inspector.js/src';
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer';
 import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
+import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
@@ -103,11 +104,16 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
   private _parsePackets (mptsPktData: Uint8Array) {
     let aFrames: Frame[];
     let vFrames: Frame[];
+
     let gotVideoKeyframe = false;
+    let gotAvcInitData = false;
+
+    let spsPpsTimeUs: number;
 
     this._tsParser.append(mptsPktData);
 
     Object.values(this._tsParser.tracks).forEach((track) => {
+
       const frames = track.popFrames();
       // the fact that we pop all the tracks frames at this point
       // is related to the PES-type segmentation to which we default here below.
@@ -121,6 +127,21 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       case Track.TYPE_VIDEO:
         vFrames = frames;
         gotVideoKeyframe = frames.some(frame => frame.frameType === Frame.IDR_FRAME);
+
+        // sps/pps can come in 1 PUSI with prior p-frame !
+        const h264Reader = (<H264Reader> track.pes.payloadReader);
+        if (h264Reader.sps && h264Reader.pps) {
+          // in case there is no frame
+          // we need to extract timing info like this
+          if (frames.length === 0) {
+            spsPpsTimeUs = h264Reader.timeUs;
+          }
+          // reset the reader state
+          h264Reader.sps = null;
+          h264Reader.pps = false;
+
+          gotAvcInitData = true;
+        }
         break;
       case Track.TYPE_AUDIO:
         aFrames = frames;
@@ -131,13 +152,17 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     // pre-condition for code inside this if-block
     // is that at least one of the tracks has >= 1 frames.
     // either frames list can be undefined if there is no respective a/v track.
-    if ((aFrames && aFrames.length) || (vFrames && vFrames.length)) {
+    if ((aFrames && aFrames.length) || (vFrames && vFrames.length) || gotAvcInitData) {
       const firstPtsA = orInfinity(aFrames && aFrames.length && aFrames[0].timeUs);
       const firstPtsV = orInfinity(vFrames && vFrames.length && vFrames[0].timeUs);
       let firstPtsUs = Math.min(
         firstPtsA,
         firstPtsV
       );
+      // will only be defined if there were no video frames to get timing from.
+      if (isQNumber(spsPpsTimeUs)) {
+        firstPtsUs = spsPpsTimeUs;
+      }
       // this is needed to handle timeUs = 0.
       // based on the preconditions here
       // firstPtsUs = Infinity can only result
@@ -175,6 +200,9 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
 
       if (gotVideoKeyframe) {
         pkt.defaultPayloadInfo.isKeyframe = true;
+      }
+      if (gotAvcInitData) {
+        pkt.defaultPayloadInfo.isBitstreamHeader = true;
       }
 
       this._timingRegulatorSock.transfer(pkt);
