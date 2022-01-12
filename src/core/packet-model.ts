@@ -28,8 +28,8 @@ export class PacketDataModel {
       p.dataSlicesLength,
       p.dataSlicesBytes,
       p.symbol,
-      p.defaultPayloadInfo,
-      p.defaultMimeType
+      p.properties,
+      p.mimeType
     );
     return pdm;
   }
@@ -44,8 +44,8 @@ export class PacketDataModel {
     readonly dataSlicesLength: number = 0,
     readonly dataSlicesBytes: number = 0,
     readonly symbol: PacketSymbol = PacketSymbol.VOID,
-    readonly defaultPayloadInfo: Nullable<BufferProperties> = null,
-    readonly defaultMimeType: string
+    readonly properties: Nullable<BufferProperties> = null,
+    readonly mimeType: string
   ) {}
 
   toString () {

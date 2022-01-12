@@ -25,7 +25,6 @@ export class BufferProperties extends PayloadDescriptor {
       props.isBitstreamHeader,
       props.isKeyframe,
       props.timestampDelta,
-      props.mediaKey,
       props.tags);
 
     newProps.elementaryStreamId = props.elementaryStreamId;
@@ -47,8 +46,7 @@ export class BufferProperties extends PayloadDescriptor {
       public isBitstreamHeader: boolean = false,
       public isKeyframe: boolean = false,
       public timestampDelta: number = 0,
-      public mediaKey: any = null,
-      public tags: Set<string> = new Set()
+      public readonly tags: Set<string> = new Set()
   ) {
     super(mimeType, sampleRateInteger, sampleDepth, sampleDurationNumerator);
   }

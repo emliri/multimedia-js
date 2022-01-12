@@ -117,7 +117,6 @@ export class Packet implements PacketDataModel {
 
   private _symbol: PacketSymbol = PacketSymbol.VOID;
   private _timescale: number = 1; // maybe not have a default value?
-  private _hasDefaultBufferProps: boolean = true;
   private _timestampOffset: number = 0;
   private _clockTags: number[] = [];
 
@@ -133,15 +132,37 @@ export class Packet implements PacketDataModel {
     }
   }
 
-  get byteLength () {
-    return this.getTotalBytes();
+  get properties () {
+    return this?.data[0]?.props || null;
+  }
+
+  /**
+   * @deprecated use `properties` getter instead (isofunctional).
+   */
+  get defaultPayloadInfo (): BufferProperties {
+    return this.properties;
+  }
+
+  get mimeType () {
+    return this.properties?.mimeType || null;
+  }
+
+  /**
+   * @deprecated use `mimeType` getter instead (isofunctional).
+   */
+  get defaultMimeType (): string {
+    return this.mimeType;
   }
 
   get dataSlicesLength () {
-    return this.data ? this.data.length : 0;
+    return this?.data.length || 0;
   }
 
-  get dataSlicesBytes (): number {
+  /**
+   * functional alias to getTotalBytes, but necessary here
+   * to allow properties serialization (see packet-model).
+   */
+  get dataSlicesBytes () {
     return this.getTotalBytes();
   }
 
@@ -155,22 +176,6 @@ export class Packet implements PacketDataModel {
 
   get symbol (): PacketSymbol {
     return this._symbol;
-  }
-
-  get defaultPayloadInfo (): BufferProperties {
-    if (!this.hasDefaultPayloadInfo) {
-      throw new Error('packet has no default payload description');
-    }
-    return this.data[0] ? this.data[0].props : null;
-  }
-
-  get defaultMimeType (): string {
-    return this.defaultPayloadInfo ? this.defaultPayloadInfo.mimeType : null;
-  }
-
-  // TODO: check if other buffers have other infos etc..
-  get hasDefaultPayloadInfo (): boolean {
-    return this._hasDefaultBufferProps;
   }
 
   get synchronizationId (): number {
@@ -220,61 +225,6 @@ export class Packet implements PacketDataModel {
 
   getSymbolName (): string {
     return PacketSymbol[this.symbol];
-  }
-
-  toString (): string {
-    const p = this;
-    const description =
-      `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>` +
-      ` #{(@${p.timestampOffset} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.timeScale}` +
-      ` -> ${p.getNormalizedDts()} => ${p.getNormalizedPts()} [s]}` +
-      `k(${p.defaultPayloadInfo.isKeyframe ? '1' : '0'})|b(${p.defaultPayloadInfo.isBitstreamHeader ? '1' : '0'})`;
-    return description;
-  }
-
-  toJSON (): string {
-    return JSON.stringify(this.toDataModel());
-  }
-
-  toDataModel (): PacketDataModel {
-    return PacketDataModel.createFromPacket(this);
-  }
-
-  mapArrayBuffers (): ArrayBuffer[] {
-    return BufferSlice.mapArrayBuffers(this.data);
-  }
-
-  forEachBufferSlice (
-    method: (bs: BufferSlice) => void,
-    errorHandler: (bs: BufferSlice, err: Error) => boolean = null,
-    context: any = null) {
-    let abort = false;
-    // we use an on-stack shallow copy of the array to prevent any
-    // side-effects on other manipulation of the puacket itself from within
-    // the loop we will run here.
-    this.data.slice().forEach((bufferSlice) => {
-      if (abort) {
-        return;
-      }
-      if (context) {
-        method = method.bind(context);
-        if (errorHandler) {
-          errorHandler = errorHandler.bind(context);
-        }
-      }
-      try {
-        method(bufferSlice);
-      } catch (err) {
-        if (errorHandler) {
-          if (!errorHandler(bufferSlice, err)) {
-            abort = true;
-            console.error('Packet-buffers loop aborted: ', err);
-          }
-        } else {
-          throw err;
-        }
-      }
-    });
   }
 
   /**
@@ -341,5 +291,60 @@ export class Packet implements PacketDataModel {
     });
     deltas.unshift(this._clockTags[0] - this.createdAt);
     return deltas;
+  }
+
+  toString (): string {
+    const p = this;
+    const description =
+      `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>` +
+      ` #{(@${p.timestampOffset} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.timeScale}` +
+      ` -> ${p.getNormalizedDts()} => ${p.getNormalizedPts()} [s]}` +
+      `k(${p.defaultPayloadInfo.isKeyframe ? '1' : '0'})|b(${p.defaultPayloadInfo.isBitstreamHeader ? '1' : '0'})`;
+    return description;
+  }
+
+  toJSON (): string {
+    return JSON.stringify(this.toDataModel());
+  }
+
+  toDataModel (): PacketDataModel {
+    return PacketDataModel.createFromPacket(this);
+  }
+
+  mapArrayBuffers (): ArrayBuffer[] {
+    return BufferSlice.mapArrayBuffers(this.data);
+  }
+
+  forEachBufferSlice (
+    method: (bs: BufferSlice) => void,
+    errorHandler: (bs: BufferSlice, err: Error) => boolean = null,
+    context: any = null) {
+    let abort = false;
+    if (context) {
+      method = method.bind(context);
+      if (errorHandler) {
+        errorHandler = errorHandler.bind(context);
+      }
+    }
+    // we use an on-stack shallow copy of the array to prevent any
+    // side-effects on other manipulation of the packet itself from within
+    // the loop we will run here.
+    this.data.slice().forEach((bufferSlice) => {
+      if (abort) {
+        return;
+      }
+      try {
+        method(bufferSlice);
+      } catch (err) {
+        if (errorHandler) {
+          if (!errorHandler(bufferSlice, err)) {
+            abort = true;
+            console.error('Packet-buffers loop aborted: ', err);
+          }
+        } else {
+          throw err;
+        }
+      }
+    });
   }
 }
