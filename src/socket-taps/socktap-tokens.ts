@@ -1,7 +1,7 @@
 import { Nullable } from '../common-types';
 import { Packet } from '../core/packet';
 import { SocketTapDefault } from '../core/socket-tap';
-import { TokenBucketPacketQueue } from '../lib/token-bucket';
+import { TokenBucketPktInfo, TokenBucketPacketQueue } from '../lib/token-bucket';
 import { TokenRate } from '../lib/token-rate';
 
 export class SocketTapTokenBucket extends SocketTapDefault {
@@ -12,8 +12,8 @@ export class SocketTapTokenBucket extends SocketTapDefault {
 
   constructor (private _rateDeltaMs: number = 1000) {
     super();
-    this._tokenBucket = new TokenBucketPacketQueue((p_, p) => {
-      this._onTokBucketPop(p);
+    this._tokenBucket = new TokenBucketPacketQueue((tbPkt, p) => {
+      this._onTokBucketPop(tbPkt, p);
     });
   }
 
@@ -38,15 +38,16 @@ export class SocketTapTokenBucket extends SocketTapDefault {
   }
 
   pushPacket (p: Packet): boolean {
-    this._tokenBucket.pushPacket(p, p);
-    this._tokenRateIn.add(p.byteLength);
+    const byteLength = p.dataSlicesBytes;
+    this._tokenBucket.pushPacket({ byteLength }, p);
+    this._tokenRateIn.add(byteLength);
     return false;
   }
 
   popPacket (): Nullable<Packet> {
     const p = this._packetQ.shift() || null;
     if (p) {
-      this._tokenRateOut.add(p.byteLength);
+      this._tokenRateOut.add(p.dataSlicesBytes);
     }
     return p;
   }
@@ -61,7 +62,7 @@ export class SocketTapTokenBucket extends SocketTapDefault {
     this._tokenBucket.reset();
   }
 
-  private _onTokBucketPop (p: Packet) {
+  private _onTokBucketPop (_tbPkt: TokenBucketPktInfo, p: Packet) {
     // q: could use queued-tap here instead ?
     this._packetQ.push(p);
     // todo: eventually run this on next tick?
