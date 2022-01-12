@@ -1,7 +1,7 @@
 import { Nullable } from '../common-types';
 import { millisToSecs, noop, secsToMillis } from '../common-utils';
 
-export interface TokenBucketPacket {
+export interface TokenBucketPktInfo {
   byteLength: number
 }
 
@@ -19,12 +19,12 @@ type TokenBucketQDiscConfig = {
  *
  * Heavily based on literature found via https://en.wikipedia.org/wiki/Token_bucket
  */
-export type TokenBucketPacketPopCb<T> = (packet: TokenBucketPacket, context: Nullable<T>) => void;
+export type TokenBucketPacketPopCb<T> = (pktInfo: TokenBucketPktInfo, pktCtx: Nullable<T>) => void;
 
 export class TokenBucketPacketQueue<T> {
   private _timer: unknown;
   private _tokens: number;
-  private _queue: [TokenBucketPacket, Nullable<T>][] = [];
+  private _queue: [TokenBucketPktInfo, Nullable<T>][] = [];
 
   /**
    *
@@ -86,7 +86,7 @@ export class TokenBucketPacketQueue<T> {
     this._queue.length = 0;
   }
 
-  pushPacket (packet: TokenBucketPacket, context: T = null) {
+  pushPacket (packet: TokenBucketPktInfo, context: T = null) {
     this._queue.push([packet, context]);
 
     this._processQueue();
