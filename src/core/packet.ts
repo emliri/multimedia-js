@@ -296,10 +296,10 @@ export class Packet implements PacketDataModel {
   toString (): string {
     const p = this;
     const description =
-      `<${p.defaultPayloadInfo ? p.defaultPayloadInfo.mimeType : UNKNOWN_MIMETYPE}>` +
+      `<${p.properties ? p.properties.mimeType : UNKNOWN_MIMETYPE}>` +
       ` #{(@${p.timestampOffset} + ${p.timestamp} + ∂${p.presentationTimeOffset}) / ${p.timeScale}` +
       ` -> ${p.getNormalizedDts()} => ${p.getNormalizedPts()} [s]}` +
-      `k(${p.defaultPayloadInfo.isKeyframe ? '1' : '0'})|b(${p.defaultPayloadInfo.isBitstreamHeader ? '1' : '0'})`;
+      `k(${p.properties.isKeyframe ? '1' : '0'})|b(${p.properties.isBitstreamHeader ? '1' : '0'})`;
     return description;
   }
 
