@@ -148,9 +148,8 @@ export class MP2TSDemuxProcessor extends Processor {
       packet.setSynchronizationId(data.trackId);
       if (!this._metadataSocketMap[data.trackId]) {
         this._metadataSocketMap[data.trackId] =
-          this.createOutput(SocketDescriptor.fromPayloads(
-            [packet.defaultPayloadInfo]
-          ));
+          this.createOutput(SocketDescriptor
+            .fromBufferProps(packet.properties));
       }
       this._metadataSocketMap[data.trackId].transfer(packet);
     });
