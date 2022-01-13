@@ -1,3 +1,4 @@
+import { BufferProperties } from './buffer-props';
 import { PayloadDescriptor } from './payload-description';
 import { SocketTemplateGenerator, SocketType } from './socket';
 
@@ -8,6 +9,10 @@ export class SocketDescriptor {
 
   static fromMimeTypes (...mimeTypes: string[]): SocketDescriptor {
     return new SocketDescriptor(mimeTypes.map((mimeType) => new PayloadDescriptor(mimeType)));
+  }
+
+  static fromBufferProps (props: BufferProperties): SocketDescriptor {
+    return new SocketDescriptor([props]);
   }
 
   static fromPayloads (payloads: PayloadDescriptor[]): SocketDescriptor {
