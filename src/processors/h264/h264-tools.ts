@@ -3,21 +3,21 @@ import { BufferProperties } from '../../core/buffer-props';
 import { copyArrayBuffer } from '../../common-utils';
 import { getLogger, LoggerLevel, LoggerFunc } from '../../logger';
 
-import { NALU } from './nalu';
+import { H264NaluType, H264Nalu } from './h264-nalu';
 import { H264ParameterSetParser } from '../../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps, Pps } from '../../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { log, warn, error } = getLogger('H264Tools', LoggerLevel.OFF, true);
 
-export { NALU, H264NaluType, H264SliceType } from './nalu';
+export { H264Nalu, H264NaluType, H264SliceType } from './h264-nalu';
 
 export function parseAvcCodecAtom (avccData: Uint8Array): AvcC {
   return AvcC.parse(avccData) as AvcC;
 }
 
 export function debugNALU (bufferSlice: BufferSlice, logFunc: LoggerFunc = log) {
-  const nalu: NALU = new NALU(bufferSlice.getUint8Array());
+  const nalu: H264Nalu = new H264Nalu(bufferSlice.getUint8Array());
   logFunc(`parsed NALU of type ${nalu.getTypeName()}:`, nalu);
 }
 
@@ -51,7 +51,7 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
 
     const naluSlice = bufferSlice.unwrap(naluOffset, naluLength);
     const naluBytes = naluSlice.getUint8Array();
-    const nalu = new NALU(naluBytes);
+    const nalu = new H264Nalu(naluBytes);
 
     naluCount++;
 
@@ -61,12 +61,12 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
 
     if (debugRbspData) {
       switch (nalu.nalType) {
-      case NALU.SPS:
+      case H264NaluType.SPS:
         // we need to skip first byte of NALU data
         const sps: Sps = H264ParameterSetParser.parseSPS(nalu.payload.subarray(1));
         logFunc('Parsed SPS:', sps);
         break;
-      case NALU.PPS:
+      case H264NaluType.PPS:
         // we need to skip first byte of NALU data
         const pps: Pps = H264ParameterSetParser.parsePPS(nalu.payload.subarray(1));
         logFunc('Parsed PPS:', pps);
@@ -78,20 +78,20 @@ export function debugAccessUnit (bufferSlice: BufferSlice, debugRbspData: boolea
   return true;
 }
 
-export function parseNALU (naluSlice: BufferSlice): NALU {
+export function parseNALU (naluSlice: BufferSlice): H264Nalu {
   const naluBytes = naluSlice.getUint8Array();
-  const nalu = new NALU(naluBytes);
+  const nalu = new H264Nalu(naluBytes);
   return nalu;
 }
 
-export function parseAccessUnit (bufferSlice: BufferSlice, nalusOut?: NALU[]): NALU[] {
+export function parseAccessUnit (bufferSlice: BufferSlice, nalusOut?: H264Nalu[]): H264Nalu[] {
   const avcStream = bufferSlice.getUint8Array();
   const avcView = bufferSlice.getDataView();
 
   let naluLength;
   let naluCount = 0;
 
-  const nalus: NALU[] = nalusOut || [];
+  const nalus: H264Nalu[] = nalusOut || [];
 
   for (let naluOffset = 0; naluOffset < avcStream.byteLength; naluOffset += naluLength) {
     naluLength = avcView.getUint32(naluOffset);
@@ -105,7 +105,7 @@ export function parseAccessUnit (bufferSlice: BufferSlice, nalusOut?: NALU[]): N
 
     const naluSlice = bufferSlice.unwrap(naluOffset, naluLength);
     const naluBytes = naluSlice.getUint8Array();
-    const nalu = new NALU(naluBytes);
+    const nalu = new H264Nalu(naluBytes);
 
     naluCount++;
 

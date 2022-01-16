@@ -22,7 +22,7 @@ import {
   makeAccessUnitFromNALUs,
   debugAccessUnit
 } from './h264/h264-tools';
-import { NALU } from './h264/nalu';
+import { H264NaluType } from './h264/h264-nalu';
 
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 import {
@@ -71,9 +71,9 @@ const getSocketDescriptor: SocketTemplateGenerator =
     SocketDescriptor.fromMimeTypes(CommonMimeTypes.AUDIO_MP4, CommonMimeTypes.VIDEO_MP4)); // possible output
 
 export enum MP4MuxProcessorSupportedCodecs {
-  AVC = 'avc',
+  AVC = 'avc1',
   AAC = 'mp4a',
-  MP3 = 'mp3',
+  MP3 = '.mp3',
   VP6 = 'vp6f'
 }
 
@@ -297,8 +297,8 @@ export class MP4MuxProcessor extends Processor {
           if (avcC.sps.length > 0 && avcC.pps.length > 0) {
             // the SPS/PPS data we use comes already in a regular NALU but we rewrite the header just for fun
             // this is why we bust the first byte which is the header
-            const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0].subarray(1)), NALU.SPS, 3);
-            const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), NALU.PPS, 3);
+            const spsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.sps[0].subarray(1)), H264NaluType.SPS, 3);
+            const ppsNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(avcC.pps[0].subarray(1)), H264NaluType.PPS, 3);
 
             const codecInitAu: BufferSlice =
               makeAccessUnitFromNALUs([spsNalu, ppsNalu]);

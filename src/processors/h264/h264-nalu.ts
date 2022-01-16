@@ -1,10 +1,4 @@
-export enum H264SliceType {
-  P = 0,
-  B,
-  I,
-  SP,
-  SI
-}
+
 
 /**
 0 Unspecified non-VCL non-VCL non-VCL
@@ -56,7 +50,6 @@ export enum H264NaluType {
   SDA = 2,
   SDB = 3,
   SDC = 4,
-  // TODO: add types 2 to 4
   IDR = 5,
   SEI = 6,
   SPS = 7,
@@ -67,70 +60,20 @@ export enum H264NaluType {
   FIL = 12
 }
 
+export enum H264SliceType {
+  P = 0,
+  B,
+  I,
+  SP,
+  SI
+}
+
+
 export function getH264NaluTypeTag (nalType: H264NaluType): string {
   return H264NaluType[nalType].toLowerCase();
 }
 
-export class NALU {
-  // TODO: make enum
-
-  // TODO: remove below
-
-  static get NON_IDR () {
-    return H264NaluType.NOI;
-  }
-
-  static get IDR () {
-    return H264NaluType.IDR;
-  }
-
-  static get SEI () {
-    return H264NaluType.SEI;
-  }
-
-  static get SPS () {
-    return H264NaluType.SPS;
-  }
-
-  static get PPS () {
-    return H264NaluType.PPS;
-  }
-
-  static get AU_DELIM () {
-    return H264NaluType.AUD;
-  }
-
-  static get SEQ_END () {
-    return H264NaluType.SEE;
-  }
-
-  static get STREAM_END () {
-    return H264NaluType.STE;
-  }
-
-  static getNALUnitTypeName (nalType: number): string {
-    switch (nalType) {
-    case NALU.NON_IDR:
-      return 'NON_IDR_SLICE';
-    case NALU.SEI:
-      return 'SEI';
-    case NALU.PPS:
-      return 'PPS';
-    case NALU.SPS:
-      return 'SPS';
-    case NALU.AU_DELIM:
-      return 'AUD';
-    case NALU.IDR:
-      return 'IDR';
-    case NALU.SEQ_END:
-      return 'END SEQUENCE';
-    case NALU.STREAM_END:
-      return 'END STREAM';
-    default:
-      return `${nalType} (unknown NAL type)`;
-      // throw new Error('Unknown NALU type: ' + nalType);
-    }
-  }
+export class H264Nalu {
 
   payload: Uint8Array;
   refIdc: number;
@@ -146,6 +89,6 @@ export class NALU {
   }
 
   getTypeName (): string {
-    return NALU.getNALUnitTypeName(this.nalType);
+    return H264NaluType[this.nalType];
   }
 }
