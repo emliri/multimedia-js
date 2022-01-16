@@ -1,4 +1,4 @@
-import { synthesizeError } from "../common-utils";
+import { synthesizeError } from '../common-utils';
 
 export type ErrorInfo = {
   space: ErrorCodeSpace,
@@ -107,5 +107,3 @@ export function getErrorSpaceByCode (errCode: ErrorCode): ErrorCodeSpace {
   }
   return errorCodeSpace;
 }
-
-

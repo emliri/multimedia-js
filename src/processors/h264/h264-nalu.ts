@@ -1,5 +1,4 @@
 
-
 /**
 0 Unspecified non-VCL non-VCL non-VCL
 1 Coded slice of a non-IDR picture
@@ -68,13 +67,11 @@ export enum H264SliceType {
   SI
 }
 
-
 export function getH264NaluTypeTag (nalType: H264NaluType): string {
   return H264NaluType[nalType].toLowerCase();
 }
 
 export class H264Nalu {
-
   payload: Uint8Array;
   refIdc: number;
   nalType: number;

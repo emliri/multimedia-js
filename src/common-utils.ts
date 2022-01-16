@@ -118,7 +118,7 @@ export function objectNewFromDefaultAndPartials<T extends Object> (defaults: T, 
   return objectApplyDefaults(objectAssign({}, ...sources), defaults);
 }
 
-export function synthesizeError(err: Error): Error {
+export function synthesizeError (err: Error): Error {
   return {
     message: err.message,
     name: err.name,
