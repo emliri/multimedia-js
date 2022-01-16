@@ -195,14 +195,14 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
         .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
 
-      pkt.defaultPayloadInfo.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
-      pkt.defaultPayloadInfo.codec = codec4cc;
+      pkt.properties.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
+      pkt.properties.codec = codec4cc;
 
       if (gotVideoKeyframe) {
-        pkt.defaultPayloadInfo.isKeyframe = true;
+        pkt.properties.isKeyframe = true;
       }
       if (gotAvcInitData) {
-        pkt.defaultPayloadInfo.isBitstreamHeader = true;
+        pkt.properties.isBitstreamHeader = true;
       }
 
       this._timingRegulatorSock.transfer(pkt);
