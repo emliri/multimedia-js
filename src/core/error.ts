@@ -1,3 +1,5 @@
+import { synthesizeError } from "../common-utils";
+
 export type ErrorInfo = {
   space: ErrorCodeSpace,
   code: ErrorCode,
@@ -34,12 +36,7 @@ export function cloneErrorInfo (errorInfo: ErrorInfo,
     clone = assignErrorInfo({}, errorInfo);
   }
   if (synthesizeNativeError && clone.nativeError) {
-    const { message, stack, name } = clone.nativeError;
-    clone.nativeError = {
-      message,
-      stack,
-      name
-    };
+    clone.nativeError = synthesizeError(clone.nativeError);
   }
   if (clone.innerError) {
     clone.innerError = cloneErrorInfo(clone.innerError,
@@ -110,3 +107,5 @@ export function getErrorSpaceByCode (errCode: ErrorCode): ErrorCodeSpace {
   }
   return errorCodeSpace;
 }
+
+

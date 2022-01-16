@@ -118,6 +118,14 @@ export function objectNewFromDefaultAndPartials<T extends Object> (defaults: T, 
   return objectApplyDefaults(objectAssign({}, ...sources), defaults);
 }
 
+export function synthesizeError(err: Error): Error {
+  return {
+    message: err.message,
+    name: err.name,
+    stack: err.stack
+  };
+}
+
 export function arrayLast<T> (arr: T[]): T | null {
   if (arr.length === 0) return null;
   return arr[arr.length - 1];
