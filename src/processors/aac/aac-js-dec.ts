@@ -1,5 +1,6 @@
 
 import { EventEmitter } from "eventemitter3";
+import { isTypedArraySharingBuffer } from "../../common-utils";
 
 const AacDecoder = require('../../ext-mod/aac.js/src/decoder');
 const AuroraAv = require('../../ext-mod/aac.js/src/av');
@@ -73,5 +74,41 @@ export class AacJsDecoder {
   }
 
   onError(err: Error) {
+  }
+}
+
+export class AacJsDecoderWorkerContext {
+
+  private _workerCtx = self as any;
+
+  constructor(cfg: AacJsDecoderConfig) {
+
+    if (!this._workerCtx.importScripts) {
+      throw new Error('Class should only be constructed from Worker scope');
+    }
+
+    const dec: AacJsDecoder = new AacJsDecoder(cfg);
+
+    const workerCtx: Worker = this._workerCtx as Worker;
+    self.addEventListener('message', (event) => {
+      const buf: Uint8Array = event.data;
+      dec.pushBuffer(buf)
+    });
+
+    dec.onData = (audioFrame: Float32Array) => {
+      if (isTypedArraySharingBuffer(audioFrame)) {
+        throw new Error('Cant transfer audio-frame, is not unique owner of its ArrayBuffer memory');
+      }
+      const transferData = audioFrame.buffer;
+      workerCtx.postMessage(transferData, [transferData]);
+    };
+
+    dec.onError = (err: Error) => {
+      console.error(err);
+    }
+
+    dec.onEos = () => {
+      console.warn('AAC-js worker: EOS');
+    }
   }
 }

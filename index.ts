@@ -53,4 +53,4 @@ export * as Inspector from './src/ext-mod/inspector.js/src/index';
 
 export * as H264Tools from './src/processors/h264/h264-tools';
 
-export { AacJsDecoder } from './src/processors/aac/aac-js-dec';
+export { AacJsDecoder, AacJsDecoderWorkerContext } from './src/processors/aac/aac-js-dec';
