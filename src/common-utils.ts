@@ -286,6 +286,10 @@ export function synthesizeError (err: Error): Error {
 
 // MEMORY
 
+export function isTypedArraySharingBuffer(a: Uint8Array | Float32Array): boolean {
+  return a.byteLength !== a.buffer.byteLength;
+}
+
 // TODO: allocation methods
 // TODO: allow using "fast but unsafe" allocation methods in V8/Nodejs via Buffer.allocUnsafe
 
