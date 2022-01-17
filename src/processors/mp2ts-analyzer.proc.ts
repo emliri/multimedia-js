@@ -181,10 +181,10 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         throw new Error('Expected to have only one type of frames in this PES segmentation mode');
       } else if (aFrames.length) {
         codec4cc = CommonCodecFourCCs.mp4a;
-      } else if (vFrames.length) {
+      } else if (vFrames.length || gotAvcInitData) {
         codec4cc = CommonCodecFourCCs.avc1;
       } else {
-        throw new Error('Expected either video or audio frames length > 0');
+        throw new Error('Expected either video or audio payload');
       }
 
       const parsedPktData = this._tsParser.prune();
