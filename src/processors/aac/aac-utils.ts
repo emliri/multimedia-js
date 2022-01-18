@@ -1,3 +1,18 @@
+import { AAC_SAMPLES_PER_FRAME } from "./adts-utils";
+
+export function splitRawAudioFrameToStereoChannels(decodedAudioFrame: Float32Array): [Float32Array, Float32Array] {
+    // create l/r buffers
+    const data0 = new Float32Array(AAC_SAMPLES_PER_FRAME);
+    const data1 = new Float32Array(AAC_SAMPLES_PER_FRAME);
+    // copy each l/r samples from frame buffer
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < AAC_SAMPLES_PER_FRAME; i++) {
+      data0[i] = decodedAudioFrame[(2 * (i + 1)) - 2];
+      data1[i] = decodedAudioFrame[(2 * (i + 1)) - 1];
+    }
+    return [data0, data1];
+}
+
 export function allocNewSilentFrame (codec, channelCount) {
   switch (codec) {
   case 'mp4a.40.2':
