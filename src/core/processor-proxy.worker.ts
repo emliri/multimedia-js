@@ -178,7 +178,7 @@ log('setting new worker instance up ...');
       return true;
     };
 
-    const wireUpOutputSocket = (outputSocket: OutputSocket, outputIndex: number) => {
+    const wireUpOutputSocket = (outputSocket: OutputSocket, outputIndex: number) => {
       outputSocket.connect(new InputSocket(onOutputSockeTransfer.bind(this, outputIndex), outputSocket.descriptor()));
     };
 
