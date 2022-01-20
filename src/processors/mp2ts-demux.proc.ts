@@ -268,25 +268,20 @@ export class MP2TSDemuxProcessor extends Processor {
 
   private _pushVideoNalu (nalInfo: VideoNALUInfo) {
     const { isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame } = nalInfo;
+    const naluQLen = this._videoNaluQueueOut.length;
     const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
-    const firstIsAuDelimiter =
-      this._videoNaluQueueOut.length
-        ? this._videoNaluQueueOut[0]
-          .nalu.nalUnitType === M2tNaluType.AUD
-        : false;
-    const lastIsAuDelimiter =
-      this._videoNaluQueueOut.length
-        ? this._videoNaluQueueOut[this._videoNaluQueueOut.length - 1]
-          .nalu.nalUnitType === M2tNaluType.AUD
-        : false;
-    const hasIncrPts = this._videoNaluQueueOut.length
-      ? nalInfo.nalu.pts - this._videoNaluQueueOut[0].nalu.pts > 0
+    const firstIsAuDelimiter = naluQLen ?
+      this._videoNaluQueueOut[0].nalu.nalUnitType === M2tNaluType.AUD : false;
+    const lastIsAuDelimiter = naluQLen ?
+      this._videoNaluQueueOut[naluQLen - 1].nalu.nalUnitType === M2tNaluType.AUD : false;
+    const hasIncrPts = naluQLen
+      ? nalInfo.nalu.pts > this._videoNaluQueueOut[naluQLen - 1].nalu.pts
       : false;
 
     const needQueueFlushNoAud = (hasIncrPts && !nextIsKeyFrame &&
       !(firstIsAuDelimiter || lastIsAuDelimiter || nextIsAuDelimiter));
 
-    const needQueueFlush = this._videoNaluQueueOut.length &&
+    const needQueueFlush = naluQLen &&
                           (
                             needQueueFlushNoAud ||
                             // seperate by AUD always
@@ -355,7 +350,6 @@ export class MP2TSDemuxProcessor extends Processor {
       ...slices
     );
 
-    // packet.setTimestampOffset(this._videoDtsOffset); // check if this works out downstream
     packet.setTimescale(MPEG_TS_TIMESCALE_HZ);
     debug('created/pushed packet:', packet.toString(), `(${packet.getTotalBytes()} bytes in ${packet.dataSlicesLength} buffer-slices)`);
     this._outPackets.push(packet);
@@ -390,8 +384,6 @@ export class MP2TSDemuxProcessor extends Processor {
           log('creating video output socket:', p.defaultPayloadInfo);
           this._videoSocket = videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
         }
-
-        // p.forEachBufferSlice((bs) => debugNALU(bs));
 
         debug('transferring video packet to default out');
 
