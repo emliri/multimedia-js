@@ -64,7 +64,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
         const slices = p.data;
         const bufferSlice = makeAccessUnitFromNALUs(slices);
 
-        bufferSlice.props = p.defaultPayloadInfo;
+        bufferSlice.props = p.properties;
         // first drop all slices from data list
         p.data.length = 0;
         // set as data single buffer with frame AU
@@ -82,7 +82,7 @@ export class AVCNetworkAbstractionProcessor extends Processor {
               const frameTimeDiff = nextDts - prevDts;
               if (frameTimeDiff >= 0) {
                 this._packetDelayStore
-                  .defaultPayloadInfo.setSampleDuration(frameTimeDiff, p.timeScale);
+                  .properties.setSampleDuration(frameTimeDiff, p.timeScale);
               }
             }
             this.out[0].transfer(
