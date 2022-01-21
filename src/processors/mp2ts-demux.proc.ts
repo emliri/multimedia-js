@@ -270,10 +270,12 @@ export class MP2TSDemuxProcessor extends Processor {
     const { isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame } = nalInfo;
     const naluQLen = this._videoNaluQueueOut.length;
     const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
-    const firstIsAuDelimiter = naluQLen ?
-      this._videoNaluQueueOut[0].nalu.nalUnitType === M2tNaluType.AUD : false;
-    const lastIsAuDelimiter = naluQLen ?
-      this._videoNaluQueueOut[naluQLen - 1].nalu.nalUnitType === M2tNaluType.AUD : false;
+    const firstIsAuDelimiter = naluQLen
+      ? this._videoNaluQueueOut[0].nalu.nalUnitType === M2tNaluType.AUD
+      : false;
+    const lastIsAuDelimiter = naluQLen
+      ? this._videoNaluQueueOut[naluQLen - 1].nalu.nalUnitType === M2tNaluType.AUD
+      : false;
     const hasIncrPts = naluQLen
       ? nalInfo.nalu.pts > this._videoNaluQueueOut[naluQLen - 1].nalu.pts
       : false;

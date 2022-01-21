@@ -28,7 +28,7 @@ const AvcPayloaderProcWithOpts = mixinProcessorWithOptions<AvcPayloaderOpts>({
   enableSpsPpsToAvcc: true,
   enableSampleDurationPacketDelay: true,
   timeoutFactorPacketDelay: DEFAULT_PACKET_DELAY_TIMEOUT_FACTOR,
-  defaultFrameRate: DEFAULT_FRAME_RATE,
+  defaultFrameRate: DEFAULT_FRAME_RATE
 });
 
 export type AvcPayloaderOpts = {
@@ -40,7 +40,6 @@ export type AvcPayloaderOpts = {
 };
 
 export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
-
   static getName (): string {
     return 'AvcPayloaderProc';
   }
@@ -75,7 +74,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
 
     if (properties.tags.has('nalu')) {
       debug('input packet is tagged as NALU with tags:', properties.tags,
-      'and nb of slices:', p.dataSlicesLength);
+        'and nb of slices:', p.dataSlicesLength);
 
       // only needed for AvcC generation ??
       if (properties.tags.has('sps') || properties.tags.has('pps')) {
@@ -83,7 +82,6 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
       }
 
       this._processPacket(p);
-
     } else {
       error('Got packet not tagged NALU');
       return false;
@@ -123,7 +121,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
     }
   }
 
-  private _processWithPacketDelay(p: Packet) {
+  private _processWithPacketDelay (p: Packet) {
     // process current delay-store
     if (this._packetDelayStore) {
       if (this._packetDelayTimeout) {
@@ -149,13 +147,11 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
       this._popPacketDelayStore();
       this._packetDelayStore = null;
     }, this.options_.timeoutFactorPacketDelay * secsToMillis(p.properties.getSampleDuration()));
-
   }
 
-  private _popPacketDelayStore(p: Packet = null) {
+  private _popPacketDelayStore (p: Packet = null) {
     const { timeScale } = this._packetDelayStore;
     if (!p || p.timeScale === timeScale) {
-
       let frameTimeDiff;
       if (p) {
         const prevDts = this._packetDelayStore.getDts();
@@ -233,7 +229,6 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
       */
       this.out[0].transfer(Packet.fromSlice(bufferSlice, p.timestamp));
     }
-
   }
 
   private _tryWriteAvcCDataFromSpsPpsCache (): BufferSlice {
