@@ -261,7 +261,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
       return null;
     }
 
-    const spsInfo: Sps = H264ParameterSetParser.parseSPS(this._spsSliceCache.getUint8Array().slice(1));
+    const spsInfo: Sps = H264ParameterSetParser.parseSPS(this._spsSliceCache.getUint8Array().subarray(1));
     // const ppsInfo: Pps = H264ParameterSetParser.parsePPS(this._ppsSliceCache.getUint8Array().subarray(1));
 
     DEBUG_H264 && debugNALU(this._spsSliceCache, log);
