@@ -18,13 +18,14 @@ export {
 } from '../../ext-mod/mux.js/lib/m2ts/m2ts';
 
 export function mapNaluTypeToTag (m2tNaluType: M2tNaluType): string {
+  // coherent with h264-nalu enum
   switch (m2tNaluType) {
-  case M2tNaluType.AUD: return 'aud'; // TODO: make this stuff enums -> symbols or numbers (use actual NALU type ids)
+  case M2tNaluType.AUD: return 'aud';
   case M2tNaluType.SPS: return 'sps';
   case M2tNaluType.PPS: return 'pps';
   case M2tNaluType.SEI: return 'sei';
   case M2tNaluType.IDR: return 'idr';
-  default: return null;
+  default: return 'noi';
   }
 }
 

@@ -39,7 +39,7 @@ const { debug, log, info, warn } = getLogger('Mp2tsDemuxProc', LoggerLevel.OFF, 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
     SocketDescriptor.fromMimeTypes('video/mp2t'), // valid inputs
-    SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/aac', 'video/aac', 'application/cea-608') // output
+    SocketDescriptor.fromMimeTypes('audio/mpeg', 'audio/adts', 'video/h264', 'application/cea-608') // output
   );
 
 type VideoNALUInfo = {
@@ -297,7 +297,7 @@ export class MP2TSDemuxProcessor extends Processor {
   }
 
   private _flushVideoNaluQueueOut () {
-    const { dts, cto, nalu, isKeyframe, isHeader } = this._videoNaluQueueOut[0];
+    const { dts, cto, nalu } = this._videoNaluQueueOut[0];
 
     const props = new BufferProperties(
       CommonMimeTypes.VIDEO_H264
@@ -307,9 +307,6 @@ export class MP2TSDemuxProcessor extends Processor {
     props.codec = CommonCodecFourCCs.avc1;
     props.elementaryStreamId = nalu.trackId;
 
-    props.isKeyframe = isKeyframe;
-    props.isBitstreamHeader = isHeader;
-
     props.details.width = this._videoConfig.config.width;
     props.details.height = this._videoConfig.config.height;
     props.details.codecProfile = this._videoConfig.config.profileIdc;
@@ -317,7 +314,7 @@ export class MP2TSDemuxProcessor extends Processor {
     props.details.samplesPerFrame = 1;
 
     props.tags.add('nalu');
-    // add NALU type tags for all slices
+    // add NALU type tags for all slices & apply all props flags
     this._videoNaluQueueOut.forEach(({ nalu, isHeader, isKeyframe }) => {
       if (isHeader) {
         props.isBitstreamHeader = true;
@@ -326,7 +323,6 @@ export class MP2TSDemuxProcessor extends Processor {
         props.isKeyframe = true;
       }
       const naluTag = mapNaluTypeToTag(nalu.nalUnitType);
-      // may be null for non-IDR-slice
       if (naluTag) {
         props.tags.add(naluTag);
       }
