@@ -1,7 +1,7 @@
 import { Flow, FlowConfigFlag } from '../core/flow';
 import { XhrSocket } from '../io-sockets/xhr.socket';
 import { MP4DemuxProcessor } from '../processors/mp4-demux.processor';
-import { AVCNetworkAbstractionProcessor } from '../processors/avc-network-abstraction.proc';
+import { AvcPayloaderProc } from '../processors/avc-network-abstraction.proc';
 import { MP4MuxProcessor } from '../processors/mp4-mux-mozilla.processor';
 import { ProcessorEvent, ProcessorEventData } from '../core/processor';
 import { OutputSocket } from '../core/socket';
@@ -64,7 +64,7 @@ export class CombineMp4sToMovFlow extends Flow {
     }
 
     const mp4DemuxProcVideo = newProcessorWorkerShell(MP4DemuxProcessor);
-    const h264ParseProc = newProcessorWorkerShell(unsafeCastProcessorType(AVCNetworkAbstractionProcessor));
+    const h264ParseProc = newProcessorWorkerShell(unsafeCastProcessorType(AvcPayloaderProc));
     const mp3ParseProc = newProcessorWorkerShell(MP3ParseProcessor);
 
     const mp4MuxProc = newProcessorWorkerShell(unsafeCastProcessorType(MP4MuxProcessor));

@@ -48,7 +48,6 @@ export type Mp2TsAnalyzerProcOpts = {
 };
 
 export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
-  private _opts: Mp2TsAnalyzerProcOpts;
 
   private _mptsSyncAdapter: Mpeg2TsSyncAdapter = new Mpeg2TsSyncAdapter();
   private _timingRegulatorSock: OutputSocket;

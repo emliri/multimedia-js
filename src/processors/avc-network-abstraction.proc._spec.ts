@@ -2,7 +2,7 @@ import 'should';
 
 import { MP4DemuxProcessor } from './mp4-demux.processor';
 
-import { AVCNetworkAbstractionProcessor } from './avc-network-abstraction.proc';
+import { AvcPayloaderProc } from './avc-network-abstraction.proc';
 import { Packet } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { OutputSocket } from '../core/socket';
@@ -32,7 +32,7 @@ describe('AVCNetworkAbstractionProcessor', () => {
   });
 
   it('should parse single NALUs and output them', (done) => {
-    const h264parse = new AVCNetworkAbstractionProcessor();
+    const h264parse = new AvcPayloaderProc();
 
     const onMp4DemuxCreateOutput = (out: OutputSocket) => {
       out.connect(h264parse.in[0]);
