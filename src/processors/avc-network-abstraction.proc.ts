@@ -219,41 +219,21 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
           }
         }
       }
-    } else if (naluType === H264NaluType.AUD) {
-      bufferSlice = null;
-    } else {
-      throw new Error('Expecting parameter-set slices and got: ' + nalu.getTypeName());
     }
 
-    if (!bufferSlice) {
-      return;
-    }
-
-    if (p.properties.isBitstreamHeader) {
-      log('packet has bitstream header flag');
-
-      let avcC: AvcC;
+    if (bufferSlice) {
+      /*
       try {
-        avcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
+        let avcC: AvcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
         log('wrote MP4 AvcC atom:', avcC);
       } catch (err) {
         warn('failed to parse data expected to be AvcC atom:', bufferSlice);
         throw err;
       }
-    } else {
-      log('wrote other AU:');
-      DEBUG_H264 && debugAccessUnit(bufferSlice, true, log);
+      */
+      this.out[0].transfer(Packet.fromSlice(bufferSlice, p.timestamp));
     }
 
-    if (bufferSlice) {
-      // replace the data
-      p.data[0] = bufferSlice;
-
-      // just pass on the packet as is to only output
-      this.out[0].transfer(
-        p
-      );
-    }
   }
 
   private _tryWriteAvcCDataFromSpsPpsCache (): BufferSlice {
