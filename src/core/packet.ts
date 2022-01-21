@@ -132,14 +132,14 @@ export class Packet implements PacketDataModel {
     }
   }
 
-  get properties () {
+  get properties (): Nullable<BufferProperties> {
     return this?.data[0]?.props || null;
   }
 
   /**
    * @deprecated use `properties` getter instead (isofunctional).
    */
-  get defaultPayloadInfo (): BufferProperties {
+  get defaultPayloadInfo () {
     return this.properties;
   }
 
@@ -154,11 +154,15 @@ export class Packet implements PacketDataModel {
     return this.mimeType;
   }
 
+  /**
+   * number amount of slices, length of list.
+   */
   get dataSlicesLength () {
     return this?.data.length || 0;
   }
 
   /**
+   * sum of all slices bytes amount.
    * functional alias to getTotalBytes, but necessary here
    * to allow properties serialization (see packet-model).
    */
