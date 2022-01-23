@@ -13,9 +13,10 @@ import { PayloadDescriptor, UNKNOWN_MIMETYPE } from './payload-description';
 export class BufferProperties extends PayloadDescriptor {
   /**
    * NOTE: Keep this in sync with SocketDescriptor.fromJson
-   * @param props
+   * @param props (nullable, yields null return).
    */
-  static clone (props: BufferProperties) {
+  static clone (props: BufferProperties = null) {
+    if (!props) return null;
     const newProps = new BufferProperties(
       props.mimeType,
       props.sampleRateInteger,
