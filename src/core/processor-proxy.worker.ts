@@ -29,9 +29,10 @@ const Processors = getProcessors();
 const workerId = makeUUID_v1();
 const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.WARN);
 
-log('setting new worker instance up ...');
-
 (function () {
+
+  log('setting new worker instance up ...');
+
   const context: Worker = self as any;
   const subContexts: ProcessorProxyWorkerSubContext[] = [];
 
