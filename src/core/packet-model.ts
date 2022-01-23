@@ -8,14 +8,6 @@ import { PacketSymbol } from './packet-symbol';
  * Data-model used for metadata serialization (MUST be JSON-stringify-able)
  */
 export class PacketDataModel {
-  static createDefault (): PacketDataModel {
-    return new PacketDataModel(
-      Date.now(),
-      0, 0, 0, 0, 0, 0, 0, 0,
-      null,
-      ''
-    );
-  }
 
   static createFromPacket (p: Packet): PacketDataModel {
     const pdm = new PacketDataModel(
@@ -28,24 +20,22 @@ export class PacketDataModel {
       p.dataSlicesLength,
       p.dataSlicesBytes,
       p.symbol,
-      p.properties,
-      p.mimeType
+      BufferProperties.clone(p.properties)
     );
     return pdm;
   }
 
   constructor (
-    readonly createdAt: number,
-    readonly timestamp: number,
-    readonly presentationTimeOffset: number,
-    readonly timeScale: number,
-    readonly timestampOffset: number,
-    readonly synchronizationId: number,
+    readonly createdAt: number = Date.now(),
+    readonly timestamp: number = 0,
+    readonly presentationTimeOffset: number = 0,
+    readonly timeScale: number = 1,
+    readonly timestampOffset: number = 0,
+    readonly synchronizationId: number = NaN,
     readonly dataSlicesLength: number = 0,
     readonly dataSlicesBytes: number = 0,
     readonly symbol: PacketSymbol = PacketSymbol.VOID,
-    readonly properties: Nullable<BufferProperties> = null,
-    readonly mimeType: string
+    readonly properties: Nullable<BufferProperties> = null
   ) {}
 
   toString () {

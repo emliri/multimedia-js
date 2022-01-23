@@ -143,17 +143,6 @@ export class Packet implements PacketDataModel {
     return this.properties;
   }
 
-  get mimeType () {
-    return this.properties?.mimeType || null;
-  }
-
-  /**
-   * @deprecated use `mimeType` getter instead (isofunctional).
-   */
-  get defaultMimeType (): string {
-    return this.mimeType;
-  }
-
   /**
    * number amount of slices, length of list.
    */
@@ -187,10 +176,10 @@ export class Packet implements PacketDataModel {
   }
 
   setTimingInfo (dts: number, cto: number = 0, timeScale = 1, timeOffset = 0): Packet {
-    this.setTimescale(timeScale);
-    this.setTimestampOffset(timeOffset);
     this.timestamp = dts;
     this.presentationTimeOffset = cto;
+    this._timescale = timeScale;
+    this._timestampOffset = timeOffset;
     return this;
   }
 
