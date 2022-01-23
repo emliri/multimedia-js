@@ -6,7 +6,7 @@ import { CommonMimeTypes } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
 import { Nullable } from '../common-types';
-import { secsToMillis } from '../common-utils';
+import { isQNumber, secsToMillis } from '../common-utils';
 
 import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType, makeNALUFromH264RbspData } from './h264/h264-tools';
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
@@ -22,13 +22,13 @@ const DEBUG_H264 = false;
 const DEFAULT_FRAME_RATE = 24; // "best guess" if unable to determine (lowest FPS typical to avoid gaps)
 const DEFAULT_PACKET_DELAY_TIMEOUT_FACTOR = 16; // typical GOP length
 
-const auDelimiterNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), H264NaluType.AUD, 3);
+// const auDelimiterNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), H264NaluType.AUD, 3);
 
 const AvcPayloaderProcWithOpts = mixinProcessorWithOptions<AvcPayloaderOpts>({
   useAnnexB: false,
   enableSpsPpsToAvcc: true,
-  enableSampleDurationPacketDelay: true,
-  enableTimeoutPacketDelay: false,
+  enablePacketDelay: true,
+  enablePacketDelayTimeout: true,
   timeoutFactorPacketDelay: DEFAULT_PACKET_DELAY_TIMEOUT_FACTOR,
   defaultFrameRate: DEFAULT_FRAME_RATE
 });
@@ -36,10 +36,10 @@ const AvcPayloaderProcWithOpts = mixinProcessorWithOptions<AvcPayloaderOpts>({
 export type AvcPayloaderOpts = {
   useAnnexB: boolean
   enableSpsPpsToAvcc: boolean
-  enableSampleDurationPacketDelay: boolean
-  enableTimeoutPacketDelay: boolean
-  timeoutFactorPacketDelay: number // set to Infinity to disable timeout
-  defaultFrameRate: number // "best guess" if unable to determine
+  enablePacketDelay: boolean
+  enablePacketDelayTimeout: boolean
+  timeoutFactorPacketDelay: number
+  defaultFrameRate: number // "best guess" fallback, when unable to determine
 };
 
 export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
@@ -52,6 +52,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
   private _packetDelayStore: Nullable<Packet> = null;
   private _packetDelayTimeout: unknown = null;
   private _previousFrameTimeDiff: number = NaN;
+  private _prevSampleDurationSecs: number = NaN;
 
   constructor (opts?: Partial<AvcPayloaderOpts>) {
     super();
@@ -113,8 +114,9 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
     log('wrote multi-slice AU for packet:', p.toString());
     DEBUG_H264 && debugAccessUnit(bufferSlice, true, log);
 
-    // cache packet for sample-timing
-    if (this.options_.enableSampleDurationPacketDelay) {
+    // store packet for sample-timing (duration will be evaled from next packet
+    // then gets popped and transfered, etc, see below).
+    if (this.options_.enablePacketDelay) {
       this._processWithPacketDelay(p);
     } else {
       // just pass on the packet as is to only output
@@ -137,12 +139,14 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
     // put packet into delay-store
     this._packetDelayStore = p;
 
-    if (this.options_.enableTimeoutPacketDelay) {
+    if (this.options_.enablePacketDelayTimeout) {
       // on EOS or network source congestion any "last" packet in store stays stuck:
       // -> we priorly store last sample-duration as "best guess"
       // and release this packet after a given delay
       // (e.g the sample-duration time itself or multiple)
       // so that in any case all packets received by proc actually get transfered...
+      const timeoutSecs = this._prevSampleDurationSecs || (1 / this.options_.defaultFrameRate);
+      if (!isQNumber(timeoutSecs)) throw new Error('Packet-delay timer: got non-finite value from prior sample-duration or default-fps');
       this._packetDelayTimeout = <unknown> setTimeout(() => {
         this._packetDelayTimeout = null;
         if (!this._packetDelayStore) {
@@ -150,14 +154,15 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
         }
         this._popPacketDelayStore();
         this._packetDelayStore = null;
-      }, this.options_.timeoutFactorPacketDelay
-          * secsToMillis(p.properties.getSampleDuration()));
+      }, this.options_.timeoutFactorPacketDelay * secsToMillis(timeoutSecs));
     }
 
   }
 
   private _popPacketDelayStore (p: Packet = null) {
     const { timeScale } = this._packetDelayStore;
+    // in case timescales differ, we skip the sample-duration assigment
+    // and just transfer the packet currently in store.
     if (!p || p.timeScale === timeScale) {
       let frameTimeDiff;
       if (p) {
@@ -165,13 +170,11 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
         const nextDts = p.timestamp;
         frameTimeDiff = nextDts - prevDts;
       }
-
       if (frameTimeDiff >= 0) {
         this._previousFrameTimeDiff = frameTimeDiff;
         this._packetDelayStore
           .properties.setSampleDuration(frameTimeDiff, timeScale);
       } else {
-        /*
         if (this._previousFrameTimeDiff) {
           this._packetDelayStore
             .properties.setSampleDuration(this._previousFrameTimeDiff, timeScale);
@@ -179,9 +182,11 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
           this._packetDelayStore
             .properties.setSampleDuration(1, this.options_.defaultFrameRate);
         }
-        */
       }
+      // store resulting duration as it would be needed for optional store-pop-timer.
+      this._prevSampleDurationSecs = this._packetDelayStore.properties.getSampleDuration();
     }
+    // transfer result
     this.out[0].transfer(
       this._packetDelayStore
     );
