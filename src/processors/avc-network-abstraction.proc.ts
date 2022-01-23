@@ -13,6 +13,7 @@ import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
+import { BufferProperties } from '../..';
 
 const { debug, log, warn, error } = getLogger('AvcPayloaderProc', LoggerLevel.OFF, true);
 
@@ -27,6 +28,7 @@ const AvcPayloaderProcWithOpts = mixinProcessorWithOptions<AvcPayloaderOpts>({
   useAnnexB: false,
   enableSpsPpsToAvcc: true,
   enableSampleDurationPacketDelay: true,
+  enableTimeoutPacketDelay: false,
   timeoutFactorPacketDelay: DEFAULT_PACKET_DELAY_TIMEOUT_FACTOR,
   defaultFrameRate: DEFAULT_FRAME_RATE
 });
@@ -35,6 +37,7 @@ export type AvcPayloaderOpts = {
   useAnnexB: boolean
   enableSpsPpsToAvcc: boolean
   enableSampleDurationPacketDelay: boolean
+  enableTimeoutPacketDelay: boolean
   timeoutFactorPacketDelay: number // set to Infinity to disable timeout
   defaultFrameRate: number // "best guess" if unable to determine
 };
@@ -47,7 +50,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
   private _spsSliceCache: Nullable<BufferSlice> = null;
   private _ppsSliceCache: Nullable<BufferSlice> = null;
   private _packetDelayStore: Nullable<Packet> = null;
-  private _packetDelayTimeout: unknown;
+  private _packetDelayTimeout: unknown = null;
   private _previousFrameTimeDiff: number = NaN;
 
   constructor (opts?: Partial<AvcPayloaderOpts>) {
@@ -134,19 +137,23 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
     // put packet into delay-store
     this._packetDelayStore = p;
 
-    // on EOS or network source congestion any "last" packet in store stays stuck:
-    // -> we priorly store last sample-duration as "best guess"
-    // and release this packet after a given delay
-    // (e.g the sample-duration time itself or multiple)
-    // so that in any case all packets received by proc actually get transfered...
-    this._packetDelayTimeout = <unknown> setTimeout(() => {
-      this._packetDelayTimeout = null;
-      if (!this._packetDelayStore) {
-        throw new Error('Packet-delay timer called on empty store');
-      }
-      this._popPacketDelayStore();
-      this._packetDelayStore = null;
-    }, this.options_.timeoutFactorPacketDelay * secsToMillis(p.properties.getSampleDuration()));
+    if (this.options_.enableTimeoutPacketDelay) {
+      // on EOS or network source congestion any "last" packet in store stays stuck:
+      // -> we priorly store last sample-duration as "best guess"
+      // and release this packet after a given delay
+      // (e.g the sample-duration time itself or multiple)
+      // so that in any case all packets received by proc actually get transfered...
+      this._packetDelayTimeout = <unknown> setTimeout(() => {
+        this._packetDelayTimeout = null;
+        if (!this._packetDelayStore) {
+          throw new Error('Packet-delay timer called on empty store');
+        }
+        this._popPacketDelayStore();
+        this._packetDelayStore = null;
+      }, this.options_.timeoutFactorPacketDelay
+          * secsToMillis(p.properties.getSampleDuration()));
+    }
+
   }
 
   private _popPacketDelayStore (p: Packet = null) {
@@ -154,8 +161,8 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
     if (!p || p.timeScale === timeScale) {
       let frameTimeDiff;
       if (p) {
-        const prevDts = this._packetDelayStore.getDts();
-        const nextDts = p.getDts();
+        const prevDts = this._packetDelayStore.timestamp;
+        const nextDts = p.timestamp;
         frameTimeDiff = nextDts - prevDts;
       }
 
@@ -164,6 +171,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
         this._packetDelayStore
           .properties.setSampleDuration(frameTimeDiff, timeScale);
       } else {
+        /*
         if (this._previousFrameTimeDiff) {
           this._packetDelayStore
             .properties.setSampleDuration(this._previousFrameTimeDiff, timeScale);
@@ -171,6 +179,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
           this._packetDelayStore
             .properties.setSampleDuration(1, this.options_.defaultFrameRate);
         }
+        */
       }
     }
     this.out[0].transfer(
@@ -181,7 +190,9 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
   private _handleParameterSetNalus (p: Packet, bufferSlice: BufferSlice) {
     // DEBUG_H264 && debugNALU(bufferSlice)
 
-    const propsCache = bufferSlice.props;
+    const propsClone = BufferProperties.clone(bufferSlice.props);
+    propsClone.mimeType = CommonMimeTypes.VIDEO_AVC;
+
     const nalu = parseNALU(bufferSlice);
     const naluType = nalu.nalType;
 
@@ -195,7 +206,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
           const avcCDataSlice = this._tryWriteAvcCDataFromSpsPpsCache();
           if (avcCDataSlice) {
             bufferSlice = avcCDataSlice;
-            bufferSlice.props = propsCache;
+            bufferSlice.props = propsClone;
             bufferSlice.props.isBitstreamHeader = true;
           }
         }
@@ -210,25 +221,20 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
           const avcCDataSlice = this._tryWriteAvcCDataFromSpsPpsCache();
           if (avcCDataSlice) {
             bufferSlice = avcCDataSlice;
-            bufferSlice.props = propsCache;
+            bufferSlice.props = propsClone;
             bufferSlice.props.isBitstreamHeader = true;
           }
         }
       }
     }
 
-    if (bufferSlice) {
-      /*
-      try {
-        let avcC: AvcC = <AvcC> AvcC.parse(bufferSlice.getUint8Array());
-        log('wrote MP4 AvcC atom:', avcC);
-      } catch (err) {
-        warn('failed to parse data expected to be AvcC atom:', bufferSlice);
-        throw err;
-      }
-      */
-      this.out[0].transfer(Packet.fromSlice(bufferSlice, p.timestamp));
+    if (!bufferSlice) {
+      return;
     }
+
+    const avcCodecPkt = Packet.fromSlice(bufferSlice);
+    avcCodecPkt.setTimingInfo(p.timestamp, 0, p.timeScale);
+    this.out[0].transfer(avcCodecPkt);
   }
 
   private _tryWriteAvcCDataFromSpsPpsCache (): BufferSlice {
