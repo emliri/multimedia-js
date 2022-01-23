@@ -349,7 +349,8 @@ export class MP2TSDemuxProcessor extends Processor {
     );
 
     packet.setTimescale(MPEG_TS_TIMESCALE_HZ);
-    debug('created/pushed packet:', packet.toString(), `(${packet.getTotalBytes()} bytes in ${packet.dataSlicesLength} buffer-slices)`);
+    debug('created/pushed packet:', packet.toString(),
+      `(${packet.getTotalBytes()} bytes in ${packet.dataSlicesLength} buffer-slices)`);
     this._outPackets.push(packet);
 
     this._videoNaluQueueOut.length = 0;
@@ -363,48 +364,43 @@ export class MP2TSDemuxProcessor extends Processor {
 
     outputPackets.forEach((p: Packet) => {
       if (p.isSymbolic()) {
-        log('got symbolic packet:', p.getSymbolName(), '(noop/ignoring)');
-        return;
+        throw new Error('Unexpected: got symbolic packet: ' + p.getSymbolName());
       }
-
-      debug(`processing non-symbolic packet of ${p.getTotalBytes()} bytes`);
-
-      if (!p.defaultPayloadInfo) {
-        warn('packet has not default payload, dropping:', p.toString(), 'object:', p);
-        return;
+      if (!p.properties) {
+        throw new Error('Unexpected:  Packet has not payload-description: ' + p.toString());
       }
+      const { properties } = p;
 
-      // FIXME: make two queues (audio/video) and optimize away this check here
-      if (p.defaultPayloadInfo.isVideo()) {
-        debug('got video packet:', p.toString());
+      debug(`processing packet of ${p.getTotalBytes()} bytes`);
+
+      // TODO: make two queues (audio/video) and optimize away this check here
+
+      if (properties.isVideo()) {
+        debug('got video out to transfer:', p.toString());
 
         if (!videoSocket) {
-          log('creating video output socket:', p.defaultPayloadInfo);
-          this._videoSocket = videoSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
+          log('creating video output socket:', properties.mimeType);
+          this._videoSocket = videoSocket = this.createOutput(SocketDescriptor.fromBufferProps(properties));
         }
 
-        debug('transferring video packet to default out');
-
-        if (p.defaultPayloadInfo.isBitstreamHeader) {
-          log('found bitstream header part in packet:', p.defaultPayloadInfo.tags, p.data);
+        if (properties.isBitstreamHeader) {
+          log('found bitstream header part in packet:', properties.tags, p.data);
         }
 
         videoSocket.transfer(p);
 
       // FIXME: make two queues (audio/video) and optimize away this check here
-      } else if (p.defaultPayloadInfo.isAudio()) {
-        debug('got audio packet:', p.toString());
+      } else if (properties.isAudio()) {
+        debug('got audio out to transfer:', p.toString());
 
         if (!audioSocket) {
-          log('creating audio output socket:', p.defaultPayloadInfo);
-          this._audioSocket = audioSocket = this.createOutput(SocketDescriptor.fromPayloads([p.defaultPayloadInfo]));
+          log('creating audio output socket:', properties.mimeType);
+          this._audioSocket = audioSocket = this.createOutput(SocketDescriptor.fromBufferProps(properties));
         }
-
-        debug('transferring audio packet to default out');
 
         audioSocket.transfer(p);
       } else {
-        throw new Error('Unsupported payload: ' + p.defaultMimeType);
+        throw new Error('Unsupported payload: ' + properties.mimeType);
       }
     });
 
