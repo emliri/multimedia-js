@@ -4,13 +4,17 @@ import { Packet } from '../core/packet';
 import { arrayLast, prntprtty } from '../common-utils';
 
 export class SocketTapPacketCapture extends SocketTapDefault {
-  constructor (private _debugLog: boolean = false) {
+  constructor (private _ignoreSymbolic: boolean = true,
+    private _debugLog: boolean = false) {
     super();
   }
 
   readonly dataList: PacketDataModel[] = [];
 
   pushPacket (p: Packet): boolean {
+    if (this._ignoreSymbolic && p.isSymbolic()) {
+      return true;
+    }
     this.dataList.push(PacketDataModel.createFromPacket(p));
     if (this._debugLog) {
       console.debug(prntprtty(arrayLast(this.dataList)));
