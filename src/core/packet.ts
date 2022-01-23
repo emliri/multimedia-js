@@ -1,5 +1,5 @@
 import { Nullable } from '../common-types';
-import { orZero } from '../common-utils';
+import { orNull, orZero } from '../common-utils';
 import { getPerfWallClockTime } from '../perf-ctx';
 import { BufferSlices, BufferSlice } from './buffer';
 import { BufferProperties } from './buffer-props';
@@ -133,7 +133,7 @@ export class Packet implements PacketDataModel {
   }
 
   get properties (): Nullable<BufferProperties> {
-    return this?.data[0]?.props || null;
+    return orNull(this?.data[0]?.props);
   }
 
   /**
@@ -147,7 +147,7 @@ export class Packet implements PacketDataModel {
    * number amount of slices, length of list.
    */
   get dataSlicesLength () {
-    return this?.data.length || 0;
+    return orZero(this?.data.length);
   }
 
   /**

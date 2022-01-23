@@ -1,18 +1,18 @@
 import { EventEmitter } from 'eventemitter3';
 
 import { SocketEvent, SocketState, SocketOwner, SocketEventHandler, SocketType } from './socket';
+import { SocketTap } from './socket-tap';
+import { SocketDescriptor } from './socket-descriptor';
 import { SignalReceiver, SignalHandler, Signal, SignalReceiverCastResult } from './signal';
 import { PayloadDescriptor } from './payload-description';
 import { Packet } from './packet';
 import { PacketSymbol } from './packet-symbol';
-import { SocketTap } from './socket-tap';
 
-import { dispatchAsyncTask, orInfinity } from '../common-utils';
-import { getLogger, LoggerLevel } from '../logger';
 import { Nullable } from '../common-types';
-import { SocketDescriptor } from './socket-descriptor';
+import { getLogger, LoggerLevel } from '../logger';
+import { dispatchTimer } from '../lib/timer';
 
-const { log, error } = getLogger('SocketBase', LoggerLevel.ERROR);
+const { error } = getLogger('SocketBase', LoggerLevel.ERROR);
 
 export abstract class Socket extends EventEmitter<SocketEvent> implements SignalReceiver {
   private type_: SocketType;
@@ -130,6 +130,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * @param p
    */
   transfer (p: Nullable<Packet>, async: boolean = true): Promise<boolean> {
+    // Q: could/should be in tranfer-sync method?
     this._emit(SocketEvent.ANY_PACKET_TRANSFERRING);
     if (async) {
       return this.transferAsync_(p);
@@ -283,7 +284,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
 
   private transferAsync_ (p: Packet): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      dispatchAsyncTask(() => {
+      dispatchTimer(() => {
         try {
           resolve(this.transferSync_(p));
         } catch (e) {

@@ -77,7 +77,8 @@ import {
   VP6_VIDEO_CODEC_ID
 } from './mp4mux-codecs';
 
-import { hexToBytes, flatten2DArray, isQNumber } from '../../common-utils';
+import { flatten2DArray, isQNumber } from '../../common-utils';
+import { hexToBytes } from '../../common-utils-binary';
 import { getLogger, LoggerLevel } from '../../logger';
 
 const { warn, debug } = getLogger('Mp4Mux', LoggerLevel.OFF, true);

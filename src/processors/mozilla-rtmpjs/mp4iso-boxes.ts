@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
+import { concatArrays } from '../../common-utils';
+
 import {
-  concatArrays, writeUint32, writeInt32, decodeInt32,
+  writeUint32, writeInt32, decodeInt32,
   encodeDate, encodeFloat_16_16, encodeFloat_8_8,
   encodeFloat_2_30, encodeLang, utf8decode
-} from '../../common-utils';
+} from '../../common-utils-binary';
 
 import { Box, BoxContainerBox, FullBox } from './mp4iso-base';
 

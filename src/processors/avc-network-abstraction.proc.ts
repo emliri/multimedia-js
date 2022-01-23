@@ -3,17 +3,18 @@ import { Packet } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType } from '../core/socket';
 import { BufferSlice } from '../core/buffer';
 import { CommonMimeTypes } from '../core/payload-description';
+import { BufferProperties } from '../core/buffer-props';
 
 import { getLogger, LoggerLevel } from '../logger';
 import { Nullable } from '../common-types';
 import { isQNumber, secsToMillis } from '../common-utils';
 
-import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType, makeNALUFromH264RbspData } from './h264/h264-tools';
+import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType } from './h264/h264-tools';
+
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
+
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 import { Sps } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
-import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
-import { BufferProperties } from '../..';
 
 const { debug, log, warn, error } = getLogger('AvcPayloaderProc', LoggerLevel.OFF, true);
 
@@ -68,28 +69,22 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet): boolean {
-    log('parsing packet:', p.toString());
-
     const { properties } = p;
-    if (!properties) {
-      warn('no buffer-props, dropping packet');
-      return false;
+    // TODO: deprecate relying on tags, see below
+    if (!properties.tags.has('nalu')) {
+      throw new Error('Got packet not tagged as H264 NAL-unit');
     }
 
-    if (properties.tags.has('nalu')) {
-      debug('input packet is tagged as NALU with tags:', properties.tags,
-        'and nb of slices:', p.dataSlicesLength);
+    debug('input packet', p.toString(),
+      'is tagged as NALU with tags:', properties.tags,
+      'and nb of slices:', p.dataSlicesLength);
 
-      // only needed for AvcC generation ??
-      if (properties.tags.has('sps') || properties.tags.has('pps')) {
-        p.forEachBufferSlice(this._handleParameterSetNalus.bind(this, p), null, this);
-      }
-
-      this._processPacket(p);
-    } else {
-      error('Got packet not tagged NALU');
-      return false;
+    // TODO: instead of relying on tags, probe/parse assumed NALU data here.
+    if (properties.tags.has('sps') || properties.tags.has('pps')) {
+      p.forEachBufferSlice(this._handleParameterSetNalus.bind(this, p), null, this);
     }
+
+    this._processPacket(p);
 
     return true;
   }
@@ -97,22 +92,20 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
   private _processPacket (p: Packet) {
     const { properties } = p;
 
-    // packet data might contain multiple slices for the frame:
+    // packet data might contain multiple slices for a frame i.e timestamp/CTO:
     // this proc replaces that by a single AU containing all slices.
+    const auBufferSlice = makeAccessUnitFromNALUs(p.data, this.options_.useAnnexB);
 
-    const slices = p.data;
-    const bufferSlice = makeAccessUnitFromNALUs(slices, this.options_.useAnnexB);
+    auBufferSlice.props = properties;
+    // adapt the buffer-props to our actual output (was H264-NALU, now AVC-AU)
+    auBufferSlice.props.mimeType = CommonMimeTypes.VIDEO_AVC;
 
-    bufferSlice.props = properties;
-    bufferSlice.props.mimeType = CommonMimeTypes.VIDEO_AVC;
-
-    // first drop all slices from data list
+    // drop all slices from data list & set as data single buffer with frame AU
     p.data.length = 0;
-    // set as data single buffer with frame AU
-    p.data[0] = bufferSlice;
+    p.data[0] = auBufferSlice;
 
     log('wrote multi-slice AU for packet:', p.toString());
-    DEBUG_H264 && debugAccessUnit(bufferSlice, true, log);
+    DEBUG_H264 && debugAccessUnit(auBufferSlice, true, log);
 
     // store packet for sample-timing (duration will be evaled from next packet
     // then gets popped and transfered, etc, see below).
