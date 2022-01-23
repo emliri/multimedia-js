@@ -156,7 +156,6 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
         this._packetDelayStore = null;
       }, this.options_.timeoutFactorPacketDelay * secsToMillis(timeoutSecs));
     }
-
   }
 
   private _popPacketDelayStore (p: Packet = null) {

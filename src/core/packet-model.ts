@@ -8,7 +8,6 @@ import { PacketSymbol } from './packet-symbol';
  * Data-model used for metadata serialization (MUST be JSON-stringify-able)
  */
 export class PacketDataModel {
-
   static createFromPacket (p: Packet): PacketDataModel {
     const pdm = new PacketDataModel(
       p.createdAt,
