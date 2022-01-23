@@ -29,13 +29,26 @@ export function mixinWithOptions<
     }
 
     /**
-     * Access to *internal* options reference,
-     * CAUTION when passing on: this is not a copy,
-     * mutations affect the internal state of
-     * any sub-classing/mixing-in instance.
-     * Should *hence* only be used over get/setOptions for
+     * Access to *internal* TOptions object-ref.
+     *
+     * Use over get/setOptions for
      * specific performance-scaling optimizations,
      * when you know how/why to do this.
+     *
+     * Otherwise, use get/setOptions!
+     *
+     * CAUTION when passing on: this is not a copy:
+     * mutations affect the internal state of instance.
+     *
+     * MOREOVER, any call to `setOptions` will *replace/invalidate*
+     * this internal reference, so r/w-ops to a priorly obtained
+     * object-ref via this getter would not refer anymore to current state!
+     * And also lead to memory-leaks in principle.
+     *
+     * THEREFORE, this is *only* fully _safe_ to be used from within
+     * the subclass impl, and only as local ref, but not to be transferred/shared
+     * ownership elsewhere, or store the in any way.
+     *
      */
     get options_ (): TOptions {
       return this._options;
@@ -63,7 +76,7 @@ export function mixinWithOptions<
     setOptions (opts: Partial<TOptions> = defaultOpts) {
       // preserves current state, then applies partial arg on top, then fills
       // in any missing properties with defaultOpts props.
-      // debugger;
+      // returns a newly created TOptions object every time.
       this._options = objectNewFromDefaultAndPartials(defaultOpts, this._options, opts);
       return this._options;
     }
