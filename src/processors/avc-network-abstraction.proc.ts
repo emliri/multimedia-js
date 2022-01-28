@@ -21,7 +21,7 @@ const { debug, log, warn, error } = getLogger('AvcPayloaderProc', LoggerLevel.OF
 const DEBUG_H264 = false;
 
 const DEFAULT_FRAME_RATE = 24; // "best guess" if unable to determine (lowest FPS typical to avoid gaps)
-const DEFAULT_PACKET_DELAY_TIMEOUT_FACTOR = 16; // typical GOP length
+const DEFAULT_PACKET_DELAY_TIMEOUT_FACTOR = 16; // typical GOP (short) length
 
 // const auDelimiterNalu = makeNALUFromH264RbspData(BufferSlice.fromTypedArray(new Uint8Array([7 << 5])), H264NaluType.AUD, 3);
 
