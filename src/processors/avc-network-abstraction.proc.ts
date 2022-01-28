@@ -259,10 +259,8 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
     avcCodecDataBox.write(bufferSlice.getUint8Array());
 
     // Reset here if need to handle multiple embedded SPS/PPS in stream
-    /// *
     this._spsSliceCache = null;
     this._ppsSliceCache = null;
-    //* /
 
     log('made AvcC atom data');
 
