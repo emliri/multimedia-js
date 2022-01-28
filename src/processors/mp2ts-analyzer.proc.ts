@@ -23,6 +23,7 @@ import { Frame, Track } from '../ext-mod/inspector.js/src';
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer';
 import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
+import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
@@ -123,23 +124,21 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       // used as a canonical output to produce any other segmentation in principle.
       switch (track.type) {
       case Track.TYPE_VIDEO:
-        vFrames = frames;
-        gotVideoKeyframe = frames.some(frame => frame.frameType === Frame.IDR_FRAME);
+
+        gotVideoKeyframe = frames.some(frame => frame.frameType === FRAME_TYPE.I);
 
         // sps/pps can come in 1 PUSI with prior p-frame !
         const h264Reader = (<H264Reader> track.pes.payloadReader);
         if (h264Reader.sps && h264Reader.pps) {
-          // in case there is no frame
-          // we need to extract timing info like this
-          if (frames.length === 0) {
-            spsPpsTimeUs = h264Reader.timeUs;
-          }
+          spsPpsTimeUs = h264Reader.timeUs;
           // reset the reader state
           h264Reader.sps = null;
           h264Reader.pps = false;
 
           gotAvcInitData = true;
         }
+
+        vFrames = frames;
         break;
       case Track.TYPE_AUDIO:
         aFrames = frames;
@@ -155,12 +154,10 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       const firstPtsV = orInfinity(vFrames && vFrames.length && vFrames[0].timeUs);
       let firstPtsUs = Math.min(
         firstPtsA,
-        firstPtsV
+        firstPtsV,
+        orInfinity(spsPpsTimeUs) // will only be defined if there were no video frames to get timing from.
       );
-      // will only be defined if there were no video frames to get timing from.
-      if (isQNumber(spsPpsTimeUs)) {
-        firstPtsUs = spsPpsTimeUs;
-      }
+
       // this is needed to handle timeUs = 0.
       // based on the preconditions here
       // firstPtsUs = Infinity can only result
