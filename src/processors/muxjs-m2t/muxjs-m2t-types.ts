@@ -56,7 +56,8 @@ export type M2tH264StreamEvent = {
   escapedRBSP?: Uint8Array
   dts: number
   pts: number
-  nalUnitType: M2tNaluType
+  nalUnitType: M2tNaluType,
+  nalUnitTypeByte: number,
   trackId: number
 }
 
