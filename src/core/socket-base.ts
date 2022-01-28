@@ -10,7 +10,7 @@ import { PacketSymbol } from './packet-symbol';
 
 import { Nullable } from '../common-types';
 import { getLogger, LoggerLevel } from '../logger';
-import { dispatchTimer } from '../lib/timer';
+import { setOnceTimer } from '../lib/timer';
 
 const { error } = getLogger('SocketBase', LoggerLevel.ERROR);
 
@@ -284,7 +284,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
 
   private transferAsync_ (p: Packet): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      dispatchTimer(() => {
+      setOnceTimer(() => {
         try {
           resolve(this.transferSync_(p));
         } catch (e) {
