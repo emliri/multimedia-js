@@ -2,7 +2,7 @@ export type VoidCallback = () => void;
 
 export type Nullable<T> = T | null;
 
-export type LambdaFunc = (...args: any[]) => void;
+export type LambdaFunc<T = void> = (...args: any[]) => T;
 
 export type LambdaNoArgFunc = () => void;
 
