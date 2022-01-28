@@ -16,6 +16,7 @@ import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 import { ErrorCode } from '../core/error';
 import { debugAccessUnit } from './h264/h264-tools';
+import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 
 const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.OFF, true);
 
@@ -255,10 +256,10 @@ export class MP4DemuxProcessor extends Processor {
             output.transfer(initPacket);
           });
 
-          track.getFrames().forEach((frame: Frame, index) => {
+          track.getFrames().forEach((frame: Frame) => {
             let props = protoProps;
 
-            if (frame.frameType === Frame.IDR_FRAME) {
+            if (frame.frameType === FRAME_TYPE.I) {
               log('got idr-frame at:', frame.timeUs, '[us]');
               props = protoProps.clone();
               props.isKeyframe = true;
