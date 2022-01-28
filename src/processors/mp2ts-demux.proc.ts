@@ -228,26 +228,24 @@ export class MP2TSDemuxProcessor extends Processor {
     }
 
     if (!this._videoConfig) {
-      warn('Skipping H264 data before got first param-sets, NALU-type:', mapNaluTypeToTag(h264Event.nalUnitType));
+      warn('Skipping H264 data before got first param-sets, NALU-type:', H264NaluType[h264Event.nalUnitTypeByte]);
       return;
     }
-
-    const naluParsed = parseNALU(BufferSlice.fromTypedArray(h264Event.data));
 
     // drop "filler data" nal-units (used by some encoders on CBR channels)
-    if (naluParsed.nalType === H264NaluType.FIL) {
+    if (h264Event.nalUnitTypeByte === H264NaluType.FIL) {
       return;
     }
 
-    if (h264Event.nalUnitType === M2tNaluType.SEI) {
+    if (h264Event.nalUnitTypeByte === H264NaluType.SEI) {
       return;
     }
 
-    if (h264Event.nalUnitType === M2tNaluType.PPS) {
+    if (h264Event.nalUnitTypeByte === H264NaluType.PPS) {
       this._gotVideoPictureParamSet = true;
     }
 
-    const isKeyframe: boolean = h264Event.nalUnitType === M2tNaluType.IDR;
+    const isKeyframe: boolean = h264Event.nalUnitTypeByte === H264NaluType.IDR;
     if (isKeyframe) {
       if (this._videoFirstKeyFrameDts === null) {
         this._videoFirstKeyFrameDts = h264Event.dts;
@@ -257,8 +255,8 @@ export class MP2TSDemuxProcessor extends Processor {
       }
     }
 
-    const isHeader: boolean = h264Event.nalUnitType === M2tNaluType.SPS ||
-                              h264Event.nalUnitType === M2tNaluType.PPS;
+    const isHeader: boolean = h264Event.nalUnitTypeByte === H264NaluType.SPS ||
+                              h264Event.nalUnitTypeByte === H264NaluType.PPS;
 
     const dts = h264Event.dts;
     const cto = h264Event.pts - h264Event.dts;
@@ -389,7 +387,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
         videoSocket.transfer(p);
 
-      // FIXME: make two queues (audio/video) and optimize away this check here
+      // TODO: make two queues (audio/video) and optimize away this check here
       } else if (properties.isAudio()) {
         debug('got audio out to transfer:', p.toString());
 
