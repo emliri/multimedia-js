@@ -163,7 +163,6 @@ export class MP2TSDemuxProcessor extends Processor {
 
     pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
       debug('h264Stream:', data);
-
       this._handleVideoNalu(data);
     });
 
