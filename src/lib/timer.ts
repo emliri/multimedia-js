@@ -20,7 +20,7 @@ export function cancelRepeatTimer (id: number): void {
   clearInterval(id);
 }
 
-export function delay<T>(result: T, timeoutMs: number = 0): Promise<T> {
+export function delay<T> (result: T, timeoutMs: number = 0): Promise<T> {
   return new Promise((resolve) => {
     setOnceTimer(() => {
       resolve(result);
@@ -28,7 +28,7 @@ export function delay<T>(result: T, timeoutMs: number = 0): Promise<T> {
   });
 }
 
-export function defer<T>(result: LambdaFunc<T>, timeoutMs: number = 0): Promise<T> {
+export function defer<T> (result: LambdaFunc<T>, timeoutMs: number = 0): Promise<T> {
   return new Promise((resolve) => {
     setOnceTimer(() => {
       resolve(result());
@@ -36,14 +36,14 @@ export function defer<T>(result: LambdaFunc<T>, timeoutMs: number = 0): Promise<
   });
 }
 
-export async function sleepLoop(func: () => boolean, sleepMs: number = 0) {
+export async function sleepLoop (func: () => boolean, sleepMs: number = 0) {
   let nextSleepMs = sleepMs;
   while (true) {
     const now = getPerfNow();
     const result = await defer(func, nextSleepMs);
     if (result) break;
     const awaitMs = getPerfNow() - now;
-    nextSleepMs = sleepMs - Math.max(0,  awaitMs - sleepMs);
+    nextSleepMs = sleepMs - Math.max(0, awaitMs - sleepMs);
   }
 }
 
@@ -67,31 +67,31 @@ export class Timer {
   private _expectedAt: number = NaN;
   private _scheduleDeltaMs: number = NaN;
 
-  static Once(func: VoidCallback, timeoutMs: number): Timer {
+  static Once (func: VoidCallback, timeoutMs: number): Timer {
     return new Timer(func, timeoutMs, TimerMode.ONCE).on();
   }
 
-  static Repeat(func: VoidCallback, timeoutMs: number): Timer {
+  static Repeat (func: VoidCallback, timeoutMs: number): Timer {
     return new Timer(func, timeoutMs, TimerMode.REPEAT).on();
   }
 
-  constructor(private _func: VoidCallback,
+  constructor (private _func: VoidCallback,
     private _timeoutMs: number, private _mode: TimerMode = TimerMode.ONCE) {
   }
 
-  get mode(): TimerMode {
+  get mode (): TimerMode {
     return this._mode;
   }
 
-  get state(): TimerState {
+  get state (): TimerState {
     return this._state;
   }
 
-  get expectedAt(): number {
+  get expectedAt (): number {
     return this._expectedAt;
   }
 
-  get scheduleDelta(): number {
+  get scheduleDelta (): number {
     return this._scheduleDeltaMs;
   }
 
@@ -106,22 +106,22 @@ export class Timer {
    * in order to avoid mem-leaks.
    * Calls off() first. Sets state to VOID finally.
    */
-  clear() {
+  clear () {
     this.off();
     this._func = null;
     this.onError = null;
     this._state = TimerState.VOID;
   }
 
-  isCleared(): boolean {
-    return ! this._func;
+  isCleared (): boolean {
+    return !this._func;
   }
 
-  setFunction(func: VoidCallback) {
+  setFunction (func: VoidCallback) {
     this._func = func;
   }
 
-  isScheduled(): boolean {
+  isScheduled (): boolean {
     // includes running/error states,
     // in case of repeat mode
     // the timer is still "pending" then,
@@ -130,18 +130,18 @@ export class Timer {
     return this._state < TimerState.CANCELED;
   }
 
-  onError(err: Error) {}
+  onError (err: Error) {}
 
-  on() {
+  on () {
     if (this.isCleared()) {
       throw new Error('Timer instance is destroyed, cant call on()');
     }
     this.off();
     this._state = TimerState.PENDING;
-    switch(this._mode) {
+    switch (this._mode) {
     case TimerMode.ONCE:
       this._id = setOnceTimer(this._run.bind(this), this._timeoutMs);
-      break
+      break;
     case TimerMode.REPEAT:
       this._id = setRepeatTimer(this._run.bind(this), this._timeoutMs);
       break;
@@ -150,14 +150,14 @@ export class Timer {
     return this;
   }
 
-  off(): boolean {
+  off (): boolean {
     if (!this.isScheduled()) {
       return false;
     }
     this._expectedAt = NaN;
     this._scheduleDeltaMs = NaN;
     this._state = TimerState.CANCELED;
-    switch(this._mode) {
+    switch (this._mode) {
     case TimerMode.ONCE:
       cancelOnceTimer(this._id);
       break;
@@ -168,7 +168,7 @@ export class Timer {
     return true;
   }
 
-  private _run() {
+  private _run () {
     const now = getPerfWallClockTime();
     this._scheduleDeltaMs = now - this._expectedAt;
     if (this._mode === TimerMode.REPEAT) {
@@ -179,7 +179,7 @@ export class Timer {
     this._state = TimerState.RUNNING;
     try {
       this._func();
-    } catch(err) {
+    } catch (err) {
       this._state = TimerState.ERROR;
       this.onError(err);
       // callback may have changed state,
@@ -197,7 +197,7 @@ export class Timer {
       finalize();
     }
 
-    function finalize() {
+    function finalize () {
       if (this._mode === TimerMode.REPEAT) {
         this._state = TimerState.PENDING;
       } else {
@@ -205,7 +205,4 @@ export class Timer {
       }
     }
   }
-
 }
-
-
