@@ -240,6 +240,7 @@ export class MP4DemuxProcessor extends Processor {
             protoProps.details.codecProfile = codecProfile;
             protoProps.codec = 'avc';
           } else if (track.isAudio()) {
+            // TODO: add audio object type (from ESDS DecoderConfigDescriptor)
             protoProps.details.numChannels = numChannels;
             protoProps.details.constantBitrate = constantBitrate;
             protoProps.details.samplesPerFrame = AAC_SAMPLES_PER_FRAME;
