@@ -2,6 +2,8 @@
 import { EventEmitter } from "eventemitter3";
 import { isTypedArraySharingBuffer } from "../../common-utils";
 
+import { splitRawAudioFrameToStereoChannels } from "./aac-utils";
+
 const AacDecoder = require('../../ext-mod/aac.js/src/decoder');
 const AuroraAv = require('../../ext-mod/aac.js/src/av');
 
@@ -32,9 +34,18 @@ export class AacJsDecoder {
     profile: 2,
     samplingIndex: 4,
     channels: 2
-  }) {
-    this._aacDec.on('data', (data) => {
-      this.onData(data);
+  }, enableStereoChannelSplit: boolean = false) {
+
+    if (enableStereoChannelSplit && header.channels !== 2) {
+      throw new Error('Cant set enableStereoChannelSplit flag with channels != 2');
+    }
+
+    this._aacDec.on('data', (data: Float32Array) => {
+      if (enableStereoChannelSplit) {
+        this.onData(splitRawAudioFrameToStereoChannels(data));
+      } else {
+        this.onData([data]);
+      }
     });
     this._aacDec.on('end', () => {
       this.onEos();
@@ -62,18 +73,18 @@ export class AacJsDecoder {
     }
     this._aacDemux.pushBuffer(buf);
     this._aacDec.decode();
-
   }
 
-  onData(data: Float32Array) {
-    console.log(data);
+  onData(data: Float32Array[]) {
+    console.log('AAC.js-decoder output:', data);
   }
 
   onEos() {
-    console.log('AAC.js "end" event (EOS)');
+    console.log('AAC.js-decoder EOS event');
   }
 
   onError(err: Error) {
+    console.error('AAC.js-decoder error event:', err);
   }
 }
 
@@ -81,13 +92,14 @@ export class AacJsDecoderWorkerContext {
 
   private _workerCtx = self as any;
 
-  constructor(cfg: AacJsDecoderConfig) {
+  constructor(cfg?: AacJsDecoderConfig, enableStereoChannelSplit: boolean = false) {
 
     if (!this._workerCtx.importScripts) {
       throw new Error('Class should only be constructed from Worker scope');
     }
 
-    const dec: AacJsDecoder = new AacJsDecoder(cfg);
+    const dec: AacJsDecoder = new AacJsDecoder(cfg || undefined,
+      enableStereoChannelSplit);
 
     const workerCtx: Worker = this._workerCtx as Worker;
     self.addEventListener('message', (event) => {
@@ -95,12 +107,15 @@ export class AacJsDecoderWorkerContext {
       dec.pushBuffer(buf)
     });
 
-    dec.onData = (audioFrame: Float32Array) => {
-      if (isTypedArraySharingBuffer(audioFrame)) {
+    dec.onData = (audioFrame: Float32Array[]) => {
+
+      const isSharingBuffer = audioFrame.some((buf) => isTypedArraySharingBuffer(buf));
+      if (isSharingBuffer) {
         throw new Error('Cant transfer audio-frame, is not unique owner of its ArrayBuffer memory');
       }
-      const transferData = audioFrame.buffer;
-      workerCtx.postMessage(transferData, [transferData]);
+
+      const transferData: ArrayBuffer[] = audioFrame.map(a => a.buffer);
+      workerCtx.postMessage(transferData, transferData);
     };
 
     dec.onError = (err: Error) => {
