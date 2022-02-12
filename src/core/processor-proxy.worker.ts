@@ -33,6 +33,8 @@ const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`
 
   log('setting new worker instance up ...');
 
+  // TODO: check for importScripts existence i.e if module loaded by worker-scope
+
   const context: Worker = self as any;
   const subContexts: ProcessorProxyWorkerSubContext[] = [];
 

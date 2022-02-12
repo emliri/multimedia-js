@@ -3,7 +3,7 @@ import { getLogger, LoggerLevel } from '../logger';
 import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from './processor';
 import { InputSocket, SocketDescriptor, SocketType, Socket } from './socket';
 import { Packet, PacketSymbol } from './packet';
-import { createProcessorFromShellName } from './processor-factory';
+import { createProcessorByName } from './processor-factory';
 import { VoidCallback } from '../common-types';
 import { EnvVars } from '../core/env';
 import { ErrorCode } from './error';
@@ -60,6 +60,7 @@ export class ProcessorProxyWorker {
   private _gotSpawnCallback: boolean = false;
   private _worker: Worker = null
 
+  // add proc factory-name
   constructor (
     private _onSpawned: VoidCallback,
     private _onCreated: VoidCallback,
@@ -74,8 +75,11 @@ export class ProcessorProxyWorker {
       this._worker = new Worker(PROXY_WORKER_PATH);
       log('created web-worker wrapper from filepath:', PROXY_WORKER_PATH);
     } catch (err) {
-      error('failed to initialize worker:', err);
-      return this;
+      console.error(err);
+      throw new Error('Error initializing proc-worker: ' + err.message);
+    }
+    if (!this._worker) {
+      throw new Error('Failed initializing proc-worker');
     }
 
     this._worker.addEventListener('error', (event: ErrorEvent) => {
@@ -337,7 +341,7 @@ export class ProcessorProxy extends Processor {
 
   private _initShellFromProtoInstance () {
     // make a utility like this to "clone" a proc ?
-    const protoInstance = createProcessorFromShellName(this._processorShellName, this._processorArgs);
+    const protoInstance = createProcessorByName(this._processorShellName, this._processorArgs);
     // we are basically probing the proto instance of the proc and creating a clone of its template-generator function
     const socketTemplateGenerator = SocketDescriptor.createTemplateGenerator(
       protoInstance.templateSocketDescriptor(SocketType.INPUT),

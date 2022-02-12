@@ -50,7 +50,7 @@ export function createProcessorFromConstructor (ProcessorConstructor: typeof Pro
   return new (<any> ProcessorConstructor)(...args);
 }
 
-export function createProcessorFromShellName (factoryName: string, args?: any[]): Processor {
+export function createProcessorByName (factoryName: string, args?: any[]): Processor {
   return createProcessorFromConstructor(getProcessorConstructorByName(factoryName), args);
 }
 
@@ -61,12 +61,21 @@ export function newProcessorWorkerShell<T extends typeof Processor = typeof Proc
   onReady: VoidCallback = noop): ProcessorProxy {
   const name = procConstructor.getName();
   if (!name) {
-    throw new Error('Can not use factory, static name is not defined');
+    throw new Error('Factory failure: Processor.getName() returns undefined: ' + procConstructor.name);
   }
   return new ProcessorProxy(name, onReady, args, importScriptPaths);
 }
 
 export const newProc = newProcessorWorkerShell; // shorthand
+
+export function newProcWorkerUnsafeCast(
+  procConstructor: any,
+  args?: any[],
+  importScriptPaths?: string[],
+  onReady: VoidCallback = noop): ProcessorProxy {
+  return newProc(unsafeCastProcessorType(procConstructor),
+    args, importScriptPaths, onReady);
+}
 
 export function createProcessorWorkerShellAsync (factoryName: string, args: any[] = [], timeoutMs: number = 1000): Promise<ProcessorProxy> {
   return new Promise<ProcessorProxy>((resolve, reject) => {
