@@ -1,12 +1,11 @@
-import { makeUUID_v1 } from '../common-crypto';
 import { getLogger, LoggerLevel } from '../logger';
+import { VoidCallback } from '../common-types';
+import { getEnvironmentVar, EnvironmentVar } from './env';
+import { ErrorCode } from './error';
+import { createProcessorByName } from './processor-factory';
 import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from './processor';
 import { InputSocket, SocketDescriptor, SocketType, Socket } from './socket';
 import { Packet, PacketSymbol } from './packet';
-import { createProcessorByName } from './processor-factory';
-import { VoidCallback } from '../common-types';
-import { EnvVars } from '../core/env';
-import { ErrorCode } from './error';
 
 const { log, debug, warn, error } = getLogger('ProcessorProxy', LoggerLevel.ERROR);
 
@@ -69,7 +68,7 @@ export class ProcessorProxyWorker {
     private _onEvent: (event: ProcessorEventData) => void,
     private _onWorkerError: (event: ErrorEvent) => void
   ) {
-    const PROXY_WORKER_PATH = EnvVars.PROXY_WORKER_PATH;
+    const PROXY_WORKER_PATH = getEnvironmentVar(EnvironmentVar.PROXY_WORKER_PATH);
 
     try {
       this._worker = new Worker(PROXY_WORKER_PATH);
