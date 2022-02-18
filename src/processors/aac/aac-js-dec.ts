@@ -1,5 +1,7 @@
 
 import { EventEmitter } from "eventemitter3";
+
+import { Nullable } from "../../common-types";
 import { isTypedArraySharingBuffer } from "../../common-utils";
 
 import { splitRawAudioFrameToStereoChannels } from "./aac-utils";
@@ -25,16 +27,23 @@ export type AacJsDecoderConfig = {
   channels: number
 }
 
+const defaultConfig: AacJsDecoderConfig = {
+  profile: 2,
+  samplingIndex: 4,
+  channels: 2
+}
+
 export class AacJsDecoder {
 
   private _aacDemux: AacJsAuroraDemuxerShim = new AacJsAuroraDemuxerShim();
   private _aacDec = new AacDecoder(this._aacDemux, {});
 
-  constructor(header: AacJsDecoderConfig = {
-    profile: 2,
-    samplingIndex: 4,
-    channels: 2
-  }, enableStereoChannelSplit: boolean = false) {
+  constructor(header: Nullable<AacJsDecoderConfig>, enableStereoChannelSplit: boolean = false) {
+
+    if (!header) {
+      header = defaultConfig;
+    }
+
 
     if (enableStereoChannelSplit && header.channels !== 2) {
       throw new Error('Cant set enableStereoChannelSplit flag with channels != 2');
@@ -92,14 +101,13 @@ export class AacJsDecoderWorkerContext {
 
   private _workerCtx = self as any;
 
-  constructor(cfg?: AacJsDecoderConfig, enableStereoChannelSplit: boolean = false) {
+  constructor(cfg: AacJsDecoderConfig = defaultConfig, enableStereoChannelSplit: boolean = false) {
 
     if (!this._workerCtx.importScripts) {
       throw new Error('Class should only be constructed from Worker scope');
     }
 
-    const dec: AacJsDecoder = new AacJsDecoder(cfg || undefined,
-      enableStereoChannelSplit);
+    const dec: AacJsDecoder = new AacJsDecoder(cfg, enableStereoChannelSplit);
 
     const workerCtx: Worker = this._workerCtx as Worker;
     self.addEventListener('message', (event) => {
