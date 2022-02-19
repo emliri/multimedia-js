@@ -10,7 +10,7 @@ export enum ADTS_PROFILE_MP4A_OBJECT_TYPE {
   AAC_LC = 2,
   AAC_SSR = 3,
   AAC_LTP = 4
-};
+}
 
 export const AAC_SAMPLES_PER_FRAME = 1024;
 
