@@ -43,7 +43,6 @@ export class AacJsDecoder {
       header = AacJsDecoder.defaultConfig;
     }
 
-
     if (enableStereoChannelSplit && header.channels !== 2) {
       throw new Error('Cant set enableStereoChannelSplit flag with channels != 2');
     }
