@@ -20,7 +20,7 @@ export type Mp4CmafNetStreamParseOpts = {
 }
 
 export class Mp4CmafNetStreamParseProc extends Processor {
-  static getName() {
+  static getName () {
     return 'Mp4CmafNetStreamParseProc';
   }
 

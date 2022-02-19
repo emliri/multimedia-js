@@ -53,12 +53,11 @@ export class NodeFsReadSocket extends OutputSocket implements SeekableOutputSock
   }
 
   private _drainPoll () {
-    let data: Buffer;
     // advantage of this approach is that we can eventually
     // try to consume a fixed buffer size if we would want to without having
     // to add any further logic here (in case the buffer size is not available
     // we would simply have to wait for the next 'readable' event).
-    while (data = this.stream.read()) {
+    for (let data: Buffer = this.stream.read(); data; data = this.stream.read()) {
       this.transfer(Packet.fromArrayBuffer(data.buffer));
     }
   }

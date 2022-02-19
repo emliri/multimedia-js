@@ -68,7 +68,7 @@ export function newProcessorWorkerShell<T extends typeof Processor = typeof Proc
 
 export const newProc = newProcessorWorkerShell; // shorthand
 
-export function newProcWorkerUnsafeCast(
+export function newProcWorkerUnsafeCast (
   procConstructor: any,
   args?: any[],
   importScriptPaths?: string[],

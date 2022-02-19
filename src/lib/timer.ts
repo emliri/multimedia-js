@@ -130,7 +130,7 @@ export class Timer {
     return this._state < TimerState.CANCELED;
   }
 
-  onError (err: Error) {}
+  onError (err: Error) {} // eslint-disable-line node/handle-callback-err
 
   on () {
     if (this.isCleared()) {

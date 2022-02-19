@@ -34,8 +34,8 @@ export function createWebpackConfig (options: WebpackConfigFactoryOptions, exclu
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.json', '.html', '.css'],
       fallback: {
-        "http": false,
-        "fs": false
+        http: false,
+        fs: false
       }
     },
     module: {
@@ -49,7 +49,7 @@ export function createWebpackConfig (options: WebpackConfigFactoryOptions, exclu
         }
       ]
     },
-    devtool: options.debug ? "inline-source-map" : "source-map",
+    devtool: options.debug ? 'inline-source-map' : 'source-map',
     optimization: {
       minimize: !options.debug
     },

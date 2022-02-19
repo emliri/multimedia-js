@@ -30,7 +30,6 @@ const workerId = makeUUID_v1();
 const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.WARN);
 
 (function () {
-
   log('setting new worker instance up ...');
 
   // TODO: check for importScripts existence i.e if module loaded by worker-scope

@@ -150,7 +150,6 @@ if (!noFrills) {
     )
   }
   */
-
 }
 
 export default configs;

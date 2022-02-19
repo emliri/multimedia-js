@@ -286,11 +286,11 @@ export function synthesizeError (err: Error): Error {
 
 // MEMORY
 
-export function isTypedArraySharingBuffer(a: Uint8Array | Float32Array): boolean {
+export function isTypedArraySharingBuffer (a: Uint8Array | Float32Array): boolean {
   return a.byteLength !== a.buffer.byteLength;
 }
 
-export function cloneTypedArray(a: Uint8Array | Float32Array): Uint8Array {
+export function cloneTypedArray (a: Uint8Array | Float32Array): Uint8Array {
   return new Uint8Array(a);
 }
 
