@@ -27,6 +27,12 @@ module.exports = {
 
     'no-undef': 0,
 
+    'no-void': 0,
+
+    'no-eval': 0,
+
+    'no-lone-blocks': 0,
+
     // our basic style rules
     semi: [
       'error',
