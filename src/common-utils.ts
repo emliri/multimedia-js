@@ -5,6 +5,10 @@ import { VoidCallback, TwoDimArray, Nullable } from './common-types';
 // eslint-disable-next-line no-void
 export const noop = () => void 0;
 
+export function isDef(val: any) {
+  return val !== undefined;
+}
+
 export function orNull<T> (val: T): Nullable<T> {
   return val || null;
 }
