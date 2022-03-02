@@ -129,29 +129,38 @@ export class MP2TSDemuxProcessor extends Processor {
       }
     });
 
-    pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
+    pipeline.elementaryStream.on('data', (eventData: M2tElementaryStreamEvent) => {
       if (!this._pmtCache) return;
+
+      const { data, pts, dts, trackId } = eventData;
+
       const appDataStreamType =
-        this._pmtCache.programMapTable['timed-metadata'][data.trackId];
+        this._pmtCache.programMapTable['timed-metadata'][trackId];
+      // assert program stream-type
       if (!appDataStreamType) {
+        // warn('timed-metadata PID not mapped in stream-types supported (ignoring payload):', trackId);
         return;
       }
-      const bs = BufferSlice.fromTypedArray(data.data,
-        new BufferProperties(MimetypePrefix.APPLICATION + '/unknown'));
-      const timestamp = Number.isFinite(data.dts) ? data.dts : data.pts;
+
+      // create packet
       let packet: Packet;
+      const bs = BufferSlice.fromTypedArray(data,
+        new BufferProperties(MimetypePrefix.APPLICATION + '/unknown'));
+      const timestamp = Number.isFinite(dts) ? dts : pts;
       if (Number.isFinite(timestamp)) {
         packet = Packet.fromSlice(bs, timestamp);
       } else {
         packet = Packet.fromSlice(bs);
       }
-      packet.setSynchronizationId(data.trackId);
-      if (!this._metadataSocketMap[data.trackId]) {
-        this._metadataSocketMap[data.trackId] =
+      packet.setSynchronizationId(trackId);
+      // create output on first data
+      if (!this._metadataSocketMap[trackId]) {
+        this._metadataSocketMap[trackId] =
           this.createOutput(SocketDescriptor
             .fromBufferProps(packet.properties));
       }
-      this._metadataSocketMap[data.trackId].transfer(packet);
+      // transfer packet
+      this._metadataSocketMap[trackId].transfer(packet);
     });
 
     // demux the streams
