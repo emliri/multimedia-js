@@ -16,9 +16,10 @@ export function parseAvcCodecAtom (avccData: Uint8Array): AvcC {
   return AvcC.parse(avccData) as AvcC;
 }
 
-export function debugNALU (bufferSlice: BufferSlice, logFunc: LoggerFunc = log) {
+export function debugNALU (bufferSlice: BufferSlice, logFunc: LoggerFunc = log): BufferSlice {
   const nalu: H264Nalu = new H264Nalu(bufferSlice.getUint8Array());
   logFunc(`parsed NALU of type ${nalu.getTypeName()}:`, nalu);
+  return bufferSlice;
 }
 
 /**
