@@ -149,9 +149,9 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     // pre-condition for code inside this if-block
     // is that at least one of the tracks has >= 1 frames.
     // either frames list can be undefined if there is no respective a/v track.
-    if ((aFrames && aFrames.length) || (vFrames && vFrames.length) || gotAvcInitData) {
-      const firstPtsA = orInfinity(aFrames && aFrames.length && aFrames[0].timeUs);
-      const firstPtsV = orInfinity(vFrames && vFrames.length && vFrames[0].timeUs);
+    if (aFrames?.length || vFrames?.length || gotAvcInitData) {
+      const firstPtsA = orInfinity(aFrames?.length && aFrames[0].timeUs);
+      const firstPtsV = orInfinity(vFrames?.length && vFrames[0].timeUs);
       let firstPtsUs = Math.min(
         firstPtsA,
         firstPtsV,
@@ -172,11 +172,11 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       // for example solely time-range based but not across PES / codecs.
       // ATM we expect what the below assertions express only.
       let codec4cc: string;
-      if (aFrames.length > 0 && vFrames.length > 0) {
+      if (aFrames?.length && vFrames?.length) {
         throw new Error('Expected to have only one type of frames in this PES segmentation mode');
-      } else if (aFrames.length) {
+      } else if (aFrames?.length) {
         codec4cc = CommonCodecFourCCs.mp4a;
-      } else if (vFrames.length || gotAvcInitData) {
+      } else if (vFrames?.length || gotAvcInitData) {
         codec4cc = CommonCodecFourCCs.avc1;
       } else {
         throw new Error('Expected either video or audio payload');
