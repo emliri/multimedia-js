@@ -121,7 +121,7 @@ export class MP2TSDemuxProcessor extends Processor {
 
     // AAC PES unpack
     pipeline.timestampRolloverStream
-    .pipe(pipeline.aacOrAdtsStream);
+      .pipe(pipeline.aacOrAdtsStream);
     pipeline.aacOrAdtsStream.on('data', (data: M2tADTSStreamEvent) => {
       debug('aacOrAdtsStream:', data);
       this._handleAudioNalu(data);
@@ -138,7 +138,7 @@ export class MP2TSDemuxProcessor extends Processor {
     this._demuxPipeline = pipeline as M2tDemuxPipeline;
   }
 
-  private _handleProgramTable(data: M2tTransportPacketEvent) {
+  private _handleProgramTable (data: M2tTransportPacketEvent) {
     if (!this._pmtCache && data.type === 'pmt') {
       log('First PMT packet:', data);
       this._pmtCache = data;
@@ -156,7 +156,7 @@ export class MP2TSDemuxProcessor extends Processor {
       Object.keys(data.programMapTable['timed-metadata']).forEach((pid: string) => {
         const streamType: number = data.programMapTable['timed-metadata'][pid];
 
-              // TODO: extract stream-descriptors from PMT data
+        // TODO: extract stream-descriptors from PMT data
 
         this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
           socket: new ShadowOutputSocket([MimetypePrefix.APPLICATION], Number(pid))
@@ -165,8 +165,7 @@ export class MP2TSDemuxProcessor extends Processor {
     }
   }
 
-  private _handleTimedMetadata(eventData: M2tElementaryStreamEvent) {
-
+  private _handleTimedMetadata (eventData: M2tElementaryStreamEvent) {
     // need first PMT to inspect stream-types
     if (!this._pmtCache) return;
 
@@ -258,7 +257,6 @@ export class MP2TSDemuxProcessor extends Processor {
       return;
     }
 
-
     if (h264Event.nalUnitTypeByte === H264NaluType.SEI) {
       // SEI payload is copied to a side-channel for transfer on its specific output,
       // but otherwise also being processed to the main video output without side-effects.
@@ -288,8 +286,7 @@ export class MP2TSDemuxProcessor extends Processor {
     this._pushVideoNalu({ nalu: h264Event, dts, cto, isKeyframe, isHeader });
   }
 
-  private _pushVideoSeiData(h264Event: M2tH264StreamEvent) {
-
+  private _pushVideoSeiData (h264Event: M2tH264StreamEvent) {
     console.warn('demuxed SEI data', h264Event.dts, h264Event.data.byteLength);
 
     const seiNalCopy = new Uint8Array(h264Event.data);
