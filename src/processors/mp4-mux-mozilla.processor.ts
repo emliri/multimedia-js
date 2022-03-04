@@ -2,29 +2,25 @@ import { Processor, ProcessorEvent, ProcessorEventData } from '../core/processor
 import { Packet, PacketSymbol } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { InputSocket, SocketDescriptor, SocketType, SocketTemplateGenerator } from '../core/socket';
-import { prntprtty } from '../common-utils';
 import { CommonMimeTypes } from '../core/payload-description';
 
+import { prntprtty } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 
-import {
-  MP4Mux
-} from './mozilla-rtmpjs/mp4mux';
-import {
-  MP4MovieMetadata,
-  MP4Track,
-  MP4MuxFrameType,
-  AudioDetails
-} from './mozilla-rtmpjs/mp4mux-types';
+import { H264NaluType } from './h264/h264-nalu';
 
 import {
   makeNALUFromH264RbspData,
   makeAccessUnitFromNALUs,
   debugAccessUnit
 } from './h264/h264-tools';
-import { H264NaluType } from './h264/h264-nalu';
 
-import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
+import { AAC_SAMPLES_PER_FRAME } from './aac/adts-utils';
+
+import {
+  MP4Mux
+} from './mozilla-rtmpjs/mp4mux';
+
 import {
   AAC_SOUND_CODEC_ID,
   MP3_SOUND_CODEC_ID,
@@ -32,7 +28,14 @@ import {
   VP6_VIDEO_CODEC_ID
 } from './mozilla-rtmpjs/mp4mux-codecs';
 
-import { AAC_SAMPLES_PER_FRAME } from './mp4-demux.processor';
+import {
+  MP4MovieMetadata,
+  MP4Track,
+  MP4MuxFrameType,
+  AudioDetails
+} from './mozilla-rtmpjs/mp4mux-types';
+
+import { AvcC } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/avcC';
 
 const { warn, info, log, debug } = getLogger('MP4MuxProcessor', LoggerLevel.OFF, true);
 

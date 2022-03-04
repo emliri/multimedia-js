@@ -144,7 +144,7 @@ describe('InputSocket', () => {
     const socket = new VoidSocket(SocketType.INPUT, new SocketDescriptor());
 
     socket.setSignalHandler((s: Signal) => {
-      return Promise.resolve(false); socket;
+      return Promise.resolve(false);
     });
 
     const owner: SocketOwner = {

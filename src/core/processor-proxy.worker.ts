@@ -29,9 +29,11 @@ const Processors = getProcessors();
 const workerId = makeUUID_v1();
 const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.WARN);
 
-log('setting new worker instance up ...');
-
 (function () {
+  log('setting new worker instance up ...');
+
+  // TODO: check for importScripts existence i.e if module loaded by worker-scope
+
   const context: Worker = self as any;
   const subContexts: ProcessorProxyWorkerSubContext[] = [];
 
@@ -178,7 +180,7 @@ log('setting new worker instance up ...');
       return true;
     };
 
-    const wireUpOutputSocket = (outputSocket: OutputSocket, outputIndex: number) => {
+    const wireUpOutputSocket = (outputSocket: OutputSocket, outputIndex: number) => {
       outputSocket.connect(new InputSocket(onOutputSockeTransfer.bind(this, outputIndex), outputSocket.descriptor()));
     };
 

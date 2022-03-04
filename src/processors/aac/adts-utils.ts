@@ -4,6 +4,16 @@ export type ADTSHeaderInfo = {
   timestamp: number
 }
 
+export enum ADTS_PROFILE_MP4A_OBJECT_TYPE {
+  NULL = 0,
+  AAC_MAIN = 1,
+  AAC_LC = 2,
+  AAC_SSR = 3,
+  AAC_LTP = 4
+}
+
+export const AAC_SAMPLES_PER_FRAME = 1024;
+
 export const ADTS_SAMPLING_RATES_TABLE = [
   96000,
   88200,
@@ -64,10 +74,6 @@ export function probeAACByteStream (data, offset): boolean {
     }
   }
   return false;
-}
-
-export function getAACFrameDurationInMPEGTSClockTicks (samplerate: number): number {
-  return 1024 * 90000 / samplerate;
 }
 
 export function parseAacADTSHeaderInfo (

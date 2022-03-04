@@ -112,7 +112,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     this._tsParser.append(mptsPktData);
 
     Object.values(this._tsParser.tracks).forEach((track) => {
-
       const frames = track.popFrames();
       // the fact that we pop all the tracks frames at this point
       // is related to the PES-type segmentation to which we default here below.
