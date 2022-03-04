@@ -8,12 +8,12 @@ const testCases = [];
 // fill up test-case array
 {
   let i = 0;
-  for (var caseName in MMTestCasesWeb) {
+  for (const caseName in MMTestCasesWeb) {
     if (caseName === 'mmjs') {
       continue;
     }
     const TestCase = MMTestCasesWeb[caseName];
-    console.log(`Initializing test-case #${i++}:`, caseName);
+    console.info(`Initializing test-case #${i++}:`, caseName);
     testCases.push([new TestCase(rootEl), caseName]);
   }
 }
@@ -22,7 +22,7 @@ const testCases = [];
 {
   printTestCases();
 
-  var caseName = testCases[testCaseIndex][1];
+  const caseName = testCases[testCaseIndex][1];
 
   runButtonLabelEl.innerHTML = caseName;
 

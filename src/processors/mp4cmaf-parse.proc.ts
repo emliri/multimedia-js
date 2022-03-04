@@ -20,6 +20,10 @@ export type Mp4CmafNetStreamParseOpts = {
 }
 
 export class Mp4CmafNetStreamParseProc extends Processor {
+  static getName () {
+    return 'Mp4CmafNetStreamParseProc';
+  }
+
   private _inputQueueReader: Nullable<ReadableStreamQueueReader<Uint8Array>>
     = new ReadableStreamQueueReader();
 

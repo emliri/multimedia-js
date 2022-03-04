@@ -110,6 +110,8 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   private _whenCompletedReject: (reason: FlowError) => void = null;
   private _completionResultCode: FlowCompletionResultCode = FlowCompletionResultCode.NONE;
 
+  private __onProcError = this._onProcError.bind(this);
+
   protected get extDownloadSocket (): WebFileDownloadSocket {
     return this._downloadSocket;
   }
@@ -157,8 +159,7 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   addProc (...p: Processor[]): Flow {
     p.forEach((proc) => {
       this._processors.add(proc);
-
-      proc.on(ProcessorEvent.ERROR, (data: ProcessorEventData) => this._onProcError(data));
+      proc.on(ProcessorEvent.ERROR, this.__onProcError);
     });
     return this;
   }
@@ -166,8 +167,9 @@ export abstract class Flow extends EventEmitter<FlowEvent> {
   removeProc (...p: Processor[]): Flow {
     p.forEach((proc) => {
       if (!this._processors.delete(proc)) {
-        throw new Error('Set delete method returned false');
+        throw new Error('Proc-set delete method returned false');
       }
+      proc.off(ProcessorEvent.ERROR, this.__onProcError);
     });
     return this;
   }

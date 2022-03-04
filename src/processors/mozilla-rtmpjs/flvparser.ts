@@ -124,7 +124,7 @@ export class FLVParser {
           if (dataOffset + dataSize > end) {
             break;
           }
-          var flags = parseBuffer[parsed + 4];
+          flags = parseBuffer[parsed + 4];
           var streamID = (parseBuffer[parsed + 12] << 16) |
               (parseBuffer[parsed + 13] << 8) | parseBuffer[parsed + 14];
           if (streamID !== 0 || (flags & 0xC0) !== 0) {

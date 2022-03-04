@@ -3,7 +3,7 @@ import { MP4DemuxProcessor } from '../../src/processors/mp4-demux.processor';
 import { newProcessorWorkerShell, unsafeCastProcessorType } from '../../src/core/processor-factory';
 import { XhrSocket } from '../../src/io-sockets/xhr.socket';
 import { ProcessorEvent, ProcessorEventData } from '../../src/core/processor';
-import { AVCNetworkAbstractionProcessor } from '../../src/processors/avc-network-abstraction.proc';
+import { AvcPayloaderProc } from '../../src/processors/avc-network-abstraction.proc';
 import { SocketEvent } from '../../src/core/socket';
 import { LoggerLevel, getLogger } from '../../src/logger';
 import { OutputSocket } from '../../src/core/socket-output';
@@ -33,7 +33,7 @@ export class InspectMp4 extends MmjsTestCase {
         log(`video track #${videoTrackNo} found`);
 
         if (ENABLE_INSPECT_VIDEO) {
-          h264Parse = newProcessorWorkerShell(unsafeCastProcessorType(AVCNetworkAbstractionProcessor));
+          h264Parse = newProcessorWorkerShell(unsafeCastProcessorType(AvcPayloaderProc));
           OutputSocket.fromUnsafe(data.socket).connect(h264Parse.in[0]);
         }
 

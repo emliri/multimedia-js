@@ -1,8 +1,15 @@
 import { Processor, ProcessorEvent } from '../core/processor';
 import { Packet, PacketSymbol } from '../core/packet';
 import { InputSocket, SocketDescriptor, SocketType, OutputSocket, SocketTemplateGenerator } from '../core/socket';
+import { PayloadDescriptor } from '../core/payload-description';
+import { BufferSlice } from '../core/buffer';
+import { BufferProperties } from '../core/buffer-props';
+import { ErrorCode } from '../core/error';
 
 import { getLogger, LoggerLevel } from '../logger';
+
+import { AAC_SAMPLES_PER_FRAME } from './aac/adts-utils';
+import { debugAccessUnit } from './h264/h264-tools';
 
 import { createMp4Demuxer, Mp4Demuxer, Track, Frame, TracksHash } from '../ext-mod/inspector.js/src';
 import { Mp4Track } from '../ext-mod/inspector.js/src/demuxer/mp4/mp4-track';
@@ -11,17 +18,9 @@ import { Esds } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/esds';
 import { AudioAtom } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/helpers/audio-atom';
 import { VideoAtom } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/helpers/video-atom';
 
-import { PayloadDescriptor } from '../core/payload-description';
-import { BufferSlice } from '../core/buffer';
-import { BufferProperties } from '../core/buffer-props';
-import { ErrorCode } from '../core/error';
-import { debugAccessUnit } from './h264/h264-tools';
 import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 
 const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.OFF, true);
-
-export const AUDIO_SAMPLING_RATES_LUT = [5500, 11025, 22050, 44100];
-export const AAC_SAMPLES_PER_FRAME = 1024;
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -241,6 +240,7 @@ export class MP4DemuxProcessor extends Processor {
             protoProps.details.codecProfile = codecProfile;
             protoProps.codec = 'avc';
           } else if (track.isAudio()) {
+            // TODO: add audio object type (from ESDS DecoderConfigDescriptor)
             protoProps.details.numChannels = numChannels;
             protoProps.details.constantBitrate = constantBitrate;
             protoProps.details.samplesPerFrame = AAC_SAMPLES_PER_FRAME;

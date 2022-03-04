@@ -32,7 +32,11 @@ export function createWebpackConfig (options: WebpackConfigFactoryOptions, exclu
       globalObject: 'this'
     },
     resolve: {
-      extensions: ['*', '.ts', '.tsx', '.js', '.json', '.html', '.css']
+      extensions: ['.ts', '.tsx', '.js', '.json', '.html', '.css'],
+      fallback: {
+        http: false,
+        fs: false
+      }
     },
     module: {
       rules: [
@@ -45,7 +49,7 @@ export function createWebpackConfig (options: WebpackConfigFactoryOptions, exclu
         }
       ]
     },
-    devtool: 'source-map', // options.debug ? "inline-source-map" : "source-map",
+    devtool: options.debug ? 'inline-source-map' : 'source-map',
     optimization: {
       minimize: !options.debug
     },

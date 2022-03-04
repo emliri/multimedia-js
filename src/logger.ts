@@ -12,7 +12,7 @@ const getPrefix = function (type: string, category: string): string {
 };
 
 const regExpEscape = function (s: string): string {
-  return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'); // eslint-disable-line no-useless-escape
 };
 
 function persistConfig (config: LoggerConfig): boolean {
@@ -83,7 +83,7 @@ export function createAndGetLocalLoggerConfig (): LoggerConfig {
     // persist if creating state first time
     persistConfig(config);
   } else { // fallback for Node.js or Workers (or browser Window has disabled LocalStorage-API support)
-    config = globalScope[LOGGER_CONFIG_STORAGE_KEY] || defaultGlobalConfig;
+    config = globalScope[LOGGER_CONFIG_STORAGE_KEY] || defaultGlobalConfig;
     globalScope[LOGGER_CONFIG_STORAGE_KEY] = config;
   }
 

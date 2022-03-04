@@ -1,3 +1,20 @@
+export function splitRawAudioFrameToStereoChannels (decodedAudioFrame: Float32Array): [Float32Array, Float32Array] {
+  // create l/r buffers
+  const nbSamples = decodedAudioFrame.length / 2;
+  if (!Number.isInteger(nbSamples)) {
+    throw new Error('Expecting stereo audio buffer to have even amount of samples: ' + decodedAudioFrame.byteLength);
+  }
+  const data0 = new Float32Array(nbSamples);
+  const data1 = new Float32Array(nbSamples);
+  // copy each l/r samples from frame buffer
+  // eslint-disable-next-line no-plusplus
+  for (let i = 0; i < nbSamples; i++) {
+    data0[i] = decodedAudioFrame[(2 * (i + 1)) - 2];
+    data1[i] = decodedAudioFrame[(2 * (i + 1)) - 1];
+  }
+  return [data0, data1];
+}
+
 export function allocNewSilentFrame (codec, channelCount) {
   switch (codec) {
   case 'mp4a.40.2':
