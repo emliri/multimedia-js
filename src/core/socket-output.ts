@@ -41,12 +41,18 @@ export class OutputSocket extends Socket {
    */
   connect (s: Socket): OutputSocket {
     if (!s) {
-      throw new Error('Socket connect called with ' + s);
+      throw new Error('OutputSocket.connect called with falsy arg:' + s);
     }
 
     if (this.isConnectedTo(s)) {
-      throw new Error('Socket is already connected to peer');
+      throw new Error('OutputSocket is already connected to peer');
     }
+
+    if (s.getPeer()) {
+      throw new Error('OutputSocket.connect target already has a peer (only one output can connect to any peer socket)');
+    }
+    s.setPeer(this);
+
     this.peers_.push(s);
 
     // when we peer with a socket we set our internal handler
@@ -106,7 +112,7 @@ export class OutputSocket extends Socket {
     if (signal.isDirectionDown()) {
       peersOrOwner = signal.emit(this.peers_);
     } else {
-      peersOrOwner = this.owner.cast(signal);
+      peersOrOwner = this.owner_.cast(signal);
     }
     return collectSignalReceiverCastResults([
       super.cast(signal),
@@ -125,7 +131,7 @@ export class OutputSocket extends Socket {
    */
   private _onPeerSignalCast (peerSocket: Socket, signal: Signal): SignalReceiverCastResult {
     if (signal.isDirectionUp()) {
-      return this.owner.cast(signal);
+      return this.owner_.cast(signal);
     } else {
       return Promise.resolve(false);
     }

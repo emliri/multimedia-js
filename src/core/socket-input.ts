@@ -27,6 +27,17 @@ export class InputSocket extends Socket {
     super.close();
   }
 
+  /**
+   * Overloads Socket cast method and also casts signal to owner as well as calling
+   * super class cast, which call handler.
+   */
+  cast (s: Signal): SignalReceiverCastResult {
+    return collectSignalReceiverCastResults([
+      this.owner_.cast(s),
+      super.cast(s)
+    ]);
+  }
+
   protected transferSync (p: Packet): boolean {
     if (!this.onReceive_) return false;
     this.setTransferring_(true);
@@ -34,17 +45,6 @@ export class InputSocket extends Socket {
     this._onTransferred(p);
     this.setTransferring_(false);
     return b;
-  }
-
-  /**
-   * Overloads Socket cast method and also casts signal to owner as well as calling
-   * super class cast, which call handler.
-   */
-  cast (s: Signal): SignalReceiverCastResult {
-    return collectSignalReceiverCastResults([
-      this.owner.cast(s),
-      super.cast(s)
-    ]);
   }
 
   private _onTransferred (p: Packet) {

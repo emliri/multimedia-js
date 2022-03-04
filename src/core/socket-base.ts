@@ -11,22 +11,24 @@ import { PacketSymbol } from './packet-symbol';
 import { Nullable } from '../common-types';
 import { getLogger, LoggerLevel } from '../logger';
 import { setOnceTimer } from '../lib/timer';
+import { OutputSocket } from './socket-output';
 
 const { error } = getLogger('SocketBase', LoggerLevel.ERROR);
 
 export abstract class Socket extends EventEmitter<SocketEvent> implements SignalReceiver {
+  protected tap_: Nullable<SocketTap> = null;
+  protected owner_: SocketOwner = null;
+
   private type_: SocketType;
   private state_: SocketState;
   private descriptor_: SocketDescriptor;
+  private peerOut_: Nullable<OutputSocket> = null;
   private signalHandler_: Nullable<SignalHandler> = null;
 
   private isReady_: boolean = false;
   private isReadyArmed_: boolean = false;
 
   private latencyProbe_: Packet = null;
-
-  protected tap_: Nullable<SocketTap> = null;
-  protected owner: SocketOwner = null;
 
   constructor (type: SocketType, descriptor: SocketDescriptor) {
     super();
@@ -183,13 +185,24 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this.tap_;
   }
 
+  setPeer (peer: Nullable<OutputSocket> = null) {
+    if (this.peerOut_) {
+      throw new Error('Socket peer already set (unset to null explicitely first)');
+    }
+    this.peerOut_ = peer;
+  }
+
+  getPeer (): Nullable<OutputSocket> {
+    return this.peerOut_;
+  }
+
   setOwner (owner: SocketOwner): Socket {
-    this.owner = owner;
+    this.owner_ = owner;
     return this;
   }
 
   getOwner (): SocketOwner {
-    return this.owner;
+    return this.owner_;
   }
 
   emit (e: SocketEvent): boolean {
