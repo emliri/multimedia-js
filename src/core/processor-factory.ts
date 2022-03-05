@@ -66,14 +66,12 @@ export function newProcessorWorkerShell<T extends typeof Processor = typeof Proc
   return new ProcessorProxy(name, onReady, args, importScriptPaths);
 }
 
-export const newProc = newProcessorWorkerShell; // shorthand
-
 export function newProcWorkerUnsafeCast (
   procConstructor: any,
   args?: any[],
   importScriptPaths?: string[],
   onReady: VoidCallback = noop): ProcessorProxy {
-  return newProc(unsafeCastProcessorType(procConstructor),
+  return newProcessorWorkerShell(unsafeCastProcessorType(procConstructor),
     args, importScriptPaths, onReady);
 }
 
