@@ -30,7 +30,7 @@
     "vendor/ffmpeg.js"
   ],
   "engines": {
-    "node": ">=12 <=15",
+    "node": ">=14 <=17",
     "npm": ">=7"
   },
   "dependencies": {
