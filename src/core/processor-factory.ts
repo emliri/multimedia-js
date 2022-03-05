@@ -5,35 +5,8 @@ import { noop } from '../common-utils';
 
 import * as Procs from '../processors/index';
 
-/*
-export abstract class FactorizableProcessor extends Processor {
-  private constructor() {
-    super() // TODO: have protected signal handler setter
-  }
-
-  static create(): FactorizableProcessor {
-    const name = this.getName();
-    return new Processors[name]();
-  }
-}
-*/
-
-/*
-export class FactorizableProcessorImpl extends FactorizableProcessor {
-
-  get name() { return null; }
-
-  protected processTransfer_(inS: import("/Users/stephan/Code/emliri/es-libs/multimedia.js/src/core/socket").InputSocket, p: import("/Users/stephan/Code/emliri/es-libs/multimedia.js/src/core/packet").Packet, inputIndex: number): boolean {
-    throw new Error("Method not implemented.");
-  }
-}
-
-export interface FactorizableProcessorImpl extends FactorizableProcessor {
-
-}
-*/
-
 let Processors: {[factoryName: string]: typeof Processor} = Procs as unknown as {[factoryName: string]: typeof Processor};
+
 export function setProcessors (ProcessorsLib: {[factoryName: string]: typeof Processor}) {
   Processors = ProcessorsLib;
 }
@@ -73,6 +46,19 @@ export function newProcWorkerUnsafeCast (
   onReady: VoidCallback = noop): ProcessorProxy {
   return newProcessorWorkerShell(unsafeCastProcessorType(procConstructor),
     args, importScriptPaths, onReady);
+}
+
+export function newProcWorkerOrShim(
+  procConstructor: any,
+  useWorkerShell: boolean = true,
+  args?: any[],
+  importScriptPaths?: string[],
+  onReady: VoidCallback = noop): Processor {
+  if (useWorkerShell) {
+    return newProcWorkerUnsafeCast(procConstructor, args, importScriptPaths, onReady);
+  } else {
+    return createProcessorFromConstructor(procConstructor, args);
+  }
 }
 
 export function createProcessorWorkerShellAsync (factoryName: string, args: any[] = [], timeoutMs: number = 1000): Promise<ProcessorProxy> {
