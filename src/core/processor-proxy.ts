@@ -2,10 +2,10 @@ import { getLogger, LoggerLevel } from '../logger';
 import { VoidCallback } from '../common-types';
 import { getEnvironmentVar, EnvironmentVar } from './env';
 import { ErrorCode } from './error';
-import { createProcessorByName } from './processor-factory';
-import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from './processor';
 import { InputSocket, SocketDescriptor, SocketType, Socket } from './socket';
 import { Packet, PacketSymbol } from './packet';
+import { createProcessorByName } from './processor-factory';
+import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from './processor';
 
 const { log, debug, warn, error } = getLogger('ProcessorProxy', LoggerLevel.ERROR);
 
