@@ -275,7 +275,6 @@ describe('OutputSocket', () => {
     is = new InputSocket(cb, sd);
 
     os.connect(is).should.be.equal(os);
-
   });
 
   it('should be able to transfer a Packet to a peer OutputSocket (and on to its peers)', async () => {

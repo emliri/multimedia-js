@@ -131,8 +131,6 @@ export class OutputSocket extends Socket {
       return Promise.resolve(false);
     }
   }
-
-
 }
 
 export class ShadowOutputSocket extends OutputSocket {
