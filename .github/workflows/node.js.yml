@@ -29,5 +29,5 @@ jobs:
     - run: npm install -g npm@8
     - run: npm ci
     - run: npm run build
-    - run: npm run lint
+    - run: npm run lint -- --quiet
     - run: npm test
