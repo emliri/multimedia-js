@@ -51,7 +51,7 @@ type VideoNALUInfo = {
 
 export class MP2TSDemuxProcessor extends Processor {
   static getName (): string {
-    return 'Mp2tsDemuxProc';
+    return 'MP2TSDemuxProcessor';
   }
 
   private _demuxPipeline: M2tDemuxPipeline;
