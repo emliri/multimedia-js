@@ -372,7 +372,6 @@ export class MP2TSDemuxProcessor extends Processor {
       props // share same props for all slices
     ));
 
-
     const packet = Packet.fromSlices(
       dts,
       cto,
