@@ -11,7 +11,6 @@
 
 - Fix MP3 ES -> fMP4 case
 
-
 # Use-case: MP4 Concatenation
 
 - Enable AAC codec data embedding / sample-description-indexing
@@ -19,10 +18,6 @@
 - Insert silent AAC soundtrack to movie file (special case of "remix")
 
 # Architecture
-
-- Ref-counting of packets via socket transfers (and sealing?)
-
-- "Seal" processor (no more sockets added/removed)
 
 - Handle async proc initialization
   -> Handle case like: where MP4-muxer releases codec-info after
