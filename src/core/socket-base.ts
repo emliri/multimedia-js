@@ -131,13 +131,13 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * Wraps transferSync in an async call and returns a promise
    * @param p
    */
-  transfer (p: Nullable<Packet>, async: boolean = true): Promise<boolean> {
+  transfer (p: Nullable<Packet>, async: boolean = true): void {
     // Q: could/should be in tranfer-sync method?
     this._emit(SocketEvent.ANY_PACKET_TRANSFERRING);
     if (async) {
-      return this.transferAsync_(p);
+      this.transferAsync_(p);
     } else {
-      return Promise.resolve(this.transferSync_(p));
+      this.transferSync_(p);
     }
   }
 
@@ -247,7 +247,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     this.state_.transferring = b;
   }
 
-  protected abstract transferSync(p: Packet): boolean;
+  protected abstract transferSync(p: Packet): void;
 
   private handleWithTap_ (p: Packet): Nullable<Packet> {
     if (this.tap_ &&
@@ -268,7 +268,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * and thus no effective transfer took place, or that the data processing handler
    * is not set in some other way, or an error was thrown when processing.
    */
-  private transferSync_ (p: Packet): boolean {
+  private transferSync_ (p: Packet) {
     if (p === null) return;
     if (p.isSymbolic() && p.symbol === PacketSymbol.LATENCY_PROBE) {
       this.latencyProbe_ = p;
@@ -279,7 +279,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       p = this.handleWithTap_(p);
       if (!p) return false;
     }
-    const res = this.transferSync(p);
+    this.transferSync(p);
 
     this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
     if (p.isSymbolic()) {
@@ -291,11 +291,9 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
         break;
       }
     }
-
-    return res;
   }
 
-  private transferAsync_ (p: Packet): Promise<boolean> {
+  private transferAsync_ (p: Packet) {
     return new Promise((resolve, reject) => {
       setOnceTimer(() => {
         try {
