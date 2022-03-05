@@ -39,8 +39,6 @@ declare let importScripts: (...paths: string[]) => void;
 
   log('setting new worker instance up ...');
 
-  // include this in main lib index
-
   const context: Worker = self as any;
   const subContexts: ProcessorProxyWorkerSubContext[] = [];
 
