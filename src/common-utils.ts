@@ -1,4 +1,7 @@
-import { VoidCallback, TwoDimArray, Nullable } from './common-types';
+import { TwoDimArray, Nullable } from './common-types';
+
+declare let importScripts: (...paths: string[]) => void;
+
 
 // GENERIC FUNCTIONAL
 
@@ -31,6 +34,10 @@ export function orMax (val: any): number {
 
 export function orMin (val: any): number {
   return val || Number.MIN_VALUE;
+}
+
+export function isWorkerScope(): boolean {
+  return typeof importScripts !== 'undefined';
 }
 
 // ARRAY
