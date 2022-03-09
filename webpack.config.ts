@@ -55,6 +55,23 @@ if (!noTypes) {
 }
 
 if (!noFrills) {
+  // Processor-proxy worker
+  {
+    const entrySrc = './src/core/processor-proxy.worker.ts';
+    const libName = 'mmjs-procs-worker';
+    const buildPath = 'dist';
+    const libraryTarget = 'umd';
+
+    configs.push(
+      createWebpackConfig({
+        debug,
+        entrySrc,
+        libName,
+        libraryTarget,
+        buildPath
+      })
+    );
+  }
 
   // TestCasesWeb
   {
