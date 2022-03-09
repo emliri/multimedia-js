@@ -36,8 +36,6 @@ export * from './src/core/socket-tap';
 export * from './src/core/processor-factory';
 export * from './src/core/env';
 
-import * as ProcessorProxyWorker from './src/core/processor-proxy.worker';
-
 export * as Procs from './src/processors/index';
 export * as IoSockets from './src/io-sockets/index';
 export * as Flows from './src/flows/index';
