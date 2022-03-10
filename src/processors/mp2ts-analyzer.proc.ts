@@ -116,6 +116,8 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     this._tsParser.append(mptsPktData);
 
     Object.values(this._tsParser.tracks).forEach((track) => {
+
+      // pops all frames of prior complete payload-units (until next PUSI)
       const frames = track.popFrames();
       // the fact that we pop all the tracks frames at this point
       // is related to the PES-type segmentation to which we default here below.
@@ -127,9 +129,9 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       // used as a canonical output to produce any other segmentation in principle.
       switch (track.type) {
       case Track.TYPE_VIDEO:
+        vFrames = frames;
 
         gotVideoKeyframe = frames.some(frame => frame.frameType === FRAME_TYPE.I);
-
         // sps/pps can come in 1 PUSI with prior p-frame !
         const h264Reader = (<H264Reader> track.pes.payloadReader);
         if (h264Reader.sps && h264Reader.pps) {
@@ -137,11 +139,9 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
           // reset the reader state
           h264Reader.sps = null;
           h264Reader.pps = false;
-
           gotAvcInitData = true;
         }
 
-        vFrames = frames;
         break;
       case Track.TYPE_AUDIO:
         aFrames = frames;
