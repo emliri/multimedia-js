@@ -48,7 +48,7 @@ export function newProcWorkerUnsafeCast (
     args, importScriptPaths, onReady);
 }
 
-export function newProcWorkerOrShim(
+export function newProcWorkerOrShim (
   procConstructor: any,
   useWorkerShell: boolean = true,
   args?: any[],

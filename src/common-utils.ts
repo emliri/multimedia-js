@@ -2,7 +2,6 @@ import { TwoDimArray, Nullable } from './common-types';
 
 declare let importScripts: (...paths: string[]) => void;
 
-
 // GENERIC FUNCTIONAL
 
 // eslint-disable-next-line no-void
@@ -36,7 +35,7 @@ export function orMin (val: any): number {
   return val || Number.MIN_VALUE;
 }
 
-export function isWorkerScope(): boolean {
+export function isWorkerScope (): boolean {
   return typeof importScripts !== 'undefined';
 }
 

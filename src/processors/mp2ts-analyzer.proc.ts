@@ -9,7 +9,7 @@ import {
   CommonMimeTypes
 } from '../..';
 
-import { isQNumber, orInfinity } from '../common-utils';
+import { orInfinity } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 
 import { mixinProcessorWithOptions } from '../core/processor';
@@ -116,7 +116,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     this._tsParser.append(mptsPktData);
 
     Object.values(this._tsParser.tracks).forEach((track) => {
-
       // pops all frames of prior complete payload-units (until next PUSI)
       const frames = track.popFrames();
       // the fact that we pop all the tracks frames at this point

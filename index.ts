@@ -50,5 +50,3 @@ export {
   AacJsDecoder,
   AacJsDecoderWorkerContext
 } from './src/processors/aac/aac-js-dec';
-
-

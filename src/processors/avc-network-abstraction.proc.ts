@@ -80,6 +80,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
       'and nb of slices:', p.dataSlicesLength);
 
     // TODO: instead of relying on tags, probe/parse assumed NALU data here.
+
     if (properties.tags.has('sps') || properties.tags.has('pps')) {
       p.forEachBufferSlice(this._handleParameterSetNalus.bind(this, p), null, this);
     }

@@ -27,7 +27,6 @@ import { getProcessors } from './processor-factory';
 declare let importScripts: (...paths: string[]) => void;
 
 (function () {
-
   if (!isWorkerScope()) {
     return;
   }
