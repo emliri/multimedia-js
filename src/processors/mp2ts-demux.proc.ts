@@ -287,10 +287,8 @@ export class MP2TSDemuxProcessor extends Processor {
   }
 
   private _pushVideoSeiData (h264Event: M2tH264StreamEvent) {
-    console.warn('demuxed SEI data', h264Event.dts, h264Event.data.byteLength);
-
+    const timestamp = h264Event.dts;
     const seiNalCopy = new Uint8Array(h264Event.data);
-    // todo: extract SEI payload ?
     const seiBuf = BufferSlice.fromTypedArray(seiNalCopy, new BufferProperties(CommonMimeTypes.VIDEO_H264_SEI));
     // expected for socket-created event handlers
     seiBuf.props.codec = CommonCodecFourCCs.avc1;
@@ -298,7 +296,7 @@ export class MP2TSDemuxProcessor extends Processor {
       info('creating video/h264 SEI specifc output');
       this._videoSeiOutSocket = this.createOutput(SocketDescriptor.fromBufferProps(seiBuf.props));
     }
-    this._videoSeiOutSocket.transfer(Packet.fromSlice(seiBuf));
+    this._videoSeiOutSocket.transfer(Packet.fromSlice(seiBuf, timestamp).setTimescale(MPEG_TS_TIMESCALE_HZ));
   }
 
   private _pushVideoNalu (nalInfo: VideoNALUInfo) {
