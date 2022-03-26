@@ -7,7 +7,6 @@ export function splitRawAudioFrameToStereoChannels (decodedAudioFrame: Float32Ar
   const data0 = new Float32Array(nbSamples);
   const data1 = new Float32Array(nbSamples);
   // copy each l/r samples from frame buffer
-  // eslint-disable-next-line no-plusplus
   for (let i = 0; i < nbSamples; i++) {
     data0[i] = decodedAudioFrame[(2 * (i + 1)) - 2];
     data1[i] = decodedAudioFrame[(2 * (i + 1)) - 1];
@@ -49,3 +48,5 @@ export function allocNewSilentFrame (codec, channelCount) {
   }
   return null;
 }
+
+
