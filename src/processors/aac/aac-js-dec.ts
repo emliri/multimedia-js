@@ -83,15 +83,15 @@ export class AacJsDecoder {
   }
 
   onData (data: Float32Array[]) {
-    console.log('AAC.js-decoder output:', data);
+    throw new Error('AAC.js-decoder: data-event not handled');
   }
 
   onEos () {
-    console.log('AAC.js-decoder EOS event');
+    throw new Error('AAC.js-decoder: eos-event not handled');
   }
 
   onError (err: Error) {
-    console.error('AAC.js-decoder error event:', err);
+    throw new Error('AAC.js-decoder: error-event not handled');
   }
 }
 
@@ -120,14 +120,6 @@ export class AacJsDecoderWorkerContext {
 
       const transferData: ArrayBuffer[] = audioFrame.map(a => a.buffer);
       workerCtx.postMessage(transferData, transferData);
-    };
-
-    dec.onError = (err: Error) => {
-      console.error(err);
-    };
-
-    dec.onEos = () => {
-      console.warn('AAC-js worker: EOS');
     };
   }
 }
