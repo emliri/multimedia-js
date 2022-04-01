@@ -134,9 +134,11 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
 
         const h264Reader = (<H264Reader> track.pes.payloadReader);
         // checking pusi-count ensures we await end of any current payload-unit,
-        // before eventually pruning current buffer.
-        // note: sps/pps can also come in 1 PUSI with prior p-frame.
-        if (h264Reader.getPusiCount() > 0
+        // as we may have 0 frames popped but still an SPS/PPS parsed.
+        // OR: sps/pps can also come in 1 PUSI with prior p-frame,
+        // in which case pusi-count is already reset after popFrames,
+        // but frame count will be > 0.
+        if ((h264Reader.getPusiCount() > 0 || vFrames.length)
           && h264Reader.sps && h264Reader.pps) {
           spsPpsTimeUs = h264Reader.timeUs;
           // reset the reader state
