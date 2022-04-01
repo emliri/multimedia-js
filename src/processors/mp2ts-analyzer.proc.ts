@@ -76,7 +76,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
           })))
         .connect(this.out[0]);
 
-    this._tsParser.onPmtParsed = () => {
+    this._tsParser.onProgramMapUpdate = () => {
       // console.log('got PMT')
     };
   }
@@ -131,9 +131,13 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         vFrames = frames;
 
         gotVideoKeyframe = frames.some(frame => frame.frameType === FRAME_TYPE.I);
-        // sps/pps can come in 1 PUSI with prior p-frame !
+
         const h264Reader = (<H264Reader> track.pes.payloadReader);
-        if (h264Reader.sps && h264Reader.pps) {
+        // checking pusi-count ensures we await end of any current payload-unit,
+        // before eventually pruning current buffer.
+        // note: sps/pps can also come in 1 PUSI with prior p-frame.
+        if (h264Reader.getPusiCount() > 0
+          && h264Reader.sps && h264Reader.pps) {
           spsPpsTimeUs = h264Reader.timeUs;
           // reset the reader state
           h264Reader.sps = null;
