@@ -193,8 +193,7 @@ export class MP2TSDemuxProcessor extends Processor {
     // create output on first data
     if (!this._metadataSocketMap[trackId]) {
       this._metadataSocketMap[trackId] =
-        this.createOutput(SocketDescriptor
-          .fromBufferProps(packet.properties));
+        this.createOutput(SocketDescriptor.fromBufferProps(packet.properties));
     }
 
     // transfer packet
