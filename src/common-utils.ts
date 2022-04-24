@@ -41,6 +41,11 @@ export function isWorkerScope (): boolean {
 
 // ARRAY
 
+export function isArrayIndexRange<T>(arr: T[], index: number): boolean {
+  return Number.isInteger(index)
+    && index < arr.length && index >= 0;
+}
+
 export function arrayLast<T> (arr: T[]): Nullable<T> {
   if (arr.length === 0) return null;
   return arr[arr.length - 1];
