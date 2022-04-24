@@ -68,6 +68,7 @@
     "build-decls": "tsc --build ./tsconfig-decl-only.json && rm -rf dist/mmjs.umd.d.ts && cp dist/index.d.ts dist/mmjs.umd.d.ts",
     "build-watch": "cross-env DEBUG=1 npm run build -- --watch",
     "lint": "eslint *.js *.ts bin src test-cases --ext .ts --ext .js",
+    "lint-ext": "eslint *.js *.ts bin src/ext/inspector.js --ext .ts --ext .js",
     "lint-fix": "npm run lint -- --fix --quiet",
     "prepublishOnly": "npm test && make",
     "start": "cross-env NO_TYPES=1 NO_FRILLS=1 npm run build-watch",
