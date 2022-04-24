@@ -39,13 +39,15 @@ const getSocketDescriptor: SocketTemplateGenerator =
 const Mp2TsAnalyzerProcOptsMixin = mixinProcessorWithOptions<Mp2TsAnalyzerProcOpts>({
   enablePlayoutRegulation: false,
   playoutRegulationSpeed: 1,
-  playoutRegulationPollMs: DEFAULT_PLAYOUT_REGULATION_POLL_MS
+  playoutRegulationPollMs: DEFAULT_PLAYOUT_REGULATION_POLL_MS,
+  passThrough: false
 });
 
 export type Mp2TsAnalyzerProcOpts = {
   enablePlayoutRegulation: boolean
   playoutRegulationSpeed: number
   playoutRegulationPollMs: number
+  passThrough: boolean
 };
 
 export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
@@ -86,6 +88,11 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
   }
 
   protected processTransfer_ (inS: InputSocket, p: Packet, inputIndex: number): boolean {
+    if (this.options_.passThrough) {
+      this.out[0].transfer(p);
+      return true;
+    }
+
     const bufIn = p.data[0].getUint8Array();
 
     this._mptsSyncAdapter.feed(bufIn);
@@ -138,8 +145,8 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         // OR: sps/pps can also come in 1 PUSI with prior p-frame,
         // in which case pusi-count is already reset after popFrames,
         // but frame count will be > 0.
-        if ((h264Reader.getPusiCount() > 0 || vFrames.length)
-          && h264Reader.sps && h264Reader.pps) {
+        if ((h264Reader.getPusiCount() > 0 || vFrames.length) &&
+          h264Reader.sps && h264Reader.pps) {
           spsPpsTimeUs = h264Reader.timeUs;
           // reset the reader state
           h264Reader.sps = null;
