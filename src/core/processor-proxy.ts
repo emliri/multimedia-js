@@ -1,7 +1,7 @@
 import { getLogger, LoggerLevel } from '../logger';
 import { VoidCallback } from '../common-types';
 import { getEnvironmentVar, EnvironmentVar } from './env';
-import { ErrorCode } from './error';
+import { printUnhandledError } from './error';
 import { InputSocket, SocketDescriptor, SocketType, Socket } from './socket';
 import { Packet, PacketSymbol } from './packet';
 import { createProcessorByName } from './processor-factory';
@@ -256,12 +256,9 @@ export class ProcessorProxy extends Processor {
           });
         // if we have no listeners, make sure the error is being seen
         } else {
-          console.error(`Unhandled error code ${eventData.error.code} (${ErrorCode[eventData.error.code]}): ${eventData.error.message}`);
-          if (eventData.error.nativeError) {
-            console.error('Native error:', eventData.error.nativeError);
-          }
+          const {code, message, nativeError} = eventData.error;
+          printUnhandledError(code, message, nativeError);
         }
-
         break;
       }
     };
