@@ -108,7 +108,7 @@ export function getErrorSpaceByCode (errCode: ErrorCode): ErrorCodeSpace {
   return errorCodeSpace;
 }
 
-export function printUnhandledError(code: ErrorCode, message: string, nativeError?: Error): void {
+export function printUnhandledError (code: ErrorCode, message: string, nativeError?: Error): void {
   console.error(`[mmjs] Unhandled error (code ${code} = ${ErrorCode[code]}): ${message}`);
   if (nativeError) {
     console.error('Inner exception thrown:', nativeError);

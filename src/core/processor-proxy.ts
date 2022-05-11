@@ -256,7 +256,7 @@ export class ProcessorProxy extends Processor {
           });
         // if we have no listeners, make sure the error is being seen
         } else {
-          const {code, message, nativeError} = eventData.error;
+          const { code, message, nativeError } = eventData.error;
           printUnhandledError(code, message, nativeError);
         }
         break;
