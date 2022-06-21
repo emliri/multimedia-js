@@ -83,6 +83,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
 
     if (properties.tags.has('sps') || properties.tags.has('pps')) {
       p.forEachBufferSlice(this._handleParameterSetNalus.bind(this, p), null, this);
+      return;
     }
 
     this._processPacket(p);
