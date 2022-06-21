@@ -48,6 +48,17 @@ export function newProcWorkerUnsafeCast (
     args, importScriptPaths, onReady);
 }
 
+/**
+ * Creates a Processor from constructor, either proxied by a worker-shell,
+ * OR as plain running on current (e.g main) thread.
+ * This dependiging on respective flag param value passed.
+ * The usefulness of this helper function being, to easily switch around using worker-proxy
+ * or not in some given processor factorization context.
+ * Any other optional params that may be used by proc constructor
+ * or worker scope setup can be passed as well.
+ * @procConstructor constructor of a Processor impl
+ * @param useWorkerShell
+ */
 export function newProcWorkerOrShim (
   procConstructor: any,
   useWorkerShell: boolean = true,
