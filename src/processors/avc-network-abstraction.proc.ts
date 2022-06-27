@@ -9,7 +9,13 @@ import { getLogger, LoggerLevel } from '../logger';
 import { Nullable } from '../common-types';
 import { isQNumber, secsToMillis } from '../common-utils';
 
-import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType } from './h264/h264-tools';
+import {
+  debugAccessUnit,
+  debugNALU,
+  makeAccessUnitFromNALUs,
+  parseNALU,
+  H264NaluType
+} from './h264/h264-tools';
 
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 
