@@ -94,6 +94,10 @@ export class MP4DemuxProcessor extends Processor {
 
           log('analyzing track with id:', trackId);
 
+          if (!track.hasTimescale()) {
+            throw new Error(`Track type=${track.type} id=${track.id} timescale is not present (has not been set or determined on parsing). Can not proceed with processing frames timing info.`);
+          }
+
           log(
             'mime-type:', track.mimeType,
             'id:', track.id,
@@ -158,8 +162,7 @@ export class MP4DemuxProcessor extends Processor {
                 // framerate otherwise the sequence could not be decoded in real-time).
                 // FIXME: Thus the calculation could be wrong here in certain cases.
                 // NOTE: In principle, DTS could even also be anything that preserves decoding order unrelated to the PTS timeplane!
-                sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds() -
-                                    track.getFrames()[0].getDecodingTimestampInSeconds());
+                sampleRate = track.getTimescale() / (track.getFrames()[1].dts - track.getFrames()[0].dts);
                 sampleRate = Math.round(sampleRate);
                 log('estimated FPS:', sampleRate);
               } else {
@@ -260,7 +263,7 @@ export class MP4DemuxProcessor extends Processor {
             let props = protoProps;
 
             if (frame.frameType === FRAME_TYPE.I) {
-              log('got idr-frame at:', frame.timeUs, '[us]');
+              log('got idr-frame at:', frame.dts, '[us]');
               props = protoProps.clone();
               props.isKeyframe = true;
             }
@@ -274,9 +277,7 @@ export class MP4DemuxProcessor extends Processor {
             const p: Packet = Packet.fromSlice(frameSlice);
 
             // timestamps of this packet
-            p.timestamp = frame.scaledDecodingTime;
-            p.presentationTimeOffset = frame.scaledPresentationTimeOffset;
-            p.setTimescale(frame.timescale);
+            p.setTimingInfo(frame.dts, frame.cto, track.getTimescale());
 
             // log('timescale:', frame.timescale)
 
