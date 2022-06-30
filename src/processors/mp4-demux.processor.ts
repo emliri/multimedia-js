@@ -97,13 +97,17 @@ export class MP4DemuxProcessor extends Processor {
           if (!track.hasTimescale()) {
             throw new Error(`Track type=${track.type} id=${track.id} timescale is not present (has not been set or determined on parsing). Can not proceed with processing frames timing info.`);
           }
+          const timescale = track.getTimescale();
+          const duration = track.getDuration();
+          const durationInSeconds = track.getDuration() / timescale;
 
           log(
-            'mime-type:', track.mimeType,
             'id:', track.id,
-            'duration:', track.getDuration(),
             'type:', track.type,
-            'timescale:', track.getTimescale());
+            'mime-type:', track.mimeType,
+            'duration:', duration, '/', duration / timescale, '[s]',
+            'timescale:', timescale
+          );
 
           if (track.isVideo()) {
             log('video-track resolution:', track.getResolution());
@@ -162,7 +166,7 @@ export class MP4DemuxProcessor extends Processor {
                 // framerate otherwise the sequence could not be decoded in real-time).
                 // FIXME: Thus the calculation could be wrong here in certain cases.
                 // NOTE: In principle, DTS could even also be anything that preserves decoding order unrelated to the PTS timeplane!
-                sampleRate = track.getTimescale() / (track.getFrames()[1].dts - track.getFrames()[0].dts);
+                sampleRate = timescale / (track.getFrames()[1].dts - track.getFrames()[0].dts);
                 sampleRate = Math.round(sampleRate);
                 log('estimated FPS:', sampleRate);
               } else {
@@ -234,7 +238,7 @@ export class MP4DemuxProcessor extends Processor {
             samplesCount
           );
 
-          protoProps.details.sequenceDurationInSeconds = track.getDurationInSeconds();
+          protoProps.details.sequenceDurationInSeconds = durationInSeconds;
 
           if (track.isVideo()) {
             protoProps.details.width = track.getResolution()[0];
@@ -255,7 +259,7 @@ export class MP4DemuxProcessor extends Processor {
             initProps.isBitstreamHeader = true;
             log('created/transferring codec data packet; flagged bitstream header');
             const initPacket = Packet.fromSlice(BufferSlice.fromTypedArray(codecData, initProps));
-            initPacket.setTimescale(track.getTimescale());
+            initPacket.setTimescale(timescale);
             output.transfer(initPacket);
           });
 
@@ -263,7 +267,10 @@ export class MP4DemuxProcessor extends Processor {
             let props = protoProps;
 
             if (frame.frameType === FRAME_TYPE.I) {
-              log('got idr-frame at:', frame.dts, '[us]');
+              log('got idr-frame at:',
+                frame.dts, '/',
+                frame.dts / timescale, '[s]');
+
               props = protoProps.clone();
               props.isKeyframe = true;
             }
@@ -277,9 +284,7 @@ export class MP4DemuxProcessor extends Processor {
             const p: Packet = Packet.fromSlice(frameSlice);
 
             // timestamps of this packet
-            p.setTimingInfo(frame.dts, frame.cto, track.getTimescale());
-
-            // log('timescale:', frame.timescale)
+            p.setTimingInfo(frame.dts, frame.cto, timescale);
 
             debug('pushing packet with:', frameSlice.toString());
 
