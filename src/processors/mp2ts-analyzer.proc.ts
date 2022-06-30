@@ -18,10 +18,10 @@ import { CommonCodecFourCCs } from '../core/payload-description';
 import { SocketTapTimingRegulate } from '../socket-taps';
 
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
+import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 
 import { Frame, Track } from '../ext-mod/inspector.js/src';
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer';
-import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
 import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 
@@ -118,7 +118,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     let gotVideoKeyframe = false;
     let gotAvcInitData = false;
 
-    let spsPpsTimeUs: number;
+    let spsPpsTimeDts: number;
 
     this._tsParser.append(mptsPktData);
 
@@ -147,7 +147,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         // but frame count will be > 0.
         if ((h264Reader.getPusiCount() > 0 || vFrames.length) &&
           h264Reader.sps && h264Reader.pps) {
-          spsPpsTimeUs = h264Reader.timeUs;
+          spsPpsTimeDts = h264Reader.dts;
           // reset the reader state
           h264Reader.sps = null;
           h264Reader.pps = false;
@@ -165,19 +165,19 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     // is that at least one of the tracks has >= 1 frames.
     // either frames list can be undefined if there is no respective a/v track.
     if (aFrames?.length || vFrames?.length || gotAvcInitData) {
-      const firstPtsA = orInfinity(aFrames?.length && aFrames[0].timeUs);
-      const firstPtsV = orInfinity(vFrames?.length && vFrames[0].timeUs);
-      let firstPtsUs = Math.min(
+      const firstPtsA = orInfinity(aFrames?.length && aFrames[0].dts);
+      const firstPtsV = orInfinity(vFrames?.length && vFrames[0].dts);
+      let firstPts = Math.min(
         firstPtsA,
         firstPtsV,
-        orInfinity(spsPpsTimeUs) // will only be defined if there were no video frames to get timing from.
+        orInfinity(spsPpsTimeDts) // will only be defined if there were no video frames to get timing from.
       );
 
       // this is needed to handle timeUs = 0.
       // based on the preconditions here
       // firstPtsUs = Infinity can only result
       // when one or more of the tracks first frame PTS = 0.
-      if (firstPtsUs === Infinity) firstPtsUs = 0;
+      if (firstPts === Infinity) firstPts = 0;
 
       // we have this check here to assert in a specific mode
       // of segmentation which is default now (see above on popFrames).
@@ -203,7 +203,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       }
 
       const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
-        .setTimingInfo(firstPtsUs, 0, MICROSECOND_TIMESCALE);
+        .setTimingInfo(firstPts, 0, MPEG_TS_TIMESCALE_HZ);
 
       pkt.properties.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
       pkt.properties.codec = codec4cc;
