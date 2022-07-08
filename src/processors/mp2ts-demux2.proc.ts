@@ -21,7 +21,6 @@ import { Track } from '../ext-mod/inspector.js/src/demuxer/track';
 import { TSTrack } from '../ext-mod/inspector.js/src';
 import { NAL_UNIT_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AdtsReader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/adts-reader';
-import { MICROSECOND_TIMESCALE } from '../ext-mod/inspector.js/src/utils/timescale';
 import { AAC_SAMPLES_PER_FRAME } from './aac/adts-utils';
 
 const { debug, log, info, warn } = getLogger('Mp2TsDemuxProc2', LoggerLevel.ON, true);
@@ -43,10 +42,13 @@ export class Mp2TsDemuxProc2 extends Processor {
 
   private _tsParser: MpegTSDemuxer = new MpegTSDemuxer();
 
-  private _outPackets: Packet[] = [];
-
   private _audioSocket: OutputSocket = null;
   private _videoSocket: OutputSocket = null;
+
+  private _pendingVideoPkt: Packet = null;
+  private _gotFirstSps = false;
+  private _gotFirstPps = false;
+
   private _videoSeiOutSocket: OutputSocket = null;
   private _metadataSocketMap: {[pid: number]: OutputSocket} = {};
 
@@ -73,22 +75,20 @@ export class Mp2TsDemuxProc2 extends Processor {
     Object.values(this._tsParser.tracks).forEach((track) => {
       switch (track.type) {
       case Track.TYPE_AUDIO:
-        track.pes.onPayloadData = (data, timeUs, naluType) => {
-          this._onAudioPayload(track, data, timeUs);
+        track.pes.onPayloadData = (data, dts, cto, naluType) => {
+          this._onAudioPayload(track, data, dts);
         }
         break;
       case Track.TYPE_VIDEO:
-        track.pes.onPayloadData = (data, timeUs, naluType) => {
-          this._onVideoPayload(track, data, timeUs, naluType);
+        track.pes.onPayloadData = (data, dts, cto, naluType) => {
+          this._onVideoPayload(track, data, dts, cto, naluType);
         }
         break;
       }
     });
   }
 
-  private _onAudioPayload (track: TSTrack, data: Uint8Array, timeMs: number) {
-
-    //console.log(data.byteLength, timeMs);
+  private _onAudioPayload (track: TSTrack, data: Uint8Array, dts: number) {
 
     const payloadReader = track.pes.payloadReader as AdtsReader;
 
@@ -111,25 +111,22 @@ export class Mp2TsDemuxProc2 extends Processor {
     bufferSlice.props.details.codecProfile = payloadReader.currentFrameInfo.profile;
     bufferSlice.props.details.numChannels = 2; // todo
 
-    //console.log(data, timeMs)
     if (!this._audioSocket) {
       this._audioSocket = this.createOutput(SocketDescriptor.fromBufferProps(bufferSlice.props));
     }
 
-    const packet = Packet.fromSlice(bufferSlice, timeMs)
-      .setTimescale(MICROSECOND_TIMESCALE);
+    const packet = Packet.fromSlice(bufferSlice)
+      .setTimingInfo(dts, 0, MPEG_TS_TIMESCALE_HZ);
 
     this._audioSocket.transfer(packet);
   }
 
   private _onVideoPayload (track: TSTrack,
-    data: Uint8Array, timeMs: number,
+    data: Uint8Array,
+    dts: number, cto: number,
     naluType: number) {
-    //console.log(data.byteLength, timeMs)
 
-    //console.log(data.byteLength, timeMs);
-
-    if (naluType === NAL_UNIT_TYPE.AUD) return;
+    //if (naluType === NAL_UNIT_TYPE.AUD) return;
 
     const payloadReader = track.pes.payloadReader as H264Reader;
 
@@ -150,15 +147,28 @@ export class Mp2TsDemuxProc2 extends Processor {
 
     let isHeader;
     let isKeyframe;
+    let isAud = false;
     switch(naluType) {
     case NAL_UNIT_TYPE.IDR:
+      console.warn('IDR');
       isKeyframe = true;
       break;
     case NAL_UNIT_TYPE.SPS:
+      this._gotFirstSps = true;
+      console.warn('SPS');
       isHeader = true;
       break;
     case NAL_UNIT_TYPE.PPS:
+      this._gotFirstPps = true;
+      console.warn('PPS');
       isHeader = true;
+      break;
+    case NAL_UNIT_TYPE.AUD:
+      console.warn('AUD');
+      isAud = true;
+      break;
+    case NAL_UNIT_TYPE.SLICE:
+      console.warn('SLICE');
       break;
     default:
       break;
@@ -181,9 +191,42 @@ export class Mp2TsDemuxProc2 extends Processor {
       this._videoSocket = this.createOutput(SocketDescriptor.fromBufferProps(props));
     }
 
-    const packet = Packet.fromSlice(BufferSlice.fromTypedArray(data, props))
-      .setTimescale(MICROSECOND_TIMESCALE);
+    if (isHeader) {
+      const packet = Packet
+        .fromSlice(BufferSlice.fromTypedArray(data, props))
+        .setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
+      this._videoSocket.transfer(packet);
+      return;
+    }
 
-    this._videoSocket.transfer(packet);
+    if (! (this._gotFirstSps && this._gotFirstPps)) {
+      return;
+    }
+
+    if (isKeyframe) {
+      const packet = Packet
+        .fromSlice(BufferSlice.fromTypedArray(data, props))
+        .setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
+      this._videoSocket.transfer(packet);
+      return;
+    }
+
+    if (isAud) {
+      if (this._pendingVideoPkt) {
+        this._pendingVideoPkt.properties.tags.add('noi')
+        this._videoSocket.transfer(this._pendingVideoPkt);
+        this._pendingVideoPkt = null;
+      }
+    }
+
+    if (!this._pendingVideoPkt) {
+      const packet = Packet
+        .fromSlice(BufferSlice.fromTypedArray(data, props))
+        .setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
+      this._pendingVideoPkt = packet;
+    } else {
+      this._pendingVideoPkt.data.push(BufferSlice.fromTypedArray(data, props))
+      //this._pendingVideoPkt.setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
+    }
   }
 }
