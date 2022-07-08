@@ -181,7 +181,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
         } else {
           const prevPkt = this._packetDelayStore;
           this._packetDelayStore = null;
-          throw new Error(`Couldn't determine packets DTS-diff (dropping both & reset): ${p.toString()} - ${prevPkt.toString()}`);
+          throw new Error(`Couldn't determine packets DTS-diff (dropping both & reset): ${p?.toString()} - ${prevPkt?.toString()}`);
           /*
           // FIXME: may lead to problems if first packet output
           this._packetDelayStore
