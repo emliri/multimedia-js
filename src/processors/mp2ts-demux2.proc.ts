@@ -145,41 +145,37 @@ export class Mp2TsDemuxProc2 extends Processor {
     props.details.codecProfile = payloadReader.sps.profileIdc;
     props.details.samplesPerFrame = 1;
 
-    let isHeader;
-    let isKeyframe;
+    let isHeader = false;
+    let isKeyframe = false;
     let isAud = false;
     switch(naluType) {
     case NAL_UNIT_TYPE.IDR:
-      console.warn('IDR');
+      //console.warn('IDR');
       isKeyframe = true;
       break;
     case NAL_UNIT_TYPE.SPS:
       this._gotFirstSps = true;
-      console.warn('SPS');
+      //console.warn('SPS');
       isHeader = true;
       break;
     case NAL_UNIT_TYPE.PPS:
       this._gotFirstPps = true;
-      console.warn('PPS');
+      //console.warn('PPS');
       isHeader = true;
       break;
     case NAL_UNIT_TYPE.AUD:
-      console.warn('AUD');
+      //console.warn('AUD');
       isAud = true;
       break;
     case NAL_UNIT_TYPE.SLICE:
-      console.warn('SLICE');
+      //console.warn('SLICE');
       break;
     default:
       break;
     }
 
-    if (isHeader) {
-      props.isBitstreamHeader = true;
-    }
-    if (isKeyframe) {
-      props.isKeyframe = true;
-    }
+    props.isBitstreamHeader = isHeader;
+    props.isKeyframe = isKeyframe;
 
     props.tags.add('nalu');
     const naluTag = NAL_UNIT_TYPE[naluType]?.toLowerCase();
