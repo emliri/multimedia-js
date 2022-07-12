@@ -85,6 +85,10 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
       'is tagged as NALU with tags:', properties.tags,
       'and nb of slices:', p.dataSlicesLength);
 
+    DEBUG_H264 && p.data.forEach((slice) => {
+      debugNALU(slice, log);
+    });
+
     // TODO: instead of relying on tags, probe/parse assumed NALU data here.
 
     if (properties.tags.has('sps') || properties.tags.has('pps')) {
@@ -101,7 +105,8 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
     const { properties } = p;
 
     // packet data might contain multiple slices for a frame i.e timestamp/CTO:
-    // this proc replaces that by a single AU containing all slices.
+    // this proc replaces that by a single AU containing all slices (optionnally using
+    // AnnexB type NAL syncwords instead of of box data size).
     const auBufferSlice = makeAccessUnitFromNALUs(p.data, this.options_.useAnnexB);
 
     auBufferSlice.props = properties;
