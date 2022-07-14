@@ -47,7 +47,7 @@ export class BufferProperties extends PayloadDescriptor {
       public isBitstreamHeader: boolean = false,
       public isKeyframe: boolean = false,
       public timestampDelta: number = 0,
-      public readonly tags: Set<string> = new Set()
+      public tags: Set<string> = new Set()
   ) {
     super(mimeType, sampleRateInteger, sampleDepth, sampleDurationNumerator);
   }
@@ -67,5 +67,9 @@ export class BufferProperties extends PayloadDescriptor {
   toString () {
     const payloadToString = super.toString();
     return `[[#${this.samplesCount} x ${this.isKeyframe ? 'KEY' : 'P/B'}-${this.isBitstreamHeader ? 'HEADER(s)' : 'FRAME(s)'} => ${payloadToString}]]`;
+  }
+
+  addTags(tags: string[]) {
+    this.tags = new Set([...this.tags, ...tags]);
   }
 }
