@@ -150,25 +150,20 @@ export class Mp2TsDemuxProc2 extends Processor {
     let isAud = false;
     switch(naluType) {
     case NAL_UNIT_TYPE.IDR:
-      //console.warn('IDR');
       isKeyframe = true;
       break;
     case NAL_UNIT_TYPE.SPS:
       this._gotFirstSps = true;
-      //console.warn('SPS');
       isHeader = true;
       break;
     case NAL_UNIT_TYPE.PPS:
       this._gotFirstPps = true;
-      //console.warn('PPS');
       isHeader = true;
       break;
     case NAL_UNIT_TYPE.AUD:
-      //console.warn('AUD');
       isAud = true;
       break;
     case NAL_UNIT_TYPE.SLICE:
-      //console.warn('SLICE');
       break;
     default:
       break;
@@ -199,30 +194,21 @@ export class Mp2TsDemuxProc2 extends Processor {
       return;
     }
 
-    if (isKeyframe) {
-      const packet = Packet
-        .fromSlice(BufferSlice.fromTypedArray(data, props))
-        .setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
-      this._videoSocket.transfer(packet);
-      return;
-    }
-
-    if (isAud) {
-      if (this._pendingVideoPkt) {
-        this._pendingVideoPkt.properties.tags.add('noi')
-        this._videoSocket.transfer(this._pendingVideoPkt);
-        this._pendingVideoPkt = null;
-      }
-    }
-
     if (!this._pendingVideoPkt) {
       const packet = Packet
         .fromSlice(BufferSlice.fromTypedArray(data, props))
         .setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
       this._pendingVideoPkt = packet;
     } else {
-      this._pendingVideoPkt.data.push(BufferSlice.fromTypedArray(data, props))
       //this._pendingVideoPkt.setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
+      this._pendingVideoPkt.properties.addTags(Array.from(props.tags.values()));
+      this._pendingVideoPkt.data.push(BufferSlice.fromTypedArray(data, props));
     }
+
+    if (isAud) {
+      this._videoSocket.transfer(this._pendingVideoPkt);
+      this._pendingVideoPkt = null;
+    }
+
   }
 }
