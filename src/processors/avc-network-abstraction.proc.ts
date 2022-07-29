@@ -204,7 +204,6 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
   }
 
   private _handleParameterSetNalus (p: Packet, bufferSlice: BufferSlice) {
-
     const propsClone = BufferProperties.clone(bufferSlice.props);
     propsClone.mimeType = CommonMimeTypes.VIDEO_AVC;
 
