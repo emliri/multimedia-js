@@ -1,10 +1,10 @@
 import { Processor, ProcessorEvent } from '../core/processor';
 import { SocketDescriptor, SocketType, InputSocket, OutputSocket, SocketTemplateGenerator } from '../core/socket';
+import { ShadowOutputSocket } from '../core/socket-output';
 import { Packet } from '../core/packet';
 import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
-import { ShadowOutputSocket } from '../core/socket-output';
 
 import { printNumberScaledAtDecimalOrder } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
@@ -23,7 +23,7 @@ import { NAL_UNIT_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units
 import { AdtsReader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/adts-reader';
 import { AAC_SAMPLES_PER_FRAME } from './aac/adts-utils';
 
-const { debug, log, info, warn } = getLogger('Mp2TsDemuxProc2', LoggerLevel.ON, true);
+const { debug, log, info, warn } = getLogger('Mp2TsDemuxProc2', LoggerLevel.OFF, true);
 
 const getSocketDescriptor: SocketTemplateGenerator =
   SocketDescriptor.createTemplateGenerator(
@@ -72,24 +72,33 @@ export class Mp2TsDemuxProc2 extends Processor {
   }
 
   private _onPmtUpdated () {
+    log('PMT updated, new stream-types mapping:', this._tsParser.tracks);
+
+    const avMimeTypes: MimetypePrefix[] = [];
+
     Object.values(this._tsParser.tracks).forEach((track) => {
       switch (track.type) {
       case Track.TYPE_AUDIO:
+        avMimeTypes.push(MimetypePrefix.AUDIO);
         track.pes.onPayloadData = (data, dts, cto, naluType) => {
           this._onAudioPayload(track, data, dts);
-        }
+        };
         break;
       case Track.TYPE_VIDEO:
+        avMimeTypes.push(MimetypePrefix.VIDEO);
         track.pes.onPayloadData = (data, dts, cto, naluType) => {
           this._onVideoPayload(track, data, dts, cto, naluType);
-        }
+        };
         break;
       }
+    });
+
+    this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
+      socket: new ShadowOutputSocket(avMimeTypes)
     });
   }
 
   private _onAudioPayload (track: TSTrack, data: Uint8Array, dts: number) {
-
     const payloadReader = track.pes.payloadReader as AdtsReader;
 
     const bufferSlice = BufferSlice.fromTypedArray(
@@ -125,9 +134,6 @@ export class Mp2TsDemuxProc2 extends Processor {
     data: Uint8Array,
     dts: number, cto: number,
     naluType: number) {
-
-    //if (naluType === NAL_UNIT_TYPE.AUD) return;
-
     const payloadReader = track.pes.payloadReader as H264Reader;
 
     if (!payloadReader.sps) return;
@@ -140,15 +146,15 @@ export class Mp2TsDemuxProc2 extends Processor {
     props.codec = CommonCodecFourCCs.avc1;
     props.elementaryStreamId = track.id;
 
-    props.details.width = payloadReader.sps.codecSize.width
-    props.details.height = payloadReader.sps.codecSize.height
+    props.details.width = payloadReader.sps.codecSize.width;
+    props.details.height = payloadReader.sps.codecSize.height;
     props.details.codecProfile = payloadReader.sps.profileIdc;
     props.details.samplesPerFrame = 1;
 
     let isHeader = false;
     let isKeyframe = false;
     let isAud = false;
-    switch(naluType) {
+    switch (naluType) {
     case NAL_UNIT_TYPE.IDR:
       isKeyframe = true;
       break;
@@ -190,7 +196,7 @@ export class Mp2TsDemuxProc2 extends Processor {
       return;
     }
 
-    if (! (this._gotFirstSps && this._gotFirstPps)) {
+    if (!(this._gotFirstSps && this._gotFirstPps)) {
       return;
     }
 
@@ -200,7 +206,6 @@ export class Mp2TsDemuxProc2 extends Processor {
         .setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
       this._pendingVideoPkt = packet;
     } else {
-      //this._pendingVideoPkt.setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
       this._pendingVideoPkt.properties.addTags(Array.from(props.tags.values()));
       this._pendingVideoPkt.data.push(BufferSlice.fromTypedArray(data, props));
     }
@@ -209,6 +214,5 @@ export class Mp2TsDemuxProc2 extends Processor {
       this._videoSocket.transfer(this._pendingVideoPkt);
       this._pendingVideoPkt = null;
     }
-
   }
 }
