@@ -69,7 +69,7 @@ export class BufferProperties extends PayloadDescriptor {
     return `[[#${this.samplesCount} x ${this.isKeyframe ? 'KEY' : 'P/B'}-${this.isBitstreamHeader ? 'HEADER(s)' : 'FRAME(s)'} => ${payloadToString}]]`;
   }
 
-  addTags(tags: string[]) {
+  addTags (tags: string[]) {
     this.tags = new Set([...this.tags, ...tags]);
   }
 }
