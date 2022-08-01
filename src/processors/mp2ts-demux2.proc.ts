@@ -49,6 +49,8 @@ export class Mp2TsDemuxProc2 extends Processor {
   private _gotFirstSps = false;
   private _gotFirstPps = false;
 
+  private _gotFirstPmt: boolean = false;
+
   private _videoSeiOutSocket: OutputSocket = null;
   private _metadataSocketMap: {[pid: number]: OutputSocket} = {};
 
@@ -74,28 +76,36 @@ export class Mp2TsDemuxProc2 extends Processor {
   private _onPmtUpdated () {
     log('PMT updated, new stream-types mapping:', this._tsParser.tracks);
 
-    const avMimeTypes: MimetypePrefix[] = [];
+    if (!this._gotFirstPmt) {
+      this._gotFirstPmt = true;
 
-    Object.values(this._tsParser.tracks).forEach((track) => {
-      switch (track.type) {
-      case Track.TYPE_AUDIO:
-        avMimeTypes.push(MimetypePrefix.AUDIO);
-        track.pes.onPayloadData = (data, dts, cto, naluType) => {
-          this._onAudioPayload(track, data, dts);
-        };
-        break;
-      case Track.TYPE_VIDEO:
-        avMimeTypes.push(MimetypePrefix.VIDEO);
-        track.pes.onPayloadData = (data, dts, cto, naluType) => {
-          this._onVideoPayload(track, data, dts, cto, naluType);
-        };
-        break;
-      }
-    });
+      const avMimeTypes: MimetypePrefix[] = [];
 
-    this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
-      socket: new ShadowOutputSocket(avMimeTypes)
-    });
+      Object.values(this._tsParser.tracks).forEach((track) => {
+        switch (track.type) {
+        case Track.TYPE_AUDIO:
+          avMimeTypes.push(MimetypePrefix.AUDIO);
+          track.pes.onPayloadData = (data, dts, cto, naluType) => {
+            this._onAudioPayload(track, data, dts);
+          };
+          break;
+        case Track.TYPE_VIDEO:
+          avMimeTypes.push(MimetypePrefix.VIDEO);
+          track.pes.onPayloadData = (data, dts, cto, naluType) => {
+            this._onVideoPayload(track, data, dts, cto, naluType);
+          };
+          break;
+        }
+      });
+
+      this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
+        socket: new ShadowOutputSocket(avMimeTypes)
+      });
+    }
+
+
+
+
   }
 
   private _onAudioPayload (track: TSTrack, data: Uint8Array, dts: number) {
