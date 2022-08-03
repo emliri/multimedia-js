@@ -103,9 +103,6 @@ export class Mp2TsDemuxProc2 extends Processor {
       });
     }
 
-
-
-
   }
 
   private _onAudioPayload (track: TSTrack, data: Uint8Array, dts: number) {
@@ -114,7 +111,7 @@ export class Mp2TsDemuxProc2 extends Processor {
     const bufferSlice = BufferSlice.fromTypedArray(
       data,
       new BufferProperties(CommonMimeTypes.AUDIO_AAC,
-        payloadReader.currentFrameInfo.sampleRate, // Hz
+        payloadReader.currentSampleRate, // Hz
         16, // audio bitdepth (should always be this with AAC)
         1 // sample-duration numerator
       )
@@ -126,16 +123,18 @@ export class Mp2TsDemuxProc2 extends Processor {
     bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
     bufferSlice.props.isKeyframe = true;
     bufferSlice.props.isBitstreamHeader = false;
-    bufferSlice.props.details.samplesPerFrame = AAC_SAMPLES_PER_FRAME; // AAC has constant samples-per-frame rate of 1024
-    bufferSlice.props.details.codecProfile = payloadReader.currentFrameInfo.profile;
+    bufferSlice.props.details.samplesPerFrame = payloadReader.currentFrameInfo.numFrames * AAC_SAMPLES_PER_FRAME; // AAC has constant samples-per-frame rate of 1024
+    bufferSlice.props.details.codecProfile = payloadReader.currentFrameInfo.aacObjectType;
     bufferSlice.props.details.numChannels = 2; // todo
 
     if (!this._audioSocket) {
       this._audioSocket = this.createOutput(SocketDescriptor.fromBufferProps(bufferSlice.props));
     }
 
+    const timeScale = payloadReader.currentFrameInfo.sampleRate;
+
     const packet = Packet.fromSlice(bufferSlice)
-      .setTimingInfo(dts, 0, MPEG_TS_TIMESCALE_HZ);
+      .setTimingInfo(dts, 0, timeScale);
 
     this._audioSocket.transfer(packet);
   }

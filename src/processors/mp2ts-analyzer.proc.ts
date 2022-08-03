@@ -24,6 +24,7 @@ import { Frame, Track } from '../ext-mod/inspector.js/src';
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer';
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
 import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
+import { AdtsReader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/adts-reader';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
@@ -119,6 +120,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     let gotAvcInitData = false;
 
     let spsPpsTimeDts: number;
+    let audioRateHz: number;
 
     this._tsParser.append(mptsPktData);
 
@@ -140,10 +142,10 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         gotVideoKeyframe = frames.some(frame => frame.frameType === FRAME_TYPE.I);
 
         const h264Reader = (<H264Reader> track.pes.payloadReader);
-        // checking pusi-count ensures we await end of any current payload-unit,
+        // checking PUSI-count ensures we await end of any current payload-unit,
         // as we may have 0 frames popped but still an SPS/PPS parsed.
         // OR: sps/pps can also come in 1 PUSI with prior p-frame,
-        // in which case pusi-count is already reset after popFrames,
+        // in which case h264Reader internal counter is already reset after popFrames,
         // but frame count will be > 0.
         if ((h264Reader.getPusiCount() > 0 || vFrames.length) &&
           h264Reader.sps && h264Reader.pps) {
@@ -156,6 +158,8 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
 
         break;
       case Track.TYPE_AUDIO:
+        const adtsReader = track.pes.payloadReader as AdtsReader;
+        audioRateHz = adtsReader.currentSampleRate;
         aFrames = frames;
         break;
       }
@@ -165,11 +169,11 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     // is that at least one of the tracks has >= 1 frames.
     // either frames list can be undefined if there is no respective a/v track.
     if (aFrames?.length || vFrames?.length || gotAvcInitData) {
-      const firstPtsA = orInfinity(aFrames?.length && aFrames[0].dts);
-      const firstPtsV = orInfinity(vFrames?.length && vFrames[0].dts);
-      let firstPts = Math.min(
-        firstPtsA,
-        firstPtsV,
+      const firstDtsA = orInfinity(aFrames?.length && aFrames[0].dts);
+      const firstDtsV = orInfinity(vFrames?.length && vFrames[0].dts);
+      let firstDts = Math.min(
+        firstDtsA,
+        firstDtsV,
         orInfinity(spsPpsTimeDts) // will only be defined if there were no video frames to get timing from.
       );
 
@@ -177,7 +181,9 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       // based on the preconditions here
       // firstPtsUs = Infinity can only result
       // when one or more of the tracks first frame PTS = 0.
-      if (firstPts === Infinity) firstPts = 0;
+      if (firstDts === Infinity) firstDts = 0;
+
+      let timeScale: number;
 
       // we have this check here to assert in a specific mode
       // of segmentation which is default now (see above on popFrames).
@@ -191,8 +197,10 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         throw new Error('Expected to have only one type of frames in this PES segmentation mode');
       } else if (aFrames?.length) {
         codec4cc = CommonCodecFourCCs.mp4a;
+        timeScale = audioRateHz;
       } else if (vFrames?.length || gotAvcInitData) {
         codec4cc = CommonCodecFourCCs.avc1;
+        timeScale = MPEG_TS_TIMESCALE_HZ;
       } else {
         throw new Error('Expected either video or audio payload');
       }
@@ -203,7 +211,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       }
 
       const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
-        .setTimingInfo(firstPts, 0, MPEG_TS_TIMESCALE_HZ);
+        .setTimingInfo(firstDts, 0, timeScale);
 
       pkt.properties.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
       pkt.properties.codec = codec4cc;
