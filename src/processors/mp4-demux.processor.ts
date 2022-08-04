@@ -19,6 +19,8 @@ import { AudioAtom } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/helpers
 import { VideoAtom } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/helpers/video-atom';
 
 import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
+import { TrackType } from '../ext-mod/inspector.js/src/demuxer/track';
+import { c } from 'bowser';
 
 const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.OFF, true);
 
@@ -109,10 +111,6 @@ export class MP4DemuxProcessor extends Processor {
             'timescale:', timescale
           );
 
-          if (track.isVideo()) {
-            log('video-track resolution:', track.getResolution());
-          }
-
           log('defaults:', track.getDefaults());
 
           if (!track.getDefaults()) {
@@ -131,8 +129,10 @@ export class MP4DemuxProcessor extends Processor {
           const codecDataList: Uint8Array[] = [];
           let codecProfile: number = NaN;
 
-          if (track.isVideo()) {
+          if (track.type === TrackType.VIDEO) {
             log('video track found with id:', track.id);
+
+            log('resolution:', track.getResolution());
 
             // FIXME: support HEVC too
             const avcCList: AvcC[] = (<AvcC[]> track.getReferenceAtoms());
@@ -193,7 +193,7 @@ export class MP4DemuxProcessor extends Processor {
             console.log('pushing PPS data')
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
-          } else if (track.isAudio()) {
+          } else if (track.type === TrackType.AUDIO) {
             log('audio track found with id:', track.id);
 
             const audioAtom = <AudioAtom> track.getMetadataAtom();
@@ -240,13 +240,13 @@ export class MP4DemuxProcessor extends Processor {
 
           protoProps.details.sequenceDurationInSeconds = durationInSeconds;
 
-          if (track.isVideo()) {
+          if (track.type === TrackType.VIDEO) {
             protoProps.details.width = track.getResolution()[0];
             protoProps.details.height = track.getResolution()[1];
             protoProps.details.samplesPerFrame = 1;
             protoProps.details.codecProfile = codecProfile;
             protoProps.codec = 'avc';
-          } else if (track.isAudio()) {
+          } else if (track.type === TrackType.AUDIO) {
             // TODO: add audio object type (from ESDS DecoderConfigDescriptor)
             protoProps.details.numChannels = numChannels;
             protoProps.details.constantBitrate = constantBitrate;

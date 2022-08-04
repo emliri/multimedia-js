@@ -25,6 +25,7 @@ import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-dem
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
 import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AdtsReader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/adts-reader';
+import { TrackType } from '../ext-mod/inspector.js/src/demuxer/track';
 
 const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
@@ -136,7 +137,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       // then again, the PES-AU atomic segmentation done here can be
       // used as a canonical output to produce any other segmentation in principle.
       switch (track.type) {
-      case Track.TYPE_VIDEO:
+      case TrackType.VIDEO:
         vFrames = frames;
 
         gotVideoKeyframe = frames.some(frame => frame.frameType === FRAME_TYPE.I);
@@ -157,7 +158,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         }
 
         break;
-      case Track.TYPE_AUDIO:
+      case TrackType.AUDIO:
         const adtsReader = track.pes.payloadReader as AdtsReader;
         audioRateHz = adtsReader.currentSampleRate;
         aFrames = frames;

@@ -10,14 +10,14 @@ import { printNumberScaledAtDecimalOrder } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 import { getPerfNow } from '../perf-ctx';
 
-import { mpeg2TsClockToSecs, MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
+import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
 
 import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer';
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
-import { Track } from '../ext-mod/inspector.js/src/demuxer/track';
+import { TrackType } from '../ext-mod/inspector.js/src/demuxer/track';
 import { TSTrack } from '../ext-mod/inspector.js/src';
 import { NAL_UNIT_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AdtsReader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/adts-reader';
@@ -83,13 +83,13 @@ export class Mp2TsDemuxProc2 extends Processor {
 
       Object.values(this._tsParser.tracks).forEach((track) => {
         switch (track.type) {
-        case Track.TYPE_AUDIO:
+        case TrackType.AUDIO:
           avMimeTypes.push(MimetypePrefix.AUDIO);
-          track.pes.onPayloadData = (data, dts, cto, naluType) => {
+          track.pes.onPayloadData = (data, dts) => {
             this._onAudioPayload(track, data, dts);
           };
           break;
-        case Track.TYPE_VIDEO:
+        case TrackType.VIDEO:
           avMimeTypes.push(MimetypePrefix.VIDEO);
           track.pes.onPayloadData = (data, dts, cto, naluType) => {
             this._onVideoPayload(track, data, dts, cto, naluType);
@@ -123,9 +123,12 @@ export class Mp2TsDemuxProc2 extends Processor {
     bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
     bufferSlice.props.isKeyframe = true;
     bufferSlice.props.isBitstreamHeader = false;
-    bufferSlice.props.details.samplesPerFrame = payloadReader.currentFrameInfo.numFrames * AAC_SAMPLES_PER_FRAME; // AAC has constant samples-per-frame rate of 1024
-    bufferSlice.props.details.codecProfile = payloadReader.currentFrameInfo.aacObjectType;
-    bufferSlice.props.details.numChannels = 2; // todo
+
+    // extract payload-specific info
+    const {numFrames, aacObjectType, channels} = payloadReader.currentFrameInfo;
+    bufferSlice.props.details.samplesPerFrame = numFrames * AAC_SAMPLES_PER_FRAME;
+    bufferSlice.props.details.codecProfile = aacObjectType;
+    bufferSlice.props.details.numChannels = channels;
 
     if (!this._audioSocket) {
       this._audioSocket = this.createOutput(SocketDescriptor.fromBufferProps(bufferSlice.props));
@@ -141,8 +144,10 @@ export class Mp2TsDemuxProc2 extends Processor {
 
   private _onVideoPayload (track: TSTrack,
     data: Uint8Array,
-    dts: number, cto: number,
+    dts: number,
+    cto: number,
     naluType: number) {
+
     const payloadReader = track.pes.payloadReader as H264Reader;
 
     if (!payloadReader.sps) return;
