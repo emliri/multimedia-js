@@ -102,7 +102,6 @@ export class Mp2TsDemuxProc2 extends Processor {
         socket: new ShadowOutputSocket(avMimeTypes)
       });
     }
-
   }
 
   private _onAudioPayload (track: TSTrack, data: Uint8Array, dts: number) {
@@ -125,7 +124,7 @@ export class Mp2TsDemuxProc2 extends Processor {
     bufferSlice.props.isBitstreamHeader = false;
 
     // extract payload-specific info
-    const {numFrames, aacObjectType, channels} = payloadReader.currentFrameInfo;
+    const { numFrames, aacObjectType, channels } = payloadReader.currentFrameInfo;
     bufferSlice.props.details.samplesPerFrame = numFrames * AAC_SAMPLES_PER_FRAME;
     bufferSlice.props.details.codecProfile = aacObjectType;
     bufferSlice.props.details.numChannels = channels;
@@ -147,7 +146,6 @@ export class Mp2TsDemuxProc2 extends Processor {
     dts: number,
     cto: number,
     naluType: number) {
-
     const payloadReader = track.pes.payloadReader as H264Reader;
 
     if (!payloadReader.sps) return;
@@ -184,6 +182,8 @@ export class Mp2TsDemuxProc2 extends Processor {
       isAud = true;
       break;
     case NAL_UNIT_TYPE.SLICE:
+      break;
+    case NAL_UNIT_TYPE.SEI:
       break;
     default:
       break;
