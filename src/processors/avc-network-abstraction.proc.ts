@@ -9,7 +9,13 @@ import { getLogger, LoggerLevel } from '../logger';
 import { Nullable } from '../common-types';
 import { isQNumber, secsToMillis } from '../common-utils';
 
-import { debugAccessUnit, debugNALU, makeAccessUnitFromNALUs, parseNALU, H264NaluType } from './h264/h264-tools';
+import {
+  debugAccessUnit,
+  debugNALU,
+  makeAccessUnitFromNALUs,
+  parseNALU,
+  H264NaluType
+} from './h264/h264-tools';
 
 import { AvcCodecDataBox } from './mozilla-rtmpjs/mp4iso-boxes';
 
@@ -79,10 +85,15 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
       'is tagged as NALU with tags:', properties.tags,
       'and nb of slices:', p.dataSlicesLength);
 
+    DEBUG_H264 && p.data.forEach((slice) => {
+      debugNALU(slice, log);
+    });
+
     // TODO: instead of relying on tags, probe/parse assumed NALU data here.
 
     if (properties.tags.has('sps') || properties.tags.has('pps')) {
       p.forEachBufferSlice(this._handleParameterSetNalus.bind(this, p), null, this);
+      return;
     }
 
     this._processPacket(p);
@@ -94,7 +105,8 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
     const { properties } = p;
 
     // packet data might contain multiple slices for a frame i.e timestamp/CTO:
-    // this proc replaces that by a single AU containing all slices.
+    // this proc replaces that by a single AU containing all slices (optionnally using
+    // AnnexB type NAL syncwords instead of of box data size).
     const auBufferSlice = makeAccessUnitFromNALUs(p.data, this.options_.useAnnexB);
 
     auBufferSlice.props = properties;
@@ -174,7 +186,7 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
         } else {
           const prevPkt = this._packetDelayStore;
           this._packetDelayStore = null;
-          throw new Error(`Couldn't determine packets DTS-diff (dropping both & reset): ${p.toString()} - ${prevPkt.toString()}`);
+          throw new Error(`Couldn't determine packets DTS-diff (dropping both & reset): ${p?.toString()} - ${prevPkt?.toString()}`);
           /*
           // FIXME: may lead to problems if first packet output
           this._packetDelayStore
@@ -192,8 +204,6 @@ export class AvcPayloaderProc extends AvcPayloaderProcWithOpts {
   }
 
   private _handleParameterSetNalus (p: Packet, bufferSlice: BufferSlice) {
-    // DEBUG_H264 && debugNALU(bufferSlice)
-
     const propsClone = BufferProperties.clone(bufferSlice.props);
     propsClone.mimeType = CommonMimeTypes.VIDEO_AVC;
 

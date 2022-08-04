@@ -323,7 +323,8 @@ export class MP2TSDemuxProcessor extends Processor {
                             nextIsAuDelimiter ||
                             (!lastIsAuDelimiter &&
                               ((this._videoNaluQueueOut[0].isHeader && !nextIsHeader) ||
-                                (!this._videoNaluQueueOut[0].isHeader && nextIsHeader))));
+                                (!this._videoNaluQueueOut[0].isHeader && nextIsHeader)))
+                          );
 
     if (needQueueFlush) {
       this._flushVideoNaluQueueOut();
