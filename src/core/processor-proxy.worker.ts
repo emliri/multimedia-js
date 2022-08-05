@@ -1,3 +1,13 @@
+
+import { isWorkerScope } from '../common-utils';
+import { makeUUID_v1 } from '../common-crypto';
+import { getLogger, LoggerLevel } from '../logger';
+import { cloneErrorInfo, ErrorCode } from './error';
+
+import { OutputSocket, InputSocket } from './socket';
+import { Packet } from './packet';
+
+import { ProcessorEvent, ProcessorEventData } from './processor';
 import {
   ProcessorProxyWorkerSubContext,
   ProcessorProxyWorkerMessageData,
@@ -6,14 +16,6 @@ import {
   ProcessorProxyWorkerCallback,
   ProcessorProxyWorkerCallbackTransferValue
 } from './processor-proxy';
-import { ProcessorEvent, ProcessorEventData } from './processor';
-import { OutputSocket, InputSocket } from './socket';
-import { Packet } from './packet';
-
-import { makeUUID_v1 } from '../common-crypto';
-import { getLogger, LoggerLevel } from '../logger';
-
-import { cloneErrorInfo, ErrorCode } from './error';
 import { getProcessors } from './processor-factory';
 
 // FIXME: import this importScripts so that logger categories can apply to self config
@@ -24,15 +26,17 @@ import { getProcessors } from './processor-factory';
  */
 declare let importScripts: (...paths: string[]) => void;
 
-const Processors = getProcessors();
-
-const workerId = makeUUID_v1();
-const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.WARN);
-
 (function () {
-  log('setting new worker instance up ...');
+  if (!isWorkerScope()) {
+    return;
+  }
 
-  // TODO: check for importScripts existence i.e if module loaded by worker-scope
+  const Processors = getProcessors();
+
+  const workerId = makeUUID_v1();
+  const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`, LoggerLevel.WARN);
+
+  log('setting new worker instance up ...');
 
   const context: Worker = self as any;
   const subContexts: ProcessorProxyWorkerSubContext[] = [];
@@ -306,3 +310,5 @@ const { log, debug, warn, error } = getLogger(`ProcessorProxyWorker#${workerId}`
     }
   }
 })();
+
+export default void 0;

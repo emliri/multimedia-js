@@ -4,7 +4,7 @@ import { SocketType, InputSocket, OutputSocket, SocketOwner, Socket, SocketTempl
 import { PacketSymbol, Packet } from './packet';
 import { Signal, SignalReceiver, SignalHandler, SignalReceiverCastResult } from './signal';
 import { SocketDescriptor } from './socket-descriptor';
-import { ErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace } from './error';
+import { ErrorInfo, ErrorCode, ErrorCodeSpace, ErrorInfoSpace, printUnhandledError } from './error';
 
 import { getLogger } from '../logger';
 import { mixinWithOptions } from '../lib/options';
@@ -138,10 +138,7 @@ export abstract class Processor extends EventEmitter<ProcessorEvent> implements 
     if (this.listenerCount(ProcessorEvent.ERROR)) {
       this.emit(ProcessorEvent.ERROR, this.createErrorEvent(code, message, nativeError, innerError));
     } else { // make sure the error is being seen if we have no listeners
-      console.error(`Unhandled error code ${code}: ${message}`);
-      if (nativeError) {
-        console.error('Inner exception thrown:', nativeError);
-      }
+      printUnhandledError(code, message, nativeError);
     }
   }
 

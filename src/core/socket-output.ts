@@ -22,18 +22,13 @@ export class OutputSocket extends Socket {
     super.close();
   }
 
-  protected transferSync (p: Packet): boolean {
-    let b: boolean;
+  protected transferSync (p: Packet): void {
+    let result: boolean = true;
     this.setTransferring_(true);
     this.peers_.forEach((s) => {
-      log('call transfer on peer socket');
-      s.transfer(p) // async yes/no?
-        .then(b => {
-          this.onPacketTransferred_(s, b);
-        });
+      s.transfer(p);
     });
     this.setTransferring_(false);
-    return b;
   }
 
   /**
@@ -41,12 +36,18 @@ export class OutputSocket extends Socket {
    */
   connect (s: Socket): OutputSocket {
     if (!s) {
-      throw new Error('Socket connect called with ' + s);
+      throw new Error('OutputSocket.connect called with falsy arg:' + s);
     }
 
     if (this.isConnectedTo(s)) {
-      throw new Error('Socket is already connected to peer');
+      throw new Error('OutputSocket is already connected to peer');
     }
+
+    if (s.getPeer()) {
+      throw new Error('OutputSocket.connect target already has a peer (only one output can connect to any peer socket)');
+    }
+    s.setPeer(this);
+
     this.peers_.push(s);
 
     // when we peer with a socket we set our internal handler
@@ -106,7 +107,7 @@ export class OutputSocket extends Socket {
     if (signal.isDirectionDown()) {
       peersOrOwner = signal.emit(this.peers_);
     } else {
-      peersOrOwner = this.owner.cast(signal);
+      peersOrOwner = this.owner_.cast(signal);
     }
     return collectSignalReceiverCastResults([
       super.cast(signal),
@@ -125,25 +126,11 @@ export class OutputSocket extends Socket {
    */
   private _onPeerSignalCast (peerSocket: Socket, signal: Signal): SignalReceiverCastResult {
     if (signal.isDirectionUp()) {
-      return this.owner.cast(signal);
+      return this.owner_.cast(signal);
     } else {
       return Promise.resolve(false);
     }
   }
-
-  private onPacketTransferred_ (peerSocket: Socket, peerTransferReturnVal: boolean) {
-    switch (peerSocket.type()) {
-    case SocketType.INPUT:
-      this.onPacketTransferredToPeerInput_(peerTransferReturnVal);
-      break;
-    case SocketType.OUTPUT:
-      this.onPacketTransferredToPeerOutput_(peerTransferReturnVal);
-      break;
-    }
-  }
-
-  private onPacketTransferredToPeerInput_ (peerTransferReturnVal: boolean) {}
-  private onPacketTransferredToPeerOutput_ (peerTransferReturnVal: boolean) {}
 }
 
 export class ShadowOutputSocket extends OutputSocket {

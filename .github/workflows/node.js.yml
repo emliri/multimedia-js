@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x, 14.x, 15.x]
+        node-version: [14.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -26,7 +26,8 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - run: git submodule update --init --recursive
+    - run: npm install -g npm@8
     - run: npm ci
     - run: npm run build
-    # - run: npm run lint
+    - run: npm run lint -- --quiet
     - run: npm test

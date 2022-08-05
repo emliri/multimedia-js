@@ -16,12 +16,11 @@ import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/
 
 import {
   M2tDemuxPipeline,
-  M2tH264StreamEvent,
   M2tStream,
-  M2tADTSStreamEvent,
-  M2tPacketStreamProgramTableEvent,
-  M2tNaluType,
-  M2tElementaryStreamEvent
+  M2tTransportPacketEvent,
+  M2tElementaryStreamEvent,
+  M2tH264StreamEvent,
+  M2tADTSStreamEvent
 } from './muxjs-m2t/muxjs-m2t-types';
 
 import {
@@ -44,19 +43,20 @@ const getSocketDescriptor: SocketTemplateGenerator =
 
 type VideoNALUInfo = {
   nalu: M2tH264StreamEvent,
-  dts: number, cto: number,
+  dts: number,
+  cto: number,
   isKeyframe: boolean,
   isHeader: boolean
 };
 
 export class MP2TSDemuxProcessor extends Processor {
   static getName (): string {
-    return 'Mp2tsDemuxProc';
+    return 'MP2TSDemuxProcessor';
   }
 
   private _demuxPipeline: M2tDemuxPipeline;
 
-  private _pmtCache: M2tPacketStreamProgramTableEvent;
+  private _pmtCache: M2tTransportPacketEvent;
 
   private _audioSocket: OutputSocket = null;
   private _audioDtsOffset: number = null;
@@ -66,6 +66,8 @@ export class MP2TSDemuxProcessor extends Processor {
   private _videoConfig: M2tH264StreamEvent = null;
   private _gotVideoPictureParamSet: boolean = false;
   private _videoNaluQueueOut: VideoNALUInfo[] = [];
+
+  private _videoSeiOutSocket: OutputSocket = null;
 
   private _metadataSocketMap: {[pid: number]: OutputSocket} = {};
 
@@ -95,106 +97,119 @@ export class MP2TSDemuxProcessor extends Processor {
     // eslint-disable-next-line new-cap
     pipeline.aacOrAdtsStream = new AdtsStream.default() as unknown as M2tStream;
     pipeline.h264Stream = new H264Codec.H264Stream() as unknown as M2tStream;
+
     // easy handle to headend of pipeline
     pipeline.headOfPipeline = pipeline.packetStream as unknown as M2tStream;
 
     // disassemble MPEG2-TS packets into elementary streams
-    pipeline.packetStream
-      .pipe(pipeline.parseStream)
-      .pipe(pipeline.elementaryStream)
+    pipeline.packetStream // assemble MPTS packets from raw network input
+      .pipe(pipeline.parseStream) // actual TS packet parsing
+      .pipe(pipeline.elementaryStream) // PES demuxing
       .pipe(pipeline.timestampRolloverStream);
 
-    pipeline.parseStream.on('data', (data: M2tPacketStreamProgramTableEvent) => {
-      if (!this._pmtCache && data.type === 'pmt') {
-        log('First PMT packet:', data);
-        this._pmtCache = data;
-        const avMimeTypes: MimetypePrefix[] = [];
-        if (data.programMapTable?.audio) {
-          avMimeTypes.push(MimetypePrefix.AUDIO);
-        }
-        if (data.programMapTable?.video) {
-          avMimeTypes.push(MimetypePrefix.VIDEO);
-        }
-        this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
-          socket: new ShadowOutputSocket(avMimeTypes)
-        });
-
-        Object.keys(data.programMapTable['timed-metadata']).forEach((pid: string) => {
-          const streamType: number = data.programMapTable['timed-metadata'][pid];
-          // TODO: extract stream-descriptors from PMT data
-          this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
-            socket: new ShadowOutputSocket([MimetypePrefix.APPLICATION], Number(pid))
-          });
-        });
-      }
+    // TS packets inspection for PMT
+    pipeline.parseStream.on('data', (data: M2tTransportPacketEvent) => {
+      // ignores non-PMT events
+      this._handleProgramTable(data);
     });
 
-    pipeline.elementaryStream.on('data', (data: M2tElementaryStreamEvent) => {
-      if (!this._pmtCache) return;
-      const appDataStreamType =
-        this._pmtCache.programMapTable['timed-metadata'][data.trackId];
-      if (!appDataStreamType) {
-        return;
-      }
-      const bs = BufferSlice.fromTypedArray(data.data,
-        new BufferProperties(MimetypePrefix.APPLICATION + '/unknown'));
-      const timestamp = Number.isFinite(data.dts) ? data.dts : data.pts;
-      let packet: Packet;
-      if (Number.isFinite(timestamp)) {
-        packet = Packet.fromSlice(bs, timestamp);
-      } else {
-        packet = Packet.fromSlice(bs);
-      }
-      packet.setSynchronizationId(data.trackId);
-      if (!this._metadataSocketMap[data.trackId]) {
-        this._metadataSocketMap[data.trackId] =
-          this.createOutput(SocketDescriptor
-            .fromBufferProps(packet.properties));
-      }
-      this._metadataSocketMap[data.trackId].transfer(packet);
+    // Any other PES raw payload handler
+    pipeline.elementaryStream.on('data', (eventData: M2tElementaryStreamEvent) => {
+      // handles only expected timed-metadata stream-types (ignores other packets)
+      this._handleTimedMetadata(eventData);
     });
 
-    // demux the streams
-    pipeline.timestampRolloverStream
-      .pipe(pipeline.h264Stream);
-
+    // AAC PES unpack
     pipeline.timestampRolloverStream
       .pipe(pipeline.aacOrAdtsStream);
-
-    pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
-      debug('h264Stream:', data);
-      this._handleVideoNalu(data);
-    });
-
     pipeline.aacOrAdtsStream.on('data', (data: M2tADTSStreamEvent) => {
       debug('aacOrAdtsStream:', data);
       this._handleAudioNalu(data);
     });
 
+    // AVC PES unpack
+    pipeline.timestampRolloverStream
+      .pipe(pipeline.h264Stream);
+    pipeline.h264Stream.on('data', (data: M2tH264StreamEvent) => {
+      debug('h264Stream:', data);
+      this._handleVideoNalu(data);
+    });
+
     this._demuxPipeline = pipeline as M2tDemuxPipeline;
+  }
+
+  private _handleProgramTable (data: M2tTransportPacketEvent) {
+    if (!this._pmtCache && data.type === 'pmt') {
+      log('First PMT packet:', data);
+      this._pmtCache = data;
+      const avMimeTypes: MimetypePrefix[] = [];
+      if (data.programMapTable?.audio) {
+        avMimeTypes.push(MimetypePrefix.AUDIO);
+      }
+      if (data.programMapTable?.video) {
+        avMimeTypes.push(MimetypePrefix.VIDEO);
+      }
+      this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
+        socket: new ShadowOutputSocket(avMimeTypes)
+      });
+
+      Object.keys(data.programMapTable['timed-metadata']).forEach((pid: string) => {
+        const streamType: number = data.programMapTable['timed-metadata'][pid];
+
+        // TODO: extract stream-descriptors from PMT data
+
+        this.emitEvent(ProcessorEvent.OUTPUT_SOCKET_SHADOW, {
+          socket: new ShadowOutputSocket([MimetypePrefix.APPLICATION], Number(pid))
+        });
+      });
+    }
+  }
+
+  private _handleTimedMetadata (eventData: M2tElementaryStreamEvent) {
+    // need first PMT to inspect stream-types
+    if (!this._pmtCache) return;
+
+    const { data, pts, dts, trackId } = eventData;
+
+    const appDataStreamType =
+      this._pmtCache.programMapTable['timed-metadata'][trackId];
+    // filter on timed-metadata stream-types
+    if (!appDataStreamType) {
+      return;
+    }
+
+    // create packet
+    let packet: Packet;
+    const bs = BufferSlice.fromTypedArray(data,
+      new BufferProperties(MimetypePrefix.APPLICATION + '/unknown'));
+    const timestamp = Number.isFinite(dts) ? dts : pts;
+    if (Number.isFinite(timestamp)) {
+      packet = Packet.fromSlice(bs, timestamp);
+    } else {
+      packet = Packet.fromSlice(bs);
+    }
+    packet.setSynchronizationId(trackId);
+
+    // create output on first data
+    if (!this._metadataSocketMap[trackId]) {
+      this._metadataSocketMap[trackId] =
+        this.createOutput(SocketDescriptor.fromBufferProps(packet.properties));
+    }
+
+    // transfer packet
+    this._metadataSocketMap[trackId].transfer(packet);
   }
 
   private _handleAudioNalu (adtsEvent: M2tADTSStreamEvent) {
     const dts = adtsEvent.dts - this._audioDtsOffset;
     const cto = adtsEvent.pts - adtsEvent.dts;
 
-    const sampleData: Uint8Array = adtsEvent.data;
-
-    const bufferSlice = new BufferSlice( // fromTypedArray
-      sampleData.buffer,
-      sampleData.byteOffset,
-      sampleData.byteLength);
-
-    const packet = Packet.fromSlice(bufferSlice,
-      dts,
-      cto
+    const bufferSlice = BufferSlice.fromTypedArray(
+      adtsEvent.data,
+      new BufferProperties(CommonMimeTypes.AUDIO_AAC, adtsEvent.samplerate, 16, 1)
     );
-
-    const mimeType = CommonMimeTypes.AUDIO_AAC;
-
     // NOTE: buffer-props is per-se not cloned on packet transfer,
     // so we must create/ref a single prop-object per packet (full-ownership).
-    bufferSlice.props = new BufferProperties(mimeType, adtsEvent.samplerate, 16, 1); // Q: is it always 16 bit ?
     bufferSlice.props.samplesCount = adtsEvent.sampleCount;
     bufferSlice.props.codec = CommonCodecFourCCs.mp4a;
     bufferSlice.props.isKeyframe = true;
@@ -202,6 +217,11 @@ export class MP2TSDemuxProcessor extends Processor {
     bufferSlice.props.details.samplesPerFrame = 1024; // AAC has constant samples-per-frame rate of 1024
     bufferSlice.props.details.codecProfile = adtsEvent.audioobjecttype;
     bufferSlice.props.details.numChannels = adtsEvent.channelcount;
+
+    const packet = Packet.fromSlice(bufferSlice,
+      dts,
+      cto
+    );
 
     // TODO: compute bitrate
     // bufferSlice.props.details.constantBitrate =
@@ -237,7 +257,9 @@ export class MP2TSDemuxProcessor extends Processor {
     }
 
     if (h264Event.nalUnitTypeByte === H264NaluType.SEI) {
-      return;
+      // SEI payload is copied to a side-channel for transfer on its specific output,
+      // but otherwise also being processed to the main video output without side-effects.
+      this._pushVideoSeiData(h264Event);
     }
 
     if (h264Event.nalUnitTypeByte === H264NaluType.PPS) {
@@ -263,15 +285,29 @@ export class MP2TSDemuxProcessor extends Processor {
     this._pushVideoNalu({ nalu: h264Event, dts, cto, isKeyframe, isHeader });
   }
 
+  private _pushVideoSeiData (h264Event: M2tH264StreamEvent) {
+    const timestamp = h264Event.dts;
+    const seiNalCopy = new Uint8Array(h264Event.data);
+    const seiBuf = BufferSlice.fromTypedArray(seiNalCopy, new BufferProperties(CommonMimeTypes.VIDEO_H264_SEI));
+    // expected for socket-created event handlers
+    seiBuf.props.codec = CommonCodecFourCCs.avc1;
+    if (!this._videoSeiOutSocket) {
+      info('creating video/h264 SEI specifc output');
+      this._videoSeiOutSocket = this.createOutput(SocketDescriptor.fromBufferProps(seiBuf.props));
+    }
+    this._videoSeiOutSocket.transfer(Packet.fromSlice(seiBuf, timestamp).setTimescale(MPEG_TS_TIMESCALE_HZ));
+  }
+
   private _pushVideoNalu (nalInfo: VideoNALUInfo) {
     const { isHeader: nextIsHeader, isKeyframe: nextIsKeyFrame } = nalInfo;
+
     const naluQLen = this._videoNaluQueueOut.length;
-    const nextIsAuDelimiter = nalInfo.nalu.nalUnitType === M2tNaluType.AUD;
+    const nextIsAuDelimiter = nalInfo.nalu.nalUnitTypeByte === H264NaluType.AUD;
     const firstIsAuDelimiter = naluQLen
-      ? this._videoNaluQueueOut[0].nalu.nalUnitType === M2tNaluType.AUD
+      ? this._videoNaluQueueOut[0].nalu.nalUnitTypeByte === H264NaluType.AUD
       : false;
     const lastIsAuDelimiter = naluQLen
-      ? this._videoNaluQueueOut[naluQLen - 1].nalu.nalUnitType === M2tNaluType.AUD
+      ? this._videoNaluQueueOut[naluQLen - 1].nalu.nalUnitTypeByte === H264NaluType.AUD
       : false;
     const hasIncrPts = naluQLen
       ? nalInfo.nalu.pts > this._videoNaluQueueOut[naluQLen - 1].nalu.pts
@@ -287,7 +323,8 @@ export class MP2TSDemuxProcessor extends Processor {
                             nextIsAuDelimiter ||
                             (!lastIsAuDelimiter &&
                               ((this._videoNaluQueueOut[0].isHeader && !nextIsHeader) ||
-                                (!this._videoNaluQueueOut[0].isHeader && nextIsHeader))));
+                                (!this._videoNaluQueueOut[0].isHeader && nextIsHeader)))
+                          );
 
     if (needQueueFlush) {
       this._flushVideoNaluQueueOut();
@@ -328,16 +365,10 @@ export class MP2TSDemuxProcessor extends Processor {
     });
 
     // create multi-slice packet
-    const slices = this._videoNaluQueueOut.map(({ nalu }) => {
-      const bs = new BufferSlice(
-        nalu.data.buffer,
-        nalu.data.byteOffset,
-        nalu.data.byteLength,
-        props // share same props for all slices
-      );
-      debugNALU(bs, debug);
-      return bs;
-    });
+    const slices = this._videoNaluQueueOut.map(({ nalu }) => BufferSlice.fromTypedArray(
+      nalu.data,
+      props // share same props for all slices
+    ));
 
     const packet = Packet.fromSlices(
       dts,

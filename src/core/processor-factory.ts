@@ -5,35 +5,8 @@ import { noop } from '../common-utils';
 
 import * as Procs from '../processors/index';
 
-/*
-export abstract class FactorizableProcessor extends Processor {
-  private constructor() {
-    super() // TODO: have protected signal handler setter
-  }
-
-  static create(): FactorizableProcessor {
-    const name = this.getName();
-    return new Processors[name]();
-  }
-}
-*/
-
-/*
-export class FactorizableProcessorImpl extends FactorizableProcessor {
-
-  get name() { return null; }
-
-  protected processTransfer_(inS: import("/Users/stephan/Code/emliri/es-libs/multimedia.js/src/core/socket").InputSocket, p: import("/Users/stephan/Code/emliri/es-libs/multimedia.js/src/core/packet").Packet, inputIndex: number): boolean {
-    throw new Error("Method not implemented.");
-  }
-}
-
-export interface FactorizableProcessorImpl extends FactorizableProcessor {
-
-}
-*/
-
 let Processors: {[factoryName: string]: typeof Processor} = Procs as unknown as {[factoryName: string]: typeof Processor};
+
 export function setProcessors (ProcessorsLib: {[factoryName: string]: typeof Processor}) {
   Processors = ProcessorsLib;
 }
@@ -66,15 +39,37 @@ export function newProcessorWorkerShell<T extends typeof Processor = typeof Proc
   return new ProcessorProxy(name, onReady, args, importScriptPaths);
 }
 
-export const newProc = newProcessorWorkerShell; // shorthand
-
 export function newProcWorkerUnsafeCast (
   procConstructor: any,
   args?: any[],
   importScriptPaths?: string[],
   onReady: VoidCallback = noop): ProcessorProxy {
-  return newProc(unsafeCastProcessorType(procConstructor),
+  return newProcessorWorkerShell(unsafeCastProcessorType(procConstructor),
     args, importScriptPaths, onReady);
+}
+
+/**
+ * Creates a Processor from constructor, either proxied by a worker-shell,
+ * OR as plain running on current (e.g main) thread.
+ * This dependiging on respective flag param value passed.
+ * The usefulness of this helper function being, to easily switch around using worker-proxy
+ * or not in some given processor factorization context.
+ * Any other optional params that may be used by proc constructor
+ * or worker scope setup can be passed as well.
+ * @procConstructor constructor of a Processor impl
+ * @param useWorkerShell
+ */
+export function newProcWorkerOrShim (
+  procConstructor: any,
+  useWorkerShell: boolean = true,
+  args?: any[],
+  importScriptPaths?: string[],
+  onReady: VoidCallback = noop): Processor {
+  if (useWorkerShell) {
+    return newProcWorkerUnsafeCast(procConstructor, args, importScriptPaths, onReady);
+  } else {
+    return createProcessorFromConstructor(procConstructor, args);
+  }
 }
 
 export function createProcessorWorkerShellAsync (factoryName: string, args: any[] = [], timeoutMs: number = 1000): Promise<ProcessorProxy> {

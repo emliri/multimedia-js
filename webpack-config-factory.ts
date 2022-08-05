@@ -41,11 +41,8 @@ export function createWebpackConfig (options: WebpackConfigFactoryOptions, exclu
     module: {
       rules: [
         {
-          test: /\.tsx?$|\.js$/,
-          exclude: /(node_modules|bower_components)/,
-          use: {
-            loader: 'ts-loader'
-          }
+          test: /\.ts?$/,
+          loader: 'ts-loader'
         }
       ]
     },

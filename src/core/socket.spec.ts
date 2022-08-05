@@ -275,8 +275,6 @@ describe('OutputSocket', () => {
     is = new InputSocket(cb, sd);
 
     os.connect(is).should.be.equal(os);
-
-    (await os.transfer(packet)).should.be.true;
   });
 
   it('should be able to transfer a Packet to a peer OutputSocket (and on to its peers)', async () => {
@@ -303,6 +301,6 @@ describe('OutputSocket', () => {
 
     os2.connect(is).should.be.equal(os2);
 
-    (await os.transfer(packet)).should.be.equal(cbRetVal);
+    os.transfer(packet);
   });
 });

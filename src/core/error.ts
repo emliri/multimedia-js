@@ -90,7 +90,7 @@ export enum ErrorCode {
   PROC_BAD_FORMAT = getErrorCodeValue(ErrorCodeSpace.PROC, 1),
   PROC_EARLY_EOS = getErrorCodeValue(ErrorCodeSpace.PROC, 2),
   PROC_INTERNAL = getErrorCodeValue(ErrorCodeSpace.PROC, 3),
-  PROC_TERMINATED = getErrorCodeValue(ErrorCodeSpace.PROC, 3)
+  PROC_TERMINATED = getErrorCodeValue(ErrorCodeSpace.PROC, 4)
 }
 
 export function getErrorNameByCode (errCode: ErrorCode): string {
@@ -106,4 +106,11 @@ export function getErrorSpaceByCode (errCode: ErrorCode): ErrorCodeSpace {
     throw new Error('No errorcode-space found for: ' + errCode);
   }
   return errorCodeSpace;
+}
+
+export function printUnhandledError (code: ErrorCode, message: string, nativeError?: Error): void {
+  console.error(`[⚡] Unhandled error (code ${code} = ${ErrorCode[code]}): ${message}`);
+  if (nativeError) {
+    console.error('[🛑] Inner exception thrown:', nativeError);
+  }
 }

@@ -1,9 +1,15 @@
 import { TwoDimArray, Nullable } from './common-types';
 
+declare let importScripts: (...paths: string[]) => void;
+
 // GENERIC FUNCTIONAL
 
 // eslint-disable-next-line no-void
 export const noop = () => void 0;
+
+export function isDef (val: any) {
+  return val !== undefined;
+}
 
 export function orNull<T> (val: T): Nullable<T> {
   return val || null;
@@ -29,7 +35,16 @@ export function orMin (val: any): number {
   return val || Number.MIN_VALUE;
 }
 
+export function isWorkerScope (): boolean {
+  return typeof importScripts !== 'undefined';
+}
+
 // ARRAY
+
+export function isArrayIndexRange<T> (arr: T[], index: number): boolean {
+  return Number.isInteger(index) &&
+    index < arr.length && index >= 0;
+}
 
 export function arrayLast<T> (arr: T[]): Nullable<T> {
   if (arr.length === 0) return null;
@@ -448,42 +463,4 @@ export function utf8StringToBuffer (str: string): ArrayBuffer {
     bufView[i] = str.charCodeAt(i);
   }
   return buf;
-}
-
-// BROWSER
-
-export function parseOptionsFromQueryString (
-  query: string = (window as any).location.search,
-  validProperties: string[] = null): {[property: string]: string} {
-  if (!query) {
-    return {};
-  }
-
-  if (!query.startsWith('?')) {
-    throw new Error('Malformed query string, should start with a `?`');
-  }
-
-  query = query.substring(1);
-  const queryTokens = query.split(/&|=/);
-
-  if (queryTokens.length % 2 !== 0) {
-    throw new Error('Invalid query string in URL, uneven amount of tokens');
-  }
-
-  const options = {};
-
-  let i = 0;
-  while (i <= queryTokens.length) {
-    if (validProperties) {
-      const validPropsIndex = validProperties.indexOf(queryTokens[i]);
-      if (validPropsIndex >= 0) {
-        options[validProperties[validPropsIndex]] = queryTokens[i + 1];
-      }
-    } else if (queryTokens[i]) {
-      options[queryTokens[i]] = queryTokens[i + 1];
-    }
-    i = i + 2;
-  }
-
-  return options;
 }

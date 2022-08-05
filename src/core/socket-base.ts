@@ -11,22 +11,24 @@ import { PacketSymbol } from './packet-symbol';
 import { Nullable } from '../common-types';
 import { getLogger, LoggerLevel } from '../logger';
 import { setOnceTimer } from '../lib/timer';
+import { OutputSocket } from './socket-output';
 
 const { error } = getLogger('SocketBase', LoggerLevel.ERROR);
 
 export abstract class Socket extends EventEmitter<SocketEvent> implements SignalReceiver {
+  protected tap_: Nullable<SocketTap> = null;
+  protected owner_: SocketOwner = null;
+
   private type_: SocketType;
   private state_: SocketState;
   private descriptor_: SocketDescriptor;
+  private peerOut_: Nullable<OutputSocket> = null;
   private signalHandler_: Nullable<SignalHandler> = null;
 
   private isReady_: boolean = false;
   private isReadyArmed_: boolean = false;
 
   private latencyProbe_: Packet = null;
-
-  protected tap_: Nullable<SocketTap> = null;
-  protected owner: SocketOwner = null;
 
   constructor (type: SocketType, descriptor: SocketDescriptor) {
     super();
@@ -129,13 +131,13 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * Wraps transferSync in an async call and returns a promise
    * @param p
    */
-  transfer (p: Nullable<Packet>, async: boolean = true): Promise<boolean> {
+  transfer (p: Nullable<Packet>, async: boolean = true): void {
     // Q: could/should be in tranfer-sync method?
     this._emit(SocketEvent.ANY_PACKET_TRANSFERRING);
     if (async) {
-      return this.transferAsync_(p);
+      this.transferAsync_(p);
     } else {
-      return Promise.resolve(this.transferSync_(p));
+      this.transferSync_(p);
     }
   }
 
@@ -183,13 +185,24 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     return this.tap_;
   }
 
+  setPeer (peer: Nullable<OutputSocket> = null) {
+    if (this.peerOut_) {
+      throw new Error('Socket peer already set (unset to null explicitely first)');
+    }
+    this.peerOut_ = peer;
+  }
+
+  getPeer (): Nullable<OutputSocket> {
+    return this.peerOut_;
+  }
+
   setOwner (owner: SocketOwner): Socket {
-    this.owner = owner;
+    this.owner_ = owner;
     return this;
   }
 
   getOwner (): SocketOwner {
-    return this.owner;
+    return this.owner_;
   }
 
   emit (e: SocketEvent): boolean {
@@ -234,7 +247,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
     this.state_.transferring = b;
   }
 
-  protected abstract transferSync(p: Packet): boolean;
+  protected abstract transferSync(p: Packet): void;
 
   private handleWithTap_ (p: Packet): Nullable<Packet> {
     if (this.tap_ &&
@@ -255,7 +268,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
    * and thus no effective transfer took place, or that the data processing handler
    * is not set in some other way, or an error was thrown when processing.
    */
-  private transferSync_ (p: Packet): boolean {
+  private transferSync_ (p: Packet) {
     if (p === null) return;
     if (p.isSymbolic() && p.symbol === PacketSymbol.LATENCY_PROBE) {
       this.latencyProbe_ = p;
@@ -266,7 +279,7 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
       p = this.handleWithTap_(p);
       if (!p) return false;
     }
-    const res = this.transferSync(p);
+    this.transferSync(p);
 
     this._emit(SocketEvent.ANY_PACKET_TRANSFERRED);
     if (p.isSymbolic()) {
@@ -278,11 +291,9 @@ export abstract class Socket extends EventEmitter<SocketEvent> implements Signal
         break;
       }
     }
-
-    return res;
   }
 
-  private transferAsync_ (p: Packet): Promise<boolean> {
+  private transferAsync_ (p: Packet) {
     return new Promise((resolve, reject) => {
       setOnceTimer(() => {
         try {

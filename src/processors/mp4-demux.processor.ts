@@ -19,6 +19,8 @@ import { AudioAtom } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/helpers
 import { VideoAtom } from '../ext-mod/inspector.js/src/demuxer/mp4/atoms/helpers/video-atom';
 
 import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
+import { TrackType } from '../ext-mod/inspector.js/src/demuxer/track';
+import { c } from 'bowser';
 
 const { log, warn, error, debug } = getLogger('MP4DemuxProcessor', LoggerLevel.OFF, true);
 
@@ -94,16 +96,20 @@ export class MP4DemuxProcessor extends Processor {
 
           log('analyzing track with id:', trackId);
 
-          log(
-            'mime-type:', track.mimeType,
-            'id:', track.id,
-            'duration:', track.getDuration(),
-            'type:', track.type,
-            'timescale:', track.getTimescale());
-
-          if (track.isVideo()) {
-            log('video-track resolution:', track.getResolution());
+          if (!track.hasTimescale()) {
+            throw new Error(`Track type=${track.type} id=${track.id} timescale is not present (has not been set or determined on parsing). Can not proceed with processing frames timing info.`);
           }
+          const timescale = track.getTimescale();
+          const duration = track.getDuration();
+          const durationInSeconds = track.getDuration() / timescale;
+
+          log(
+            'id:', track.id,
+            'type:', track.type,
+            'mime-type:', track.mimeType,
+            'duration:', duration, '/', duration / timescale, '[s]',
+            'timescale:', timescale
+          );
 
           log('defaults:', track.getDefaults());
 
@@ -123,8 +129,10 @@ export class MP4DemuxProcessor extends Processor {
           const codecDataList: Uint8Array[] = [];
           let codecProfile: number = NaN;
 
-          if (track.isVideo()) {
+          if (track.type === TrackType.VIDEO) {
             log('video track found with id:', track.id);
+
+            log('resolution:', track.getResolution());
 
             // FIXME: support HEVC too
             const avcCList: AvcC[] = (<AvcC[]> track.getReferenceAtoms());
@@ -158,8 +166,7 @@ export class MP4DemuxProcessor extends Processor {
                 // framerate otherwise the sequence could not be decoded in real-time).
                 // FIXME: Thus the calculation could be wrong here in certain cases.
                 // NOTE: In principle, DTS could even also be anything that preserves decoding order unrelated to the PTS timeplane!
-                sampleRate = 1 / (track.getFrames()[1].getDecodingTimestampInSeconds() -
-                                    track.getFrames()[0].getDecodingTimestampInSeconds());
+                sampleRate = timescale / (track.getFrames()[1].dts - track.getFrames()[0].dts);
                 sampleRate = Math.round(sampleRate);
                 log('estimated FPS:', sampleRate);
               } else {
@@ -186,7 +193,7 @@ export class MP4DemuxProcessor extends Processor {
             console.log('pushing PPS data')
             output.transfer(Packet.fromSlice(BufferSlice.fromTypedArray(pps[0], initProps)));
             */
-          } else if (track.isAudio()) {
+          } else if (track.type === TrackType.AUDIO) {
             log('audio track found with id:', track.id);
 
             const audioAtom = <AudioAtom> track.getMetadataAtom();
@@ -231,15 +238,15 @@ export class MP4DemuxProcessor extends Processor {
             samplesCount
           );
 
-          protoProps.details.sequenceDurationInSeconds = track.getDurationInSeconds();
+          protoProps.details.sequenceDurationInSeconds = durationInSeconds;
 
-          if (track.isVideo()) {
+          if (track.type === TrackType.VIDEO) {
             protoProps.details.width = track.getResolution()[0];
             protoProps.details.height = track.getResolution()[1];
             protoProps.details.samplesPerFrame = 1;
             protoProps.details.codecProfile = codecProfile;
             protoProps.codec = 'avc';
-          } else if (track.isAudio()) {
+          } else if (track.type === TrackType.AUDIO) {
             // TODO: add audio object type (from ESDS DecoderConfigDescriptor)
             protoProps.details.numChannels = numChannels;
             protoProps.details.constantBitrate = constantBitrate;
@@ -252,7 +259,7 @@ export class MP4DemuxProcessor extends Processor {
             initProps.isBitstreamHeader = true;
             log('created/transferring codec data packet; flagged bitstream header');
             const initPacket = Packet.fromSlice(BufferSlice.fromTypedArray(codecData, initProps));
-            initPacket.setTimescale(track.getTimescale());
+            initPacket.setTimescale(timescale);
             output.transfer(initPacket);
           });
 
@@ -260,7 +267,10 @@ export class MP4DemuxProcessor extends Processor {
             let props = protoProps;
 
             if (frame.frameType === FRAME_TYPE.I) {
-              log('got idr-frame at:', frame.timeUs, '[us]');
+              log('got idr-frame at:',
+                frame.dts, '/',
+                frame.dts / timescale, '[s]');
+
               props = protoProps.clone();
               props.isKeyframe = true;
             }
@@ -274,11 +284,7 @@ export class MP4DemuxProcessor extends Processor {
             const p: Packet = Packet.fromSlice(frameSlice);
 
             // timestamps of this packet
-            p.timestamp = frame.scaledDecodingTime;
-            p.presentationTimeOffset = frame.scaledPresentationTimeOffset;
-            p.setTimescale(frame.timescale);
-
-            // log('timescale:', frame.timescale)
+            p.setTimingInfo(frame.dts, frame.cto, timescale);
 
             debug('pushing packet with:', frameSlice.toString());
 

@@ -1,6 +1,6 @@
 {
   "name": "@emliri/mmjs",
-  "version": "3.0.0-pre.1",
+  "version": "4.0.0",
   "description": "Multimedia streaming framework for browser and node",
   "keywords": [
     "multimedia",
@@ -30,8 +30,8 @@
     "vendor/ffmpeg.js"
   ],
   "engines": {
-    "node": ">=12 <=15",
-    "npm": "=7"
+    "node": ">=14 <=17",
+    "npm": ">=8"
   },
   "dependencies": {
     "bowser": "1.9.4",
@@ -60,14 +60,15 @@
     "ts-node": "9.1.1",
     "typescript": "4.3.2",
     "webpack": "5.38.0",
-    "webpack-cli": "4.7.0",
-    "worker-loader": "3.0.8"
+    "webpack-cli": "4.7.0"
   },
   "scripts": {
+    "postinstall": "cd src/ext-mod/aac.js && npm i",
     "build": "webpack --progress",
     "build-decls": "tsc --build ./tsconfig-decl-only.json && rm -rf dist/mmjs.umd.d.ts && cp dist/index.d.ts dist/mmjs.umd.d.ts",
     "build-watch": "cross-env DEBUG=1 npm run build -- --watch",
     "lint": "eslint *.js *.ts bin src test-cases --ext .ts --ext .js",
+    "lint-ext": "eslint *.js *.ts bin src/ext/inspector.js --ext .ts --ext .js",
     "lint-fix": "npm run lint -- --fix --quiet",
     "prepublishOnly": "npm test && make",
     "start": "cross-env NO_TYPES=1 NO_FRILLS=1 npm run build-watch",
