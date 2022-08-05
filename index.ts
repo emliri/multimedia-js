@@ -44,6 +44,7 @@ export * as SocketTaps from './src/socket-taps/index';
 export * as Crypto from './src/common-crypto';
 export * as H264Tools from './src/processors/h264/h264-tools';
 export * as AacUtils from './src/processors/aac/aac-utils';
+export * as AdtsUtils from './src/processors/aac/adts-utils';
 export * as Inspector from './src/ext-mod/inspector.js/src/index';
 
 export {

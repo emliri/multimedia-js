@@ -386,6 +386,15 @@ export function concatArrayBuffers (buffer1: ArrayBuffer, buffer2: ArrayBuffer):
 }
 
 /**
+ * Copies only the window that the view points to into a new buffer
+ * @param typedArray
+ * @returns A newly allocated ArrayBuffer
+ */
+ export function copyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
+  return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
+}
+
+/**
  * Concatenate the data slices from two ArrayBufferView objects
  * @param typedArray1
  * @param typedArray2
@@ -398,14 +407,29 @@ export function concatTypedArraySlice (typedArray1: ArrayBufferView, typedArray2
   return newBuffer;
 }
 
-/**
- * Copies only the window that the view points to into a new buffer
- * @param typedArray
- * @returns A newly allocated ArrayBuffer
- */
-export function copyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
-  return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
+export function getTypedArraySlicesLength(chunks: ArrayBufferView[]) {
+  return chunks.reduce((sumBytes, chunk) => (sumBytes + chunk.byteLength), 0)
 }
+
+export function copyUint8Slices(chunks: Uint8Array[], targetBuffer: Uint8Array = null): Uint8Array {
+  if (!targetBuffer) {
+    const totalSize = getTypedArraySlicesLength(chunks);
+    targetBuffer = new Uint8Array(totalSize);
+  }
+  let offset = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    if (offset >= targetBuffer.length) {
+      throw new Error('Target buffer to merge chunks in is too small');
+    }
+    targetBuffer.set(chunks[i], offset)
+
+    offset += chunks[i].byteLength;
+  }
+  return targetBuffer;
+}
+
+
+
 
 export function writeTypedArraySlice (typedArray: ArrayBufferView, dest: ArrayBuffer, offset?: number) {
   copyArrayBuffer(typedArray.buffer, dest, typedArray.byteLength, typedArray.byteOffset, offset);

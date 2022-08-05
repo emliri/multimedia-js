@@ -1,17 +1,3 @@
-export type ADTSHeaderInfo = {
-  headerLength: 7 | 9
-  frameLength: number
-  timestamp: number
-}
-
-export enum ADTS_PROFILE_MP4A_OBJECT_TYPE {
-  NULL = 0,
-  AAC_MAIN = 1,
-  AAC_LC = 2,
-  AAC_SSR = 3,
-  AAC_LTP = 4
-}
-
 export const AAC_SAMPLES_PER_FRAME = 1024;
 
 export const ADTS_SAMPLING_RATES_TABLE = [
@@ -30,7 +16,47 @@ export const ADTS_SAMPLING_RATES_TABLE = [
   7350
 ] as const;
 
-export function isAacADTSHeaderPattern (data: Uint8Array, offset: number): boolean {
+export enum ADTS_PROFILE_MP4A_OBJECT_TYPE {
+  NULL = 0,
+  AAC_MAIN = 1,
+  AAC_LC = 2,
+  AAC_SSR = 3,
+  AAC_LTP = 4
+}
+
+// todo add channel configs enum
+
+/**
+
+These are the channel configurations:
+
+    0: Defined in AOT Specifc Config
+    1: 1 channel: front-center
+    2: 2 channels: front-left, front-right
+    3: 3 channels: front-center, front-left, front-right
+    4: 4 channels: front-center, front-left, front-right, back-center
+    5: 5 channels: front-center, front-left, front-right, back-left, back-right
+    6: 6 channels: front-center, front-left, front-right, back-left, back-right, LFE-channel
+    7: 8 channels: front-center, front-left, front-right, side-left, side-right, back-left, back-right, LFE-channel
+    8-15: Reserved
+
+ */
+
+export function getADTSSamplingRateIndex(samplingRateHz: number): number {
+  const idx = ADTS_SAMPLING_RATES_TABLE.indexOf(samplingRateHz as any);
+  if (idx < 0) throw new Error('Invalid ADTS sampling-rate: ' + samplingRateHz);
+  return idx;
+}
+
+export function isADTSHeader (data: Uint8Array, offset: number): boolean {
+  if (offset + 1 < data.length && isADTSHeaderPattern(data, offset)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function isADTSHeaderPattern (data: Uint8Array, offset: number): boolean {
   // Look for ADTS header | 1111 1111 | 1111 X00X | where X can be either 0 or 1
   // Layer bits (position 14 and 15) in header should be always 0 for ADTS
   // More info https://wiki.multimedia.cx/index.php?title=ADTS
@@ -42,67 +68,54 @@ export function getADTSHeaderLength (data: Uint8Array, offset: number): 7 | 9 {
   return (data[offset + 1] & 0x01 ? 7 : 9);
 }
 
-export function getFullAACFrameLength (data: Uint8Array, offset: number): number {
-  return ((data[offset + 3] & 0x03) << 11) |
-          (data[offset + 4] << 3) |
-          ((data[offset + 5] & 0xE0) >>> 5);
-}
+/**
+ * @see https://wiki.multimedia.cx/index.php/ADTS
+ */
+export function makeADTSHeader(
+  profile: ADTS_PROFILE_MP4A_OBJECT_TYPE, // @see https://wiki.multimedia.cx/index.php/MPEG-4_Audio#Audio_Object_Types
+  samplingFrequencyIdx: number, // @see ADTS_SAMPLING_RATES_TABLE above
+  channelConfig: number, // @see https://wiki.multimedia.cx/index.php/MPEG-4_Audio#Channel_Configurations
+  payloadByteLength: number,
+  nbOfFrames: number = 1,
+  crcData: Uint8Array = null): Uint8Array {
 
-export function isADTSHeader (data: Uint8Array, offset: number): boolean {
-  if (offset + 1 < data.length && isAacADTSHeaderPattern(data, offset)) {
-    return true;
+  // todo: validate input values
+
+  const data = new Uint8Array(crcData ? 9 : 7);
+
+  data[0] = 0xFF; // sync word msbs
+  // sync word lsbs + protection-absent flag, is 1 for no CRC
+  data[1] = crcData ? 0xF00 : 0xF01;
+
+  data[2] = (profile - 1) << 6;
+
+  data[2] += (samplingFrequencyIdx << 2);
+
+  data[2] += (0b100 & channelConfig) >> 2;
+
+  data[3] = (channelConfig << 6);
+
+  // todo check result is below 0x1FFF
+  const frameLength = 0x1FFF & (payloadByteLength + data.byteLength);
+
+  // pre-masked to select 13-lsbs
+  data[3] += frameLength >> 11; // 13-12
+  data[4] = frameLength >> 2; // 11-4
+  data[5] = frameLength << 3; // 3-1
+
+  // data[5] bits 1-5 are msbs and
+  // data[6] bits 8-3 are lsbs of "buffer fullness" (11 bits).
+  // (yet unclear from spec what it should be, nobody needs that here?)
+
+  data[6] = 0b11 & (nbOfFrames - 1);
+
+  if (crcData) {
+    data[7] = crcData[0];
+    data[8] = crcData[1];
   }
 
-  return false;
+  return data;
 }
 
-export function probeAACByteStream (data, offset): boolean {
-  // same as isHeader but we also check that ADTS frame follows last ADTS frame
-  // or end of data is reached
-  if (offset + 1 < data.length && isAacADTSHeaderPattern(data, offset)) {
-    // ADTS header Length
-    const headerLength = getADTSHeaderLength(data, offset);
-    // ADTS frame Length
-    let frameLength = <number> headerLength;
-    if (offset + 5 < data.length) {
-      frameLength = getFullAACFrameLength(data, offset);
-    }
 
-    const newOffset = offset + frameLength;
-    if (newOffset === data.length || (newOffset + 1 < data.length && isAacADTSHeaderPattern(data, newOffset))) {
-      return true;
-    }
-  }
-  return false;
-}
 
-export function parseAacADTSHeaderInfo (
-  data: Uint8Array,
-  offset: number,
-  pts: number,
-  frameIndex: number,
-  frameDuration: number): ADTSHeaderInfo | null {
-  let headerLength;
-  let frameLength;
-  let timestamp;
-  const length = data.length;
-
-  // The protection skip bit tells us if we have 2 bytes of CRC data at the end of the ADTS header
-  headerLength = getADTSHeaderLength(data, offset);
-
-  // retrieve frame size
-  frameLength = getFullAACFrameLength(data, offset);
-  frameLength -= headerLength;
-
-  if ((frameLength > 0) && ((offset + headerLength + frameLength) <= length)) {
-    timestamp = pts + frameIndex * frameDuration;
-
-    return {
-      headerLength,
-      frameLength,
-      timestamp
-    };
-  }
-
-  return null;
-}
