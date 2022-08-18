@@ -9,7 +9,7 @@ import {
   CommonMimeTypes
 } from '../..';
 
-import { orInfinity } from '../common-utils';
+import { orInfinity, prntprtty } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
 
 import { mixinProcessorWithOptions } from '../core/processor';
@@ -20,14 +20,14 @@ import { SocketTapTimingRegulate } from '../socket-taps';
 import { Mpeg2TsSyncAdapter } from './mpeg2ts/mpeg2ts-sync-adapter';
 import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 
-import { Frame, Track } from '../ext-mod/inspector.js/src';
+import { Frame } from '../ext-mod/inspector.js/src';
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer';
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
 import { FRAME_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AdtsReader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/adts-reader';
 import { TrackType } from '../ext-mod/inspector.js/src/demuxer/track';
 
-const { warn } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
+const { warn, error } = getLogger('Mp2TsAnalyzerProc', LoggerLevel.OFF);
 
 const DEFAULT_PLAYOUT_REGULATION_POLL_MS = 200; // rougly the usual period
 // of PCR packets
@@ -123,7 +123,11 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     let spsPpsTimeDts: number;
     let audioRateHz: number;
 
+    // console.debug('appending packet:', mptsPktData.byteLength);
+
     this._tsParser.append(mptsPktData);
+
+    // console.debug(this._tsParser.tracks);
 
     Object.values(this._tsParser.tracks).forEach((track) => {
       // pops all frames of prior complete payload-units (until next PUSI)
@@ -166,65 +170,78 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
       }
     });
 
-    // pre-condition for code inside this if-block
+    const gotVideoPayload = vFrames?.length || gotAvcInitData;
+    const gotAudioPayload = aFrames?.length;
+    // pre-condition for code inside this block
     // is that at least one of the tracks has >= 1 frames.
     // either frames list can be undefined if there is no respective a/v track.
-    if (aFrames?.length || vFrames?.length || gotAvcInitData) {
-      const firstDtsA = orInfinity(aFrames?.length && aFrames[0].dts);
-      const firstDtsV = orInfinity(vFrames?.length && vFrames[0].dts);
-      let firstDts = Math.min(
-        firstDtsA,
-        firstDtsV,
-        orInfinity(spsPpsTimeDts) // will only be defined if there were no video frames to get timing from.
-      );
-
-      // this is needed to handle timeUs = 0.
-      // based on the preconditions here
-      // firstPtsUs = Infinity can only result
-      // when one or more of the tracks first frame PTS = 0.
-      if (firstDts === Infinity) firstDts = 0;
-
-      let timeScale: number;
-
-      // we have this check here to assert in a specific mode
-      // of segmentation which is default now (see above on popFrames).
-      // but the above logic to gather first PTS
-      // of either composed lists of A/V frames is more generic
-      // and might thus be used for other future segmentation modes
-      // for example solely time-range based but not across PES / codecs.
-      // ATM we expect what the below assertions express only.
-      let codec4cc: string;
-      if (aFrames?.length && vFrames?.length) {
-        throw new Error('Expected to have only one type of frames in this PES segmentation mode');
-      } else if (aFrames?.length) {
-        codec4cc = CommonCodecFourCCs.mp4a;
-        timeScale = audioRateHz;
-      } else if (vFrames?.length || gotAvcInitData) {
-        codec4cc = CommonCodecFourCCs.avc1;
-        timeScale = MPEG_TS_TIMESCALE_HZ;
-      } else {
-        throw new Error('Expected either video or audio payload');
-      }
-
-      const parsedPktData = this._tsParser.prune();
-      if (!parsedPktData) {
-        throw new Error('Expected prune to return parsed data since new frames pop´d off before');
-      }
-
-      const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
-        .setTimingInfo(firstDts, 0, timeScale);
-
-      pkt.properties.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
-      pkt.properties.codec = codec4cc;
-
-      if (gotVideoKeyframe) {
-        pkt.properties.isKeyframe = true;
-      }
-      if (gotAvcInitData) {
-        pkt.properties.isBitstreamHeader = true;
-      }
-
-      this._timingRegulatorSock.transfer(pkt);
+    if (!(gotAudioPayload || gotVideoPayload)) {
+      return;
     }
+    // we have this check here to assert in a specific mode
+    // of segmentation which is default now (see above on popFrames).
+    // but the above logic to gather first PTS
+    // of either composed lists of A/V frames is more generic
+    // and might thus be used for other future segmentation modes
+    // for example solely time-range based but not across PES / codecs.
+    // ATM we expect what the below assertions express only.
+
+    if (gotAudioPayload && gotVideoPayload) {
+      const errMsg = `Expected to have only one type of frames in this PES segmentation mode.
+      Got audio: ${prntprtty(aFrames)}; video: ${prntprtty(vFrames)}`;
+      console.error(errMsg);
+      process.exit(1)
+      throw new Error(errMsg);
+    }
+
+    // pre-condition for code inside this block
+    // is that at least one of the tracks has >= 1 frames.
+    // either frames list can be undefined if there is no respective a/v track.
+    const firstDtsA = orInfinity(gotAudioPayload && aFrames[0].dts);
+    // spsPpsTimeDts will only be defined if there were no video frames to get timing from.
+    const firstDtsV = orInfinity(gotVideoPayload && (spsPpsTimeDts || vFrames[0].dts));
+    let firstDts = Math.min(
+      firstDtsA,
+      firstDtsV
+    );
+    // this is needed to handle timeUs = 0.
+    // based on the preconditions here
+    // firstPtsUs = Infinity can only result
+    // when one or more of the tracks first frame PTS = 0.
+    if (firstDts === Infinity) firstDts = 0;
+
+    let timeScale: number;
+
+    let codec4cc: string;
+    if (aFrames?.length) {
+      codec4cc = CommonCodecFourCCs.mp4a;
+      timeScale = audioRateHz;
+    } else if (vFrames?.length || gotAvcInitData) {
+      codec4cc = CommonCodecFourCCs.avc1;
+      timeScale = MPEG_TS_TIMESCALE_HZ;
+    } else {
+      throw new Error('Expected either video or audio payload');
+    }
+
+    const parsedPktData = this._tsParser.prune();
+    if (!parsedPktData) {
+      throw new Error('Expected prune to return parsed data since new frames pop´d off before');
+    }
+
+    const pkt = Packet.fromSlice(BufferSlice.fromTypedArray(parsedPktData))
+      .setTimingInfo(firstDts, 0, timeScale);
+
+    pkt.properties.mimeType = CommonMimeTypes.VIDEO_MPEGTS;
+    pkt.properties.codec = codec4cc;
+
+    if (gotVideoKeyframe) {
+      pkt.properties.isKeyframe = true;
+    }
+    if (gotAvcInitData) {
+      pkt.properties.isBitstreamHeader = true;
+    }
+
+    this._timingRegulatorSock.transfer(pkt);
+
   }
 }
