@@ -6,9 +6,7 @@ import { BufferSlice } from '../core/buffer';
 import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
-import { printNumberScaledAtDecimalOrder } from '../common-utils';
 import { getLogger, LoggerLevel } from '../logger';
-import { getPerfNow } from '../perf-ctx';
 
 import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
