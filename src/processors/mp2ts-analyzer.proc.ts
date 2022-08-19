@@ -189,8 +189,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     if (gotAudioPayload && gotVideoPayload) {
       const errMsg = `Expected to have only one type of frames in this PES segmentation mode.
       Got audio: ${prntprtty(aFrames)}; video: ${prntprtty(vFrames)}`;
-      console.error(errMsg);
-      process.exit(1)
       throw new Error(errMsg);
     }
 
