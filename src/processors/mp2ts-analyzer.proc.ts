@@ -123,15 +123,19 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     let spsPpsTimeDts: number;
     let audioRateHz: number;
 
-    // console.debug('appending packet:', mptsPktData.byteLength);
-
     this._tsParser.append(mptsPktData);
 
-    // console.debug(this._tsParser.tracks);
+    // console.debug("packet count:", this._tsParser.currentPacketCount);
 
     Object.values(this._tsParser.tracks).forEach((track) => {
+
+      // console.debug(track.id, track.mimeType, "read frames:", track.frames.length, track.frames)
+
       // pops all frames of prior complete payload-units (until next PUSI)
       const frames = track.popFrames();
+
+      // console.debug("complete frames popd:", frames.length, frames);
+
       // the fact that we pop all the tracks frames at this point
       // is related to the PES-type segmentation to which we default here below.
       // if we would want to run time-range segmentation across all PES
@@ -147,6 +151,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         gotVideoKeyframe = frames.some(frame => frame.frameType === FRAME_TYPE.I);
 
         const h264Reader = (<H264Reader> track.pes.payloadReader);
+
         // checking PUSI-count ensures we await end of any current payload-unit,
         // as we may have 0 frames popped but still an SPS/PPS parsed.
         // OR: sps/pps can also come in 1 PUSI with prior p-frame,
@@ -154,11 +159,12 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         // but frame count will be > 0.
         if ((h264Reader.getPusiCount() > 0 || vFrames.length) &&
           h264Reader.sps && h264Reader.pps) {
+          // set our flag
+          gotAvcInitData = true;
           spsPpsTimeDts = h264Reader.dts;
-          // reset the reader state
+          // reset the codec-data state
           h264Reader.sps = null;
           h264Reader.pps = false;
-          gotAvcInitData = true;
         }
 
         break;
@@ -178,6 +184,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     if (!(gotAudioPayload || gotVideoPayload)) {
       return;
     }
+
     // we have this check here to assert in a specific mode
     // of segmentation which is default now (see above on popFrames).
     // but the above logic to gather first PTS
@@ -185,10 +192,9 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     // and might thus be used for other future segmentation modes
     // for example solely time-range based but not across PES / codecs.
     // ATM we expect what the below assertions express only.
-
     if (gotAudioPayload && gotVideoPayload) {
       const errMsg = `Expected to have only one type of frames in this PES segmentation mode.
-      Got audio: ${prntprtty(aFrames)}; video: ${prntprtty(vFrames)}`;
+      Got audio: ${prntprtty(aFrames)} & video frames: ${prntprtty(vFrames)}`;
       throw new Error(errMsg);
     }
 
@@ -198,6 +204,8 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     const firstDtsA = orInfinity(gotAudioPayload && aFrames[0].dts);
     // spsPpsTimeDts will only be defined if there were no video frames to get timing from.
     const firstDtsV = orInfinity(gotVideoPayload && (spsPpsTimeDts || vFrames[0].dts));
+    // since we expect only either A or V frames, one will be = Infinity,
+    // thus using min here is just a trick to keep it all in one codepath.
     let firstDts = Math.min(
       firstDtsA,
       firstDtsV
@@ -209,12 +217,12 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     if (firstDts === Infinity) firstDts = 0;
 
     let timeScale: number;
-
     let codec4cc: string;
-    if (aFrames?.length) {
+
+    if (gotAudioPayload) {
       codec4cc = CommonCodecFourCCs.mp4a;
       timeScale = audioRateHz;
-    } else if (vFrames?.length || gotAvcInitData) {
+    } else if (gotVideoPayload) {
       codec4cc = CommonCodecFourCCs.avc1;
       timeScale = MPEG_TS_TIMESCALE_HZ;
     } else {
