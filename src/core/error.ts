@@ -13,6 +13,18 @@ export type ErrorInfoSpace<T extends ErrorCodeSpace> = ErrorInfo & {
   space: T
 }
 
+export function createErrorInfo (space: ErrorCodeSpace, code: ErrorCode, message: string,
+  innerError?: ErrorInfo, nativeError?: Error, customData?: any): ErrorInfo {
+  return {
+    space,
+    code,
+    message,
+    innerError,
+    nativeError,
+    customData
+  };
+}
+
 /**
  * Caution: This does a (recursive) shallow clone. May matter if you have custom data.
  * In case you want that actually copied, take care of it yourself
@@ -90,7 +102,8 @@ export enum ErrorCode {
   PROC_BAD_FORMAT = getErrorCodeValue(ErrorCodeSpace.PROC, 1),
   PROC_EARLY_EOS = getErrorCodeValue(ErrorCodeSpace.PROC, 2),
   PROC_INTERNAL = getErrorCodeValue(ErrorCodeSpace.PROC, 3),
-  PROC_TERMINATED = getErrorCodeValue(ErrorCodeSpace.PROC, 4)
+  PROC_TERMINATED = getErrorCodeValue(ErrorCodeSpace.PROC, 4),
+  PROC_CONSTRUCTOR = getErrorCodeValue(ErrorCodeSpace.PROC, 5),
 }
 
 export function getErrorNameByCode (errCode: ErrorCode): string {
