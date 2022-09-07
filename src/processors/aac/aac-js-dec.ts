@@ -91,7 +91,7 @@ export class AacJsDecoder {
   }
 
   onError (err: Error) {
-    throw new Error('AAC.js-decoder: error-event not handled');
+    throw new Error(`AAC.js-decoder: error-event not handled: ${err.message}`);
   }
 }
 
