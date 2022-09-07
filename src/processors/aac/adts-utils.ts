@@ -42,7 +42,7 @@ These are the channel configurations:
 
  */
 
-export function getADTSSamplingRateIndex(samplingRateHz: number): number {
+export function getADTSSamplingRateIndex (samplingRateHz: number): number {
   const idx = ADTS_SAMPLING_RATES_TABLE.indexOf(samplingRateHz as any);
   if (idx < 0) throw new Error('Invalid ADTS sampling-rate: ' + samplingRateHz);
   return idx;
@@ -71,14 +71,13 @@ export function getADTSHeaderLength (data: Uint8Array, offset: number): 7 | 9 {
 /**
  * @see https://wiki.multimedia.cx/index.php/ADTS
  */
-export function makeADTSHeader(
+export function makeADTSHeader (
   profile: ADTS_PROFILE_MP4A_OBJECT_TYPE, // @see https://wiki.multimedia.cx/index.php/MPEG-4_Audio#Audio_Object_Types
   samplingFrequencyIdx: number, // @see ADTS_SAMPLING_RATES_TABLE above
   channelConfig: number, // @see https://wiki.multimedia.cx/index.php/MPEG-4_Audio#Channel_Configurations
   payloadByteLength: number,
   nbOfFrames: number = 1,
   crcData: Uint8Array = null): Uint8Array {
-
   // todo: validate input values
 
   const data = new Uint8Array(crcData ? 9 : 7);
@@ -116,6 +115,3 @@ export function makeADTSHeader(
 
   return data;
 }
-
-
-

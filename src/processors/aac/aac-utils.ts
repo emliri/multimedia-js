@@ -48,5 +48,3 @@ export function allocNewSilentFrame (codec, channelCount) {
   }
   return null;
 }
-
-

@@ -390,7 +390,7 @@ export function concatArrayBuffers (buffer1: ArrayBuffer, buffer2: ArrayBuffer):
  * @param typedArray
  * @returns A newly allocated ArrayBuffer
  */
- export function copyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
+export function copyTypedArraySlice (typedArray: ArrayBufferView): ArrayBuffer {
   return copyToNewArrayBuffer(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
 }
 
@@ -407,11 +407,11 @@ export function concatTypedArraySlice (typedArray1: ArrayBufferView, typedArray2
   return newBuffer;
 }
 
-export function getTypedArraySlicesLength(chunks: ArrayBufferView[]) {
-  return chunks.reduce((sumBytes, chunk) => (sumBytes + chunk.byteLength), 0)
+export function getTypedArraySlicesLength (chunks: ArrayBufferView[]) {
+  return chunks.reduce((sumBytes, chunk) => (sumBytes + chunk.byteLength), 0);
 }
 
-export function copyUint8Slices(chunks: Uint8Array[], targetBuffer: Uint8Array = null): Uint8Array {
+export function copyUint8Slices (chunks: Uint8Array[], targetBuffer: Uint8Array = null): Uint8Array {
   if (!targetBuffer) {
     const totalSize = getTypedArraySlicesLength(chunks);
     targetBuffer = new Uint8Array(totalSize);
@@ -421,15 +421,12 @@ export function copyUint8Slices(chunks: Uint8Array[], targetBuffer: Uint8Array =
     if (offset >= targetBuffer.length) {
       throw new Error('Target buffer to merge chunks in is too small');
     }
-    targetBuffer.set(chunks[i], offset)
+    targetBuffer.set(chunks[i], offset);
 
     offset += chunks[i].byteLength;
   }
   return targetBuffer;
 }
-
-
-
 
 export function writeTypedArraySlice (typedArray: ArrayBufferView, dest: ArrayBuffer, offset?: number) {
   copyArrayBuffer(typedArray.buffer, dest, typedArray.byteLength, typedArray.byteOffset, offset);
