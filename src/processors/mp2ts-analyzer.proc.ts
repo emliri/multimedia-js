@@ -128,7 +128,6 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     // console.debug("packet count:", this._tsParser.currentPacketCount);
 
     Object.values(this._tsParser.tracks).forEach((track) => {
-
       // console.debug(track.id, track.mimeType, "read frames:", track.frames.length, track.frames)
 
       // pops all frames of prior complete payload-units (until next PUSI)
@@ -248,6 +247,5 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
     }
 
     this._timingRegulatorSock.transfer(pkt);
-
   }
 }
