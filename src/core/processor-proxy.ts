@@ -1,11 +1,12 @@
 import { getLogger, LoggerLevel } from '../logger';
 import { VoidCallback } from '../common-types';
 import { getEnvironmentVar, EnvironmentVar } from './env';
-import { printUnhandledError } from './error';
+import { createErrorInfo, ErrorCode, ErrorCodeSpace, printUnhandledError } from './error';
 import { InputSocket, SocketDescriptor, SocketType, Socket } from './socket';
 import { Packet, PacketSymbol } from './packet';
 import { createProcessorByName } from './processor-factory';
-import { Processor, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from './processor';
+import { Processor, ProcessorError, ProcessorEvent, ProcessorEventData, PROCESSOR_RPC_INVOKE_PACKET_HANDLER } from './processor';
+import { prntprtty } from '../common-utils';
 
 const { log, debug, warn, error } = getLogger('ProcessorProxy', LoggerLevel.ERROR);
 
@@ -253,7 +254,8 @@ export class ProcessorProxy extends Processor {
             processor: this,
             event: ProcessorEvent.ERROR,
             error: eventData.error
-          });
+          }
+          );
         // if we have no listeners, make sure the error is being seen
         } else {
           const { code, message, nativeError } = eventData.error;
@@ -263,12 +265,22 @@ export class ProcessorProxy extends Processor {
       }
     };
 
+    // Worker onerror fires upon assignment i.e just after new Worker();
+    // when e.g the module loading failed (bad URL etc).
+    // We want to differentiate this specific case from other errors
+    // in onWorkerError callback implemented here below:
+    let isProcProxyWorkerConstructed = false;
     const onWorkerError = (event: ErrorEvent) => {
-      this.emit(ProcessorEvent.ERROR, {
-        event: ProcessorEvent.ERROR,
-        processor: this,
-        socket: null
-      });
+      let message: string;
+      let code: ErrorCode = ErrorCode.PROC_GENERIC;
+      if (!isProcProxyWorkerConstructed) {
+        code = ErrorCode.PROC_CONSTRUCTOR;
+        message = 'A generic worker-thread error-event was fired during construction of ProcessorProxyWorker.';
+      } else {
+        message = 'A generic worker-thread error-event was fired (may as well be failure to load).';
+      }
+      this.emit(ProcessorEvent.ERROR,
+        this.createErrorEvent(code, message));
     };
 
     this._worker = new ProcessorProxyWorker(
@@ -279,6 +291,8 @@ export class ProcessorProxy extends Processor {
       onEvent,
       onWorkerError
     );
+
+    isProcProxyWorkerConstructed = true;
 
     // all these "commands" will get queued by the worker thread anyway, we don't need to worry about synchronization at this point
     this._worker.spawn(_importScriptPaths);
