@@ -7,6 +7,7 @@ import { BufferProperties } from '../core/buffer-props';
 import { CommonMimeTypes, CommonCodecFourCCs, MimetypePrefix } from '../core/payload-description';
 
 import { getLogger, LoggerLevel } from '../logger';
+import { prntprtty } from '../common-utils';
 
 import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
 import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
@@ -72,7 +73,7 @@ export class Mp2TsDemuxProc2 extends Processor {
   }
 
   private _onPmtUpdated () {
-    log('PMT updated, new stream-types mapping:', this._tsParser.tracks);
+    log('PMT updated, new stream-types mapping:', prntprtty(this._tsParser.tracks));
 
     if (!this._gotFirstPmt) {
       this._gotFirstPmt = true;
