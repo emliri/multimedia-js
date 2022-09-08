@@ -81,7 +81,7 @@ export class Mp2TsAnalyzerProc extends Mp2TsAnalyzerProcOptsMixin {
         .connect(this.out[0]);
 
     this._tsParser.onProgramMapUpdate = () => {
-      // console.log('got PMT')
+      //console.log('got PMT', prntprtty(this._tsParser.tracks))
     };
   }
 
