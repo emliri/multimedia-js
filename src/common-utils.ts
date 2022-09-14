@@ -167,6 +167,17 @@ export function printNumberScaledAtDecimalOrder (value: number, order: number = 
 
 // OBJECTS / HASHING
 
+export function objectClone<T extends Object>(srcObj: T) {
+  return { ... srcObj };
+}
+
+/**
+ * Type-safe Object.assign wrapper.
+ */
+export function objectAssign<T extends Object> (object: Partial<T>, ...sources: Nullable<Partial<T>>[]): Partial<T> {
+  return Object.assign(object, ...sources);
+}
+
 /**
  * Credits & copyright: @see Lodash.defaults
  *
@@ -207,28 +218,6 @@ export function objectApplyDefaults<T extends Object> (object: Partial<T>, ...so
     }
   });
   return object as T;
-}
-
-/**
- * Slight variation on `defaults` above, just overriding any property,
- * very much like Object.assign, but with better type-declaration.
- */
-export function objectAssign<T> (object: Partial<T>, ...sources: Nullable<Partial<T>>[]): Partial<T> {
-  return Object.assign(object, ...sources);
-  // Lodash-like implementation (using Object.assign is likely more performant)
-  /*
-  const objectProto: Partial<T> = <T> Object.prototype;
-  object = Object(object);
-  sources.forEach((source) => {
-    if (source != null) {
-      source = Object(source);
-      for (const key in source) {
-        object[key] = source[key];
-      }
-    }
-  })
-  return object as T
-  */
 }
 
 /**
