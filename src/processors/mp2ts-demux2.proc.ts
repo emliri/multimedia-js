@@ -34,6 +34,8 @@ const getSocketDescriptor: SocketTemplateGenerator =
       'application/unknown') // output
   );
 
+const ENABLE_AUDIO_PTS_ERROR_COMPENSATION = false;
+
 export class Mp2TsDemuxProc2 extends Processor {
   static getName (): string {
     return 'Mp2TsDemuxProc2';
@@ -43,6 +45,9 @@ export class Mp2TsDemuxProc2 extends Processor {
 
   private _audioSocket: OutputSocket = null;
   private _videoSocket: OutputSocket = null;
+
+  private _lastAudioDts: number = NaN;
+  private _lastVideoDts: number = NaN;
 
   private _pendingVideoPkt: Packet = null;
   private _gotFirstSps = false;
@@ -106,10 +111,12 @@ export class Mp2TsDemuxProc2 extends Processor {
   private _onAudioPayload (track: TSTrack, data: Uint8Array, dts: number) {
     const payloadReader = track.pes.payloadReader as AdtsReader;
 
+    const sampleRate = payloadReader.currentSampleRate;
+
     const bufferSlice = BufferSlice.fromTypedArray(
       data,
       new BufferProperties(CommonMimeTypes.AUDIO_AAC,
-        payloadReader.currentSampleRate, // Hz
+        sampleRate, // Hz
         16, // audio bitdepth (should always be this with AAC)
         1 // sample-duration numerator
       )
@@ -124,6 +131,19 @@ export class Mp2TsDemuxProc2 extends Processor {
 
     // extract payload-specific info
     const { numFrames, aacObjectType, channels } = payloadReader.currentFrameInfo;
+
+    if (ENABLE_AUDIO_PTS_ERROR_COMPENSATION) {
+      const dtsDiff = dts - this._lastAudioDts;
+      if (Number.isFinite(dtsDiff)) {
+        const expectedContinuousDiff = numFrames * AAC_SAMPLES_PER_FRAME;
+        const continuityErr = dtsDiff - expectedContinuousDiff;
+        if (continuityErr != 0) {
+          warn(`Correcting audio DTS timing continuity-error of ${continuityErr} samples; ${continuityErr / sampleRate} secs`);
+          dts -= continuityErr;
+        }
+      }
+    }
+
     bufferSlice.props.details.samplesPerFrame = numFrames * AAC_SAMPLES_PER_FRAME;
     bufferSlice.props.details.codecProfile = aacObjectType;
     bufferSlice.props.details.numChannels = channels;
@@ -137,6 +157,7 @@ export class Mp2TsDemuxProc2 extends Processor {
     const packet = Packet.fromSlice(bufferSlice)
       .setTimingInfo(dts, 0, timeScale);
 
+    this._lastAudioDts = dts;
     this._audioSocket.transfer(packet);
   }
 
@@ -205,6 +226,8 @@ export class Mp2TsDemuxProc2 extends Processor {
       const packet = Packet
         .fromSlice(BufferSlice.fromTypedArray(data, props))
         .setTimingInfo(dts, cto, MPEG_TS_TIMESCALE_HZ);
+
+      this._lastVideoDts = packet.timestamp;
       this._videoSocket.transfer(packet);
       return;
     }
@@ -224,6 +247,7 @@ export class Mp2TsDemuxProc2 extends Processor {
     }
 
     if (isAud) {
+      this._lastVideoDts = this._pendingVideoPkt.timestamp;
       this._videoSocket.transfer(this._pendingVideoPkt);
       this._pendingVideoPkt = null;
     }
