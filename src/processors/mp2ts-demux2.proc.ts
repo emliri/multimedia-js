@@ -138,7 +138,11 @@ export class Mp2TsDemuxProc2 extends Processor {
       if (Number.isFinite(dtsDiff)) {
         const expectedContinuousDiff = numFrames * AAC_SAMPLES_PER_FRAME;
         const continuityErr = dtsDiff - expectedContinuousDiff;
-        if (continuityErr != 0) {
+        if (continuityErr !== 0 &&
+          // if the abs error exceeds the expected delta of 2 packets
+          // (length based of nb of AAC frames given),
+          // then we assume this is an actual gap ie source discont and not an error.
+          Math.abs(continuityErr) <= expectedContinuousDiff) {
           warn(`Correcting audio DTS timing continuity-error of ${continuityErr} samples; ${continuityErr / sampleRate} secs`);
           dts -= continuityErr;
         }
