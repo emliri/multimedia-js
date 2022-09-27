@@ -167,8 +167,8 @@ export function printNumberScaledAtDecimalOrder (value: number, order: number = 
 
 // OBJECTS / HASHING
 
-export function objectClone<T extends Object>(srcObj: T) {
-  return { ... srcObj };
+export function objectClone<T extends Object> (srcObj: T) {
+  return { ...srcObj };
 }
 
 /**
