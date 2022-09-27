@@ -10,9 +10,6 @@ import { getLogger, LoggerLevel } from '../logger';
 import { prntprtty } from '../common-utils';
 
 import { MPEG_TS_TIMESCALE_HZ } from './mpeg2ts/mpeg2ts-utils';
-import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
-
-import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
 
 import { MpegTSDemuxer } from '../ext-mod/inspector.js/src/demuxer/ts/mpegts-demuxer';
 import { H264Reader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/h264-reader';
@@ -21,6 +18,10 @@ import { TSTrack } from '../ext-mod/inspector.js/src';
 import { NAL_UNIT_TYPE } from '../ext-mod/inspector.js/src/codecs/h264/nal-units';
 import { AdtsReader } from '../ext-mod/inspector.js/src/demuxer/ts/payload/adts-reader';
 import { AAC_SAMPLES_PER_FRAME } from './aac/adts-utils';
+
+import { H264ParameterSetParser } from '../ext-mod/inspector.js/src/codecs/h264/param-set-parser';
+
+import { debugNALU, H264NaluType, parseNALU } from './h264/h264-tools';
 
 const { debug, log, info, warn } = getLogger('Mp2TsDemuxProc2', LoggerLevel.OFF, true);
 
